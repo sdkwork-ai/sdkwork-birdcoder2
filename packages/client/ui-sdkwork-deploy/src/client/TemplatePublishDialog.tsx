@@ -22,7 +22,6 @@ import {
 import { templateAppTypeOption, type TemplateAppTypeOption } from './templateAppTypes.ts'
 import {
   planTemplatePublications,
-  platformAppKind,
   publishTemplateApp,
   type OwnedPlatformApp,
   type OwnedTemplate,
@@ -80,7 +79,7 @@ interface PublishCatalog {
 export function TemplatePublishDialog({
   host, clients, theme, t, directory, currentUser, startSignIn, onClose, onPublished,
 }: TemplatePublishDialogProps) {
-  const [publishStep, setPublishStep] = useState<1 | 2 | 3>(1)
+  const [publishStep, setPublishStep] = useState<1 | 2>(1)
   const [sourceMode, setSourceMode] = useState<'apps' | 'custom'>('apps')
   const [customInspection, setCustomInspection] = useState<CustomTemplateAppInspection | undefined>(undefined)
   const [customLoading, setCustomLoading] = useState(false)
@@ -91,7 +90,7 @@ export function TemplatePublishDialog({
   const [catalog, setCatalog] = useState<PublishCatalog | undefined>(undefined)
   const [catalogError, setCatalogError] = useState<string | undefined>(undefined)
   const [catalogRevision, setCatalogRevision] = useState(0)
-  const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set())
+  const [selectedDirectory, setSelectedDirectory] = useState<string | undefined>(undefined)
   const [valueOverrides, setValueOverrides] = useState<Readonly<Record<string, Partial<TemplateAppValues>>>>({})
   const [categoryUuid, setCategoryUuid] = useState('')
   const [visibility, setVisibility] = useState<'PRIVATE' | 'PUBLIC'>('PRIVATE')
@@ -198,12 +197,7 @@ export function TemplatePublishDialog({
   const activeCandidates = sourceMode === 'custom'
     ? customApp === undefined ? [] : [customApp]
     : scan?.apps ?? []
-  const activeSelected = useMemo(
-    () => sourceMode === 'custom'
-      ? new Set(customApp === undefined ? [] : [customApp.directory])
-      : selected,
-    [sourceMode, customApp, selected],
-  )
+  const activeSelection = sourceMode === 'custom' ? customApp?.directory : selectedDirectory
   const plans = useMemo(() => {
     const versions: Readonly<Record<string, string | undefined>> = latestVersions
     const templates = (catalog?.templates ?? []).map(template =>
@@ -219,27 +213,15 @@ export function TemplatePublishDialog({
     ...valueOverrides[plan.candidate.directory],
   })
 
-  const selectedPlans = plans.filter(plan => activeSelected.has(plan.candidate.directory))
+  const selectedPlan = plans.find(plan => plan.candidate.directory === activeSelection)
   const settings: TemplatePublishSettings = {
     categoryUuid,
     visibility,
     submitForReview: visibility === 'PUBLIC' && submitForReview,
   }
 
-  const toggle = (candidateDirectory: string): void => {
-    setSelected((current) => {
-      const next = new Set(current)
-      if (next.has(candidateDirectory)) next.delete(candidateDirectory)
-      else next.add(candidateDirectory)
-      return next
-    })
-  }
-
-  const selectAll = (): void => {
-    setSelected(new Set(plans
-      .filter(plan => plan.conflict === undefined
-        && (plan.platformApp !== undefined || platformAppKind(plan.candidate) !== undefined))
-      .map(plan => plan.candidate.directory)))
+  const select = (candidateDirectory: string): void => {
+    setSelectedDirectory(candidateDirectory)
   }
 
   const changeValues = (candidateDirectory: string, patch: Partial<TemplateAppValues>): void => {
@@ -301,58 +283,43 @@ export function TemplatePublishDialog({
       : { ...current, candidate: withCustomAppType(current.candidate, option) })
   }
 
-  const startPublish = async (onlyFailed = false): Promise<void> => {
-    const targets = onlyFailed
-      ? selectedPlans.filter(plan => runs[plan.candidate.directory]?.phase === 'failed')
-      : selectedPlans
-    if (publishing || targets.length === 0) return
-    setPublishStep(3)
+  const startPublish = async (): Promise<void> => {
+    if (publishing || selectedPlan === undefined) return
+    const plan = selectedPlan
+    const candidateDirectory = plan.candidate.directory
     setPublishing(true)
     setSummary(undefined)
-    // A retry keeps the rows that already succeeded; a fresh run starts clean.
-    if (!onlyFailed) setRuns({})
+    setRuns({ [candidateDirectory]: { phase: 'running', detail: t('templateCenter.row.pending') } })
     const ports = createTemplatePublishPorts(clients, host)
     let created = 0
     let updated = 0
     let failed = 0
-    for (const plan of targets) {
-      const candidateDirectory = plan.candidate.directory
-      setRuns(current => ({
-        ...current,
-        [candidateDirectory]: { phase: 'running', detail: t('templateCenter.row.pending') },
-      }))
-      try {
-        const outcome = await publishTemplateApp(ports, {
-          plan,
-          values: valuesOf(plan),
-          settings,
-          onStage: (stage) => {
-            setRuns(current => ({
-              ...current,
-              [candidateDirectory]: runStateOf(stage, t),
-            }))
-          },
-        })
-        if (outcome.createdTemplate) created += 1
-        else updated += 1
-        setRuns(current => ({
-          ...current,
-          [candidateDirectory]: {
-            phase: 'done',
-            detail: t('templateCenter.row.done', { version: outcome.version }),
-            ...(outcome.warnings.length === 0 ? {} : { warnings: outcome.warnings }),
-          },
-        }))
-      } catch (cause: unknown) {
-        failed += 1
-        setRuns(current => ({
-          ...current,
-          [candidateDirectory]: {
-            phase: 'failed',
-            detail: t('templateCenter.row.failed', { message: messageOf(cause) }),
-          },
-        }))
-      }
+    try {
+      const outcome = await publishTemplateApp(ports, {
+        plan,
+        values: valuesOf(plan),
+        settings,
+        onStage: (stage) => {
+          setRuns({ [candidateDirectory]: runStateOf(stage, t) })
+        },
+      })
+      if (outcome.createdTemplate) created = 1
+      else updated = 1
+      setRuns({
+        [candidateDirectory]: {
+          phase: 'done',
+          detail: t('templateCenter.row.done', { version: outcome.version }),
+          ...(outcome.warnings.length === 0 ? {} : { warnings: outcome.warnings }),
+        },
+      })
+    } catch (cause: unknown) {
+      failed = 1
+      setRuns({
+        [candidateDirectory]: {
+          phase: 'failed',
+          detail: t('templateCenter.row.failed', { message: messageOf(cause) }),
+        },
+      })
     }
     setPublishing(false)
     setSummary({ created, updated, failed })
@@ -362,7 +329,10 @@ export function TemplatePublishDialog({
 
   const resetPublishWizard = (): void => {
     setPublishStep(1)
-    setSelected(new Set())
+    setSourceMode('apps')
+    setSelectedDirectory(undefined)
+    setCustomInspection(undefined)
+    setCustomError(undefined)
     setValueOverrides({})
     setRuns({})
     setSummary(undefined)
@@ -411,7 +381,7 @@ export function TemplatePublishDialog({
           categoryUuid={categoryUuid}
           visibility={visibility}
           submitForReview={submitForReview}
-          selected={activeSelected}
+          selectedDirectory={activeSelection}
           sourceMode={sourceMode}
           customApp={customApp}
           customInspection={customInspection}
@@ -428,9 +398,7 @@ export function TemplatePublishDialog({
           onRescanCustom={() => { void rescanCustomDirectory() }}
           onClearCustom={clearCustomDirectory}
           onCustomTypeChange={changeCustomType}
-          onToggle={toggle}
-          onSelectAll={selectAll}
-          onClear={() => { setSelected(new Set()) }}
+          onSelect={select}
           onValuesChange={changeValues}
           onCategoryChange={setCategoryUuid}
           onVisibilityChange={(next) => {
@@ -445,7 +413,7 @@ export function TemplatePublishDialog({
             setSummary(undefined)
             setRuns({})
           }}
-          onPublish={(onlyFailed) => { void startPublish(onlyFailed) }}
+          onPublish={() => { void startPublish() }}
           onReset={resetPublishWizard}
           onClose={onClose}
         />

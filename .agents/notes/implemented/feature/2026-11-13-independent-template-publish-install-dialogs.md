@@ -12,10 +12,10 @@ The first template-center implementation put publication and installation in one
 
 Publish and install are two dialogs, two flows, and two optional service methods.
 
-- `deployPublish.openPublishTemplate({ defaultDirectory })` mounts `PublishTemplateFlow` → `TemplatePublishDialog`. The dialog owns the app/custom directory scan, platform-app and template dedupe, the three-stage wizard, the per-row publish run, and the publish result ledger. It imports no install module.
+- `deployPublish.openPublishTemplate({ defaultDirectory })` mounts `PublishTemplateFlow` → `TemplatePublishDialog`. The dialog owns the app/custom directory scan, platform-app and template dedupe, the two-stage single-app wizard, and its one publish run with the result shown inline. It imports no install module.
 - `deployPublish.openInstallTemplate({ defaultDirectory })` mounts `InstallTemplateFlow` → `TemplateInstallDialog` → `TemplateInstallPanel`. The dialog owns only its sign-in/frame wiring; the panel owns the template/market catalog, target selection, install run, and per-row install feedback. It imports no publish module.
 - The row menu advertises each action only when its own service method exists (`openPublishTemplate` for 发布为模板, `openInstallTemplate` for 从模板安装), so a composition can provide one without the other.
-- The publish result ledger no longer offers a "go install" switch. Installation is reached from its own row action, not as a mode of the publish surface.
+- The publish result view no longer offers a "go install" switch. Installation is reached from its own row action, not as a mode of the publish surface.
 
 The two dialogs share exactly two lower-level pieces:
 
@@ -41,7 +41,7 @@ The two dialogs share exactly two lower-level pieces:
 
 ## Verification
 
-- `template-publish-dialog.client.spec.tsx` pins the publish-only dialog: no install tab, no install text, the publish run, the custom-directory path, manual type override, retry, and reset.
+- `template-publish-dialog.client.spec.tsx` pins the publish-only dialog: no install tab, no install text, radio single-selection across two apps, the two-stage single run, the custom-directory path, manual type override, retry, and reset.
 - `template-install-dialog.client.spec.tsx` pins an install-only dialog title and sign-in gate with no publish chrome.
 - `template-install-panel.client.spec.tsx` drives the real install chain over stub clients; the publish dialog tests never mount the install panel.
 - `publish-template-flow.client.spec.tsx` pins the publish flow's late IAM hydration and title.

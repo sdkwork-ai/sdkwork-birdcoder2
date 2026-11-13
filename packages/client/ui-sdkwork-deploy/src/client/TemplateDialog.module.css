@@ -1378,7 +1378,7 @@ textarea.input {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: 999px;
   border: 1px solid var(--pda-border, #d8dee8);
   background: var(--pda-surface, #ffffff);
   color: transparent;
@@ -1427,6 +1427,121 @@ textarea.input {
 .selectMeta .selectPlatform::before {
   content: '·';
   margin-right: 8px;
+  color: var(--pda-ink-faint, #8a94a6);
+}
+
+.singleLayout {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.singleSummary {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--pda-border, #d8dee8);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(79, 140, 255, 0.06), transparent 62%),
+    var(--pda-surface, #ffffff);
+}
+
+.summaryHeader {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.summaryIdentity {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.summaryName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pda-ink, #1c2430);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.summaryKey {
+  font-size: 10px;
+  color: var(--pda-ink-faint, #8a94a6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.summaryBadges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.summaryMeta {
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--pda-ink-faint, #8a94a6);
+  overflow-wrap: anywhere;
+}
+
+.summaryPath {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-family: var(--dsh-code-font-family, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--pda-ink-faint, #8a94a6);
+  overflow-wrap: anywhere;
+}
+
+.outcomePanel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  max-width: 720px;
+  width: 100%;
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 8px 0 24px;
+}
+
+.outcomeIdentity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid var(--pda-border, #d8dee8);
+  border-radius: 10px;
+  background: var(--pda-surface, #ffffff);
+}
+
+.outcomeProgress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.outcomeHint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
   color: var(--pda-ink-faint, #8a94a6);
 }
 
@@ -2091,8 +2206,13 @@ textarea.input {
   .appGrid,
   .formLayout,
   .formGrid,
-  .settingsGrid {
+  .settingsGrid,
+  .singleLayout {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .singleSummary {
+    position: static;
   }
 
   .fieldWide {

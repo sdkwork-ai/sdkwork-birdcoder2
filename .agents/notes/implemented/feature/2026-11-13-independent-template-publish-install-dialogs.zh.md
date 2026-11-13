@@ -12,10 +12,10 @@ Status: implemented
 
 发布与安装成为两个弹窗、两个流程和两个可选服务方法。
 
-- `deployPublish.openPublishTemplate({ defaultDirectory })` 挂载 `PublishTemplateFlow` → `TemplatePublishDialog`。弹窗持有应用/自定义目录扫描、平台应用与模板去重、三步向导、逐行发布运行和发布结果账本；不导入任何安装模块。
+- `deployPublish.openPublishTemplate({ defaultDirectory })` 挂载 `PublishTemplateFlow` → `TemplatePublishDialog`。弹窗持有应用/自定义目录扫描、平台应用与模板去重、两步单应用向导，以及页内展示结果的单次发布运行；不导入任何安装模块。
 - `deployPublish.openInstallTemplate({ defaultDirectory })` 挂载 `InstallTemplateFlow` → `TemplateInstallDialog` → `TemplateInstallPanel`。弹窗只负责登录/外壳接线；面板持有我的模板/市场目录、目标选择、安装运行与逐行安装反馈；不导入任何发布模块。
 - 行菜单只在对应服务方法存在时展示对应动作（`openPublishTemplate` → 发布为模板，`openInstallTemplate` → 从模板安装），组合可以只提供其中一个。
-- 发布结果账本不再提供「去安装」切换。安装从自己的行菜单动作进入，而不是发布表面的一种模式。
+- 发布结果视图不再提供「去安装」切换。安装从自己的行菜单动作进入，而不是发布表面的一种模式。
 
 两个弹窗只共享两个下层部件：
 
@@ -41,7 +41,7 @@ Status: implemented
 
 ## Verification
 
-- `template-publish-dialog.client.spec.tsx` 固定仅发布弹窗：没有安装页签与安装文案，覆盖发布运行、自定义目录、手动类型、重试与重置。
+- `template-publish-dialog.client.spec.tsx` 固定仅发布弹窗：没有安装页签与安装文案，覆盖两个应用间的单选框单选、两步单次发布、自定义目录、手动类型、重试与重置。
 - `template-install-dialog.client.spec.tsx` 固定仅安装弹窗的标题与登录门，不出现发布表面。
 - `template-install-panel.client.spec.tsx` 用桩客户端驱动真实安装链；发布弹窗测试从不挂载安装面板。
 - `publish-template-flow.client.spec.tsx` 固定发布流程的 IAM 迟到水合与标题。

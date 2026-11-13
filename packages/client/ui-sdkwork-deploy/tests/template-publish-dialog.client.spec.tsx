@@ -20,6 +20,14 @@ const MANIFEST = JSON.stringify({
   publish: { platforms: ['H5'] },
 })
 
+const PC_MANIFEST = JSON.stringify({
+  schemaVersion: 3,
+  kind: 'agent.app',
+  app: { key: 'sdkwork-demo-pc', name: 'Demo PC', displayName: '演示 PC', appType: 'APP_REACT' },
+  runtime: { family: 'desktop', framework: 'react' },
+  publish: { platforms: ['PC'] },
+})
+
 /** Stub publish ports shared by the mocked adapter module. */
 const state = vi.hoisted(() => ({
   apps: [{ id: 'app-1', name: '演示 H5', slug: 'sdkwork-demo-h5', appKind: 'SPA_WEB' }],
@@ -89,12 +97,17 @@ function stubHost(): DeployHost {
   const files = new Map<string, string>([
     ['/proj/apps/sdkwork-demo-h5/agent.app.config.json', MANIFEST],
     ['/proj/apps/sdkwork-demo-h5/package.json', JSON.stringify({ version: '1.2.3' })],
+    ['/proj/apps/sdkwork-demo-pc/agent.app.config.json', PC_MANIFEST],
+    ['/proj/apps/sdkwork-demo-pc/package.json', JSON.stringify({ version: '3.0.0' })],
   ])
   return {
     listDirectory: async (path?: string) => ({
       path: path ?? '',
       entries: (path ?? '') === '/proj/apps'
-        ? [{ name: 'sdkwork-demo-h5', path: '/proj/apps/sdkwork-demo-h5', hidden: false }]
+        ? [
+          { name: 'sdkwork-demo-h5', path: '/proj/apps/sdkwork-demo-h5', hidden: false },
+          { name: 'sdkwork-demo-pc', path: '/proj/apps/sdkwork-demo-pc', hidden: false },
+        ]
         : [],
     }),
     readTextFile: async (path: string) => files.get(path),
@@ -197,14 +210,23 @@ describe('TemplatePublishDialog publish run', () => {
     expect(container?.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('发布为模板')
     expect(container?.textContent).not.toContain('从模板安装')
     expect(container?.textContent).toContain('演示 H5')
-    expect(container?.textContent).toContain('已选 0 / 1 个应用')
+    expect(container?.textContent).toContain('尚未选择应用')
 
-    const checkbox = container?.querySelector('input[type="checkbox"]') as HTMLInputElement
-    await act(async () => { checkbox.click() })
-    expect(container?.textContent).toContain('已选 1 / 1 个应用')
+    const radios = [...(container?.querySelectorAll('input[type="radio"]') ?? [])]
+    expect(radios.length).toBe(2)
+    expect(container?.querySelectorAll('input[type="checkbox"]').length).toBe(0)
+    expect(container?.textContent).not.toContain('全选')
+    await act(async () => { radios[0]?.click() })
+    expect(radios[0]?.checked).toBe(true)
+    await act(async () => { radios[1]?.click() })
+    expect(radios[0]?.checked).toBe(false)
+    expect(radios[1]?.checked).toBe(true)
+    await act(async () => { radios[0]?.click() })
+    expect(radios[0]?.checked).toBe(true)
+    expect(radios[1]?.checked).toBe(false)
 
-    await click('下一步：填写发布信息')
-    expect(container?.textContent).toContain('填写发布信息')
+    await click('下一步：填写并发布')
+    expect(container?.textContent).toContain('确认发布信息')
     expect(container?.textContent).toContain('发布设置')
 
     const versionInput = [...(container?.querySelectorAll('input') ?? [])]
@@ -216,38 +238,36 @@ describe('TemplatePublishDialog publish run', () => {
     })
     expect(container?.textContent).toContain('请使用 1.2.3 形式的语义版本')
     const disabledPublish = [...(container?.querySelectorAll('button') ?? [])]
-      .find(candidate => candidate.textContent?.includes('发布 1 个模板'))
+      .find(candidate => candidate.textContent?.includes('发布模板'))
     expect(disabledPublish?.disabled).toBe(true)
     await act(async () => {
       setValue?.call(versionInput, '0.1.0')
       versionInput.dispatchEvent(new Event('input', { bubbles: true }))
     })
 
-    await click('发布 1 个模板')
+    await click('发布模板')
     expect(container?.textContent).toContain('发布完成')
     expect(container?.textContent).toContain('本次新建 1 个、更新 0 个模板')
     expect(state.calls.createTemplate).toBe(1)
     expect(state.calls.packApp).toBe(1)
     expect(state.calls.uploadArchive).toBe(1)
-    expect(container?.textContent).toContain('已发布')
 
-    await click('再发布一批')
-    expect(container?.textContent).toContain('已选 0 / 1 个应用')
-    expect(container?.textContent).toContain('步骤 1 / 3')
+    await click('再发布一个')
+    expect(container?.textContent).toContain('尚未选择应用')
+    expect(container?.textContent).toContain('步骤 1 / 2')
   }, 30000)
 
-  it('keeps a failed row visible with its localized error and no summary success', async () => {
+  it('keeps a failed publish visible with retry', async () => {
     state.failCreate = true
     await mount()
-    const checkbox = container?.querySelector('input[type="checkbox"]') as HTMLInputElement
-    await act(async () => { checkbox.click() })
-    await click('下一步：填写发布信息')
-    await click('发布 1 个模板')
+    const radio = container?.querySelector('input[type="radio"]') as HTMLInputElement
+    await act(async () => { radio.click() })
+    await click('下一步：填写并发布')
+    await click('发布模板')
+    expect(container?.textContent).toContain('发布失败')
     expect(container?.textContent).toContain('发布失败：backend refused')
-    expect(container?.textContent).toContain('发布完成，部分失败')
-    expect(container?.textContent).toContain('重试失败项')
 
-    await click('重试失败项（1）')
+    await click('重试')
     expect(state.calls.createTemplate).toBe(2)
     expect(state.calls.packApp).toBe(2)
   }, 30000)
@@ -270,7 +290,7 @@ describe('TemplatePublishDialog publish run', () => {
     const next = [...(container?.querySelectorAll('button') ?? [])]
       .find(candidate => candidate.textContent?.includes('下一步'))
     expect(next?.disabled).toBe(true)
-    expect(container?.textContent).toContain('步骤 1 / 3')
+    expect(container?.textContent).toContain('步骤 1 / 2')
   }, 30000)
 
   it('detects and publishes a custom directory without fabricating a manifest', async () => {
@@ -284,9 +304,9 @@ describe('TemplatePublishDialog publish run', () => {
     expect(container?.textContent).toContain('demo_flutter')
     expect(container?.textContent).toContain('Flutter 多端')
 
-    await click('下一步：填写发布信息')
-    expect(container?.textContent).toContain('填写发布信息')
-    await click('发布 1 个模板')
+    await click('下一步：填写并发布')
+    expect(container?.textContent).toContain('确认发布信息')
+    await click('发布模板')
     expect(container?.textContent).toContain('发布完成')
     expect(state.calls.createTemplate).toBe(1)
     expect(state.calls.uploadArchive).toBe(1)
@@ -308,8 +328,8 @@ describe('TemplatePublishDialog publish run', () => {
     expect(container?.textContent).toContain('Android 应用')
     expect(container?.textContent).toContain('已手动指定')
 
-    await click('下一步：填写发布信息')
-    await click('发布 1 个模板')
+    await click('下一步：填写并发布')
+    await click('发布模板')
     expect(state.lastCreate?.platformTargets).toEqual(['ANDROID'])
   }, 30000)
 })

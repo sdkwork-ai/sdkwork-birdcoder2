@@ -1,17 +1,10 @@
 /**
- * Publish wizard of the app template center.
+ * Publish wizard for one template.
  *
- * The surface is deliberately staged rather than a dense two-column form:
- *
- * 1. **Select** the independent `apps/` roots a template should be created
- *    from (multi-select, one card per root).
- * 2. **Configure** the per-app template values and the shared account-scoped
- *    publish settings (category, visibility, review).
- * 3. **Publish** with a visible overall/per-row progress ledger and a result
- *    summary that allows retrying only the failed rows.
- *
- * Presentation only — scanning, planning, publishing, and the dedupe refresh
- * arrive from the dialog through props.
+ * One application is selected at a time. Step one chooses a project app root
+ * or one custom directory; step two edits that app's template information and
+ * shared settings, then shows the single publish run inline. No multi-select,
+ * batch rail, or per-row ledger survives from the batch flow.
  */
 import { useEffect, useRef, useState } from 'react'
 import type { DeployKey } from './locales.ts'
@@ -48,39 +41,38 @@ export interface TemplateCategoryOption {
   readonly displayName: string
 }
 
-/** Publish-run totals shown after the batch finishes. */
+/** Publish-run totals shown after the single run finishes. */
 export interface TemplateRunSummary {
   readonly created: number
   readonly updated: number
   readonly failed: number
 }
 
-/** The three wizard stages, in order. */
-export type TemplatePublishStep = 1 | 2 | 3
+/** The two publish stages. */
+export type TemplatePublishStep = 1 | 2
 
 /** Props for the publish wizard. */
 export interface TemplatePublishPanelProps {
   readonly t: (key: DeployKey, params?: Record<string, string>) => string
-  /** Project directory being published from (undefined without a cwd). */
   readonly directory?: string | undefined
   readonly scan: TemplateAppScan | undefined
   readonly scanError: string | undefined
   readonly loading: boolean
+  /** Candidates for the active source (project apps or the custom directory). */
   readonly plans: readonly TemplatePublishPlan[]
-  readonly categories: readonly TemplateCategoryOption[]
-  readonly categoryUuid: string
-  readonly visibility: 'PRIVATE' | 'PUBLIC'
-  readonly submitForReview: boolean
-  readonly selected: ReadonlySet<string>
-  /** The active source: the project's `apps/` tree or one picked directory. */
+  readonly projectCount: number
+  readonly selectedDirectory: string | undefined
   readonly sourceMode: 'apps' | 'custom'
   readonly customApp: TemplateAppCandidate | undefined
   readonly customInspection: CustomTemplateAppInspection | undefined
   readonly customLoading: boolean
   readonly customError: string | undefined
-  /** The current wizard step. */
+  readonly categories: readonly TemplateCategoryOption[]
+  readonly categoryUuid: string
+  readonly visibility: 'PRIVATE' | 'PUBLIC'
+  readonly submitForReview: boolean
   readonly step: TemplatePublishStep
-  readonly runs: Readonly<Record<string, TemplateRunState>>
+  readonly runs: Readonly<Record<string, TemplateRunState | undefined>>
   readonly publishing: boolean
   readonly summary: TemplateRunSummary | undefined
   readonly valuesOf: (plan: TemplatePublishPlan) => TemplateAppValues
@@ -90,97 +82,74 @@ export interface TemplatePublishPanelProps {
   readonly onRescanCustom: () => void
   readonly onClearCustom: () => void
   readonly onCustomTypeChange: (typeId: string) => void
-  readonly onToggle: (directory: string) => void
-  readonly onSelectAll: () => void
-  readonly onClear: () => void
+  readonly onSelect: (directory: string) => void
   readonly onValuesChange: (directory: string, patch: Partial<TemplateAppValues>) => void
   readonly onCategoryChange: (categoryUuid: string) => void
   readonly onVisibilityChange: (visibility: 'PRIVATE' | 'PUBLIC') => void
   readonly onSubmitForReviewChange: (submit: boolean) => void
   readonly onRescan: () => void
-  /** Run the batch; `onlyFailed` retries just the failed rows. */
-  readonly onPublish: (onlyFailed?: boolean) => void
-  /** Clear the run and return to a fresh selection step. */
+  readonly onPublish: () => void
   readonly onReset: () => void
   readonly onClose: () => void
 }
 
 /**
  * Render the publish wizard.
- * @param props - the scan, plans, selection, settings, live runs, and actions.
- * @returns the staged publish surface.
+ * @param props - the scan, selected plan, settings, live run, and actions.
+ * @returns the two-stage single-app publish surface.
  */
 export function TemplatePublishPanel(props: TemplatePublishPanelProps) {
   const {
-    t, directory, scan, scanError, loading, plans, categories, categoryUuid, visibility,
-    submitForReview, selected, sourceMode, customApp, customInspection, customLoading,
-    customError, step, runs, publishing, summary, valuesOf,
+    t, directory, scan, scanError, loading, plans, projectCount, selectedDirectory,
+    sourceMode, customApp, customInspection, customLoading, customError, categories,
+    categoryUuid, visibility, submitForReview, step, runs, publishing, summary, valuesOf,
     onStepChange, onSourceModeChange, onChooseCustomDirectory, onRescanCustom,
-    onClearCustom, onCustomTypeChange, onToggle, onSelectAll, onClear, onValuesChange,
-    onCategoryChange, onVisibilityChange, onSubmitForReviewChange, onRescan, onPublish,
-    onReset, onClose,
+    onClearCustom, onCustomTypeChange, onSelect, onValuesChange, onCategoryChange,
+    onVisibilityChange, onSubmitForReviewChange, onRescan, onPublish, onReset, onClose,
   } = props
   const wizardRef = useRef<HTMLDivElement>(null)
   const lastStep = useRef(step)
-  const selectedPlans = plans.filter(plan => selected.has(plan.candidate.directory))
-  const selectedDirectories = selectedPlans.map(plan => plan.candidate.directory).join('\u0000')
-  const [activeDirectory, setActiveDirectory] = useState<string | undefined>(undefined)
-  const activePlan = (selectedPlans.find(plan => plan.candidate.directory === activeDirectory)
-    ?? selectedPlans[0]) as TemplatePublishPlan | undefined
-  // Keep the configuration rail on a row that is still selected.
-  useEffect(() => {
-    if (selectedPlans.length === 0) return
-    if (!selectedPlans.some(plan => plan.candidate.directory === activeDirectory)) {
-      setActiveDirectory(selectedPlans[0]?.candidate.directory)
-    }
-  }, [selectedDirectories, activeDirectory])
-  // A stage change replaces the footer action, so move focus to the new stage
-  // heading instead of leaving it on a removed control.
-  useEffect(() => {
-    if (lastStep.current === step) return
-    lastStep.current = step
-    wizardRef.current?.querySelector<HTMLElement>('h3')?.focus()
-  }, [step])
-  const blocking = selectedPlans.some(plan => plan.conflict !== undefined
-    || plan.platformApp === undefined && platformAppKind(plan.candidate) === undefined)
-  const invalidValues = selectedPlans.some(plan => !valuesAreValid(valuesOf(plan)))
-  const typeReady = selectedPlans.every(plan => sourceMode === 'custom'
-    ? plan.candidate.appTypeId !== undefined
-    : plan.platformApp !== undefined || platformAppKind(plan.candidate) !== undefined)
-  const selectionBlocker = selectedPlans.length > 0 && !typeReady
+  const selectedPlan = plans.find(plan => plan.candidate.directory === selectedDirectory)
+  const blocking = selectedPlan !== undefined && (selectedPlan.conflict !== undefined
+    || selectedPlan.platformApp === undefined
+      && platformAppKind(selectedPlan.candidate) === undefined)
+  const invalidValues = selectedPlan !== undefined && !valuesAreValid(valuesOf(selectedPlan))
+  const typeReady = selectedPlan !== undefined && (sourceMode === 'custom'
+    ? selectedPlan.candidate.appTypeId !== undefined
+    : selectedPlan.platformApp !== undefined
+      || platformAppKind(selectedPlan.candidate) !== undefined)
+  const selectionBlocker = selectedPlan !== undefined && !typeReady
     ? t(sourceMode === 'custom'
       ? 'templateCenter.custom.typeRequired'
       : 'templateCenter.blocker.selection')
     : undefined
-  const settingsReady = categoryUuid !== '' && selectedPlans.length > 0 && !blocking && !invalidValues
-  const canPublish = settingsReady && !publishing
   const publishBlocker = categories.length === 0
     ? t('templateCenter.blocker.category')
     : blocking
       ? t('templateCenter.blocker.selection')
       : invalidValues ? t('templateCenter.blocker.values') : undefined
-  const createCount = selectedPlans.filter(plan => plan.template === undefined).length
-  const updateCount = selectedPlans.filter(plan => plan.template !== undefined).length
-  const registerCount = selectedPlans.filter(plan => plan.platformApp === undefined).length
-  const doneCount = selectedPlans.filter(plan => runs[plan.candidate.directory]?.phase === 'done').length
-  const failedCount = selectedPlans.filter(plan => runs[plan.candidate.directory]?.phase === 'failed').length
-  const finishedCount = doneCount + failedCount
-  const overallPercent = selectedPlans.length === 0
-    ? 0
-    : Math.round((finishedCount / selectedPlans.length) * 100)
+  const canPublish = selectedPlan !== undefined && typeReady && !blocking
+    && !invalidValues && categoryUuid !== '' && !publishing
+  const run = selectedPlan === undefined ? undefined : runs[selectedPlan.candidate.directory]
+  const showingOutcome = step === 2 && (run !== undefined || summary !== undefined)
+
+  useEffect(() => {
+    if (lastStep.current === step) return
+    lastStep.current = step
+    wizardRef.current?.querySelector<HTMLElement>('h3')?.focus()
+  }, [step])
 
   return (
     <div className={css.wizard} ref={wizardRef}>
       <PublishStepper
         t={t}
         step={step}
-        selectedCount={selectedPlans.length}
-        totalCount={plans.length}
+        hasSelection={selectedPlan !== undefined}
         publishing={publishing}
         onStepChange={onStepChange}
       />
       <div className={css.stepBody}>
-        <div className={css.stepContent} key={step}>
+        <div className={css.stepContent} key={`${step}:${showingOutcome ? 'outcome' : 'form'}`}>
           {step === 1 && (
             <SelectStep
               t={t}
@@ -189,8 +158,8 @@ export function TemplatePublishPanel(props: TemplatePublishPanelProps) {
               scanError={scanError}
               loading={loading}
               plans={plans}
-              projectCount={scan?.apps.length ?? 0}
-              selected={selected}
+              projectCount={projectCount}
+              selectedDirectory={selectedDirectory}
               sourceMode={sourceMode}
               customApp={customApp}
               customInspection={customInspection}
@@ -203,40 +172,32 @@ export function TemplatePublishPanel(props: TemplatePublishPanelProps) {
               onRescanCustom={onRescanCustom}
               onClearCustom={onClearCustom}
               onCustomTypeChange={onCustomTypeChange}
-              onToggle={onToggle}
-              onSelectAll={onSelectAll}
-              onClear={onClear}
+              onSelect={onSelect}
               onRescan={onRescan}
             />
           )}
-          {step === 2 && activePlan !== undefined && (
+          {step === 2 && !showingOutcome && selectedPlan !== undefined && (
             <ConfigureStep
               t={t}
-              plans={selectedPlans}
-              activePlan={activePlan}
-              activeDirectory={activePlan.candidate.directory}
-              valuesOf={valuesOf}
+              plan={selectedPlan}
+              values={valuesOf(selectedPlan)}
               categories={categories}
               categoryUuid={categoryUuid}
               visibility={visibility}
               submitForReview={submitForReview}
-              onSetActive={setActiveDirectory}
-              onValuesChange={onValuesChange}
+              onValuesChange={(patch) => { onValuesChange(selectedPlan.candidate.directory, patch) }}
               onCategoryChange={onCategoryChange}
               onVisibilityChange={onVisibilityChange}
               onSubmitForReviewChange={onSubmitForReviewChange}
             />
           )}
-          {step === 3 && (
-            <ResultStep
+          {step === 2 && showingOutcome && selectedPlan !== undefined && (
+            <PublishOutcome
               t={t}
-              plans={selectedPlans}
-              runs={runs}
+              plan={selectedPlan}
+              run={run}
               publishing={publishing}
               summary={summary}
-              doneCount={doneCount}
-              failedCount={failedCount}
-              overallPercent={overallPercent}
             />
           )}
         </div>
@@ -244,17 +205,16 @@ export function TemplatePublishPanel(props: TemplatePublishPanelProps) {
       {step === 1 && (
         <footer className={css.wizardFooter}>
           <div className={css.footerSummary}>
-            <span className={css.footerCount}>
-              {t('templateCenter.selectedCount', {
-                selected: String(selectedPlans.length),
-                total: String(plans.length),
-              })}
-            </span>
-            <span className={css.footerMeta}>
-              {t('templateCenter.plan.create', { count: String(createCount) })}
-              {' · '}
-              {t('templateCenter.plan.update', { count: String(updateCount) })}
-            </span>
+            {selectedPlan === undefined
+              ? <span className={css.footerCount}>{t('templateCenter.select.none')}</span>
+              : (
+                <>
+                  <span className={css.footerCount}>
+                    {t('templateCenter.select.selectedApp', { name: selectedPlan.candidate.name })}
+                  </span>
+                  <span className={css.footerMeta}>{planStateLabel(t, selectedPlan)}</span>
+                </>
+              )}
             {selectionBlocker !== undefined && (
               <span className={css.footerWarning} role="alert">{selectionBlocker}</span>
             )}
@@ -263,7 +223,7 @@ export function TemplatePublishPanel(props: TemplatePublishPanelProps) {
             <button
               type="button"
               className={css.primaryButton}
-              disabled={selectedPlans.length === 0 || !typeReady || publishing}
+              disabled={!typeReady || publishing}
               onClick={() => { onStepChange(2) }}
             >
               {t('templateCenter.select.next')}
@@ -275,53 +235,18 @@ export function TemplatePublishPanel(props: TemplatePublishPanelProps) {
       {step === 2 && (
         <footer className={css.wizardFooter}>
           <div className={css.footerSummary}>
-            <span className={css.footerCount}>{t('templateCenter.selectedCount', {
-              selected: String(selectedPlans.length),
-              total: String(plans.length),
-            })}</span>
-            <span className={css.footerMeta}>
-              {t('templateCenter.plan.create', { count: String(createCount) })}
-              {' · '}
-              {t('templateCenter.plan.update', { count: String(updateCount) })}
-              {' · '}
-              {t('templateCenter.plan.registerApp', { count: String(registerCount) })}
-            </span>
-            {publishBlocker !== undefined && (
+            {publishing && <span className={css.footerMeta}>{t('templateCenter.result.keepOpen')}</span>}
+            {!publishing && summary !== undefined && run?.phase === 'failed' && (
+              <span className={css.footerWarning} role="alert">{t('templateCenter.result.failedHint')}</span>
+            )}
+            {!publishing && summary !== undefined && run?.phase !== 'failed' && (
+              <span className={css.footerMeta}>{t('templateCenter.result.doneHint')}</span>
+            )}
+            {!publishing && summary === undefined && publishBlocker !== undefined && (
               <span className={css.footerWarning} role="alert">{publishBlocker}</span>
             )}
           </div>
           <div className={css.footerActions}>
-            <button type="button" className={css.secondaryButton} onClick={() => { onStepChange(1) }}>
-              <ChevronIcon direction="left" />
-              {t('templateCenter.configure.back')}
-            </button>
-            <button
-              type="button"
-              className={css.primaryButton}
-              disabled={!canPublish}
-              onClick={() => { onPublish() }}
-            >
-              {t('templateCenter.publishAction', { count: String(selectedPlans.length) })}
-            </button>
-          </div>
-        </footer>
-      )}
-      {step === 3 && (
-        <footer className={css.wizardFooter}>
-          <div className={css.footerSummary}>
-            {publishing && <span className={css.footerMeta}>{t('templateCenter.result.keepOpen')}</span>}
-          </div>
-          <div className={css.footerActions}>
-            {!publishing && failedCount > 0 && (
-              <button type="button" className={css.secondaryButton} onClick={() => { onPublish(true) }}>
-                {t('templateCenter.result.retry', { count: String(failedCount) })}
-              </button>
-            )}
-            {!publishing && (
-              <button type="button" className={css.secondaryButton} onClick={onReset}>
-                {t('templateCenter.result.again')}
-              </button>
-            )}
             {publishing
               ? (
                 <button type="button" className={css.primaryButton} disabled>
@@ -329,11 +254,39 @@ export function TemplatePublishPanel(props: TemplatePublishPanelProps) {
                   {t('templateCenter.result.publishingAction')}
                 </button>
               )
-              : (
-                <button type="button" className={css.primaryButton} onClick={onClose}>
-                  {t('templateCenter.result.done')}
-                </button>
-              )}
+              : summary !== undefined
+                ? run?.phase === 'failed'
+                  ? (
+                    <>
+                      <button type="button" className={css.secondaryButton} onClick={onReset}>
+                        {t('templateCenter.result.backToSelection')}
+                      </button>
+                      <button type="button" className={css.primaryButton} onClick={onPublish}>
+                        {t('templateCenter.result.retryOne')}
+                      </button>
+                    </>
+                  )
+                  : (
+                    <>
+                      <button type="button" className={css.secondaryButton} onClick={onReset}>
+                        {t('templateCenter.result.again')}
+                      </button>
+                      <button type="button" className={css.primaryButton} onClick={onClose}>
+                        {t('templateCenter.result.done')}
+                      </button>
+                    </>
+                  )
+                : (
+                  <>
+                    <button type="button" className={css.secondaryButton} onClick={() => { onStepChange(1) }}>
+                      <ChevronIcon direction="left" />
+                      {t('templateCenter.configure.back')}
+                    </button>
+                    <button type="button" className={css.primaryButton} disabled={!canPublish} onClick={onPublish}>
+                      {t('templateCenter.publishSingle')}
+                    </button>
+                  </>
+                )}
           </div>
         </footer>
       )}
@@ -341,36 +294,28 @@ export function TemplatePublishPanel(props: TemplatePublishPanelProps) {
   )
 }
 
-/** The three-stage progress indicator. */
+/** The two-stage progress indicator. */
 function PublishStepper(props: {
   readonly t: (key: DeployKey, params?: Record<string, string>) => string
   readonly step: TemplatePublishStep
-  readonly selectedCount: number
-  readonly totalCount: number
+  readonly hasSelection: boolean
   readonly publishing: boolean
   readonly onStepChange: (step: TemplatePublishStep) => void
 }) {
-  const { t, step, selectedCount, totalCount, publishing, onStepChange } = props
+  const { t, step, hasSelection, publishing, onStepChange } = props
   const steps: readonly {
     readonly id: TemplatePublishStep
     readonly label: DeployKey
     readonly hint: DeployKey
-    readonly hintParams?: Record<string, string>
   }[] = [
-    {
-      id: 1,
-      label: 'templateCenter.step.select',
-      hint: 'templateCenter.step.selectHint',
-      hintParams: { selected: String(selectedCount), total: String(totalCount) },
-    },
+    { id: 1, label: 'templateCenter.step.select', hint: 'templateCenter.step.selectHint' },
     { id: 2, label: 'templateCenter.step.configure', hint: 'templateCenter.step.configureHint' },
-    { id: 3, label: 'templateCenter.step.publish', hint: 'templateCenter.step.publishHint' },
   ]
   return (
     <ol className={css.stepper} aria-label={t('templateCenter.step.label')}>
       {steps.map((entry) => {
         const state = entry.id < step ? 'done' : entry.id === step ? 'active' : 'upcoming'
-        const canGoBack = entry.id < step && !publishing && (entry.id !== 2 || selectedCount > 0)
+        const canGoBack = entry.id < step && !publishing && hasSelection
         return (
           <li key={entry.id} className={css.stepItem}>
             <button
@@ -385,7 +330,7 @@ function PublishStepper(props: {
               </span>
               <span className={css.stepText}>
                 <span className={css.stepLabel}>{t(entry.label)}</span>
-                <span className={css.stepHint}>{t(entry.hint, entry.hintParams)}</span>
+                <span className={css.stepHint}>{t(entry.hint)}</span>
               </span>
             </button>
           </li>
@@ -395,7 +340,7 @@ function PublishStepper(props: {
   )
 }
 
-/** Step one: pick the app roots, from `apps/` or one custom directory. */
+/** Step one: choose one app root or one custom directory. */
 function SelectStep(props: {
   readonly t: (key: DeployKey, params?: Record<string, string>) => string
   readonly directory?: string | undefined
@@ -404,7 +349,7 @@ function SelectStep(props: {
   readonly loading: boolean
   readonly plans: readonly TemplatePublishPlan[]
   readonly projectCount: number
-  readonly selected: ReadonlySet<string>
+  readonly selectedDirectory: string | undefined
   readonly sourceMode: 'apps' | 'custom'
   readonly customApp: TemplateAppCandidate | undefined
   readonly customInspection: CustomTemplateAppInspection | undefined
@@ -417,23 +362,20 @@ function SelectStep(props: {
   readonly onRescanCustom: () => void
   readonly onClearCustom: () => void
   readonly onCustomTypeChange: (typeId: string) => void
-  readonly onToggle: (directory: string) => void
-  readonly onSelectAll: () => void
-  readonly onClear: () => void
+  readonly onSelect: (directory: string) => void
   readonly onRescan: () => void
 }) {
   const {
-    t, directory, scan, scanError, loading, plans, projectCount, selected, sourceMode,
-    customApp, customInspection, customLoading, customError, categoryReady, valuesOf,
-    onSourceModeChange, onChooseCustomDirectory, onRescanCustom, onClearCustom,
-    onCustomTypeChange, onToggle, onSelectAll, onClear, onRescan,
+    t, directory, scan, scanError, loading, plans, projectCount, selectedDirectory,
+    sourceMode, customApp, customInspection, customLoading, customError, categoryReady,
+    valuesOf, onSourceModeChange, onChooseCustomDirectory, onRescanCustom, onClearCustom,
+    onCustomTypeChange, onSelect, onRescan,
   } = props
-  const selectedCount = plans.filter(plan => selected.has(plan.candidate.directory)).length
   return (
     <>
       <header className={css.stepHeader}>
         <div className={css.stepHeading}>
-          <span className={css.stepEyebrow}>{t('templateCenter.step.eyebrow', { current: '1', total: '3' })}</span>
+          <span className={css.stepEyebrow}>{t('templateCenter.step.eyebrow', { current: '1', total: '2' })}</span>
           <h3 className={css.stepTitle} tabIndex={-1}>{t('templateCenter.select.title')}</h3>
           <p className={css.stepDescription}>{t('templateCenter.select.subtitle')}</p>
         </div>
@@ -478,12 +420,6 @@ function SelectStep(props: {
                 : t('templateCenter.appsPath', { path: relativeApps(directory) })}
             </span>
             <div className={css.toolbarActions}>
-              <button type="button" className={css.ghostButton} onClick={onSelectAll} disabled={plans.length === 0 || loading}>
-                {t('templateCenter.selectAll')}
-              </button>
-              <button type="button" className={css.ghostButton} onClick={onClear} disabled={selectedCount === 0}>
-                {t('templateCenter.clear')}
-              </button>
               <button type="button" className={css.ghostButton} onClick={onRescan} disabled={loading}>
                 {loading ? t('templateCenter.scanning') : t('templateCenter.rescan')}
               </button>
@@ -501,15 +437,15 @@ function SelectStep(props: {
             </div>
           )}
           {!loading && scanError === undefined && plans.length > 0 && (
-            <ul className={css.appGrid}>
+            <ul className={css.appGrid} role="radiogroup" aria-label={t('templateCenter.select.title')}>
               {plans.map(plan => (
                 <li key={plan.candidate.directory}>
                   <SelectableAppCard
                     t={t}
                     plan={plan}
                     values={valuesOf(plan)}
-                    selected={selected.has(plan.candidate.directory)}
-                    onToggle={() => { onToggle(plan.candidate.directory) }}
+                    selected={selectedDirectory === plan.candidate.directory}
+                    onSelect={() => { onSelect(plan.candidate.directory) }}
                   />
                 </li>
               ))}
@@ -534,6 +470,84 @@ function SelectStep(props: {
         />
       )}
     </>
+  )
+}
+
+/** One single-select application card. */
+function SelectableAppCard(props: {
+  readonly t: (key: DeployKey, params?: Record<string, string>) => string
+  readonly plan: TemplatePublishPlan
+  readonly values: TemplateAppValues
+  readonly selected: boolean
+  readonly onSelect: () => void
+}) {
+  const { t, plan, values, selected, onSelect } = props
+  const candidate = plan.candidate
+  const needsLink = plan.platformApp === undefined && platformAppKind(candidate) === undefined
+  const blocked = plan.conflict !== undefined || needsLink
+  const state = plan.conflict !== undefined
+    ? { tone: 'blocked', text: t('templateCenter.app.conflict') }
+    : needsLink
+      ? { tone: 'blocked', text: t('templateCenter.app.needsLink') }
+      : plan.template !== undefined
+        ? {
+          tone: 'update',
+          text: t('templateCenter.app.versionFlow', {
+            from: plan.template.latestVersion ?? candidate.linkedTemplateVersion ?? '—',
+            to: values.version,
+          }),
+        }
+        : { tone: 'new', text: t('templateCenter.app.newTemplate') }
+  return (
+    <label
+      className={`${css.selectCard}${selected ? ` ${css.selectCardSelected}` : ''}${blocked ? ` ${css.selectCardDisabled}` : ''}`}
+      aria-disabled={blocked}
+    >
+      <input
+        type="radio"
+        name="template-publish-app"
+        className={css.selectInput}
+        checked={selected}
+        disabled={blocked}
+        onChange={onSelect}
+        aria-label={candidate.name}
+      />
+      <span className={`${css.selectCheck}${selected ? ` ${css.selectCheckSelected}` : ''}`} aria-hidden="true">
+        {selected && <CheckIcon size={12} />}
+      </span>
+      <AppAvatar candidate={candidate} />
+      <span className={css.selectMain}>
+        <span className={css.appNameRow}>
+          <span className={css.appName} title={candidate.name}>{candidate.name}</span>
+          <span className={css.typeBadge}>{t(candidateTypeLabelKey(candidate))}</span>
+          {candidate.version !== undefined && (
+            <span className={css.versionBadge}>
+              {t('templateCenter.versionBadge', { version: candidate.version })}
+            </span>
+          )}
+        </span>
+        <span className={css.appKey}>{candidate.appKey}</span>
+        {candidate.platforms.length > 0 && (
+          <span className={css.platformRow}>
+            {candidate.platforms.map(platform => (
+              <span key={platform} className={css.platformBadge}>{t(platformLabelKey(platform))}</span>
+            ))}
+          </span>
+        )}
+        <span className={css.selectMeta}>
+          <span className={`${css.selectState}${state.tone === 'blocked' ? ` ${css.selectStateBlocked}` : ''}`}>
+            {state.text}
+          </span>
+          {!needsLink && (
+            <span className={css.selectPlatform}>
+              {plan.platformApp === undefined
+                ? t('templateCenter.app.willRegisterApp')
+                : t('templateCenter.app.linkedApp', { name: plan.platformApp.name })}
+            </span>
+          )}
+        </span>
+      </span>
+    </label>
   )
 }
 
@@ -672,177 +686,75 @@ function CustomSourcePanel(props: {
   )
 }
 
-/** One selectable application card. */
-function SelectableAppCard(props: {
+/** Step two: the single app's template information and shared settings. */
+function ConfigureStep(props: {
   readonly t: (key: DeployKey, params?: Record<string, string>) => string
   readonly plan: TemplatePublishPlan
   readonly values: TemplateAppValues
-  readonly selected: boolean
-  readonly onToggle: () => void
-}) {
-  const { t, plan, values, selected, onToggle } = props
-  const candidate = plan.candidate
-  const needsLink = plan.platformApp === undefined && platformAppKind(candidate) === undefined
-  const blocked = plan.conflict !== undefined || needsLink
-  const state = plan.conflict !== undefined
-    ? { tone: 'blocked', text: t('templateCenter.app.conflict') }
-    : needsLink
-      ? { tone: 'blocked', text: t('templateCenter.app.needsLink') }
-      : plan.template !== undefined
-        ? {
-          tone: 'update',
-          text: t('templateCenter.app.versionFlow', {
-            from: plan.template.latestVersion ?? candidate.linkedTemplateVersion ?? '—',
-            to: values.version,
-          }),
-        }
-        : { tone: 'new', text: t('templateCenter.app.newTemplate') }
-  return (
-    <label
-      className={`${css.selectCard}${selected ? ` ${css.selectCardSelected}` : ''}${blocked ? ` ${css.selectCardDisabled}` : ''}`}
-      aria-disabled={blocked}
-    >
-      <input
-        type="checkbox"
-        className={css.selectInput}
-        checked={selected}
-        disabled={blocked}
-        onChange={onToggle}
-        aria-label={candidate.name}
-      />
-      <span
-        className={`${css.selectCheck}${selected ? ` ${css.selectCheckSelected}` : ''}`}
-        aria-hidden="true"
-      >
-        {selected && <CheckIcon size={12} />}
-      </span>
-      <AppAvatar candidate={candidate} />
-      <span className={css.selectMain}>
-        <span className={css.appNameRow}>
-          <span className={css.appName} title={candidate.name}>{candidate.name}</span>
-          <span className={css.typeBadge}>{t(candidateTypeLabelKey(candidate))}</span>
-          {candidate.version !== undefined && (
-            <span className={css.versionBadge}>
-              {t('templateCenter.versionBadge', { version: candidate.version })}
-            </span>
-          )}
-        </span>
-        <span className={css.appKey}>{candidate.appKey}</span>
-        {candidate.platforms.length > 0 && (
-          <span className={css.platformRow}>
-            {candidate.platforms.map(platform => (
-              <span key={platform} className={css.platformBadge}>{t(platformLabelKey(platform))}</span>
-            ))}
-          </span>
-        )}
-        <span className={css.selectMeta}>
-          <span className={`${css.selectState}${state.tone === 'blocked' ? ` ${css.selectStateBlocked}` : ''}`}>
-            {state.text}
-          </span>
-          {!needsLink && (
-            <span className={css.selectPlatform}>
-              {plan.platformApp === undefined
-                ? t('templateCenter.app.willRegisterApp')
-                : t('templateCenter.app.linkedApp', { name: plan.platformApp.name })}
-            </span>
-          )}
-        </span>
-      </span>
-    </label>
-  )
-}
-
-/** Step two: per-app template values and shared settings. */
-function ConfigureStep(props: {
-  readonly t: (key: DeployKey, params?: Record<string, string>) => string
-  readonly plans: readonly TemplatePublishPlan[]
-  readonly activePlan: TemplatePublishPlan
-  readonly activeDirectory: string
-  readonly valuesOf: (plan: TemplatePublishPlan) => TemplateAppValues
   readonly categories: readonly TemplateCategoryOption[]
   readonly categoryUuid: string
   readonly visibility: 'PRIVATE' | 'PUBLIC'
   readonly submitForReview: boolean
-  readonly onSetActive: (directory: string) => void
-  readonly onValuesChange: (directory: string, patch: Partial<TemplateAppValues>) => void
+  readonly onValuesChange: (patch: Partial<TemplateAppValues>) => void
   readonly onCategoryChange: (categoryUuid: string) => void
   readonly onVisibilityChange: (visibility: 'PRIVATE' | 'PUBLIC') => void
   readonly onSubmitForReviewChange: (submit: boolean) => void
 }) {
   const {
-    t, plans, activePlan, activeDirectory, valuesOf, categories, categoryUuid, visibility,
-    submitForReview, onSetActive, onValuesChange, onCategoryChange, onVisibilityChange,
-    onSubmitForReviewChange,
+    t, plan, values, categories, categoryUuid, visibility, submitForReview,
+    onValuesChange, onCategoryChange, onVisibilityChange, onSubmitForReviewChange,
   } = props
-  const values = valuesOf(activePlan)
-  const keyInvalid = !TEMPLATE_KEY_PATTERN.test(values.templateKey.trim()) || values.templateKey.trim().length > 64
+  const keyInvalid = !TEMPLATE_KEY_PATTERN.test(values.templateKey.trim())
+    || values.templateKey.trim().length > 64
   const versionInvalid = !TEMPLATE_VERSION_PATTERN.test(values.version.trim())
   const nameInvalid = values.displayName.trim() === ''
-  const update = activePlan.template !== undefined
+  const update = plan.template !== undefined
   return (
     <>
       <header className={css.stepHeader}>
         <div className={css.stepHeading}>
-          <span className={css.stepEyebrow}>{t('templateCenter.step.eyebrow', { current: '2', total: '3' })}</span>
+          <span className={css.stepEyebrow}>{t('templateCenter.step.eyebrow', { current: '2', total: '2' })}</span>
           <h3 className={css.stepTitle} tabIndex={-1}>{t('templateCenter.configure.title')}</h3>
           <p className={css.stepDescription}>{t('templateCenter.configure.subtitle')}</p>
         </div>
       </header>
-      <div className={`${css.formLayout}${plans.length === 1 ? ` ${css.formLayoutSingle}` : ''}`}>
-        {plans.length > 1 && (
-          <aside className={css.appRail} aria-label={t('templateCenter.configure.appList')}>
-            <div className={css.railHeader}>
-              <span>{t('templateCenter.configure.appList')}</span>
-              <span className={css.railCount}>{plans.length}</span>
+      <div className={css.singleLayout}>
+        <aside className={css.singleSummary}>
+          <div className={css.summaryHeader}>
+            <AppAvatar candidate={plan.candidate} />
+            <div className={css.summaryIdentity}>
+              <span className={css.summaryName} title={plan.candidate.name}>{plan.candidate.name}</span>
+              <span className={css.summaryKey}>{plan.candidate.appKey}</span>
             </div>
-            <ul className={css.railList}>
-              {plans.map((plan) => {
-                const active = plan.candidate.directory === activeDirectory
-                const incomplete = !valuesAreValid(valuesOf(plan))
-                return (
-                  <li key={plan.candidate.directory}>
-                    <button
-                      type="button"
-                      className={`${css.railItem}${active ? ` ${css.railItemActive}` : ''}`}
-                      aria-current={active ? 'true' : undefined}
-                      onClick={() => { onSetActive(plan.candidate.directory) }}
-                    >
-                      <AppAvatar candidate={plan.candidate} size="small" />
-                      <span className={css.railMain}>
-                        <span className={css.railName} title={plan.candidate.name}>{plan.candidate.name}</span>
-                        <span className={css.railKey}>{plan.candidate.appKey}</span>
-                      </span>
-                      <span className={`${css.railStatus}${incomplete ? ` ${css.railStatusError}` : ''}`}>
-                        {incomplete
-                          ? t('templateCenter.field.incomplete')
-                          : plan.template === undefined
-                            ? t('templateCenter.app.newTemplate')
-                            : t('templateCenter.app.updateBadge')}
-                      </span>
-                    </button>
-                  </li>
-                )
+          </div>
+          <div className={css.summaryBadges}>
+            <span className={css.typeBadge}>{t(candidateTypeLabelKey(plan.candidate))}</span>
+            <span className={`${css.planChip}${update ? ` ${css.planChipUpdate}` : ''}`}>
+              {update ? t('templateCenter.app.updateBadge') : t('templateCenter.app.newTemplate')}
+            </span>
+          </div>
+          {plan.candidate.version !== undefined && (
+            <span className={css.summaryMeta}>
+              {t('templateCenter.versionBadge', { version: plan.candidate.version })}
+            </span>
+          )}
+          <span className={css.summaryPath} title={plan.candidate.directory}>{plan.candidate.directory}</span>
+          <span className={css.summaryMeta}>
+            {plan.platformApp === undefined
+              ? t('templateCenter.app.willRegisterApp')
+              : t('templateCenter.app.linkedApp', { name: plan.platformApp.name })}
+          </span>
+          {plan.template !== undefined && (
+            <span className={css.summaryMeta}>
+              {t('templateCenter.app.versionFlow', {
+                from: plan.template.latestVersion ?? plan.candidate.linkedTemplateVersion ?? '—',
+                to: values.version,
               })}
-            </ul>
-          </aside>
-        )}
+            </span>
+          )}
+        </aside>
         <div className={css.formColumn}>
           <section className={css.formCard}>
-            <header className={css.formAppHeader}>
-              <AppAvatar candidate={activePlan.candidate} />
-              <div className={css.formAppIdentity}>
-                <span className={css.formAppName} title={activePlan.candidate.name}>
-                  {activePlan.candidate.name}
-                </span>
-                <span className={css.formAppKey}>{activePlan.candidate.appKey}</span>
-              </div>
-              <span className={css.typeBadge}>
-                {t(candidateTypeLabelKey(activePlan.candidate))}
-              </span>
-              <span className={`${css.planChip}${update ? ` ${css.planChipUpdate}` : ''}`}>
-                {update ? t('templateCenter.app.updateBadge') : t('templateCenter.app.newTemplate')}
-              </span>
-            </header>
             <div className={css.formGrid}>
               <label className={css.field}>
                 <span className={css.fieldLabel}>{t('templateCenter.field.displayName')}</span>
@@ -851,7 +763,7 @@ function ConfigureStep(props: {
                   value={values.displayName}
                   maxLength={200}
                   aria-invalid={nameInvalid}
-                  onChange={(event) => { onValuesChange(activeDirectory, { displayName: event.target.value }) }}
+                  onChange={(event) => { onValuesChange({ displayName: event.target.value }) }}
                 />
                 {nameInvalid && <span className={css.fieldError}>{t('templateCenter.field.nameRequired')}</span>}
               </label>
@@ -863,7 +775,7 @@ function ConfigureStep(props: {
                   readOnly={update}
                   maxLength={64}
                   aria-invalid={keyInvalid}
-                  onChange={(event) => { onValuesChange(activeDirectory, { templateKey: event.target.value }) }}
+                  onChange={(event) => { onValuesChange({ templateKey: event.target.value }) }}
                 />
                 {keyInvalid
                   ? <span className={css.fieldError}>{t('templateCenter.field.keyInvalid')}</span>
@@ -876,7 +788,7 @@ function ConfigureStep(props: {
                   value={values.version}
                   maxLength={64}
                   aria-invalid={versionInvalid}
-                  onChange={(event) => { onValuesChange(activeDirectory, { version: event.target.value }) }}
+                  onChange={(event) => { onValuesChange({ version: event.target.value }) }}
                 />
                 {versionInvalid
                   ? <span className={css.fieldError}>{t('templateCenter.field.versionInvalid')}</span>
@@ -890,7 +802,7 @@ function ConfigureStep(props: {
                   maxLength={512}
                   value={values.summary}
                   placeholder={t('templateCenter.field.summaryPlaceholder')}
-                  onChange={(event) => { onValuesChange(activeDirectory, { summary: event.target.value }) }}
+                  onChange={(event) => { onValuesChange({ summary: event.target.value }) }}
                 />
               </label>
               <label className={`${css.field} ${css.fieldWide}`}>
@@ -901,7 +813,7 @@ function ConfigureStep(props: {
                   maxLength={512}
                   value={values.changelog}
                   placeholder={t('templateCenter.field.changelogPlaceholder')}
-                  onChange={(event) => { onValuesChange(activeDirectory, { changelog: event.target.value }) }}
+                  onChange={(event) => { onValuesChange({ changelog: event.target.value }) }}
                 />
               </label>
             </div>
@@ -968,113 +880,65 @@ function ConfigureStep(props: {
   )
 }
 
-/** Step three: the live ledger and its result summary. */
-function ResultStep(props: {
+/** The single run's inline progress/result view. */
+function PublishOutcome(props: {
   readonly t: (key: DeployKey, params?: Record<string, string>) => string
-  readonly plans: readonly TemplatePublishPlan[]
-  readonly runs: Readonly<Record<string, TemplateRunState>>
+  readonly plan: TemplatePublishPlan
+  readonly run: TemplateRunState | undefined
   readonly publishing: boolean
   readonly summary: TemplateRunSummary | undefined
-  readonly doneCount: number
-  readonly failedCount: number
-  readonly overallPercent: number
 }) {
-  const { t, plans, runs, publishing, summary, doneCount, failedCount, overallPercent } = props
-  const total = plans.length
-  const tone = publishing ? 'running' : failedCount > 0 ? 'warning' : 'success'
+  const { t, plan, run, publishing, summary } = props
+  const failed = run?.phase === 'failed'
+  const tone = publishing ? 'running' : failed ? 'warning' : 'success'
   const title = publishing
     ? t('templateCenter.result.publishingTitle')
-    : failedCount > 0
-      ? t('templateCenter.result.partialTitle')
-      : t('templateCenter.result.successTitle')
+    : failed ? t('templateCenter.result.failedTitle') : t('templateCenter.result.successTitle')
   const hint = publishing
-    ? t('templateCenter.result.publishingHint', { done: String(doneCount), total: String(total) })
-    : failedCount > 0
-      ? t('templateCenter.result.partialHint', {
-        done: String(doneCount),
-        failed: String(failedCount),
-      })
+    ? run?.detail ?? t('templateCenter.result.publishingSingleHint')
+    : failed
+      ? run.detail
       : t('templateCenter.result.successHint', {
         created: String(summary?.created ?? 0),
         updated: String(summary?.updated ?? 0),
       })
+  const percent = run?.percent
   return (
-    <>
-      <header className={`${css.resultHero}${tone === 'warning' ? ` ${css.resultHeroWarning}` : ''}${tone === 'running' ? ` ${css.resultHeroRunning}` : ''}`}>
+    <div className={css.outcomePanel} aria-live="polite">
+      <div className={`${css.resultHero}${tone === 'warning' ? ` ${css.resultHeroWarning}` : ''}${tone === 'running' ? ` ${css.resultHeroRunning}` : ''}`}>
         <span className={css.resultIcon} aria-hidden="true">
-          {publishing
-            ? <span className={css.spinner} />
-            : failedCount > 0 ? '!' : <CheckIcon size={18} />}
+          {publishing ? <span className={css.spinner} /> : failed ? '!' : <CheckIcon size={18} />}
         </span>
         <div className={css.resultHeading}>
           <h3 className={css.resultTitle} tabIndex={-1}>{title}</h3>
           <p className={css.resultHint}>{hint}</p>
         </div>
-        <div className={css.resultStats}>
-          <span className={css.resultStat}>
-            <strong>{doneCount}</strong>
-            <span>{t('templateCenter.result.published')}</span>
-          </span>
-          <span className={css.resultStat}>
-            <strong>{failedCount}</strong>
-            <span>{t('templateCenter.result.failed')}</span>
-          </span>
-          <span className={css.resultStat}>
-            <strong>{total}</strong>
-            <span>{t('templateCenter.result.total')}</span>
-          </span>
+      </div>
+      <div className={css.outcomeIdentity}>
+        <AppAvatar candidate={plan.candidate} />
+        <div className={css.resultIdentity}>
+          <span className={css.appName}>{plan.candidate.name}</span>
+          <span className={css.appKey}>{plan.candidate.appKey}</span>
         </div>
-      </header>
-      {publishing && (
-        <div className={css.overallProgress}>
+        <span className={css.typeBadge}>{t(candidateTypeLabelKey(plan.candidate))}</span>
+        {!publishing && !failed && run?.detail !== undefined && (
+          <span className={css.summaryMeta}>{run.detail}</span>
+        )}
+      </div>
+      {publishing && percent !== undefined && (
+        <div className={css.outcomeProgress}>
           <span className={css.progressTrack} aria-hidden="true">
-            <span className={css.progressFill} style={{ width: `${Math.max(2, overallPercent)}%` }} />
+            <span className={css.progressFill} style={{ width: `${Math.max(2, Math.min(100, percent))}%` }} />
           </span>
-          <span className={css.overallPercent}>{overallPercent}%</span>
+          <span className={css.overallPercent}>{percent}%</span>
         </div>
       )}
-      <ul className={css.resultList} aria-live="polite">
-        {plans.map((plan) => {
-          const run = runs[plan.candidate.directory] as TemplateRunState | undefined
-          const phase = run?.phase ?? 'pending'
-          return (
-            <li key={plan.candidate.directory} className={`${css.resultRow}${phase === 'failed' ? ` ${css.resultRowFailed}` : ''}`}>
-              <AppAvatar candidate={plan.candidate} />
-              <div className={css.resultMain}>
-                <span className={css.resultIdentity}>
-                  <span className={css.appName} title={plan.candidate.name}>{plan.candidate.name}</span>
-                  <span className={css.appKey}>{plan.candidate.appKey}</span>
-                </span>
-                <span className={`${css.resultDetail}${phase === 'failed' ? ` ${css.resultDetailError}` : ''}`}>
-                  {run?.detail ?? t('templateCenter.result.status.pending')}
-                </span>
-                {phase === 'running' && run?.percent !== undefined && (
-                  <span className={css.progressTrack} aria-hidden="true">
-                    <span className={css.progressFill} style={{ width: `${Math.max(2, Math.min(100, run.percent))}%` }} />
-                  </span>
-                )}
-                {run?.warnings !== undefined && run.warnings.length > 0 && (
-                  <ul className={css.resultWarnings}>
-                    {run.warnings.map(warning => <li key={warning}>{warning}</li>)}
-                  </ul>
-                )}
-              </div>
-              <span className={`${css.resultBadge} ${resultBadgeClass(phase)}`}>
-                {t(resultStatusKey(phase))}
-              </span>
-            </li>
-          )
-        })}
-      </ul>
-      {!publishing && summary !== undefined && (
-        <p className={css.resultBatch}>
-          {t('templateCenter.result.batch', {
-            created: String(summary.created),
-            updated: String(summary.updated),
-          })}
-        </p>
+      {run?.warnings !== undefined && run.warnings.length > 0 && (
+        <ul className={css.resultWarnings}>
+          {run.warnings.map(warning => <li key={warning}>{warning}</li>)}
+        </ul>
       )}
-    </>
+    </div>
   )
 }
 
@@ -1201,22 +1065,14 @@ function valuesAreValid(values: TemplateAppValues): boolean {
     && values.displayName.trim() !== ''
 }
 
-/** Result badge tone class. */
-function resultBadgeClass(phase: 'pending' | 'running' | 'done' | 'failed'): string {
-  if (phase === 'done') return css.resultBadgeDone
-  if (phase === 'failed') return css.resultBadgeFailed
-  if (phase === 'running') return css.resultBadgeRunning
-  return css.resultBadgePending
-}
-
-/** Result badge copy. */
-function resultStatusKey(phase: 'pending' | 'running' | 'done' | 'failed'): DeployKey {
-  switch (phase) {
-    case 'done': return 'templateCenter.result.status.done'
-    case 'failed': return 'templateCenter.result.status.failed'
-    case 'running': return 'templateCenter.result.status.running'
-    default: return 'templateCenter.result.status.pending'
-  }
+/** New/update copy for the selected app. */
+function planStateLabel(
+  t: (key: DeployKey, params?: Record<string, string>) => string,
+  plan: TemplatePublishPlan,
+): string {
+  return plan.template === undefined
+    ? t('templateCenter.app.newTemplate')
+    : t('templateCenter.app.updateBadge')
 }
 
 /** Check mark for selected cards and completed stages. */

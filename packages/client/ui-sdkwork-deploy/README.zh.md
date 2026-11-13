@@ -13,7 +13,7 @@ kind: "package-reference"
 
 设置菜单 popover 的「我的应用」行打开双页签只读弹窗：「我的应用」列出当前用户名下的 `deploy_app` 记录（应用 API 的 `USER` 归属作用域），按更新时间倒序，并可按应用类型筛选；「我的应用模板」列出当前用户名下的模板列表（`template.appTemplates.list`，本身即账号作用域），按更新时间倒序，可按模板状态筛选，并标注每个列表的最新语义版本与安装次数。两个页签都读取与发布流程相同的宿主构造客户端，且从不写入。
 
-行菜单提供**两个相互独立的模板弹窗**。「发布为模板」打开发布弹窗，「从模板安装」打开安装弹窗；两者只共享模态外壳与设计 token，互不导入对方的流程、状态或面板。发布弹窗有两个来源：默认扫描 `<项目>/apps` 中符合 SDKWork workspace 规范的独立应用根目录（`apps/README.md` 索引 + `agent.app.config.json`），可勾选任意多个；也可以经宿主目录选择器挑一个任意目录，检测器先读应用清单，再根据 `package.json`/`pubspec.yaml` 与项目标记（Flutter、React Native/Expo、Android、iOS、HarmonyOS、小程序、Electron/Tauri、Web 框架、静态 HTML、服务端框架）推断应用类型，并允许在发布前手动改选。两个来源都会创建应用开发脚手架模板：先按清单或检测类型关联/注册当前账号的平台应用，经宿主桥读取目录，用 `.gitignore` 感知的 fflate 打包器**在本地生成 zip**（排除本机敏感文件），只上传这个压缩包作为版本制品，再创建模板；同一账号对同一平台应用与模板标识已有模板时，改为更新模板并追加新版本，不会重复创建。发布页是三步向导——选择应用或自定义目录、填写模板信息与共享设置、查看逐行发布结果——批次不会被压缩成一个密集表单。每个选中行都有自己的名称、标识、版本、更新说明与实时发布进度（含本地压缩阶段）；部分失败时可以只重试失败项。独立的安装弹窗列出我的模板（与模板市场），可安装到 `<项目>/apps/<模板标识>`——同名目录自动追加序号而不是覆盖本地应用——或自定义绝对目录；文件落盘后把模板身份写入应用清单，并更新 `apps/README.md` 索引行。
+行菜单提供**两个相互独立的模板弹窗**。「发布为模板」打开发布弹窗，「从模板安装」打开安装弹窗；两者只共享模态外壳与设计 token，互不导入对方的流程、状态或面板。发布弹窗有两个来源：默认扫描 `<项目>/apps` 中符合 SDKWork workspace 规范的独立应用根目录（`apps/README.md` 索引 + `agent.app.config.json`），一次选择一个；也可以经宿主目录选择器挑一个任意目录，检测器先读应用清单，再根据 `package.json`/`pubspec.yaml` 与项目标记（Flutter、React Native/Expo、Android、iOS、HarmonyOS、小程序、Electron/Tauri、Web 框架、静态 HTML、服务端框架）推断应用类型，并允许在发布前手动改选。两个来源都会创建应用开发脚手架模板：先按清单或检测类型关联/注册当前账号的平台应用，经宿主桥读取目录，用 `.gitignore` 感知的 fflate 打包器**在本地生成 zip**（排除本机敏感文件），只上传这个压缩包作为版本制品，再创建模板；同一账号对同一平台应用与模板标识已有模板时，改为更新模板并追加新版本，不会重复创建。发布页是两步向导——选择一个应用或自定义目录、确认模板信息与共享设置并在当前页查看单次发布进度/结果——常见场景不会被压缩成一个批量表单。选中应用有自己的名称、标识、版本、更新说明与实时发布进度（含本地压缩阶段）；失败后可以重试。独立的安装弹窗列出我的模板（与模板市场），可安装到 `<项目>/apps/<模板标识>`——同名目录自动追加序号而不是覆盖本地应用——或自定义绝对目录；文件落盘后把模板身份写入应用清单，并更新 `apps/README.md` 索引行。
 
 ## 目录
 
@@ -47,7 +47,7 @@ kind: "package-reference"
 - **没有登记应用**：「创建应用并发布」。清单提供草稿（展示名称、由 `appType`/`runtime`/`publish.platforms` 推导的类型卡片、描述、应用标识）；确认页展示后创建，清单无法确定类型卡片时转交控制台的完整创建表单。
 - **已登记且可解析**：「发布应用」「上传代码」。流程在创建前会立即重读清单，因此在另一个窗口刚关联过应用的项目不会再得到第二个应用。
 - **已登记但应用已不存在**：提供重建，并写回同一处关联。
-- **发布为模板**与**从模板安装**是相互独立的行菜单动作（`deployPublish.openPublishTemplate` / `openInstallTemplate`）：前者打开仅发布的弹窗，列出项目 `apps/` 下的独立应用及去重状态，或选择一个任意目录并检测类型，用「选择 → 填写 → 发布」三步向导驱动批次；后者打开独立安装弹窗，把模板装回 `apps/` 或自定义目录。头部弹窗仍是应用清单，不是第二个菜单。
+- **发布为模板**与**从模板安装**是相互独立的行菜单动作（`deployPublish.openPublishTemplate` / `openInstallTemplate`）：前者打开仅发布的弹窗，列出项目 `apps/` 下的独立应用及去重状态并单选，或选择一个任意目录并检测类型，用「选择 → 填写并发布」两步向导驱动单次发布；后者打开独立安装弹窗，把模板装回 `apps/` 或自定义目录。头部弹窗仍是应用清单，不是第二个菜单。
 
 **创建写出完整清单（APP_MANIFEST_SPEC v3）。** 目标项目没有 `agent.app.config.json` 时，关联写入组合出完整骨架，而不是规范 §4.1 允许的仅关联 stub：八个必备节齐全（`app`、`backend`、`runtime`、`media`、`publish`、`artifacts`、`release`、`security`），身份来自创建记录（key 依次取治理键、名称 kebab 推导、控制台 slug；名称、展示名、描述、`appType`），运行时身份按规范 §6.1 客户端架构对齐表由类型卡片或应用 kind 决定（family、framework、`publish.platforms`、`supportedDeploymentProfiles` + 默认 `standalone`），创建表单上传的图标同时落在两个图标槽，外加规范的 `metadata.deploymentConfig` 指针与初始 `0.1.0` 发布条目。创建流程无法真实得知的字段——官网、截图、包矩阵——保持缺席，交给应用仓库的作者补全；绝不伪造。已存在的清单只做合并、绝不重写。组合出的清单回读会解析出同一张类型卡片；补上记录的图标与官网后，九张卡片的组合清单全部通过 `check-app-manifest-standard.mjs`。
 
@@ -87,11 +87,11 @@ kind: "package-reference"
 - `src/client/PublishTemplateFlow.tsx` — `deployPublish.openPublishTemplate` 挂载的发布流程：宿主/账号绑定与发布结果回调。
 - `src/client/InstallTemplateFlow.tsx` — `deployPublish.openInstallTemplate` 挂载的独立安装流程：同样的宿主/账号绑定与安装结果回调。
 - `src/client/useTemplateHostSession.ts` — 两个流程共用的小型宿主会话 hook：构造客户端、读取 IAM 用户；不携带任何发布或安装流程状态。
-- `src/client/TemplatePublishDialog.tsx` — 仅发布的弹窗：发布扫描/目录读取状态、勾选/逐应用取值/发布设置，以及按行顺序发布并把阶段翻译成进度。
+- `src/client/TemplatePublishDialog.tsx` — 仅发布的弹窗：发布扫描/目录读取状态、单选应用、取值/发布设置，以及单次发布并把阶段翻译成进度。
 - `src/client/TemplateInstallDialog.tsx` — 仅安装的弹窗：不导入任何发布模块，主体是安装面板。
 - `src/client/TemplateDialogFrame.tsx` — 只共享模态外壳：遮罩、标题、账号芯片、关闭、登录门与 busy/Escape 处理。
 - `src/client/TemplateDialog.module.css` — 共享外壳与两个独立表面的设计 token 样式。
-- `src/client/TemplatePublishPanel.tsx` — 三步发布向导：项目应用选择卡片以及自定义目录选择/检测卡片、逐应用编辑器与共享分类/可见性/审核设置，以及带总体/逐行进度、重试与重置操作的实时结果账本。
+- `src/client/TemplatePublishPanel.tsx` — 两步单应用发布向导：单选式项目应用卡片以及自定义目录选择/检测卡片、单应用编辑器与共享分类/可见性/审核设置，以及带进度、重试与重置操作的页内单次发布结果。
 - `src/client/templateCustomApp.ts` — 自定义目录检测器：清单优先的身份、项目标记类型推断、package/pubspec 元数据，以及待用户手动补全类型的候选。
 - `src/client/templateAppTypes.ts` — 可选应用类型词表及其控制台卡片/模板平台映射。
 - `src/client/TemplateInstallPanel.tsx` — 安装表现层：我的模板/模板市场来源与搜索、目标模式（项目 `apps/` 或经宿主选择器的自定义目录）、逐行目标预览与安装进度。
