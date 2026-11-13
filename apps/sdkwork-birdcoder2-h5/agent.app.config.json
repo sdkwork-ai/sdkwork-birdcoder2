@@ -264,6 +264,19 @@
       "blockers": [
         "signed-production-artifact-evidence-missing"
       ]
+    },
+    "publishing": {
+      "appIdByTarget": {
+        "cloud.development": "7eb0f855-88f7-487b-a529-ae7ad2f71806"
+      },
+      "birdcoder": {
+        "appId": "7eb0f855-88f7-487b-a529-ae7ad2f71806",
+        "appName": "BirdCoder2 H5",
+        "appSlug": "birdcoder2-h5",
+        "appKey": "sdkwork-birdcoder2-h5",
+        "sourceDirectory": "D:\\sdkwork-space\\sdkwork-birdcoder2\\apps\\sdkwork-birdcoder2-h5",
+        "updatedAt": "2026-11-13T14:16:41.765Z"
+      }
     }
   }
 }

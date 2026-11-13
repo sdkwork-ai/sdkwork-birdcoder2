@@ -81,6 +81,69 @@ describe('readProjectAppState', () => {
     expect(readProjectAppState(appLess, {}).identity).toBeUndefined()
   })
 
+  it('resolves the publish source root from config.workspaceRoot', () => {
+    const source = (workspaceRoot: string): string | undefined => readProjectAppState(
+      manifest({ key: 'k', name: 'n' }, { config: { workspaceRoot } }),
+      { directory: '/w/app' },
+    ).sourceDirectory
+    expect(source('apps/sdkwork-store-pc')).toBe('/w/app/apps/sdkwork-store-pc')
+    expect(source('./apps/sdkwork-store-h5')).toBe('/w/app/apps/sdkwork-store-h5')
+    expect(source('.')).toBe('/w/app')
+    expect(source('../outside')).toBeUndefined()
+    expect(source('/absolute')).toBeUndefined()
+    expect(source('C:/outside')).toBeUndefined()
+    const windows = readProjectAppState(
+      manifest({ key: 'k', name: 'n' }, { config: { workspaceRoot: 'apps/sdkwork-store-pc' } }),
+      { directory: 'D:\\work\\app' },
+    )
+    expect(windows.sourceDirectory).toBe('D:\\work\\app\\apps\\sdkwork-store-pc')
+    // APP_MANIFEST_SPEC v3 records the publish root under publish.config.
+    const published = readProjectAppState(
+      manifest({ key: 'k', name: 'n' }, { publish: { platforms: ['WEB'], config: { workspaceRoot: 'apps/web' } } }),
+      { directory: '/w/app' },
+    )
+    expect(published.sourceDirectory).toBe('/w/app/apps/web')
+    // An explicit source binding wins over the manifest's workspaceRoot.
+    const bound = readProjectAppState(manifest({ key: 'k', name: 'n' }, {
+      publish: { platforms: ['WEB'], config: { workspaceRoot: 'apps/web' } },
+      metadata: {
+        publishing: {
+          appIdByTarget: { 'standalone.development': 'app-uuid-1' },
+          birdcoder: { sourceDirectory: '/w/app/apps/sdkwork-store-h5' },
+        },
+      },
+    }), { directory: '/w/app', profileId: 'standalone.development' })
+    expect(bound.sourceDirectory).toBe('/w/app/apps/sdkwork-store-h5')
+    // A stale root-level binding does not hide the manifest's workspaceRoot.
+    const rootBound = readProjectAppState(manifest({ key: 'k', name: 'n' }, {
+      publish: { platforms: ['WEB'], config: { workspaceRoot: 'apps/web' } },
+      metadata: {
+        publishing: {
+          appIdByTarget: { 'standalone.development': 'app-uuid-1' },
+          birdcoder: { sourceDirectory: '/w/app' },
+        },
+      },
+    }), { directory: '/w/app', profileId: 'standalone.development' })
+    expect(rootBound.sourceDirectory).toBe('/w/app/apps/web')
+    // An already-selected app root is not appended to itself.
+    const selectedRoot = readProjectAppState(manifest({ key: 'k', name: 'n' }, {
+      publish: { platforms: ['WEB'], config: { workspaceRoot: 'apps/sdkwork-mini-program' } },
+    }), { directory: '/w/app/apps/sdkwork-mini-program' })
+    expect(selectedRoot.sourceDirectory).toBe('/w/app/apps/sdkwork-mini-program')
+    // A persisted binding that repeated the app suffix is collapsed back to
+    // the app root instead of being selected again.
+    const repeatedBinding = readProjectAppState(manifest({ key: 'k', name: 'n' }, {
+      publish: { platforms: ['WEB'], config: { workspaceRoot: 'apps/sdkwork-mini-program' } },
+      metadata: {
+        publishing: {
+          appIdByTarget: { 'standalone.development': 'app-uuid-1' },
+          birdcoder: { sourceDirectory: '/w/app/apps/sdkwork-mini-program/apps/sdkwork-mini-program' },
+        },
+      },
+    }), { directory: '/w/app/apps/sdkwork-mini-program', profileId: 'standalone.development' })
+    expect(repeatedBinding.sourceDirectory).toBe('/w/app/apps/sdkwork-mini-program')
+  })
+
   it('keeps an unlinked project unlinked', () => {
     expect(readProjectAppState(manifest({ key: 'k', name: 'n' }), {}).linkedAppId).toBeUndefined()
   })

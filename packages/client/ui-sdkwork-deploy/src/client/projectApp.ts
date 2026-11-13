@@ -35,6 +35,8 @@ export interface ProjectAppIdentity {
   readonly runtimeFamily?: string
   /** `runtime.framework` (react, flutter, electron, static-html, —. */
   readonly runtimeFramework?: string
+  /** `runtime.defaultDeploymentProfile` (standalone or cloud). */
+  readonly deploymentProfile?: string
   /** `publish.platforms` as declared (canonical `PlusPlatform` values). */
   readonly platforms: readonly string[]
   /** Product icon URL from `app.iconUrl` or `media.icons.primary.url`. */
@@ -57,6 +59,8 @@ export interface ProjectAppState {
   readonly profileId?: string
   /** The parsed linkage, including fork provenance (template identity, names). */
   readonly link?: DeployAppConfigLink
+  /** Canonical source root resolved from `config.workspaceRoot`. */
+  readonly sourceDirectory?: string
 }
 
 /** The create-form draft a project manifest supports. */
@@ -94,13 +98,64 @@ export function readProjectAppState(
   }
   const link = parseDeployLink(raw, options.profileId)
   const identity = readIdentity(manifest)
+  const boundSource = link?.sourceDirectory?.trim()
+  const workspaceSource = resolveWorkspaceRoot(options.directory, manifest)
+  // A binding exactly on the project root adds no information; the manifest's
+  // more specific workspaceRoot wins. A binding that repeats the selected
+  // app's own `apps/<app>` suffix is the same defect; collapse it too.
+  const normalizedBound = boundSource?.replace(/[\\/]+$/u, '').replace(/\\/gu, '/')
+  const normalizedDirectory = options.directory?.replace(/[\\/]+$/u, '').replace(/\\/gu, '/')
+  const boundIsProjectRoot = normalizedBound !== undefined && normalizedDirectory !== undefined
+    && normalizedBound === normalizedDirectory
+  const normalizedWorkspace = workspaceSource?.replace(/\\/gu, '/')
+  const boundRepeatsWorkspace = normalizedBound !== undefined
+    && normalizedWorkspace !== undefined
+    && normalizedWorkspace.includes('/apps/')
+    && normalizedBound.startsWith(`${normalizedWorkspace}/`)
+    && normalizedBound.slice(normalizedWorkspace.length + 1).startsWith('apps/')
+  const sourceDirectory = boundSource === undefined || boundSource === '' || boundIsProjectRoot || boundRepeatsWorkspace
+    ? workspaceSource ?? (boundSource === '' ? undefined : boundSource)
+    : boundSource
   return {
     hasManifest: true,
     ...(options.directory === undefined ? {} : { directory: options.directory }),
     ...(options.profileId === undefined ? {} : { profileId: options.profileId }),
     ...(identity === undefined ? {} : { identity }),
     ...(link === undefined ? {} : { linkedAppId: link.appId, link }),
+    ...(sourceDirectory === undefined ? {} : { sourceDirectory }),
   }
+}
+
+/**
+ * Resolve the publish source root from the manifest's `config.workspaceRoot`.
+ * The value is a repository-relative application root (for example
+ * `apps/sdkwork-birdcoder2-pc`); absolute or parent-escaping values are ignored
+ * so a manifest cannot redirect publishing outside its project.
+ */
+function resolveWorkspaceRoot(
+  directory: string | undefined,
+  manifest: Record<string, unknown>,
+): string | undefined {
+  if (directory === undefined || directory.trim() === '') return undefined
+  const publish = manifest['publish']
+  const publishConfig = typeof publish === 'object' && publish !== null && !Array.isArray(publish)
+    ? (publish as Record<string, unknown>)['config']
+    : undefined
+  const config = publishConfig ?? manifest['config']
+  if (typeof config !== 'object' || config === null || Array.isArray(config)) return undefined
+  const raw = (config as Record<string, unknown>)['workspaceRoot']
+  if (typeof raw !== 'string') return undefined
+  const relative = raw.trim().replace(/\\/gu, '/').replace(/^\.\/+/u, '').replace(/\/+$/u, '')
+  if (relative === '' || relative === '.') return directory.replace(/[\\/]+$/u, '')
+  if (relative.startsWith('/') || /^[A-Za-z]:/u.test(relative)) return undefined
+  const segments = relative.split('/').filter(segment => segment !== '' && segment !== '.')
+  if (segments.length === 0 || segments.some(segment => segment === '..')) return undefined
+  const normalizedDirectory = directory.replace(/[\\/]+$/u, '').replace(/\\/gu, '/')
+  // Selecting an app root that is already the manifest's workspaceRoot must
+  // not append the same path again.
+  if (normalizedDirectory.endsWith(`/${relative}`)) return directory.replace(/[\\/]+$/u, '')
+  const separator = directory.includes('\\') ? '\\' : '/'
+  return `${directory.replace(/[\\/]+$/u, '')}${separator}${segments.join(separator)}`
 }
 
 /**
@@ -191,6 +246,7 @@ function readIdentity(manifest: Record<string, unknown>): ProjectAppIdentity | u
   const appType = stringValue(app['appType'])
   const runtimeFamily = stringValue(runtime?.['family'])
   const runtimeFramework = stringValue(runtime?.['framework'])
+  const deploymentProfile = stringValue(runtime?.['defaultDeploymentProfile'])
   const iconUrl = stringValue(app['iconUrl']) ?? stringValue(primaryIcon?.['url'])
   const officialWebsiteUrl = stringValue(app['officialWebsiteUrl'])
   return {
@@ -202,6 +258,7 @@ function readIdentity(manifest: Record<string, unknown>): ProjectAppIdentity | u
     ...(appType === undefined ? {} : { appType }),
     ...(runtimeFamily === undefined ? {} : { runtimeFamily }),
     ...(runtimeFramework === undefined ? {} : { runtimeFramework }),
+    ...(deploymentProfile === undefined ? {} : { deploymentProfile }),
     ...(iconUrl === undefined ? {} : { iconUrl }),
     ...(officialWebsiteUrl === undefined ? {} : { officialWebsiteUrl }),
   }

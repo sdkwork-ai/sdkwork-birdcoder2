@@ -269,6 +269,19 @@
       "blockers": [
         "signed-production-artifact-evidence-missing"
       ]
+    },
+    "publishing": {
+      "appIdByTarget": {
+        "cloud.development": "45ba9f0d-93ac-40ce-ada5-9edd8a9ee58f"
+      },
+      "birdcoder": {
+        "appId": "45ba9f0d-93ac-40ce-ada5-9edd8a9ee58f",
+        "appName": "BirdCoder2 PC",
+        "appSlug": "birdcoder2-pc",
+        "appKey": "sdkwork-birdcoder2-pc",
+        "sourceDirectory": "D:\\sdkwork-space\\sdkwork-birdcoder2\\apps\\sdkwork-birdcoder2-pc",
+        "updatedAt": "2026-11-13T14:13:59.779Z"
+      }
     }
   }
 }

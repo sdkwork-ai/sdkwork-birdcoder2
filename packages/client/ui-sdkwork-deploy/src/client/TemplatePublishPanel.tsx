@@ -1073,6 +1073,22 @@ const MAX_SCREENSHOT_BYTES = 8 * 1024 * 1024
 const NO_SCREENSHOTS: readonly File[] = []
 const NO_GROUPS: Readonly<Record<string, readonly File[]>> = {}
 
+/**
+ * The marketplace cover is a 16:9 listing banner, not Google Play's 1024×500
+ * feature graphic and not an App Store asset (App Store has no cover slot).
+ * Keeping it 16:9 gives mobile, web and cross-platform templates one usable
+ * marketplace hero while device screenshots follow the real store shelves.
+ */
+const MOBILE_MARKET_COVER: CoverSpec = {
+  minWidth: 1280,
+  minHeight: 720,
+  aspect: { min: 16 / 9 - 0.04, max: 16 / 9 + 0.04, nominal: 16 / 9 },
+  allowAlpha: true,
+  maxBytes: 8 * 1024 * 1024,
+  recommendedWidth: 1280,
+  recommendedHeight: 720,
+}
+
 /** One app-kind media policy used by the store-asset editor. */
 interface TemplateMediaProfile {
   readonly kind: DeployAppKind
@@ -1135,7 +1151,7 @@ function templateMediaProfile(candidate: TemplateAppCandidate): TemplateMediaPro
     return {
       kind,
       icon: base.icon,
-      cover: base.cover,
+      cover: MOBILE_MARKET_COVER,
       screenshots,
       screenshotsRequired: true,
       maxScreenshotsTotal: 20,
@@ -1158,10 +1174,11 @@ function templateMediaProfile(candidate: TemplateAppCandidate): TemplateMediaPro
               : kind === 'API_SERVICE'
                 ? 'templateCenter.media.spec.api'
                 : 'templateCenter.media.spec.web'
+  const mobileCover = kind === 'IOS_APP' || kind === 'ANDROID_APP' || kind === 'HARMONYOS_APP'
   return {
     kind,
     icon: base.icon,
-    cover: base.cover,
+    cover: mobileCover ? MOBILE_MARKET_COVER : base.cover,
     screenshots: base.screenshots,
     screenshotsRequired: base.screenshotsRequired,
     maxScreenshotsTotal: base.maxScreenshotsTotal,
@@ -1432,7 +1449,7 @@ function TemplateMediaFields(props: {
         </div>
         <div className={`${css.mediaTile} ${css.mediaTileWide}`}>
           <div className={css.mediaTileHeader}>
-            <span className={css.fieldLabel}>{t('templateCenter.media.cover')}</span>
+            <span className={css.fieldLabel}>{t('templateCenter.media.coverMarket')}</span>
             <span className={css.mediaRatio}>{t('templateCenter.media.coverHint', {
               width: String(spec.cover.recommendedWidth),
               height: String(spec.cover.recommendedHeight),
@@ -1484,7 +1501,7 @@ function TemplateMediaFields(props: {
             })}
           </span>
           <span className={css.mediaChecklistRow}>
-            <span className={css.mediaChecklistLabel}>{t('templateCenter.media.cover')}</span>
+            <span className={css.mediaChecklistLabel}>{t('templateCenter.media.coverMarket')}</span>
             {t('templateCenter.media.coverRequirement', {
               width: String(spec.cover.recommendedWidth),
               height: String(spec.cover.recommendedHeight),
@@ -1585,6 +1602,7 @@ function TemplateMediaFields(props: {
             }}
           />
           <p className={css.mediaNote}>{t('templateCenter.media.replaceNote')}</p>
+          <p className={css.mediaNote}>{t('templateCenter.media.coverMarketNote')}</p>
         </div>
       )}
       {spec.screenshots.length === 0 && (

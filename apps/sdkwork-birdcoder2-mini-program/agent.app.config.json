@@ -213,6 +213,19 @@
         "signed-production-artifact-evidence-missing",
         "wechat-devtools-upload-evidence-missing"
       ]
+    },
+    "publishing": {
+      "appIdByTarget": {
+        "cloud.development": "867a94fa-6b47-45b4-b532-0f434b98bb25"
+      },
+      "birdcoder": {
+        "appId": "867a94fa-6b47-45b4-b532-0f434b98bb25",
+        "appName": "BirdCoder2 WeChat Mini Program",
+        "appSlug": "birdcoder2-wechat-mini-program",
+        "appKey": "sdkwork-birdcoder2-mini-program",
+        "sourceDirectory": "D:\\sdkwork-space\\sdkwork-birdcoder2\\apps\\sdkwork-birdcoder2-mini-program\\apps\\sdkwork-birdcoder2-mini-program",
+        "updatedAt": "2026-11-13T12:50:05.877Z"
+      }
     }
   }
 }

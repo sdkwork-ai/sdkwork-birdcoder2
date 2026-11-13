@@ -359,7 +359,7 @@ describe('TemplatePublishDialog publish run', () => {
 
     await goToAssets()
     expect(container?.textContent).toContain('iOS 与 Android 双端商店素材规范')
-    expect(container?.textContent).toContain('1024 × 500')
+    expect(container?.textContent).toContain('1280 × 720')
     expect(container?.textContent).toContain('iPhone')
     expect(container?.textContent).toContain('Android 手机')
     await goToBasic()

@@ -183,6 +183,14 @@ async function click(text: string): Promise<void> {
   await act(async () => { await new Promise((resolve) => { setTimeout(resolve, 30) }) })
 }
 
+async function clickAria(label: string): Promise<void> {
+  const button = [...(container?.querySelectorAll('button') ?? [])]
+    .find(candidate => candidate.getAttribute('aria-label') === label)
+  if (button === undefined) throw new Error(`button not found by aria-label: ${label}`)
+  await act(async () => { button.click() })
+  await act(async () => { await new Promise((resolve) => { setTimeout(resolve, 30) }) })
+}
+
 describe('TemplateInstallPanel', () => {
   it('lists the caller templates, previews the apps target, and installs into apps/ with the index update', async () => {
     const host = stubHost()
@@ -206,10 +214,10 @@ describe('TemplateInstallPanel', () => {
     await click('模板市场')
     expect(container?.textContent).toContain('市场模板')
 
-    const radios = [...(container?.querySelectorAll('input[type="radio"]') ?? [])]
-    expect(radios).toHaveLength(2)
-    await act(async () => { (radios[1] as HTMLInputElement).click() })
-    await click('浏览…')
+    expect(container?.querySelectorAll('input[type="radio"]')).toHaveLength(0)
+    expect(container?.textContent).toContain('默认安装目录')
+    await clickAria('更改安装位置')
+    expect(container?.textContent).toContain('自定义安装目录')
     expect(container?.textContent).toContain('/custom/apps/demo')
 
     await click('安装')

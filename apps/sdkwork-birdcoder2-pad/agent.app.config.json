@@ -273,6 +273,19 @@
         "signed-production-artifact-evidence-missing",
         "store-screenshots-missing"
       ]
+    },
+    "publishing": {
+      "appIdByTarget": {
+        "cloud.development": "83a9ad0d-c09e-4fa1-a181-183c54fd22ba"
+      },
+      "birdcoder": {
+        "appId": "83a9ad0d-c09e-4fa1-a181-183c54fd22ba",
+        "appName": "BirdCoder2 Pad",
+        "appSlug": "birdcoder2-pad",
+        "appKey": "sdkwork-birdcoder2-pad",
+        "sourceDirectory": "D:\\sdkwork-space\\sdkwork-birdcoder2\\apps\\sdkwork-birdcoder2-pad",
+        "updatedAt": "2026-11-13T14:14:21.225Z"
+      }
     }
   }
 }

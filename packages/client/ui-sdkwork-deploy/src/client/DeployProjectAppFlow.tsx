@@ -26,6 +26,7 @@ import {
   cardsOfAppKind,
   createDeployAppPublishingService,
   type DeployAppPublishingService,
+  type DeployDeploymentMode,
 } from '@sdkwork/deployments-pc-console-publishing'
 import type { AppResponse } from '@sdkwork/deployments-app-sdk'
 import { resolveProjectApp } from './deployAppFlow.ts'
@@ -34,6 +35,7 @@ import type { DeployHost, DeployHostClients } from './deployHost.ts'
 import type { DeployKey } from './locales.ts'
 import { createProjectApp } from './projectAppCreate.ts'
 import {
+  projectAppCardId,
   projectAppDraft,
   type ProjectAppDraft,
   type ProjectAppState,
@@ -63,7 +65,16 @@ type Step =
     readonly createdApp?: AppResponse | undefined
   }
   | { readonly kind: 'manual' }
-  | { readonly kind: 'publish'; readonly app: AppResponse }
+  | {
+    readonly kind: 'publish'
+    readonly app: AppResponse
+    /** Manifest-derived source root; falls back to the project directory. */
+    readonly sourceDirectory?: string
+    /** Surface card the source/manifest resolved, for the embedded form. */
+    readonly cardId?: string
+    /** Manifest default deployment profile; the form no longer asks. */
+    readonly deploymentMode?: DeployDeploymentMode
+  }
   | { readonly kind: 'upload'; readonly app: AppResponse }
 
 /** Full props for the project publish flow. */
@@ -78,6 +89,14 @@ export interface DeployProjectAppFlowProps {
   readonly t: (key: DeployKey, params?: Record<string, string>) => string
   /** Project directory to read and write; omitted reads the session cwd. */
   readonly directory?: string | undefined
+  /** Type card chosen for a custom directory that carries no manifest. */
+  readonly cardIdOverride?: string | undefined
+  /** Render the publish surface inside the host picker overlay. */
+  readonly embedded?: boolean | undefined
+  /** Return from the publish surface to the host app-source picker. */
+  readonly onBackToSource?: (() => void) | undefined
+  /** Skip the type-confirmation step for an already-chosen source. */
+  readonly skipTypeStep?: boolean | undefined
   /** Surface to open once the app exists; defaults to publish. */
   readonly intent?: ProjectAppIntent | undefined
   /** Report one outcome to the owner for its banner. */
@@ -93,7 +112,7 @@ export interface DeployProjectAppFlowProps {
  * @returns the active dialog, or null while resolving or without clients.
  */
 export function DeployProjectAppFlow({
-  host, theme, locale: localeFace, t, directory, intent = 'publish', onDone, onClose,
+  host, theme, locale: localeFace, t, directory, cardIdOverride, embedded, onBackToSource, skipTypeStep, intent = 'publish', onDone, onClose,
 }: DeployProjectAppFlowProps) {
   const [clients, setClients] = useState<DeployHostClients | undefined>(() => {
     try {
@@ -150,12 +169,22 @@ export function DeployProjectAppFlow({
       )
       if (!isAlive()) return
       if (resolution.status === 'linked') {
+        const sourceCardId = projectAppCardId(state.identity) ?? cardIdOverride
         setStep(intent === 'upload'
           ? { kind: 'upload', app: resolution.app }
-          : { kind: 'publish', app: resolution.app })
+          : {
+            kind: 'publish',
+            app: resolution.app,
+            ...(state.sourceDirectory === undefined ? {} : { sourceDirectory: state.sourceDirectory }),
+            ...(sourceCardId === undefined ? {} : { cardId: sourceCardId }),
+            ...(deploymentModeOf(state) === undefined ? {} : { deploymentMode: deploymentModeOf(state) }),
+          })
         return
       }
-      const draft = projectAppDraft(state, fallbackName(state.directory ?? directory, t('create.untitled')))
+      const baseDraft = projectAppDraft(state, fallbackName(state.directory ?? directory, t('create.untitled')))
+      const draft = cardIdOverride === undefined
+        ? baseDraft
+        : { ...baseDraft, cardId: baseDraft.cardId ?? cardIdOverride }
       setStep({
         kind: 'create',
         state,
@@ -166,12 +195,25 @@ export function DeployProjectAppFlow({
       })
     })
     return () => { alive.value = false }
-  }, [clients, host, directory, intent, t])
+  }, [clients, host, directory, intent, t, cardIdOverride])
 
   /** Replace the current step with the requested surface for a created app. */
-  const continueWith = useCallback((app: AppResponse): void => {
+  const continueWith = useCallback((
+    app: AppResponse,
+    sourceDirectory?: string,
+    cardId?: string,
+    deploymentMode?: DeployDeploymentMode,
+  ): void => {
     setError(undefined)
-    setStep(intent === 'upload' ? { kind: 'upload', app } : { kind: 'publish', app })
+    setStep(intent === 'upload'
+      ? { kind: 'upload', app }
+      : {
+        kind: 'publish',
+        app,
+        ...(sourceDirectory === undefined ? {} : { sourceDirectory }),
+        ...(cardId === undefined ? {} : { cardId }),
+        ...(deploymentMode === undefined ? {} : { deploymentMode }),
+      })
   }, [intent])
 
   /**
@@ -206,7 +248,9 @@ export function DeployProjectAppFlow({
           appId: current.createdApp.id,
           appName: current.createdApp.name,
           appSlug: current.createdApp.slug,
-          ...(current.state.directory === undefined ? {} : { sourceDirectory: current.state.directory }),
+          ...((current.state.sourceDirectory ?? current.state.directory) === undefined
+            ? {}
+            : { sourceDirectory: current.state.sourceDirectory ?? current.state.directory }),
         }, current.state.directory, {
           name: current.createdApp.name,
           displayName: current.draft.name,
@@ -224,7 +268,7 @@ export function DeployProjectAppFlow({
         onDone?.(targetCreated
           ? { text: t('notice.linked', { name: current.createdApp.name }), tone: 'success' }
           : { text: t('create.targetFailed', { name: current.createdApp.name }), tone: 'error' })
-        continueWith(current.createdApp)
+        continueWith(current.createdApp, current.state.sourceDirectory, current.draft.cardId, deploymentModeOf(current.state))
         return
       }
       // Re-read immediately before creating: another window may have linked
@@ -278,7 +322,7 @@ export function DeployProjectAppFlow({
           ? { text: t('notice.created', { name: outcome.app.name }), tone: 'success' }
           : { text: t('create.targetFailed', { name: outcome.app.name }), tone: 'error' },
       )
-      continueWith(outcome.app)
+      continueWith(outcome.app, current.state.sourceDirectory, current.draft.cardId, deploymentModeOf(current.state))
     } catch (cause) {
       setError(t('create.failed', { message: messageOf(cause) }))
     } finally {
@@ -289,11 +333,12 @@ export function DeployProjectAppFlow({
   /** Record a manually created app, then continue into the requested surface. */
   const createdManually = useCallback((app: AppResponse): void => {
     setError(undefined)
+    const sourceDirectory = directory ?? host.readDefaultDirectory()
     void host.writeDeployLink({
       appId: app.id,
       appName: app.name,
       appSlug: app.slug,
-      ...(host.readDefaultDirectory() === undefined ? {} : { sourceDirectory: host.readDefaultDirectory() }),
+      ...(sourceDirectory === undefined ? {} : { sourceDirectory }),
     }, directory, {
       name: app.name,
       appSlug: app.slug,
@@ -309,7 +354,7 @@ export function DeployProjectAppFlow({
       onDone?.(targetCreated
         ? { text: t('notice.created', { name: app.name }), tone: 'success' }
         : { text: t('create.targetFailed', { name: app.name }), tone: 'error' })
-      continueWith(app)
+      continueWith(app, sourceDirectory, cardIdOverride ?? singleCardOfKind(app.appKind))
     })
   }, [continueWith, directory, ensureTarget, host, onDone, t])
 
@@ -375,7 +420,12 @@ export function DeployProjectAppFlow({
       theme={theme}
       locale={localeFace}
       app={step.app}
-      defaultDirectory={host.readDefaultDirectory()}
+      defaultDirectory={step.sourceDirectory ?? directory ?? host.readDefaultDirectory()}
+      {...(step.cardId === undefined ? {} : { cardId: step.cardId })}
+      {...(step.deploymentMode === undefined ? {} : { deploymentMode: step.deploymentMode })}
+      {...(embedded === undefined ? {} : { embedded })}
+      {...(onBackToSource === undefined ? {} : { onSourceBack: onBackToSource })}
+      {...(skipTypeStep === undefined ? {} : { skipTypeStep })}
       onPublished={() => {
         onDone?.({ text: t('notice.published'), tone: 'success' })
         onClose()
@@ -383,6 +433,12 @@ export function DeployProjectAppFlow({
       onClose={onClose}
     />
   )
+}
+
+/** Manifest default deployment profile, when it names a supported mode. */
+function deploymentModeOf(state: ProjectAppState): DeployDeploymentMode | undefined {
+  const profile = state.identity?.deploymentProfile
+  return profile === 'standalone' || profile === 'cloud' ? profile : undefined
 }
 
 /** Last path segment of a project directory. */

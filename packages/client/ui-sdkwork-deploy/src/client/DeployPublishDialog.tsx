@@ -10,7 +10,7 @@
  * shared dialog then skips its app-selection step and publishes that app.
  */
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
-import { CreateDeployAppDialog } from '@sdkwork/deployments-pc-console-publishing'
+import { CreateDeployAppDialog, type DeployDeploymentMode } from '@sdkwork/deployments-pc-console-publishing'
 import type { AppResponse } from '@sdkwork/deployments-app-sdk'
 import type { DeployHost, DeployHostClients } from './deployHost.ts'
 import { deploymentsLocale, type DeployLocaleFace, type DeployPublishThemePort } from './deployPorts.ts'
@@ -29,6 +29,16 @@ export interface DeployPublishDialogProps {
   defaultDirectory?: string | undefined
   /** The publish form was saved for the target app. */
   onPublished?: ((app: AppResponse) => void) | undefined
+  /** Render inside a host dialog instead of its own full-screen overlay. */
+  embedded?: boolean | undefined
+  /** Return from step 1 to the host app-source picker. */
+  onSourceBack?: (() => void) | undefined
+  /** The host already selected the app; skip its type-confirmation step. */
+  skipTypeStep?: boolean | undefined
+  /** Surface card resolved from the selected source. */
+  cardId?: string | undefined
+  /** Manifest default deployment profile; the form no longer asks. */
+  deploymentMode?: DeployDeploymentMode | undefined
   /** Close the dialog without a session side effect. */
   onClose: () => void
 }
@@ -43,7 +53,8 @@ export interface DeployPublishDialogProps {
  * unavailable (no SDKWork base URL configured).
  */
 export function DeployPublishDialog({
-  host, theme, locale: localeFace, app, defaultDirectory, onPublished, onClose,
+  host, theme, locale: localeFace, app, defaultDirectory, embedded, onSourceBack, skipTypeStep,
+  cardId, deploymentMode, onPublished, onClose,
 }: DeployPublishDialogProps) {
   const [clients, setClients] = useState<DeployHostClients | undefined>(() => {
     try {
@@ -98,7 +109,14 @@ export function DeployPublishDialog({
       driveClient={clients.driveClient}
       locale={locale}
       theme={colorScheme}
+      initialDirectory={defaultDirectory}
       defaultDirectory={defaultDirectory}
+      {...(embedded === undefined ? {} : { embedded })}
+      {...(onSourceBack === undefined ? {} : { onSourceBack })}
+      {...(skipTypeStep === undefined ? {} : { skipTypeStep })}
+      {...(cardId === undefined ? {} : { initialCardId: cardId })}
+      hideDeploymentMode
+      {...(deploymentMode === undefined ? {} : { initialDeploymentMode: deploymentMode })}
       currentUser={currentUser}
       inspectDirectory={inspectDirectory}
       pickDirectory={current => host.pickDirectory(current)}

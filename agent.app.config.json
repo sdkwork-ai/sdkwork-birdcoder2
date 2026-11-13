@@ -259,6 +259,19 @@
     "standardOwner": "sdkwork-birdcoder",
     "initializedAt": "2026-05-07T00:00:00Z",
     "deploymentConfig": "etc/sdkwork.deployment.config.json",
-    "preLaunch": true
+    "preLaunch": true,
+    "publishing": {
+      "appIdByTarget": {
+        "cloud.development": "10ef15e8-434d-49a7-8240-0b56b9aeaa5a"
+      },
+      "birdcoder": {
+        "appId": "10ef15e8-434d-49a7-8240-0b56b9aeaa5a",
+        "appName": "SDKWork Birdcoder",
+        "appSlug": "sdkwork-birdcoder",
+        "appKey": "sdkwork-birdcoder2",
+        "sourceDirectory": "D:\\sdkwork-space\\sdkwork-birdcoder2",
+        "updatedAt": "2026-11-13T11:59:56.975Z"
+      }
+    }
   }
 }

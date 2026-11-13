@@ -36,10 +36,7 @@ import { DeployedAppsDialog, type DeployedAppsDialogInjected } from './DeployedA
    the host to style it. */
 import './deployDialogHost.css'
 import type { DeployLocaleFace, DeployPublishThemePort } from './deployPorts.ts'
-import {
-  DeployProjectAppFlow,
-  type DeployProjectAppFlowProps,
-} from './DeployProjectAppFlow.tsx'
+import { DeployPublishEntry, type DeployPublishEntryProps } from './DeployPublishEntry.tsx'
 import { PublishTemplateFlow, type PublishTemplateFlowProps } from './PublishTemplateFlow.tsx'
 import { InstallTemplateFlow, type InstallTemplateFlowProps } from './InstallTemplateFlow.tsx'
 import { createElement, type ReactElement } from 'react'
@@ -388,7 +385,7 @@ export function apply(ctx: ClientContext): void {
     publishContainer = undefined
   }
   const renderPublish = (defaultDirectory: string | undefined): void => {
-    renderPublishSurface(createElement(DeployProjectAppFlow, {
+    renderPublishSurface(createElement(DeployPublishEntry, {
       host,
       theme,
       locale,
@@ -399,7 +396,7 @@ export function apply(ctx: ClientContext): void {
       // notifications so an open app library re-scans without closing.
       onDone: () => { host.notifyChange() },
       onClose: closePublish,
-    } satisfies DeployProjectAppFlowProps))
+    } satisfies DeployPublishEntryProps))
   }
   const renderPublishTemplate = (defaultDirectory: string | undefined): void => {
     renderPublishSurface(createElement(PublishTemplateFlow, {

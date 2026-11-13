@@ -104,7 +104,9 @@ export async function createProjectApp(
     appName: app.name,
     appSlug: app.slug,
     ...(draft.appKey === undefined ? {} : { appKey: draft.appKey }),
-    ...(request.state.directory === undefined ? {} : { sourceDirectory: request.state.directory }),
+    ...(request.state.sourceDirectory === undefined
+      ? request.state.directory === undefined ? {} : { sourceDirectory: request.state.directory }
+      : { sourceDirectory: request.state.sourceDirectory }),
   }, app)
   let targetCreated = false
   if (draft.cardId !== undefined) {

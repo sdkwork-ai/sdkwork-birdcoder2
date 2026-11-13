@@ -26,8 +26,8 @@ import {
 vi.mock('../src/client/DeployPublishDialog.tsx', async () => {
   const { createElement: h } = await import('react')
   return {
-    DeployPublishDialog: (props: { app?: { id?: string } }) =>
-      h('div', null, `PUBLISH_DIALOG:${props.app?.id ?? 'none'}`),
+    DeployPublishDialog: (props: { app?: { id?: string }; defaultDirectory?: string; cardId?: string }) =>
+      h('div', null, `PUBLISH_DIALOG:${props.app?.id ?? 'none'}:DEFAULT:${props.defaultDirectory ?? 'none'}:CARD:${props.cardId ?? 'none'}`),
   }
 })
 
@@ -163,7 +163,10 @@ function manifest(overrides: Record<string, unknown> = {}): string {
     backend: { appId: 'sdkwork-store', tenantId: '100001' },
     runtime: { family: 'web', framework: 'react', defaultDeploymentProfile: 'standalone' },
     media: { icons: { primary: { url: 'https://cdn.sdkwork.com/store.png' } } },
-    publish: { platforms: ['WEB'] },
+    publish: {
+      platforms: ['WEB'],
+      config: { workspaceRoot: 'apps/sdkwork-birdcoder2-pc' },
+    },
     metadata: { deploymentConfig: 'etc/sdkwork.deployment.config.json' },
     ...overrides,
   }, null, 2)}\n`
@@ -174,7 +177,7 @@ function workspaceOf(files: Map<string, string>, failWrites: { value: boolean })
   return {
     pickDirectory: () => Promise.resolve(undefined),
     listDirectory: () => Promise.resolve({ path: '/', entries: [] }),
-    currentDirectory: () => '/w/app',
+    currentDirectory: () => '/w/session/deep',
     readTextFile: (path: string) => Promise.resolve(files.get(path) ?? ''),
     writeTextFile: (path: string, content: string) => {
       if (failWrites.value) return Promise.reject(new Error('disk full'))
@@ -322,6 +325,8 @@ describe('DeployProjectAppFlow', () => {
       })]]),
     })
     await until(() => container?.textContent?.includes('PUBLISH_DIALOG:app-uuid-1') === true, 'the publish dialog')
+    expect(container?.textContent).toContain('DEFAULT:/w/app/apps/sdkwork-birdcoder2-pc')
+    expect(container?.textContent).toContain('CARD:pc-web')
     expect(container?.textContent).not.toContain('创建并继续发布')
     expect(gatewayState.created).toHaveLength(0)
     expect(mounted.files.get(CONFIG_PATH)).toContain('app-uuid-1')

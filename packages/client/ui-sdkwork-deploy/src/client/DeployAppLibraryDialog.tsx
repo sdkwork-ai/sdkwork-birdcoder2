@@ -222,7 +222,7 @@ export function DeployAppLibraryDialog({
             appId: app.id,
             appName: app.name,
             appSlug: app.slug,
-            sourceDirectory: cwd,
+            sourceDirectory: state.sourceDirectory ?? cwd,
           }, cwd, {
             name: app.name,
             appSlug: app.slug,
@@ -537,8 +537,9 @@ function LibraryAvatar({ name, iconUrl }: { readonly name: string; readonly icon
 
 /** First code point of a display name, uppercased, with a blank-name guard. */
 function initialOf(name: string): string {
-  const first = [...name.trim()][0]
-  return first === undefined ? '?' : first.toUpperCase()
+  const trimmed = name.trim()
+  const codePoint = trimmed.codePointAt(0)
+  return codePoint === undefined ? '?' : String.fromCodePoint(codePoint).toUpperCase()
 }
 
 /** One-line cause text for localized failure copy. */

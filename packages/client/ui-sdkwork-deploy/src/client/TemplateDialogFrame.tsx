@@ -7,6 +7,7 @@
  * workflow state.
  */
 import { useEffect, useRef, type ReactNode } from 'react'
+import { IconLayersOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { DeployKey } from './locales.ts'
 import dialogs from './DeployDialogs.module.css'
 import css from './TemplateDialog.module.css'
@@ -64,7 +65,9 @@ export function TemplateDialogFrame({
       <div className={`${dialogs.modal} ${css.modal}`}>
         <header className={css.header}>
           <div className={css.titleBlock}>
-            <span className={css.titleGlyph} aria-hidden="true">▤</span>
+            <span className={css.titleGlyph} aria-hidden="true">
+              <IconLayersOutlineRegular size={16} />
+            </span>
             <div>
               <h2 className={css.title}>{title}</h2>
               <p className={css.subtitle}>{subtitle}</p>

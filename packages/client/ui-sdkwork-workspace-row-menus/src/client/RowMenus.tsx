@@ -30,7 +30,8 @@ import { useEffect, useRef, useState } from 'react'
 import {
   IconArchiveOutlineRegular, IconBranchOutlineRegular, IconCodeOutlineRegular, IconCopyOutlineRegular,
   IconDownloadOutlineRegular, IconEditOutlineRegular, IconEllipsisOutlineRegular, IconFolderOpenOutlineRegular,
-  IconLinkOutlineRegular, IconPinFillRegular, IconPinOutlineRegular, IconTrashOutlineRegular,
+  IconLayersOutlineRegular, IconLinkOutlineRegular, IconPinFillRegular, IconPinOutlineRegular,
+  IconSendOutlineRegular, IconTrashOutlineRegular,
   Menu, SubmenuMenu, Toast,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -127,19 +128,6 @@ function PathActionToast({ feedback, onDone }: {
 }
 
 /** Rocket glyph for the publish-project row (self-contained, currentColor). */
-function RocketIcon({ size = 15 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path
-        d="M8.00001 0.666626C5.33334 0.666626 3.00001 1.66663 1.00001 4.33329L4.66668 5.66663L5.33334 7.33329L1.33334 9.66663L3.00001 12.6666C4.66668 11.3333 6.00001 10.6666 7.33334 10.6666L9.66668 11.3333L11.3333 7.33329L12.3333 3.66663C11.3333 1.99996 10.00001 0.666626 8.00001 0.666626ZM8.00001 5.33329C8.73639 5.33329 9.33334 5.93025 9.33334 6.66663C9.33334 7.403 8.73639 7.99996 8.00001 7.99996C7.26363 7.99996 6.66668 7.403 6.66668 6.66663C6.66668 5.93025 7.26363 5.33329 8.00001 5.33329Z"
-        fill="currentColor"
-      />
-      <path d="M11.3333 12.3333L9.33334 15.3333L7.33334 11.6666L9.33334 9.66663L11.3333 12.3333Z" fill="currentColor" />
-      <path d="M4.33334 0.999963L0.666672 3.33329L3.66667 4.66663L5.33334 3.66663L4.33334 0.999963Z" fill="currentColor" />
-    </svg>
-  )
-}
-
 /**
  * Build the path-related project rows shared by both menus (guarded on cwd +
  * the method the row dispatches). The `workspaces` service face the row
@@ -250,10 +238,10 @@ export function WorkspaceRowMenu({
     ...buildPathRows(cwd, workspaces, t),
     ...appBuildMenuRows({ catalog, t }),
     ...(deployPublish !== undefined
-      ? [{ id: 'publish', label: t('menu.publishProject'), icon: <RocketIcon /> }]
+      ? [{ id: 'publish', label: t('menu.publishProject'), icon: <IconSendOutlineRegular size={16} /> }]
       : []),
     ...(typeof deployPublish?.openPublishTemplate === 'function'
-      ? [{ id: 'publishTemplate', label: t('menu.publishTemplate'), icon: <RocketIcon /> }]
+      ? [{ id: 'publishTemplate', label: t('menu.publishTemplate'), icon: <IconLayersOutlineRegular size={16} /> }]
       : []),
     ...(typeof deployPublish?.openInstallTemplate === 'function'
       ? [{ id: 'installTemplate', label: t('menu.installTemplate'), icon: <IconDownloadOutlineRegular size={16} /> }]
@@ -380,10 +368,10 @@ export function SessionRowMenu({
     { id: 'copySessionId', label: t('menu.copySessionId'), icon: <IconLinkOutlineRegular /> },
     { id: 'exportSessionLog', label: t('menu.exportSessionLog'), icon: <IconDownloadOutlineRegular /> },
     ...(deployPublish !== undefined
-      ? [{ id: 'publish', label: t('menu.publishProject'), icon: <RocketIcon /> }]
+      ? [{ id: 'publish', label: t('menu.publishProject'), icon: <IconSendOutlineRegular size={16} /> }]
       : []),
     ...(typeof deployPublish?.openPublishTemplate === 'function'
-      ? [{ id: 'publishTemplate', label: t('menu.publishTemplate'), icon: <RocketIcon /> }]
+      ? [{ id: 'publishTemplate', label: t('menu.publishTemplate'), icon: <IconLayersOutlineRegular size={16} /> }]
       : []),
     ...(typeof deployPublish?.openInstallTemplate === 'function'
       ? [{ id: 'installTemplate', label: t('menu.installTemplate'), icon: <IconDownloadOutlineRegular size={16} /> }]

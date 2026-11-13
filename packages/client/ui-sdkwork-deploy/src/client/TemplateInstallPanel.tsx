@@ -47,8 +47,8 @@ export function TemplateInstallPanel({
   const [rows, setRows] = useState<readonly TemplateCatalogRow[] | undefined>(undefined)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | undefined>(undefined)
-  const [mode, setMode] = useState<TemplateInstallTargetMode>('apps')
   const [customDirectory, setCustomDirectory] = useState('')
+  const mode: TemplateInstallTargetMode = customDirectory.trim() === '' ? 'apps' : 'custom'
   const [appsChildren, setAppsChildren] = useState<readonly string[] | undefined>(undefined)
   const [appsRevision, setAppsRevision] = useState(0)
   const [installs, setInstalls] = useState<Readonly<Record<string, InstallRowState>>>({})
@@ -90,9 +90,16 @@ export function TemplateInstallPanel({
     return () => { cancelled = true }
   }, [directory, host, appsRevision])
 
+  const defaultAppsPath = directory === undefined || directory.trim() === ''
+    ? undefined
+    : `${directory.replace(/[/\\]+$/u, '')}/apps`
+  const targetPath = customDirectory !== '' ? customDirectory : defaultAppsPath
+
   const pickDirectory = async (): Promise<void> => {
-    const picked = await host.pickDirectory(customDirectory.trim() === '' ? undefined : customDirectory)
-    if (picked !== undefined && picked !== '') setCustomDirectory(picked)
+    if (defaultAppsPath === undefined) return
+    const picked = await host.pickDirectory(customDirectory.trim() === '' ? defaultAppsPath : customDirectory)
+    if (picked === undefined || picked === '') return
+    setCustomDirectory(picked === defaultAppsPath ? '' : picked)
   }
 
   const targetFor = (row: TemplateCatalogRow): string | undefined => {
@@ -247,8 +254,7 @@ export function TemplateInstallPanel({
                     <button
                       type="button"
                       className={css.primarySmall}
-                      disabled={install?.phase === 'running' || directory === undefined
-                      || (mode === 'custom' && customDirectory.trim() === '')
+                      disabled={install?.phase === 'running' || targetPath === undefined
                       || targetFor(row) === undefined}
                       onClick={() => { void startInstall(row) }}
                     >
@@ -275,51 +281,44 @@ export function TemplateInstallPanel({
       </section>
       <aside className={css.downloadTarget} aria-label={t('templateCenter.download.target')}>
         <h3 className={css.sectionTitle}>{t('templateCenter.download.target')}</h3>
-        <label className={`${css.targetOption}${mode === 'apps' ? ` ${css.targetOptionActive}` : ''}`}>
-          <input
-            type="radio"
-            name="template-install-target"
-            checked={mode === 'apps'}
-            onChange={() => { setMode('apps') }}
-          />
-          <span className={css.targetMain}>
-            <span className={css.targetTitle}>{t('templateCenter.download.targetApps')}</span>
-            <span className={css.targetPath}>{directory === undefined
-              ? t('templateCenter.noDirectory')
-              : t('templateCenter.download.appsPath', {
-                path: directory.replace(/[/\\]+$/u, ''),
-              })}</span>
+        <button
+          type="button"
+          className={css.locationButton}
+          aria-label={t('templateCenter.download.changeLocation')}
+          disabled={busy || defaultAppsPath === undefined}
+          onClick={() => { void pickDirectory() }}
+        >
+          <span className={css.locationGlyph} aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M2.5 5.5A1.5 1.5 0 0 1 4 4h4l1.5 2H16a1.5 1.5 0 0 1 1.5 1.5v7A1.5 1.5 0 0 1 16 16H4a1.5 1.5 0 0 1-1.5-1.5Z" />
+            </svg>
           </span>
-        </label>
-        <label className={`${css.targetOption}${mode === 'custom' ? ` ${css.targetOptionActive}` : ''}`}>
-          <input
-            type="radio"
-            name="template-install-target"
-            checked={mode === 'custom'}
-            onChange={() => { setMode('custom') }}
-          />
-          <span className={css.targetMain}>
-            <span className={css.targetTitle}>{t('templateCenter.download.targetCustom')}</span>
-            <span className={css.targetPath}>{customDirectory === '' ? '—' : customDirectory}</span>
+          <span className={css.locationMain}>
+            <span className={css.locationMode}>
+              {customDirectory === ''
+                ? t('templateCenter.download.defaultLocation')
+                : t('templateCenter.download.customLocation')}
+            </span>
+            <span className={css.locationPath} title={targetPath}>
+              {targetPath ?? t('templateCenter.noDirectory')}
+            </span>
           </span>
-        </label>
-        {mode === 'custom' && (
-          <div className={css.customRow}>
-            <input
-              type="text"
-              className={css.input}
-              placeholder={t('templateCenter.download.customPlaceholder')}
-              value={customDirectory}
-              onChange={(event) => { setCustomDirectory(event.target.value) }}
-              aria-label={t('templateCenter.download.customPlaceholder')}
-            />
-            <button type="button" className={css.ghostButton} onClick={() => { void pickDirectory() }}>
-              {t('templateCenter.download.pick')}
-            </button>
-          </div>
+          <span className={css.locationAction}>{t('templateCenter.download.change')}</span>
+        </button>
+        {customDirectory !== '' && (
+          <button
+            type="button"
+            className={css.locationReset}
+            disabled={busy}
+            onClick={() => { setCustomDirectory('') }}
+          >
+            {t('templateCenter.download.resetLocation')}
+          </button>
         )}
         <p className={css.footHint}>
-          {mode === 'custom' ? t('templateCenter.download.customHint') : t('templateCenter.download.targetHint')}
+          {customDirectory === ''
+            ? t('templateCenter.download.locationHint')
+            : t('templateCenter.download.customHint')}
         </p>
       </aside>
     </div>
