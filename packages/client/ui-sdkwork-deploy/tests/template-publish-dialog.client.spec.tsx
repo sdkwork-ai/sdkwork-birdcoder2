@@ -212,7 +212,7 @@ describe('TemplatePublishDialog publish run', () => {
     expect(container?.textContent).toContain('演示 H5')
     expect(container?.textContent).toContain('尚未选择应用')
 
-    const radios = [...(container?.querySelectorAll('input[type="radio"]') ?? [])]
+    const radios = [...(container?.querySelectorAll<HTMLInputElement>('input[type="radio"]') ?? [])]
     expect(radios.length).toBe(2)
     expect(container?.querySelectorAll('input[type="checkbox"]').length).toBe(0)
     expect(container?.textContent).not.toContain('全选')
