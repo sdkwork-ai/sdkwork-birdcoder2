@@ -114,7 +114,7 @@ export class HostConnectionService extends Service implements HostConnectionHand
   }
 
   /** Apply the Host/Origin fence and require an authenticated live Peer. */
-  requestRejection(request: ConnectionTrustRequest): ConnectionRequestRejection {
+  requestRejection(request: ConnectionTrustRequest): 401 | 403 | 503 | undefined {
     const admission = this.admit(request)
     return 'rejection' in admission ? admission.rejection : undefined
   }

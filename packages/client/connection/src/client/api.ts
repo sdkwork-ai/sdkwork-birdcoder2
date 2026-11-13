@@ -19,7 +19,7 @@ export type {
   SubagentsApi, SubagentAddress, SubagentCatalog, SubagentListEntry, SubagentPromptReceipt,
   JobView,
 } from '@deepseek-ai/dsh-host-apiproxy/api'
-export type { ToolCallView, ToolResultView } from '@deepseek-ai/dsh-tools/presentation'
+export type { ToolCallView, ToolResultView } from '@deepseek-ai/dsh-tools'
 export type {
   RpcRequest, RpcResponse, RpcResult, RpcError, RpcErrorCode,
   ClientRequest, ServerResponse, ServerRequest, ClientResponse, RpcMessage, RpcReceipt,

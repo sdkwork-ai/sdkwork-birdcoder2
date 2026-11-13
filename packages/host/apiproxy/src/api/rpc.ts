@@ -8,7 +8,7 @@
 import type { z as zCore } from 'zod'
 type ZodIssue = zCore.core.$ZodIssue
 import type { Branded } from '@deepseek-ai/dsh-brand'
-import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
+import type { MessageId } from '@deepseek-ai/dsh-llm/types'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 
 /**
@@ -72,7 +72,10 @@ export interface RpcErrorDetailsMap {
    * first. The details carry both revisions so a client can re-read and retry.
    */
   'settings-conflict': { ns: string; expected: number; actual: number }
-  /** A credential write was refused (a provider that cannot write the reference, or a storage failure); the message is the seam's own text. */
+  /**
+   * A credential write was refused (a provider that cannot write the reference, or a storage failure);
+   * the message is the seam's own text.
+   */
   'credential-rejected': { ref: string }
   /**
    * Interrogating a draft provider endpoint did not produce a model listing:

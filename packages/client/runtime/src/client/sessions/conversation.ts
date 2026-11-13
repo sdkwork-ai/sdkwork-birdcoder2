@@ -5,13 +5,12 @@
 // views. callId/approvalId stay plain string here (narrow to real brands when
 // convenient).
 
-import type { CommandId } from '@deepseek-ai/dsh-commands/brand'
-import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm/types'
+import type { CommandId } from '@deepseek-ai/dsh-commands/types'
+import type { ContentBlock, MessageId } from '@deepseek-ai/dsh-llm/types'
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type { LlmRetryEventData } from '@deepseek-ai/dsh-llm-retry/types'
 import type { TodoItem } from '@deepseek-ai/dsh-session/types'
-import type { ToolCallView, ToolResultView } from '@deepseek-ai/dsh-tools/presentation'
+import type { ToolCallView, ToolResultView } from '@deepseek-ai/dsh-tools'
 import type { RpcError, SubagentAddress } from '@deepseek-ai/dsh-host-apiproxy/api'
 import type {
   SessionId,

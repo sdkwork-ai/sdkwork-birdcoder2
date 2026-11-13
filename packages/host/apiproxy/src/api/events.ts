@@ -9,18 +9,17 @@
 import type { AskUserQuestionItem } from '@deepseek-ai/dsh-user-questions/types'
 import type { ApprovalOutcome, ApprovalRequestId } from '@deepseek-ai/dsh-user-approval/types'
 import type { Message } from '@deepseek-ai/dsh-llm/types'
-import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
-import type { ToolCallId } from '@deepseek-ai/dsh-llm/brand'
+import type { MessageId, ToolCallId } from '@deepseek-ai/dsh-llm/types'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session/types'
-import type { ToolCallView, ToolResultView } from '@deepseek-ai/dsh-tools/presentation'
+import type { ToolCallView, ToolResultView } from '@deepseek-ai/dsh-tools'
 import type { RpcError, RpcId, RpcRequest } from './rpc.ts'
 import type { JobView } from './jobs.ts'
 import type { WorkspaceView } from './workspace.ts'
 
 // Client-side consumers take the render-intent vocabulary from the contract;
 // dsh-tools remains its owner.
-export type { ToolCallView, ToolResultView } from '@deepseek-ai/dsh-tools/presentation'
+export type { ToolCallView, ToolResultView } from '@deepseek-ai/dsh-tools'
 
 /**
  * Host-computed render intent accompanying a `tool/call` or `tool/result`
