@@ -2,9 +2,10 @@
  * Publish wizard for one template.
  *
  * One application is selected at a time. Step one chooses a project app root
- * or one custom directory; step two edits that app's template information and
- * shared settings, then shows the single publish run inline. No multi-select,
- * batch rail, or per-row ledger survives from the batch flow.
+ * or one custom directory; step two edits that app's store assets (logo, cover,
+ * ordered sample pages), subtitle/description, version and shared settings,
+ * then shows the single publish run inline. No multi-select, batch rail, or
+ * per-row ledger survives from the batch flow.
  */
 import { useEffect, useRef, useState } from 'react'
 import type { DeployKey } from './locales.ts'
@@ -18,6 +19,7 @@ import { TEMPLATE_APP_TYPE_OPTIONS, templateAppTypeOption } from './templateAppT
 import {
   platformAppKind,
   type TemplateAppValues,
+  type TemplateMediaDraft,
   type TemplatePublishPlan,
 } from './templatePublish.ts'
 import css from './TemplateDialog.module.css'
@@ -76,6 +78,8 @@ export interface TemplatePublishPanelProps {
   readonly publishing: boolean
   readonly summary: TemplateRunSummary | undefined
   readonly valuesOf: (plan: TemplatePublishPlan) => TemplateAppValues
+  readonly mediaOf: (plan: TemplatePublishPlan) => TemplateMediaDraft | undefined
+  readonly onMediaChange: (directory: string, draft: TemplateMediaDraft) => void
   readonly onStepChange: (step: TemplatePublishStep) => void
   readonly onSourceModeChange: (mode: 'apps' | 'custom') => void
   readonly onChooseCustomDirectory: () => void
@@ -103,6 +107,7 @@ export function TemplatePublishPanel(props: TemplatePublishPanelProps) {
     t, directory, scan, scanError, loading, plans, projectCount, selectedDirectory,
     sourceMode, customApp, customInspection, customLoading, customError, categories,
     categoryUuid, visibility, submitForReview, step, runs, publishing, summary, valuesOf,
+    mediaOf, onMediaChange,
     onStepChange, onSourceModeChange, onChooseCustomDirectory, onRescanCustom,
     onClearCustom, onCustomTypeChange, onSelect, onValuesChange, onCategoryChange,
     onVisibilityChange, onSubmitForReviewChange, onRescan, onPublish, onReset, onClose,
@@ -181,11 +186,13 @@ export function TemplatePublishPanel(props: TemplatePublishPanelProps) {
               t={t}
               plan={selectedPlan}
               values={valuesOf(selectedPlan)}
+              media={mediaOf(selectedPlan)}
               categories={categories}
               categoryUuid={categoryUuid}
               visibility={visibility}
               submitForReview={submitForReview}
               onValuesChange={(patch) => { onValuesChange(selectedPlan.candidate.directory, patch) }}
+              onMediaChange={(draft) => { onMediaChange(selectedPlan.candidate.directory, draft) }}
               onCategoryChange={onCategoryChange}
               onVisibilityChange={onVisibilityChange}
               onSubmitForReviewChange={onSubmitForReviewChange}
@@ -691,24 +698,34 @@ function ConfigureStep(props: {
   readonly t: (key: DeployKey, params?: Record<string, string>) => string
   readonly plan: TemplatePublishPlan
   readonly values: TemplateAppValues
+  readonly media: TemplateMediaDraft | undefined
   readonly categories: readonly TemplateCategoryOption[]
   readonly categoryUuid: string
   readonly visibility: 'PRIVATE' | 'PUBLIC'
   readonly submitForReview: boolean
   readonly onValuesChange: (patch: Partial<TemplateAppValues>) => void
+  readonly onMediaChange: (draft: TemplateMediaDraft) => void
   readonly onCategoryChange: (categoryUuid: string) => void
   readonly onVisibilityChange: (visibility: 'PRIVATE' | 'PUBLIC') => void
   readonly onSubmitForReviewChange: (submit: boolean) => void
 }) {
   const {
-    t, plan, values, categories, categoryUuid, visibility, submitForReview,
-    onValuesChange, onCategoryChange, onVisibilityChange, onSubmitForReviewChange,
+    t, plan, values, media, categories, categoryUuid, visibility, submitForReview,
+    onValuesChange, onMediaChange, onCategoryChange, onVisibilityChange, onSubmitForReviewChange,
   } = props
+  const [section, setSection] = useState<'store' | 'basic' | 'version' | 'publish'>('store')
   const keyInvalid = !TEMPLATE_KEY_PATTERN.test(values.templateKey.trim())
     || values.templateKey.trim().length > 64
   const versionInvalid = !TEMPLATE_VERSION_PATTERN.test(values.version.trim())
   const nameInvalid = values.displayName.trim() === ''
   const update = plan.template !== undefined
+  const sections = [
+    { id: 'store', label: 'templateCenter.media.title', hint: 'templateCenter.media.navHint', index: '01' },
+    { id: 'basic', label: 'templateCenter.basic.title', hint: 'templateCenter.basic.navHint', index: '02' },
+    { id: 'version', label: 'templateCenter.version.title', hint: 'templateCenter.version.navHint', index: '03' },
+    { id: 'publish', label: 'templateCenter.settings.title', hint: 'templateCenter.settings.navHint', index: '04' },
+  ] as const
+  const active = sections.find(entry => entry.id === section) ?? sections[0]
   return (
     <>
       <header className={css.stepHeader}>
@@ -718,162 +735,216 @@ function ConfigureStep(props: {
           <p className={css.stepDescription}>{t('templateCenter.configure.subtitle')}</p>
         </div>
       </header>
-      <div className={css.singleLayout}>
-        <aside className={css.singleSummary}>
-          <div className={css.summaryHeader}>
-            <AppAvatar candidate={plan.candidate} />
-            <div className={css.summaryIdentity}>
-              <span className={css.summaryName} title={plan.candidate.name}>{plan.candidate.name}</span>
-              <span className={css.summaryKey}>{plan.candidate.appKey}</span>
-            </div>
-          </div>
-          <div className={css.summaryBadges}>
-            <span className={css.typeBadge}>{t(candidateTypeLabelKey(plan.candidate))}</span>
-            <span className={`${css.planChip}${update ? ` ${css.planChipUpdate}` : ''}`}>
-              {update ? t('templateCenter.app.updateBadge') : t('templateCenter.app.newTemplate')}
-            </span>
-          </div>
-          {plan.candidate.version !== undefined && (
-            <span className={css.summaryMeta}>
-              {t('templateCenter.versionBadge', { version: plan.candidate.version })}
-            </span>
-          )}
-          <span className={css.summaryPath} title={plan.candidate.directory}>{plan.candidate.directory}</span>
-          <span className={css.summaryMeta}>
-            {plan.platformApp === undefined
-              ? t('templateCenter.app.willRegisterApp')
-              : t('templateCenter.app.linkedApp', { name: plan.platformApp.name })}
-          </span>
-          {plan.template !== undefined && (
-            <span className={css.summaryMeta}>
-              {t('templateCenter.app.versionFlow', {
-                from: plan.template.latestVersion ?? plan.candidate.linkedTemplateVersion ?? '—',
-                to: values.version,
-              })}
-            </span>
-          )}
-        </aside>
-        <div className={css.formColumn}>
-          <section className={css.formCard}>
-            <div className={css.formGrid}>
-              <label className={css.field}>
-                <span className={css.fieldLabel}>{t('templateCenter.field.displayName')}</span>
-                <input
-                  className={`${css.input}${nameInvalid ? ` ${css.inputInvalid}` : ''}`}
-                  value={values.displayName}
-                  maxLength={200}
-                  aria-invalid={nameInvalid}
-                  onChange={(event) => { onValuesChange({ displayName: event.target.value }) }}
-                />
-                {nameInvalid && <span className={css.fieldError}>{t('templateCenter.field.nameRequired')}</span>}
-              </label>
-              <label className={css.field}>
-                <span className={css.fieldLabel}>{t('templateCenter.field.templateKey')}</span>
-                <input
-                  className={`${css.input}${keyInvalid ? ` ${css.inputInvalid}` : ''}`}
-                  value={values.templateKey}
-                  readOnly={update}
-                  maxLength={64}
-                  aria-invalid={keyInvalid}
-                  onChange={(event) => { onValuesChange({ templateKey: event.target.value }) }}
-                />
-                {keyInvalid
-                  ? <span className={css.fieldError}>{t('templateCenter.field.keyInvalid')}</span>
-                  : update && <span className={css.fieldHint}>{t('templateCenter.field.keyReadonly')}</span>}
-              </label>
-              <label className={`${css.field} ${css.fieldWide}`}>
-                <span className={css.fieldLabel}>{t('templateCenter.field.version')}</span>
-                <input
-                  className={`${css.input}${versionInvalid ? ` ${css.inputInvalid}` : ''}`}
-                  value={values.version}
-                  maxLength={64}
-                  aria-invalid={versionInvalid}
-                  onChange={(event) => { onValuesChange({ version: event.target.value }) }}
-                />
-                {versionInvalid
-                  ? <span className={css.fieldError}>{t('templateCenter.field.versionInvalid')}</span>
-                  : <span className={css.fieldHint}>{t('templateCenter.field.versionHint')}</span>}
-              </label>
-              <label className={`${css.field} ${css.fieldWide}`}>
-                <span className={css.fieldLabel}>{t('templateCenter.field.summary')}</span>
-                <textarea
-                  className={css.input}
-                  rows={2}
-                  maxLength={512}
-                  value={values.summary}
-                  placeholder={t('templateCenter.field.summaryPlaceholder')}
-                  onChange={(event) => { onValuesChange({ summary: event.target.value }) }}
-                />
-              </label>
-              <label className={`${css.field} ${css.fieldWide}`}>
-                <span className={css.fieldLabel}>{t('templateCenter.field.changelog')}</span>
-                <textarea
-                  className={css.input}
-                  rows={2}
-                  maxLength={512}
-                  value={values.changelog}
-                  placeholder={t('templateCenter.field.changelogPlaceholder')}
-                  onChange={(event) => { onValuesChange({ changelog: event.target.value }) }}
-                />
-              </label>
-            </div>
-          </section>
-          <section className={css.formCard}>
-            <h4 className={css.formSectionTitle}>{t('templateCenter.settings.title')}</h4>
-            <div className={css.settingsGrid}>
-              <label className={`${css.field} ${css.fieldWide}`}>
-                <span className={css.fieldLabel}>{t('templateCenter.settings.category')}</span>
-                {categories.length === 0
-                  ? (
-                    <span className={css.categoryEmpty} role="alert">
-                      <span className={css.categoryEmptyMark} aria-hidden="true">!</span>
-                      {t('templateCenter.categoryMissing')}
-                    </span>
-                  )
-                  : (
-                    <select
-                      className={css.input}
-                      value={categoryUuid}
-                      onChange={(event) => { onCategoryChange(event.target.value) }}
-                    >
-                      {categories.map(category => (
-                        <option key={category.id} value={category.id}>{category.displayName}</option>
-                      ))}
-                    </select>
-                  )}
-              </label>
-              <div className={css.field}>
-                <span className={css.fieldLabel}>{t('templateCenter.settings.visibility')}</span>
-                <div className={css.segmented} role="group" aria-label={t('templateCenter.settings.visibility')}>
-                  <button
-                    type="button"
-                    className={`${css.segment}${visibility === 'PRIVATE' ? ` ${css.segmentActive}` : ''}`}
-                    aria-pressed={visibility === 'PRIVATE'}
-                    onClick={() => { onVisibilityChange('PRIVATE') }}
-                  >
-                    {t('templateCenter.settings.private')}
-                  </button>
-                  <button
-                    type="button"
-                    className={`${css.segment}${visibility === 'PUBLIC' ? ` ${css.segmentActive}` : ''}`}
-                    aria-pressed={visibility === 'PUBLIC'}
-                    onClick={() => { onVisibilityChange('PUBLIC') }}
-                  >
-                    {t('templateCenter.settings.public')}
-                  </button>
-                </div>
+      <div className={css.editorLayout}>
+        <aside className={css.editorRail}>
+          <div className={css.editorIdentityCard}>
+            <div className={css.summaryHeader}>
+              <AppAvatar candidate={plan.candidate} />
+              <div className={css.summaryIdentity}>
+                <span className={css.summaryName} title={plan.candidate.name}>{plan.candidate.name}</span>
+                <span className={css.summaryKey}>{plan.candidate.appKey}</span>
               </div>
-              <label className={`${css.checkbox}${visibility !== 'PUBLIC' ? ` ${css.checkboxDisabled}` : ''}`}>
-                <input
-                  type="checkbox"
-                  checked={submitForReview}
-                  disabled={visibility !== 'PUBLIC'}
-                  onChange={(event) => { onSubmitForReviewChange(event.target.checked) }}
-                />
-                {t('templateCenter.settings.submit')}
-              </label>
             </div>
-          </section>
+            <div className={css.summaryBadges}>
+              <span className={css.typeBadge}>{t(candidateTypeLabelKey(plan.candidate))}</span>
+              <span className={`${css.planChip}${update ? ` ${css.planChipUpdate}` : ''}`}>
+                {update ? t('templateCenter.app.updateBadge') : t('templateCenter.app.newTemplate')}
+              </span>
+            </div>
+            {plan.candidate.version !== undefined && (
+              <span className={css.summaryMeta}>
+                {t('templateCenter.versionBadge', { version: plan.candidate.version })}
+              </span>
+            )}
+            <span className={css.summaryPath} title={plan.candidate.directory}>{plan.candidate.directory}</span>
+            <span className={css.summaryMeta}>
+              {plan.platformApp === undefined
+                ? t('templateCenter.app.willRegisterApp')
+                : t('templateCenter.app.linkedApp', { name: plan.platformApp.name })}
+            </span>
+            {plan.template !== undefined && (
+              <span className={css.summaryMeta}>
+                {t('templateCenter.app.versionFlow', {
+                  from: plan.template.latestVersion ?? plan.candidate.linkedTemplateVersion ?? '—',
+                  to: values.version,
+                })}
+              </span>
+            )}
+          </div>
+          <nav className={css.sectionNav} aria-label={t('templateCenter.sections.label')}>
+            {sections.map(entry => (
+              <button
+                key={entry.id}
+                type="button"
+                className={`${css.sectionNavItem}${entry.id === section ? ` ${css.sectionNavItemActive}` : ''}`}
+                aria-current={entry.id === section ? 'true' : undefined}
+                onClick={() => { setSection(entry.id) }}
+              >
+                <span className={css.sectionNavIndex} aria-hidden="true">{entry.index}</span>
+                <span className={css.sectionNavText}>
+                  <span className={css.sectionNavLabel}>{t(entry.label)}</span>
+                  <span className={css.sectionNavHint}>{t(entry.hint)}</span>
+                </span>
+                <ChevronIcon />
+              </button>
+            ))}
+          </nav>
+        </aside>
+        <div className={css.editorPanel}>
+          <header className={css.editorPanelHeader}>
+            <span className={css.editorPanelEyebrow}>{t('templateCenter.sections.current', {
+              current: active.index,
+              total: '04',
+            })}</span>
+            <h4 className={css.editorPanelTitle}>{t(active.label)}</h4>
+            <p className={css.editorPanelDescription}>{t(active.hint)}</p>
+          </header>
+          <div className={css.editorPanelBody}>
+            <section className={css.editorSection} hidden={section !== 'store'}>
+              <TemplateMediaFields
+                t={t}
+                media={media}
+                existingIcon={values.iconMediaRef}
+                existingCover={values.coverMediaRef}
+                existingScreenshots={values.screenshots.length}
+                onChange={onMediaChange}
+              />
+            </section>
+            <section className={css.editorSection} hidden={section !== 'basic'}>
+              <div className={css.formGrid}>
+                <label className={css.field}>
+                  <span className={css.fieldLabel}>{t('templateCenter.field.displayName')}</span>
+                  <input
+                    className={`${css.input}${nameInvalid ? ` ${css.inputInvalid}` : ''}`}
+                    value={values.displayName}
+                    maxLength={200}
+                    aria-invalid={nameInvalid}
+                    onChange={(event) => { onValuesChange({ displayName: event.target.value }) }}
+                  />
+                  {nameInvalid && <span className={css.fieldError}>{t('templateCenter.field.nameRequired')}</span>}
+                </label>
+                <label className={css.field}>
+                  <span className={css.fieldLabel}>{t('templateCenter.field.templateKey')}</span>
+                  <input
+                    className={`${css.input}${keyInvalid ? ` ${css.inputInvalid}` : ''}`}
+                    value={values.templateKey}
+                    readOnly={update}
+                    maxLength={64}
+                    aria-invalid={keyInvalid}
+                    onChange={(event) => { onValuesChange({ templateKey: event.target.value }) }}
+                  />
+                  {keyInvalid
+                    ? <span className={css.fieldError}>{t('templateCenter.field.keyInvalid')}</span>
+                    : update && <span className={css.fieldHint}>{t('templateCenter.field.keyReadonly')}</span>}
+                </label>
+                <label className={`${css.field} ${css.fieldWide}`}>
+                  <span className={css.fieldLabel}>{t('templateCenter.field.subtitle')}</span>
+                  <textarea
+                    className={css.input}
+                    rows={2}
+                    maxLength={512}
+                    value={values.summary}
+                    placeholder={t('templateCenter.field.summaryPlaceholder')}
+                    onChange={(event) => { onValuesChange({ summary: event.target.value }) }}
+                  />
+                </label>
+                <label className={`${css.field} ${css.fieldWide}`}>
+                  <span className={css.fieldLabel}>{t('templateCenter.field.description')}</span>
+                  <textarea
+                    className={css.input}
+                    rows={5}
+                    maxLength={4000}
+                    value={values.description}
+                    placeholder={t('templateCenter.field.descriptionPlaceholder')}
+                    onChange={(event) => { onValuesChange({ description: event.target.value }) }}
+                  />
+                </label>
+              </div>
+            </section>
+            <section className={css.editorSection} hidden={section !== 'version'}>
+              <div className={css.formGrid}>
+                <label className={`${css.field} ${css.fieldWide}`}>
+                  <span className={css.fieldLabel}>{t('templateCenter.field.version')}</span>
+                  <input
+                    className={`${css.input}${versionInvalid ? ` ${css.inputInvalid}` : ''}`}
+                    value={values.version}
+                    maxLength={64}
+                    aria-invalid={versionInvalid}
+                    onChange={(event) => { onValuesChange({ version: event.target.value }) }}
+                  />
+                  {versionInvalid
+                    ? <span className={css.fieldError}>{t('templateCenter.field.versionInvalid')}</span>
+                    : <span className={css.fieldHint}>{t('templateCenter.field.versionHint')}</span>}
+                </label>
+                <label className={`${css.field} ${css.fieldWide}`}>
+                  <span className={css.fieldLabel}>{t('templateCenter.field.changelog')}</span>
+                  <textarea
+                    className={css.input}
+                    rows={3}
+                    maxLength={512}
+                    value={values.changelog}
+                    placeholder={t('templateCenter.field.changelogPlaceholder')}
+                    onChange={(event) => { onValuesChange({ changelog: event.target.value }) }}
+                  />
+                </label>
+              </div>
+            </section>
+            <section className={css.editorSection} hidden={section !== 'publish'}>
+              <div className={css.settingsGrid}>
+                <label className={`${css.field} ${css.fieldWide}`}>
+                  <span className={css.fieldLabel}>{t('templateCenter.settings.category')}</span>
+                  {categories.length === 0
+                    ? (
+                      <span className={css.categoryEmpty} role="alert">
+                        <span className={css.categoryEmptyMark} aria-hidden="true">!</span>
+                        {t('templateCenter.categoryMissing')}
+                      </span>
+                    )
+                    : (
+                      <select
+                        className={css.input}
+                        value={categoryUuid}
+                        onChange={(event) => { onCategoryChange(event.target.value) }}
+                      >
+                        {categories.map(category => (
+                          <option key={category.id} value={category.id}>{category.displayName}</option>
+                        ))}
+                      </select>
+                    )}
+                </label>
+                <div className={css.field}>
+                  <span className={css.fieldLabel}>{t('templateCenter.settings.visibility')}</span>
+                  <div className={css.segmented} role="group" aria-label={t('templateCenter.settings.visibility')}>
+                    <button
+                      type="button"
+                      className={`${css.segment}${visibility === 'PRIVATE' ? ` ${css.segmentActive}` : ''}`}
+                      aria-pressed={visibility === 'PRIVATE'}
+                      onClick={() => { onVisibilityChange('PRIVATE') }}
+                    >
+                      {t('templateCenter.settings.private')}
+                    </button>
+                    <button
+                      type="button"
+                      className={`${css.segment}${visibility === 'PUBLIC' ? ` ${css.segmentActive}` : ''}`}
+                      aria-pressed={visibility === 'PUBLIC'}
+                      onClick={() => { onVisibilityChange('PUBLIC') }}
+                    >
+                      {t('templateCenter.settings.public')}
+                    </button>
+                  </div>
+                </div>
+                <label className={`${css.checkbox}${visibility !== 'PUBLIC' ? ` ${css.checkboxDisabled}` : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={submitForReview}
+                    disabled={visibility !== 'PUBLIC'}
+                    onChange={(event) => { onSubmitForReviewChange(event.target.checked) }}
+                  />
+                  {t('templateCenter.settings.submit')}
+                </label>
+              </div>
+            </section>
+          </div>
         </div>
       </div>
     </>
@@ -937,6 +1008,290 @@ function PublishOutcome(props: {
         <ul className={css.resultWarnings}>
           {run.warnings.map(warning => <li key={warning}>{warning}</li>)}
         </ul>
+      )}
+    </div>
+  )
+}
+
+const MEDIA_ACCEPT = 'image/png,image/jpeg,image/webp'
+const MAX_ICON_BYTES = 4 * 1024 * 1024
+const MAX_COVER_BYTES = 8 * 1024 * 1024
+const MAX_SCREENSHOT_BYTES = 8 * 1024 * 1024
+const MAX_SCREENSHOTS = 8
+const NO_SCREENSHOTS: readonly File[] = []
+
+/** App Store-style listing assets: logo, cover, and ordered sample pages. */
+function TemplateMediaFields(props: {
+  readonly t: (key: DeployKey, params?: Record<string, string>) => string
+  readonly media: TemplateMediaDraft | undefined
+  readonly existingIcon: string | undefined
+  readonly existingCover: string | undefined
+  readonly existingScreenshots: number
+  readonly onChange: (draft: TemplateMediaDraft) => void
+}) {
+  const { t, media, existingIcon, existingCover, existingScreenshots, onChange } = props
+  const icon = media?.icon
+  const cover = media?.cover
+  const screenshots = media?.screenshots ?? NO_SCREENSHOTS
+  const iconInput = useRef<HTMLInputElement>(null)
+  const coverInput = useRef<HTMLInputElement>(null)
+  const screenshotInput = useRef<HTMLInputElement>(null)
+  const [iconUrl, setIconUrl] = useState<string>()
+  const [coverUrl, setCoverUrl] = useState<string>()
+  const [screenshotUrls, setScreenshotUrls] = useState<readonly string[]>([])
+  const [error, setError] = useState<string>()
+
+  useEffect(() => {
+    if (icon === undefined) {
+      setIconUrl(undefined)
+      return
+    }
+    const url = URL.createObjectURL(icon)
+    setIconUrl(url)
+    return () => { URL.revokeObjectURL(url) }
+  }, [icon])
+
+  useEffect(() => {
+    if (cover === undefined) {
+      setCoverUrl(undefined)
+      return
+    }
+    const url = URL.createObjectURL(cover)
+    setCoverUrl(url)
+    return () => { URL.revokeObjectURL(url) }
+  }, [cover])
+
+  useEffect(() => {
+    const urls = screenshots.map(file => URL.createObjectURL(file))
+    setScreenshotUrls(urls)
+    return () => { urls.forEach((url) => { URL.revokeObjectURL(url) }) }
+  }, [screenshots])
+
+  const apply = (patch: {
+    readonly icon?: File | null
+    readonly cover?: File | null
+    readonly screenshots?: readonly File[]
+  }): void => {
+    const next: {
+      icon?: File
+      cover?: File
+      screenshots?: readonly File[]
+    } = {}
+    if (patch.icon === null) {
+      // Removing the local choice falls back to the persisted image, if any.
+    } else if (patch.icon !== undefined) {
+      next.icon = patch.icon
+    } else if (icon !== undefined) {
+      next.icon = icon
+    }
+    if (patch.cover === null) {
+      // Same fallback for the cover.
+    } else if (patch.cover !== undefined) {
+      next.cover = patch.cover
+    } else if (cover !== undefined) {
+      next.cover = cover
+    }
+    if (patch.screenshots !== undefined) {
+      if (patch.screenshots.length > 0) next.screenshots = patch.screenshots
+    } else if (media?.screenshots !== undefined) {
+      next.screenshots = media.screenshots
+    }
+    onChange(next)
+  }
+
+  const check = (file: File, maxBytes: number): boolean => {
+    if (!MEDIA_ACCEPT.split(',').includes(file.type)) {
+      setError(t('templateCenter.media.typeError'))
+      return false
+    }
+    if (file.size > maxBytes) {
+      setError(t('templateCenter.media.sizeError', {
+        name: file.name,
+        max: String(Math.round(maxBytes / 1024 / 1024)),
+      }))
+      return false
+    }
+    return true
+  }
+
+  const chooseIcon = (file: File | undefined): void => {
+    if (file === undefined || !check(file, MAX_ICON_BYTES)) return
+    setError(undefined)
+    apply({ icon: file })
+  }
+
+  const chooseCover = (file: File | undefined): void => {
+    if (file === undefined || !check(file, MAX_COVER_BYTES)) return
+    setError(undefined)
+    apply({ cover: file })
+  }
+
+  const addScreenshots = (files: FileList | null): void => {
+    if (files === null || files.length === 0) return
+    const accepted: File[] = []
+    for (const file of [...files]) {
+      if (!check(file, MAX_SCREENSHOT_BYTES)) return
+      accepted.push(file)
+    }
+    if (screenshots.length + accepted.length > MAX_SCREENSHOTS) {
+      setError(t('templateCenter.media.screenshotLimit', { max: String(MAX_SCREENSHOTS) }))
+      return
+    }
+    setError(undefined)
+    apply({ screenshots: [...screenshots, ...accepted] })
+  }
+
+  const iconLabel = icon !== undefined
+    ? icon.name
+    : existingIcon !== undefined ? t('templateCenter.media.existingIcon') : t('templateCenter.media.noIcon')
+  const coverLabel = cover !== undefined
+    ? cover.name
+    : existingCover !== undefined ? t('templateCenter.media.existingCover') : t('templateCenter.media.noCover')
+
+  return (
+    <div className={css.mediaSection}>
+      <div className={css.mediaHeroRow}>
+        <div className={css.mediaTile}>
+          <div className={css.mediaTileHeader}>
+            <span className={css.fieldLabel}>{t('templateCenter.media.icon')}</span>
+            <span className={css.mediaRatio}>{t('templateCenter.media.iconRatio')}</span>
+          </div>
+          <button
+            type="button"
+            className={`${css.mediaDrop} ${css.mediaDropIcon}`}
+            aria-label={t('templateCenter.media.chooseIcon')}
+            onClick={() => { iconInput.current?.click() }}
+          >
+            {iconUrl !== undefined
+              ? <img className={css.mediaImage} src={iconUrl} alt="" />
+              : <span className={css.mediaDropText}>{t('templateCenter.media.iconPlaceholder')}</span>}
+          </button>
+          <div className={css.mediaFileRow}>
+            <span className={css.mediaFileName} title={iconLabel}>{iconLabel}</span>
+            <button type="button" className={css.mediaAction} onClick={() => { iconInput.current?.click() }}>
+              {icon !== undefined || existingIcon !== undefined
+                ? t('templateCenter.media.replace')
+                : t('templateCenter.media.choose')}
+            </button>
+            {icon !== undefined && (
+              <button
+                type="button"
+                className={css.mediaAction}
+                onClick={() => { apply({ icon: null }) }}
+              >
+                {t('templateCenter.media.remove')}
+              </button>
+            )}
+          </div>
+          <input
+            ref={iconInput}
+            className={css.fileInputHidden}
+            type="file"
+            accept={MEDIA_ACCEPT}
+            onChange={(event) => {
+              chooseIcon(event.target.files?.[0])
+              event.target.value = ''
+            }}
+          />
+        </div>
+        <div className={`${css.mediaTile} ${css.mediaTileWide}`}>
+          <div className={css.mediaTileHeader}>
+            <span className={css.fieldLabel}>{t('templateCenter.media.cover')}</span>
+            <span className={css.mediaRatio}>{t('templateCenter.media.coverRatio')}</span>
+          </div>
+          <button
+            type="button"
+            className={`${css.mediaDrop} ${css.mediaDropCover}`}
+            aria-label={t('templateCenter.media.chooseCover')}
+            onClick={() => { coverInput.current?.click() }}
+          >
+            {coverUrl !== undefined
+              ? <img className={css.mediaImage} src={coverUrl} alt="" />
+              : <span className={css.mediaDropText}>{t('templateCenter.media.coverPlaceholder')}</span>}
+          </button>
+          <div className={css.mediaFileRow}>
+            <span className={css.mediaFileName} title={coverLabel}>{coverLabel}</span>
+            <button type="button" className={css.mediaAction} onClick={() => { coverInput.current?.click() }}>
+              {cover !== undefined || existingCover !== undefined
+                ? t('templateCenter.media.replace')
+                : t('templateCenter.media.choose')}
+            </button>
+            {cover !== undefined && (
+              <button
+                type="button"
+                className={css.mediaAction}
+                onClick={() => { apply({ cover: null }) }}
+              >
+                {t('templateCenter.media.remove')}
+              </button>
+            )}
+          </div>
+          <input
+            ref={coverInput}
+            className={css.fileInputHidden}
+            type="file"
+            accept={MEDIA_ACCEPT}
+            onChange={(event) => {
+              chooseCover(event.target.files?.[0])
+              event.target.value = ''
+            }}
+          />
+        </div>
+      </div>
+      <div className={css.screenshotSection}>
+        <div className={css.mediaTileHeader}>
+          <span className={css.fieldLabel}>{t('templateCenter.media.screenshots')}</span>
+          <span className={css.mediaRatio}>
+            {t('templateCenter.media.screenshotsHint', { max: String(MAX_SCREENSHOTS) })}
+          </span>
+        </div>
+        {screenshots.length === 0 && existingScreenshots > 0 && (
+          <p className={css.mediaExisting}>
+            {t('templateCenter.media.existingScreenshots', { count: String(existingScreenshots) })}
+          </p>
+        )}
+        <div className={css.screenshotGrid}>
+          {screenshots.map((file, index) => (
+            <div key={`${file.name}-${index}`} className={css.screenshotCard}>
+              <img src={screenshotUrls[index]} alt="" />
+              <button
+                type="button"
+                className={css.screenshotRemove}
+                aria-label={t('templateCenter.media.removeScreenshot', { name: file.name })}
+                onClick={() => {
+                  apply({ screenshots: screenshots.filter((_, item) => item !== index) })
+                }}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          {screenshots.length < MAX_SCREENSHOTS && (
+            <button
+              type="button"
+              className={css.addScreenshot}
+              onClick={() => { screenshotInput.current?.click() }}
+            >
+              <span aria-hidden="true">+</span>
+              {t('templateCenter.media.addScreenshot')}
+            </button>
+          )}
+        </div>
+        <input
+          ref={screenshotInput}
+          className={css.fileInputHidden}
+          type="file"
+          accept={MEDIA_ACCEPT}
+          multiple
+          onChange={(event) => {
+            addScreenshots(event.target.files)
+            event.target.value = ''
+          }}
+        />
+        <p className={css.mediaNote}>{t('templateCenter.media.replaceNote')}</p>
+      </div>
+      {error !== undefined && (
+        <p className={css.mediaError} role="alert">{error}</p>
       )}
     </div>
   )

@@ -33,7 +33,13 @@ const state = vi.hoisted(() => ({
   apps: [{ id: 'app-1', name: '演示 H5', slug: 'sdkwork-demo-h5', appKind: 'SPA_WEB' }],
   templates: [] as unknown[],
   failCreate: false,
-  lastCreate: undefined as { platformTargets?: readonly string[] } | undefined,
+  lastCreate: undefined as {
+    platformTargets?: readonly string[]
+    description?: string
+    iconMediaRef?: string
+    coverMediaRef?: string
+    screenshots?: readonly { mediaRef: string; sortOrder?: number }[]
+  } | undefined,
   calls: {} as Record<string, number>,
   record(name: string): void {
     state.calls[name] = (state.calls[name] ?? 0) + 1
@@ -58,6 +64,10 @@ vi.mock('../src/client/templatePorts.ts', () => ({
         version: '0.1.0',
         status: 'DRAFT',
       }
+    },
+    uploadMedia: async ({ file }: { file: File }) => {
+      state.record('uploadMedia')
+      return `drive://spaces/space-1/nodes/${file.name}`
     },
     updateTemplate: async () => { state.record('updateTemplate') },
     createVersion: async () => { state.record('createVersion') },
@@ -311,6 +321,93 @@ describe('TemplatePublishDialog publish run', () => {
     expect(state.calls.createTemplate).toBe(1)
     expect(state.calls.uploadArchive).toBe(1)
     expect(state.calls.writeAppLink).toBeUndefined()
+  }, 30000)
+
+  it('uploads store images and persists description and sample pages', async () => {
+    const originalCreateObjectURL = URL.createObjectURL
+    const originalRevokeObjectURL = URL.revokeObjectURL
+    const createObjectURL = vi.fn(() => 'blob:preview')
+    const revokeObjectURL = vi.fn()
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectURL })
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: revokeObjectURL })
+    await mount()
+    const radio = container?.querySelector('input[type="radio"]') as HTMLInputElement
+    await act(async () => { radio.click() })
+    await click('下一步：填写并发布')
+
+    const description = container?.querySelector('textarea[placeholder*="模板解决"]') as HTMLTextAreaElement
+    const setValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set
+    await act(async () => {
+      setValue?.call(description, '包含登录、导航和列表页。')
+      description.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+
+    const fileInputs = [...(container?.querySelectorAll('input[type="file"]') ?? [])] as HTMLInputElement[]
+    expect(fileInputs).toHaveLength(3)
+    const choose = async (input: HTMLInputElement | undefined, files: File[]) => {
+      if (input === undefined) throw new Error('file input missing')
+      Object.defineProperty(input, 'files', { configurable: true, value: files })
+      await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })) })
+    }
+    await choose(fileInputs[0], [new File(['png'], 'logo.png', { type: 'image/png' })])
+    await choose(fileInputs[1], [new File(['png'], 'cover.png', { type: 'image/png' })])
+    await choose(fileInputs[2], [
+      new File(['png'], 'page-1.png', { type: 'image/png' }),
+      new File(['png'], 'page-2.png', { type: 'image/png' }),
+    ])
+    expect(container?.textContent).toContain('logo.png')
+    expect(container?.textContent).toContain('cover.png')
+
+    await click('发布模板')
+    expect(state.calls.uploadMedia).toBe(4)
+    expect(state.lastCreate?.description).toBe('包含登录、导航和列表页。')
+    expect(state.lastCreate?.iconMediaRef).toBe('drive://spaces/space-1/nodes/logo.png')
+    expect(state.lastCreate?.coverMediaRef).toBe('drive://spaces/space-1/nodes/cover.png')
+    expect(state.lastCreate?.screenshots).toEqual([
+      { mediaRef: 'drive://spaces/space-1/nodes/page-1.png', sortOrder: 0 },
+      { mediaRef: 'drive://spaces/space-1/nodes/page-2.png', sortOrder: 1 },
+    ])
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: originalCreateObjectURL })
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: originalRevokeObjectURL })
+  }, 30000)
+
+  it('shows existing store assets and validates type, size and sample-page count', async () => {
+    state.templates = [{
+      id: 'tpl-1',
+      appUuid: 'app-1',
+      templateKey: 'sdkwork-demo-h5',
+      displayName: '演示 H5',
+      summary: '旧简介',
+      description: '旧描述',
+      iconMediaRef: 'drive://spaces/s/nodes/logo',
+      coverMediaRef: 'drive://spaces/s/nodes/cover',
+      screenshots: [{ mediaRef: 'drive://spaces/s/nodes/page', sortOrder: 0 }],
+      status: 'DRAFT',
+    }]
+    await mount()
+    const radio = container?.querySelector('input[type="radio"]') as HTMLInputElement
+    await act(async () => { radio.click() })
+    await click('下一步：填写并发布')
+    expect(container?.textContent).toContain('已上传 Logo')
+    expect(container?.textContent).toContain('已上传封面图')
+    expect(container?.textContent).toContain('已有 1 张示例页面')
+
+    const fileInputs = [...(container?.querySelectorAll('input[type="file"]') ?? [])] as HTMLInputElement[]
+    const choose = async (input: HTMLInputElement, files: File[]) => {
+      Object.defineProperty(input, 'files', { configurable: true, value: files })
+      await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })) })
+    }
+    await choose(fileInputs[0] as HTMLInputElement, [new File(['text'], 'notes.txt', { type: 'text/plain' })])
+    expect(container?.textContent).toContain('仅支持 PNG、JPEG 或 WebP 图片')
+
+    await choose(fileInputs[1] as HTMLInputElement, [
+      new File([new Uint8Array(8 * 1024 * 1024 + 1)], 'huge.png', { type: 'image/png' }),
+    ])
+    expect(container?.textContent).toContain('超过 8 MB 限制')
+
+    await choose(fileInputs[2] as HTMLInputElement, Array.from({ length: 9 }, (_, index) =>
+      new File(['png'], `page-${index}.png`, { type: 'image/png' })))
+    expect(container?.textContent).toContain('示例页面最多 8 张')
   }, 30000)
 
   it('lets the operator override the detected type before publishing', async () => {

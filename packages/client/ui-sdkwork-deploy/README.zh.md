@@ -13,7 +13,7 @@ kind: "package-reference"
 
 设置菜单 popover 的「我的应用」行打开双页签只读弹窗：「我的应用」列出当前用户名下的 `deploy_app` 记录（应用 API 的 `USER` 归属作用域），按更新时间倒序，并可按应用类型筛选；「我的应用模板」列出当前用户名下的模板列表（`template.appTemplates.list`，本身即账号作用域），按更新时间倒序，可按模板状态筛选，并标注每个列表的最新语义版本与安装次数。两个页签都读取与发布流程相同的宿主构造客户端，且从不写入。
 
-行菜单提供**两个相互独立的模板弹窗**。「发布为模板」打开发布弹窗，「从模板安装」打开安装弹窗；两者只共享模态外壳与设计 token，互不导入对方的流程、状态或面板。发布弹窗有两个来源：默认扫描 `<项目>/apps` 中符合 SDKWork workspace 规范的独立应用根目录（`apps/README.md` 索引 + `agent.app.config.json`），一次选择一个；也可以经宿主目录选择器挑一个任意目录，检测器先读应用清单，再根据 `package.json`/`pubspec.yaml` 与项目标记（Flutter、React Native/Expo、Android、iOS、HarmonyOS、小程序、Electron/Tauri、Web 框架、静态 HTML、服务端框架）推断应用类型，并允许在发布前手动改选。两个来源都会创建应用开发脚手架模板：先按清单或检测类型关联/注册当前账号的平台应用，经宿主桥读取目录，用 `.gitignore` 感知的 fflate 打包器**在本地生成 zip**（排除本机敏感文件），只上传这个压缩包作为版本制品，再创建模板；同一账号对同一平台应用与模板标识已有模板时，改为更新模板并追加新版本，不会重复创建。发布页是两步向导——选择一个应用或自定义目录、确认模板信息与共享设置并在当前页查看单次发布进度/结果——常见场景不会被压缩成一个批量表单。选中应用有自己的名称、标识、版本、更新说明与实时发布进度（含本地压缩阶段）；失败后可以重试。独立的安装弹窗列出我的模板（与模板市场），可安装到 `<项目>/apps/<模板标识>`——同名目录自动追加序号而不是覆盖本地应用——或自定义绝对目录；文件落盘后把模板身份写入应用清单，并更新 `apps/README.md` 索引行。
+行菜单提供**两个相互独立的模板弹窗**。「发布为模板」打开发布弹窗，「从模板安装」打开安装弹窗；两者只共享模态外壳与设计 token，互不导入对方的流程、状态或面板。发布弹窗有两个来源：默认扫描 `<项目>/apps` 中符合 SDKWork workspace 规范的独立应用根目录（`apps/README.md` 索引 + `agent.app.config.json`），一次选择一个；也可以经宿主目录选择器挑一个任意目录，检测器先读应用清单，再根据 `package.json`/`pubspec.yaml` 与项目标记（Flutter、React Native/Expo、Android、iOS、HarmonyOS、小程序、Electron/Tauri、Web 框架、静态 HTML、服务端框架）推断应用类型，并允许在发布前手动改选。两个来源都会创建应用开发脚手架模板：先按清单或检测类型关联/注册当前账号的平台应用，经宿主桥读取目录，用 `.gitignore` 感知的 fflate 打包器**在本地生成 zip**（排除本机敏感文件），只上传这个压缩包作为版本制品，再创建模板；同一账号对同一平台应用与模板标识已有模板时，改为更新模板并追加新版本，不会重复创建。发布页是两步向导——选择一个应用或自定义目录、确认商店展示信息与共享设置并在当前页查看单次发布进度/结果——常见场景不会被压缩成一个批量表单。第二步按 App Store 上架资料组织：1:1 Logo、16:9 封面、最多 8 张有序示例页面、一句话简介与详细介绍、版本/更新说明、分类、可见性与审核提交。图片先在本地预览并按类型/体积/数量校验，平台应用存在后上传到 Drive，最终保存为稳定的 `drive://` 引用（`iconMediaRef`、`coverMediaRef` 与 `metadata.screenshots`）；未重新选择文件时保留已有引用。选中应用有自己的名称、标识、版本、更新说明与实时发布进度（含素材上传与本地压缩阶段）；失败后可以重试。独立的安装弹窗列出我的模板（与模板市场），可安装到 `<项目>/apps/<模板标识>`——同名目录自动追加序号而不是覆盖本地应用——或自定义绝对目录；文件落盘后把模板身份写入应用清单，并更新 `apps/README.md` 索引行。
 
 ## 目录
 
@@ -91,7 +91,7 @@ kind: "package-reference"
 - `src/client/TemplateInstallDialog.tsx` — 仅安装的弹窗：不导入任何发布模块，主体是安装面板。
 - `src/client/TemplateDialogFrame.tsx` — 只共享模态外壳：遮罩、标题、账号芯片、关闭、登录门与 busy/Escape 处理。
 - `src/client/TemplateDialog.module.css` — 共享外壳与两个独立表面的设计 token 样式。
-- `src/client/TemplatePublishPanel.tsx` — 两步单应用发布向导：单选式项目应用卡片以及自定义目录选择/检测卡片、单应用编辑器与共享分类/可见性/审核设置，以及带进度、重试与重置操作的页内单次发布结果。
+- `src/client/TemplatePublishPanel.tsx` — 两步单应用发布向导：单选式项目应用卡片以及自定义目录选择/检测卡片、单应用编辑器（Logo、封面、有序示例页面、简介/详细介绍、版本/更新说明）与共享分类/可见性/审核设置，以及带进度、重试与重置操作的页内单次发布结果。
 - `src/client/templateCustomApp.ts` — 自定义目录检测器：清单优先的身份、项目标记类型推断、package/pubspec 元数据，以及待用户手动补全类型的候选。
 - `src/client/templateAppTypes.ts` — 可选应用类型词表及其控制台卡片/模板平台映射。
 - `src/client/TemplateInstallPanel.tsx` — 安装表现层：我的模板/模板市场来源与搜索、目标模式（项目 `apps/` 或经宿主选择器的自定义目录）、逐行目标预览与安装进度。
@@ -102,7 +102,7 @@ kind: "package-reference"
 - `src/client/templatePorts.ts` — 把纯发布/安装模块接到生成式 deploy/drive 客户端与宿主桥的适配器，含账号作用域的应用/模板翻页与源码脚手架包类型。
 - `src/client/deployHost.ts` — 环境/IAM 适配、客户端构造（对齐 `ui-sdkwork-drive` 模式）、workspace 列举/扫描桥、当前账号投影（id、展示名、头像、邮箱）、模板打包读取桥（`listTemplateFiles`/`readTemplateFiles`）与文件写入桥（`writeTemplateFile`）、目录创建、项目状态读取（`readProjectApp`）、项目清单读写桥（`readDeployLink`/`writeDeployLink` 接受显式项目目录，缺省为会话 cwd；`writeDeployLink` 经创建身份组合完整清单）、会话列表接入的 `notifyChange` 通道，以及应用库「打包」动作挂载的构建端口。
 - `src/client/DeployPublishDialog.tsx` — 基于 `CreateDeployAppDialog` 的独立发布表面；已解析的关联应用直接传入，因此跳过对话框的应用选择步骤。
-- `src/client/hostArchive.ts` — 宿主打包器：把宿主的有限文件列举/分批读取变成 `directoryArchive` 的惰性文件面，打包前排除本机敏感文件，并上报读取进度。
+- `src/client/hostArchive.ts` — 宿主打包器：把宿主的有限文件列举/分批读取变成 `directoryArchive` 的惰性文件面，打包前排除本机敏感文件，并上报读取进度。可复用的服务端对应实现位于 `sdkwork-deployments/crates/sdkwork-deploy-archive`（git 兼容的 `.gitignore` 选择、确定性 ZIP、带防护的解压）；本宿主驱动的流程仍以浏览器路径为准。
 - `src/client/gitignore.ts` — `.gitignore` 匹配器（否定、仅目录、锚定、`**`、深层文件覆盖）供目录打包器使用。
 - `src/client/directoryArchive.ts` — 目录 → zip 打包器：子树作用域的忽略级联与 git 的目录剪枝语义，`.git` 始终剔除，字节上限保护，SHA-256 校验。
 - `src/client/templatePlatforms.ts` — 平台维度词表（storefront 规范四值 + 其余 SDKWork 应用族）及其到制品包类型的映射。

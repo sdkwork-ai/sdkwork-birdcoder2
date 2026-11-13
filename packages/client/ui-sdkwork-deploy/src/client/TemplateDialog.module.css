@@ -1,8 +1,8 @@
-/* App template center layout. The dialog root reuses DeployDialogs' overlay /
-   modal chrome and its --pda-* theme variables; this sheet adds the two-tab
-   body, the publish grid, app cards, progress rows, and the download target
-   column. Tokens resolve from the overlay's data-theme block, so both light
-   and dark hosts inherit one palette. */
+/* Template publish/install dialog layout. The dialog root reuses
+   DeployDialogs' overlay / modal chrome and its --pda-* theme variables; this
+   sheet adds the two-stage publish body, store-asset editor, app cards,
+   progress rows, and install target column. Tokens resolve through the host
+   theme aliases, so light and dark hosts share one palette. */
 
 .modal {
   width: min(960px, calc(100vw - 32px));
@@ -1430,6 +1430,167 @@ textarea.input {
   color: var(--pda-ink-faint, #8a94a6);
 }
 
+.editorLayout {
+  display: grid;
+  grid-template-columns: 224px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.editorRail {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.editorIdentityCard {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--pda-border, #d8dee8);
+  border-radius: 12px;
+  background: var(--pda-surface, #ffffff);
+}
+
+.sectionNav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--pda-border, #d8dee8);
+  border-radius: 12px;
+  background: var(--pda-surface, #ffffff);
+}
+
+.sectionNavItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 7px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pda-ink-soft, #5b6676);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sectionNavItem:hover {
+  background: rgba(128, 140, 160, 0.08);
+}
+
+.sectionNavItemActive {
+  border-color: rgba(79, 140, 255, 0.2);
+  background: rgba(79, 140, 255, 0.09);
+  color: var(--pda-brand, #4f8cff);
+}
+
+.sectionNavIndex {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--pda-border, #d8dee8);
+  border-radius: 999px;
+  background: var(--pda-field, #f6f8fb);
+  color: var(--pda-ink-faint, #8a94a6);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sectionNavItemActive .sectionNavIndex {
+  border-color: var(--pda-brand, #4f8cff);
+  background: var(--pda-brand, #4f8cff);
+  color: #ffffff;
+}
+
+.sectionNavText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sectionNavLabel {
+  font-size: 11px;
+  font-weight: 500;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sectionNavHint {
+  font-size: 9px;
+  line-height: 1.35;
+  color: var(--pda-ink-faint, #8a94a6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sectionNavItem > svg {
+  flex: none;
+  color: var(--pda-ink-faint, #8a94a6);
+}
+
+.editorPanel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--pda-border, #d8dee8);
+  border-radius: 12px;
+  background: var(--pda-surface, #ffffff);
+  overflow: hidden;
+}
+
+.editorPanelHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px 11px;
+  border-bottom: 1px solid var(--pda-border, #d8dee8);
+  background: rgba(128, 140, 160, 0.035);
+}
+
+.editorPanelEyebrow {
+  font-size: 9px;
+  color: var(--pda-ink-faint, #8a94a6);
+  font-variant-numeric: tabular-nums;
+}
+
+.editorPanelTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--pda-ink, #1c2430);
+}
+
+.editorPanelDescription {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--pda-ink-faint, #8a94a6);
+}
+
+.editorPanelBody {
+  min-width: 0;
+  padding: 14px 16px 18px;
+}
+
+.editorSection {
+  min-width: 0;
+}
+
 .singleLayout {
   display: grid;
   grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
@@ -1709,6 +1870,250 @@ textarea.input {
   font-size: 12px;
   font-weight: 500;
   color: var(--pda-ink, #1c2430);
+}
+
+.formSectionHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.formSectionHint {
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--pda-ink-faint, #8a94a6);
+}
+
+.mediaSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mediaHeroRow {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 280px);
+  gap: 9px;
+  align-items: start;
+}
+
+.mediaTile {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--pda-border, #d8dee8);
+  border-radius: 10px;
+  background: rgba(127, 127, 127, 0.03);
+}
+
+.mediaTileWide {
+  min-width: 0;
+}
+
+.mediaTileHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  min-width: 0;
+}
+
+.mediaRatio {
+  flex: none;
+  font-size: 9px;
+  color: var(--pda-ink-faint, #8a94a6);
+  white-space: normal;
+  text-align: right;
+}
+
+.mediaDrop {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  padding: 0;
+  border: 1px dashed var(--pda-border, #d8dee8);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pda-ink-faint, #8a94a6);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.mediaDrop:hover,
+.mediaDrop:focus-visible {
+  border-color: var(--pda-brand, #4f8cff);
+  color: var(--pda-brand, #4f8cff);
+}
+
+.mediaDropIcon {
+  width: 88px;
+  height: 88px;
+  margin: 0 auto;
+}
+
+.mediaDropCover {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
+.mediaDropText {
+  padding: 0 8px;
+  font-size: 10px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.mediaImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mediaTileWide .mediaImage {
+  object-position: center;
+}
+
+.mediaFileRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mediaFileName {
+  flex: 1;
+  min-width: 0;
+  font-size: 9px;
+  color: var(--pda-ink-faint, #8a94a6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mediaAction {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pda-brand, #4f8cff);
+  font: inherit;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.mediaAction:hover {
+  text-decoration: underline;
+}
+
+.fileInputHidden {
+  display: none;
+}
+
+.screenshotSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 2px;
+}
+
+.mediaExisting {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--pda-ink-faint, #8a94a6);
+}
+
+.screenshotGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 112px);
+  justify-content: start;
+  gap: 7px;
+}
+
+.screenshotCard {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--pda-border, #d8dee8);
+  border-radius: 8px;
+  background: rgba(127, 127, 127, 0.05);
+  overflow: hidden;
+}
+
+.screenshotCard img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.screenshotRemove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(20, 24, 32, 0.72);
+  color: #ffffff;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.addScreenshot {
+  aspect-ratio: 16 / 9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 1px dashed var(--pda-border, #d8dee8);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pda-ink-faint, #8a94a6);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.addScreenshot span {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.addScreenshot:hover,
+.addScreenshot:focus-visible {
+  border-color: var(--pda-brand, #4f8cff);
+  color: var(--pda-brand, #4f8cff);
+}
+
+.mediaNote {
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.4;
+  color: var(--pda-ink-faint, #8a94a6);
+}
+
+.mediaError {
+  margin: 0;
+  padding: 7px 9px;
+  border: 1px solid rgba(229, 72, 77, 0.3);
+  border-radius: 7px;
+  background: rgba(229, 72, 77, 0.07);
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--pda-error, #e5484d);
 }
 
 .formGrid {
@@ -2142,6 +2547,28 @@ textarea.input {
     max-height: 92vh;
   }
 
+  .editorLayout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .editorRail {
+    position: static;
+  }
+
+  .sectionNav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sectionNavItem {
+    padding: 7px;
+  }
+
+  .sectionNavItem > svg {
+    display: none;
+  }
+
   .header {
     gap: 8px;
     padding: 12px;
@@ -2297,6 +2724,23 @@ textarea.input {
 @media (max-width: 560px) {
   .subtitle {
     display: none;
+  }
+
+  .editorPanelBody {
+    padding: 12px;
+  }
+
+  .mediaHeroRow {
+    grid-template-columns: 86px minmax(0, 220px);
+  }
+
+  .mediaDropIcon {
+    width: 70px;
+    height: 70px;
+  }
+
+  .screenshotGrid {
+    grid-template-columns: repeat(auto-fill, 92px);
   }
 }
 

@@ -3,9 +3,10 @@
  * `发布为模板` action.
  *
  * The dialog owns the publish workflow only. It scans `<project>/apps` or
- * inspects one custom directory, plans the per-app dedupe against the caller's
- * platform apps and templates, and publishes the selection with live per-row
- * progress. Install is a separate dialog with its own state and panel.
+ * inspects one custom directory, plans the app/template dedupe against the
+ * caller's platform apps and templates, and publishes the selected app with
+ * one inline progress/result run. Install is a separate dialog with its own
+ * state and panel.
  *
  * Scanning, dedupe, and publish execution live in the pure modules and the
  * SDK/host ports; this component composes them for publication.
@@ -26,6 +27,7 @@ import {
   type OwnedPlatformApp,
   type OwnedTemplate,
   type TemplateAppValues,
+  type TemplateMediaDraft,
   type TemplatePublishPlan,
   type TemplatePublishStage,
   type TemplatePublishSettings,
@@ -59,7 +61,7 @@ export interface TemplatePublishDialogProps {
   /** Raise the shared sign-in surface. */
   readonly startSignIn?: (() => void) | undefined
   readonly onClose: () => void
-  /** A publish batch completed; `count` templates were created or updated. */
+  /** One publish completed; `count` is 0 or 1. */
   readonly onPublished?: ((count: number) => void) | undefined
 }
 
@@ -92,6 +94,7 @@ export function TemplatePublishDialog({
   const [catalogRevision, setCatalogRevision] = useState(0)
   const [selectedDirectory, setSelectedDirectory] = useState<string | undefined>(undefined)
   const [valueOverrides, setValueOverrides] = useState<Readonly<Record<string, Partial<TemplateAppValues>>>>({})
+  const [mediaDrafts, setMediaDrafts] = useState<Readonly<Record<string, TemplateMediaDraft>>>({})
   const [categoryUuid, setCategoryUuid] = useState('')
   const [visibility, setVisibility] = useState<'PRIVATE' | 'PUBLIC'>('PRIVATE')
   const [submitForReview, setSubmitForReview] = useState(false)
@@ -231,6 +234,10 @@ export function TemplatePublishDialog({
     }))
   }
 
+  const changeMedia = (candidateDirectory: string, draft: TemplateMediaDraft): void => {
+    setMediaDrafts(current => ({ ...current, [candidateDirectory]: draft }))
+  }
+
   const changeSourceMode = (mode: 'apps' | 'custom'): void => {
     setSourceMode(mode)
     setPublishStep(1)
@@ -299,6 +306,7 @@ export function TemplatePublishDialog({
         plan,
         values: valuesOf(plan),
         settings,
+        media: mediaDrafts[candidateDirectory],
         onStage: (stage) => {
           setRuns({ [candidateDirectory]: runStateOf(stage, t) })
         },
@@ -334,6 +342,7 @@ export function TemplatePublishDialog({
     setCustomInspection(undefined)
     setCustomError(undefined)
     setValueOverrides({})
+    setMediaDrafts({})
     setRuns({})
     setSummary(undefined)
   }
@@ -392,6 +401,8 @@ export function TemplatePublishDialog({
           publishing={publishing}
           summary={summary}
           valuesOf={valuesOf}
+          mediaOf={plan => mediaDrafts[plan.candidate.directory]}
+          onMediaChange={changeMedia}
           onStepChange={setPublishStep}
           onSourceModeChange={changeSourceMode}
           onChooseCustomDirectory={() => { void chooseCustomDirectory() }}
@@ -445,6 +456,15 @@ function runStateOf(
   switch (stage.kind) {
     case 'registering':
       return { phase: 'running', detail: t('templateCenter.stage.registering') }
+    case 'uploadingMedia':
+      return {
+        phase: 'running',
+        detail: t('templateCenter.stage.uploadingMedia', {
+          completed: String(stage.completed),
+          total: String(stage.total),
+        }),
+        ...(stage.total > 0 ? { percent: Math.round((stage.completed / stage.total) * 100) } : {}),
+      }
     case 'packing':
       return {
         phase: 'running',

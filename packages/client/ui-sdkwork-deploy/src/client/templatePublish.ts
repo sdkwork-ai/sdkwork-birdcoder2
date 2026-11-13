@@ -38,6 +38,11 @@ export interface OwnedTemplate {
   readonly appUuid: string
   readonly templateKey: string
   readonly displayName: string
+  readonly summary?: string
+  readonly description?: string
+  readonly iconMediaRef?: string
+  readonly coverMediaRef?: string
+  readonly screenshots?: readonly TemplateScreenshotValue[]
   /**
    * Latest semantic version (`deploy_app_template_version.template_version`),
    * when the caller resolved it. The listing row's own `version` is an
@@ -46,6 +51,20 @@ export interface OwnedTemplate {
   readonly latestVersion?: string
   readonly status: string
   readonly latestVersionUuid?: string
+}
+
+/** One persisted marketplace sample page. */
+export interface TemplateScreenshotValue {
+  readonly mediaRef: string
+  readonly caption?: string
+  readonly sortOrder: number
+}
+
+/** Locally selected files uploaded during publish, after the platform app exists. */
+export interface TemplateMediaDraft {
+  readonly icon?: File
+  readonly cover?: File
+  readonly screenshots?: readonly File[]
 }
 
 /** The account-scoped publish settings shared by every selected app. */
@@ -61,8 +80,12 @@ export interface TemplateAppValues {
   readonly displayName: string
   readonly templateKey: string
   readonly summary: string
+  readonly description: string
   readonly version: string
   readonly changelog: string
+  readonly iconMediaRef?: string
+  readonly coverMediaRef?: string
+  readonly screenshots: readonly TemplateScreenshotValue[]
 }
 
 /** How one selected app will be published. */
@@ -102,11 +125,15 @@ export function planTemplatePublications(
       ? `more than one selected app uses the template key "${candidate.appKey}"`
       : undefined
     const values: TemplateAppValues = {
-      displayName: candidate.name,
-      templateKey: candidate.appKey,
-      summary: candidate.description ?? '',
+      displayName: template?.displayName ?? candidate.name,
+      templateKey: template?.templateKey ?? candidate.appKey,
+      summary: template?.summary ?? candidate.description ?? '',
+      description: template?.description ?? candidate.description ?? '',
       version: nextTemplateVersion(template?.latestVersion ?? candidate.linkedTemplateVersion),
       changelog: '',
+      ...(template?.iconMediaRef === undefined ? {} : { iconMediaRef: template.iconMediaRef }),
+      ...(template?.coverMediaRef === undefined ? {} : { coverMediaRef: template.coverMediaRef }),
+      screenshots: template?.screenshots ?? [],
     }
     return {
       candidate,
@@ -161,6 +188,7 @@ export function nextTemplateVersion(current: string | undefined): string {
 /** One stage of a publish run, for the row's live status. */
 export type TemplatePublishStage =
   | { readonly kind: 'registering' }
+  | { readonly kind: 'uploadingMedia'; readonly completed: number; readonly total: number }
   | { readonly kind: 'packing'; readonly read: number; readonly total: number }
   | { readonly kind: 'compressed'; readonly files: number; readonly bytes: number }
   | { readonly kind: 'uploading'; readonly percent: number }
@@ -191,6 +219,7 @@ export interface TemplatePublishRequest {
   readonly plan: TemplatePublishPlan
   readonly values: TemplateAppValues
   readonly settings: TemplatePublishSettings
+  readonly media?: TemplateMediaDraft | undefined
   readonly onStage?: ((stage: TemplatePublishStage) => void) | undefined
 }
 
@@ -207,6 +236,8 @@ export interface TemplatePublishPorts {
   }): Promise<OwnedPlatformApp>
   /** Register the app's surface target; optional/best-effort. */
   createPlatformTarget(appId: string, cardId: string): Promise<void>
+  /** Upload one selected image and return its persistent Drive media reference. */
+  uploadMedia(input: { readonly file: File; readonly appId: string }): Promise<string>
   /** The account's template listings (fresh read before create). */
   listTemplates(): Promise<readonly OwnedTemplate[]>
   createTemplate(input: CreateTemplateListingInput): Promise<OwnedTemplate>
@@ -247,6 +278,10 @@ export interface CreateTemplateListingInput {
   readonly templateKey: string
   readonly displayName: string
   readonly summary: string
+  readonly description: string
+  readonly iconMediaRef?: string
+  readonly coverMediaRef?: string
+  readonly screenshots: readonly TemplateScreenshotValue[]
   readonly visibility: 'PRIVATE' | 'PUBLIC'
   readonly version: string
   readonly changelog: string
@@ -260,6 +295,10 @@ export interface CreateTemplateListingInput {
 export interface UpdateTemplateListingInput {
   readonly displayName: string
   readonly summary: string
+  readonly description: string
+  readonly iconMediaRef?: string
+  readonly coverMediaRef?: string
+  readonly screenshots: readonly TemplateScreenshotValue[]
   readonly visibility: 'PRIVATE' | 'PUBLIC'
   readonly categoryUuid: string
 }
@@ -283,6 +322,65 @@ export class TemplateAppKindMissingError extends Error {
 }
 
 /**
+ * Upload the author's selected images once the platform app exists (Drive
+ * anchors media to that app). Existing references survive when no replacement
+ * file was chosen; selecting screenshots replaces the persisted set.
+ */
+async function uploadSelectedMedia(
+  ports: TemplatePublishPorts,
+  appId: string,
+  media: TemplateMediaDraft | undefined,
+  values: TemplateAppValues,
+  onStage: ((stage: TemplatePublishStage) => void) | undefined,
+): Promise<Pick<TemplateAppValues, 'iconMediaRef' | 'coverMediaRef' | 'screenshots'>> {
+  const screenshots = media?.screenshots
+  const hasDraft = media?.icon !== undefined || media?.cover !== undefined || screenshots !== undefined
+  const total = (media?.icon === undefined ? 0 : 1)
+    + (media?.cover === undefined ? 0 : 1)
+    + (screenshots?.length ?? 0)
+  if (!hasDraft) {
+    return {
+      ...(values.iconMediaRef === undefined ? {} : { iconMediaRef: values.iconMediaRef }),
+      ...(values.coverMediaRef === undefined ? {} : { coverMediaRef: values.coverMediaRef }),
+      screenshots: values.screenshots,
+    }
+  }
+  if (total === 0) {
+    return {
+      ...(values.iconMediaRef === undefined ? {} : { iconMediaRef: values.iconMediaRef }),
+      ...(values.coverMediaRef === undefined ? {} : { coverMediaRef: values.coverMediaRef }),
+      screenshots: [],
+    }
+  }
+  let completed = 0
+  const report = (): void => {
+    onStage?.({ kind: 'uploadingMedia', completed, total })
+  }
+  report()
+  const upload = async (file: File): Promise<string> => {
+    const mediaRef = await ports.uploadMedia({ file, appId })
+    completed += 1
+    report()
+    return mediaRef
+  }
+  const iconMediaRef = media?.icon === undefined
+    ? values.iconMediaRef
+    : await upload(media.icon)
+  const coverMediaRef = media?.cover === undefined
+    ? values.coverMediaRef
+    : await upload(media.cover)
+  const uploadedScreenshots: TemplateScreenshotValue[] = []
+  for (const [index, file] of (screenshots ?? []).entries()) {
+    uploadedScreenshots.push({ mediaRef: await upload(file), sortOrder: index })
+  }
+  return {
+    ...(iconMediaRef === undefined ? {} : { iconMediaRef }),
+    ...(coverMediaRef === undefined ? {} : { coverMediaRef }),
+    screenshots: screenshots === undefined ? values.screenshots : uploadedScreenshots,
+  }
+}
+
+/**
  * Publish one planned app as a template.
  * @param ports - platform app/template/upload/manifest side effects.
  * @param request - the plan, the (possibly edited) values, and settings.
@@ -294,7 +392,7 @@ export async function publishTemplateApp(
   ports: TemplatePublishPorts,
   request: TemplatePublishRequest,
 ): Promise<TemplatePublishOutcome> {
-  const { plan, values, settings, onStage } = request
+  const { plan, values, settings, media, onStage } = request
   const warnings: string[] = []
   let platformApp = plan.platformApp
   let createdApp = false
@@ -356,6 +454,9 @@ export async function publishTemplateApp(
   // not duplicate it as an English warning in the result ledger.
   if (hasManifest && !linkedApp) warnings.push('writing the app linkage to agent.app.config.json failed')
 
+  const uploadedMedia = await uploadSelectedMedia(ports, platformAppId, media, values, onStage)
+  const effectiveValues: TemplateAppValues = { ...values, ...uploadedMedia }
+
   onStage?.({ kind: 'packing', read: 0, total: 0 })
   const archive = await ports.packApp(plan.candidate.directory, (read, total) => {
     onStage?.({ kind: 'packing', read, total })
@@ -364,7 +465,7 @@ export async function publishTemplateApp(
   // stage makes the transition from local compression to network upload
   // visible before the first upload byte moves.
   onStage?.({ kind: 'compressed', files: archive.fileCount, bytes: archive.archive.size })
-  const fileName = `${values.templateKey}-${values.version}.zip`
+  const fileName = `${effectiveValues.templateKey}-${effectiveValues.version}.zip`
   onStage?.({ kind: 'uploading', percent: 0 })
   const uploaded = await ports.uploadArchive({
     appId: platformAppId,
@@ -376,8 +477,8 @@ export async function publishTemplateApp(
 
   onStage?.({ kind: 'saving' })
   const versionInput: CreateTemplateVersionInput = {
-    version: values.version,
-    changelog: values.changelog,
+    version: effectiveValues.version,
+    changelog: effectiveValues.changelog,
     artifactUuid: uploaded.artifactId,
     checksumSha256: archive.checksumSha256,
     packageSizeBytes: archive.totalBytes,
@@ -387,19 +488,23 @@ export async function publishTemplateApp(
   if (template === undefined) {
     // A concurrent run may have created the listing after the plan was built.
     const fresh = await ports.listTemplates()
-    template = fresh.find(entry => entry.templateKey === values.templateKey)
+    template = fresh.find(entry => entry.templateKey === effectiveValues.templateKey)
   }
   let createdTemplate = false
   if (template === undefined) {
     template = await ports.createTemplate({
       appUuid: platformAppId,
       categoryUuid: settings.categoryUuid,
-      templateKey: values.templateKey,
-      displayName: values.displayName,
-      summary: values.summary,
+      templateKey: effectiveValues.templateKey,
+      displayName: effectiveValues.displayName,
+      summary: effectiveValues.summary,
+      description: effectiveValues.description,
+      ...(effectiveValues.iconMediaRef === undefined ? {} : { iconMediaRef: effectiveValues.iconMediaRef }),
+      ...(effectiveValues.coverMediaRef === undefined ? {} : { coverMediaRef: effectiveValues.coverMediaRef }),
+      screenshots: effectiveValues.screenshots,
       visibility: settings.visibility,
-      version: values.version,
-      changelog: values.changelog,
+      version: effectiveValues.version,
+      changelog: effectiveValues.changelog,
       artifactUuid: uploaded.artifactId,
       checksumSha256: archive.checksumSha256,
       packageSizeBytes: archive.totalBytes,
@@ -409,8 +514,12 @@ export async function publishTemplateApp(
   } else {
     try {
       await ports.updateTemplate(template.id, {
-        displayName: values.displayName,
-        summary: values.summary,
+        displayName: effectiveValues.displayName,
+        summary: effectiveValues.summary,
+        description: effectiveValues.description,
+        ...(effectiveValues.iconMediaRef === undefined ? {} : { iconMediaRef: effectiveValues.iconMediaRef }),
+        ...(effectiveValues.coverMediaRef === undefined ? {} : { coverMediaRef: effectiveValues.coverMediaRef }),
+        screenshots: effectiveValues.screenshots,
         visibility: settings.visibility,
         categoryUuid: settings.categoryUuid,
       })
@@ -434,8 +543,8 @@ export async function publishTemplateApp(
     ...baseLink,
     templateId: template.id,
     templateKey: template.templateKey,
-    templateName: values.displayName,
-    templateVersion: values.version,
+    templateName: effectiveValues.displayName,
+    templateVersion: effectiveValues.version,
   }).catch(() => false)
   if (hasManifest && !linkedTemplate) {
     warnings.push('writing the template identity to agent.app.config.json failed')
@@ -446,8 +555,8 @@ export async function publishTemplateApp(
     platformAppId,
     templateId: template.id,
     templateKey: template.templateKey,
-    displayName: values.displayName,
-    version: values.version,
+    displayName: effectiveValues.displayName,
+    version: effectiveValues.version,
     createdApp,
     createdTemplate,
     submitted,

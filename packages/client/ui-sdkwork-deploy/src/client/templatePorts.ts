@@ -9,7 +9,10 @@
  */
 import type { AppResponse, SdkworkDeployAppClient } from '@sdkwork/deployments-app-sdk'
 import type { SdkworkDriveAppClient } from '@sdkwork/drive-app-sdk'
-import { createDeployAppOperationsService } from '@sdkwork/deployments-pc-console-publishing'
+import {
+  createDeployAppOperationsService,
+  createDeployAppPublishingService,
+} from '@sdkwork/deployments-pc-console-publishing'
 import { createPlatformAppRecorder } from './templatePlatformApp.ts'
 import type { DeployHost } from './deployHost.ts'
 import { packTemplateApp } from './hostArchive.ts'
@@ -65,10 +68,19 @@ export interface TemplateClientPair {
 export function createTemplatePublishPorts(pair: TemplateClientPair, host: DeployHost): TemplatePublishPorts {
   const platformApp = createPlatformAppRecorder(pair.deployClient, pair.driveClient)
   const operations = createDeployAppOperationsService(pair)
+  const publishing = createDeployAppPublishingService(pair)
   return {
     listPlatformApps: () => listOwnedPlatformApps(pair.deployClient),
     createPlatformApp: input => platformApp.create(input),
     createPlatformTarget: (appId, cardId) => platformApp.createTarget(appId, cardId),
+    uploadMedia: async ({ file, appId }) => {
+      const ref = await publishing.uploadMedia({
+        file,
+        fileName: file.name,
+        contentType: file.type,
+      }, appId)
+      return `drive://spaces/${ref.driveSpaceId}/nodes/${ref.driveNodeId}`
+    },
     listTemplates: () => listOwnedTemplates(pair.deployClient),
     createTemplate: input => createTemplateListing(pair.deployClient, input),
     updateTemplate: (templateId, input) => updateTemplateListing(pair.deployClient, templateId, input),
@@ -230,6 +242,11 @@ function toOwnedTemplate(row: {
   readonly appUuid: string
   readonly templateKey: string
   readonly displayName: string
+  readonly summary?: string
+  readonly description?: string
+  readonly iconMediaRef?: string
+  readonly coverMediaRef?: string
+  readonly screenshots?: readonly { readonly mediaRef: string; readonly caption?: string; readonly sortOrder?: number }[]
   readonly status: string
   readonly latestVersionUuid?: string
 }): OwnedTemplate {
@@ -238,6 +255,19 @@ function toOwnedTemplate(row: {
     appUuid: row.appUuid,
     templateKey: row.templateKey,
     displayName: row.displayName,
+    ...(row.summary === undefined ? {} : { summary: row.summary }),
+    ...(row.description === undefined ? {} : { description: row.description }),
+    ...(row.iconMediaRef === undefined ? {} : { iconMediaRef: row.iconMediaRef }),
+    ...(row.coverMediaRef === undefined ? {} : { coverMediaRef: row.coverMediaRef }),
+    ...(row.screenshots === undefined
+      ? {}
+      : {
+        screenshots: row.screenshots.map((screenshot, index) => ({
+          mediaRef: screenshot.mediaRef,
+          ...(screenshot.caption === undefined ? {} : { caption: screenshot.caption }),
+          sortOrder: screenshot.sortOrder ?? index,
+        })),
+      }),
     status: row.status,
     ...(row.latestVersionUuid === undefined ? {} : { latestVersionUuid: row.latestVersionUuid }),
   }
@@ -255,6 +285,12 @@ async function createTemplateListing(
     templateKey: input.templateKey.trim(),
     displayName: input.displayName.trim(),
     summary: input.summary.trim(),
+    description: input.description.trim(),
+    ...(input.iconMediaRef === undefined ? {} : { iconMediaRef: input.iconMediaRef }),
+    ...(input.coverMediaRef === undefined ? {} : { coverMediaRef: input.coverMediaRef }),
+    ...(input.screenshots.length === 0
+      ? {}
+      : { screenshots: input.screenshots.map(screenshot => ({ ...screenshot })) }),
     visibility: input.visibility,
     initialVersion: versionBody(input),
   }, { idempotencyKey: newIdempotencyKey() })
@@ -270,6 +306,10 @@ async function updateTemplateListing(
   const updated = await deployClient.template.appTemplates.update(templateId, {
     displayName: input.displayName.trim(),
     summary: input.summary.trim(),
+    description: input.description.trim(),
+    ...(input.iconMediaRef === undefined ? {} : { iconMediaRef: input.iconMediaRef }),
+    ...(input.coverMediaRef === undefined ? {} : { coverMediaRef: input.coverMediaRef }),
+    screenshots: input.screenshots.map(screenshot => ({ ...screenshot })),
     visibility: input.visibility,
     categoryUuid: input.categoryUuid,
   }, { idempotencyKey: newIdempotencyKey() })

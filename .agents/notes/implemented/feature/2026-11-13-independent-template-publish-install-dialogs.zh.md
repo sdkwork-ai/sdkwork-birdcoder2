@@ -12,7 +12,7 @@ Status: implemented
 
 发布与安装成为两个弹窗、两个流程和两个可选服务方法。
 
-- `deployPublish.openPublishTemplate({ defaultDirectory })` 挂载 `PublishTemplateFlow` → `TemplatePublishDialog`。弹窗持有应用/自定义目录扫描、平台应用与模板去重、两步单应用向导，以及页内展示结果的单次发布运行；不导入任何安装模块。
+- `deployPublish.openPublishTemplate({ defaultDirectory })` 挂载 `PublishTemplateFlow` → `TemplatePublishDialog`。弹窗持有应用/自定义目录扫描、平台应用与模板去重、两步单应用向导、商店素材上传（Logo、封面、示例页面），以及页内展示结果的单次发布运行；不导入任何安装模块。
 - `deployPublish.openInstallTemplate({ defaultDirectory })` 挂载 `InstallTemplateFlow` → `TemplateInstallDialog` → `TemplateInstallPanel`。弹窗只负责登录/外壳接线；面板持有我的模板/市场目录、目标选择、安装运行与逐行安装反馈；不导入任何发布模块。
 - 行菜单只在对应服务方法存在时展示对应动作（`openPublishTemplate` → 发布为模板，`openInstallTemplate` → 从模板安装），组合可以只提供其中一个。
 - 发布结果视图不再提供「去安装」切换。安装从自己的行菜单动作进入，而不是发布表面的一种模式。

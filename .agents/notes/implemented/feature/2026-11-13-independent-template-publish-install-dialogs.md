@@ -12,7 +12,7 @@ The first template-center implementation put publication and installation in one
 
 Publish and install are two dialogs, two flows, and two optional service methods.
 
-- `deployPublish.openPublishTemplate({ defaultDirectory })` mounts `PublishTemplateFlow` → `TemplatePublishDialog`. The dialog owns the app/custom directory scan, platform-app and template dedupe, the two-stage single-app wizard, and its one publish run with the result shown inline. It imports no install module.
+- `deployPublish.openPublishTemplate({ defaultDirectory })` mounts `PublishTemplateFlow` → `TemplatePublishDialog`. The dialog owns the app/custom directory scan, platform-app and template dedupe, the two-stage single-app wizard, the store-asset uploads (logo, cover, sample pages) and its one publish run with the result shown inline. It imports no install module.
 - `deployPublish.openInstallTemplate({ defaultDirectory })` mounts `InstallTemplateFlow` → `TemplateInstallDialog` → `TemplateInstallPanel`. The dialog owns only its sign-in/frame wiring; the panel owns the template/market catalog, target selection, install run, and per-row install feedback. It imports no publish module.
 - The row menu advertises each action only when its own service method exists (`openPublishTemplate` for 发布为模板, `openInstallTemplate` for 从模板安装), so a composition can provide one without the other.
 - The publish result view no longer offers a "go install" switch. Installation is reached from its own row action, not as a mode of the publish surface.
