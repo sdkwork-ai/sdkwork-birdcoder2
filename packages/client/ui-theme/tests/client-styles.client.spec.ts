@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-/** Dynamic ui-theme entry owns the global styles in dependency order. */
+/** Theme plugin owns DPR presentation; compiled module resources own CSS installation. */
 import { Context } from '@deepseek-ai/cordis'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { installThemeStyles } from '../src/client/styles.ts'
@@ -18,7 +18,6 @@ beforeEach(() => {
 afterEach(async () => {
   for (const ctx of contexts) await ctx.fiber.dispose()
   contexts.clear()
-  document.head.querySelectorAll(`style[data-plugin="${PLUGIN_ID}"]`).forEach((node) => { node.remove() })
   if (previousWidth === '') document.documentElement.style.removeProperty(HAIRLINE_WIDTH)
   else document.documentElement.style.setProperty(HAIRLINE_WIDTH, previousWidth, previousPriority)
   vi.restoreAllMocks()
@@ -34,9 +33,8 @@ async function mountStyles() {
 }
 
 describe('ui-theme client styles', () => {
-  it('mounts every global sheet in dependency order and removes them on dispose', async () => {
+  it('leaves stylesheet installation to module resources and restores DPR on plugin disposal', async () => {
     const fiber = await mountStyles()
-
     const styles = [...document.head.querySelectorAll<HTMLStyleElement>(`style[data-plugin="${PLUGIN_ID}"]`)]
     expect(styles.map(style => style.dataset.pluginCss)).toEqual([
       `${PLUGIN_ID}/base.css`,
@@ -50,7 +48,6 @@ describe('ui-theme client styles', () => {
       `${PLUGIN_ID}/shiki.css`,
     ])
     await fiber.dispose()
-    expect(document.head.querySelectorAll(`style[data-plugin="${PLUGIN_ID}"]`)).toHaveLength(0)
     expect(document.documentElement.style.getPropertyValue(HAIRLINE_WIDTH)).toBe(previousWidth)
   })
 
@@ -61,7 +58,7 @@ describe('ui-theme client styles', () => {
     expect(document.documentElement.style.getPropertyValue(HAIRLINE_WIDTH)).toBe('0.5px')
   })
 
-  it('mounts and releases styles without publishing a DPR width for a detached document', async () => {
+  it('acquires no styles or DPR presentation for a detached document', async () => {
     const detached = document.implementation.createHTMLDocument('')
     vi.stubGlobal('document', detached)
     try {
@@ -70,7 +67,6 @@ describe('ui-theme client styles', () => {
       expect(detached.head.querySelectorAll(`style[data-plugin="${PLUGIN_ID}"]`)).toHaveLength(9)
       expect(detached.documentElement.style.getPropertyValue(HAIRLINE_WIDTH)).toBe('')
       await fiber.dispose()
-      expect(detached.head.querySelectorAll(`style[data-plugin="${PLUGIN_ID}"]`)).toHaveLength(0)
     } finally {
       vi.unstubAllGlobals()
     }
@@ -85,7 +81,6 @@ describe('ui-theme client styles', () => {
     } finally {
       vi.unstubAllGlobals()
     }
-    expect(document.head.querySelectorAll(`style[data-plugin="${PLUGIN_ID}"]`)).toHaveLength(0)
     expect(document.documentElement.style.getPropertyValue(HAIRLINE_WIDTH)).toBe(previousWidth)
   })
 

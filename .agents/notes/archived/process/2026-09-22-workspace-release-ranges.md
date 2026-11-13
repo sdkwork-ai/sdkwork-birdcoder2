@@ -15,7 +15,7 @@ Every workspace consumer uses `workspace:*` for DSH targets and `workspace:~` fo
 
 Packing substitutes the target package's current version: `workspace:~` becomes `~4.0.3` for Cordis at `4.0.3` and `~0.1.2` for Node Addon System at `0.1.2`. DSH references remain exact. Native family members still share one release version, while an installed entry may resolve a later platform patch.
 
-This range policy refines npm release sequences and [published dependency faces](2026-08-26-published-dependency-faces.md). Their independent release families and dependency-section classification remain unchanged.
+This range policy refines [npm release sequences](2026-08-10-npm-release-sequences.md) and [published dependency faces](2026-08-26-published-dependency-faces.md). Their independent release families and dependency-section classification remain unchanged.
 
 ## Alternatives considered
 

@@ -1,3 +1,4 @@
+/** Theme CSS is compiled into module resources; DPR presentation follows the plugin lifetime. */
 import type { Context } from '@deepseek-ai/cordis'
 import base from '../styles/base.css?inline'
 import cornerShape from '../styles/corner-shape.css?inline'
@@ -25,7 +26,7 @@ const STYLES = [
 ] as const
 
 /**
- * Mount global theme sheets; window-backed documents also publish the DPR-aware stroke width.
+ * Publish the current document's DPR-aware stroke width for the theme plugin lifetime.
  * @param ctx - Owning plugin context.
  */
 export function installThemeStyles(ctx: Context): void {
@@ -59,7 +60,7 @@ export function installThemeStyles(ctx: Context): void {
       tag.dataset.plugin = PLUGIN_ID
       tag.dataset.pluginCss = `${PLUGIN_ID}/${name}`
       tag.textContent = css
-      document.head.appendChild(tag)
+      document.head.append(tag)
       return () => { tag.remove() }
     }, `ui-theme: ${name} stylesheet`)
   }

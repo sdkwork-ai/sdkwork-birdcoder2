@@ -34,30 +34,34 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
       </button>
     </div>
     <div
-      data-slot="sidebar.actions"
-      style="display: contents;"
+      class="newSessionRow"
     >
-      <button
-        aria-label="New session"
-        class="newSession"
-        type="button"
+      <div
+        data-slot="sidebar.session.action"
+        style="display: contents;"
       >
-        <span
-          class="newSessionLabelMask"
+        <button
+          aria-label="New session"
+          class="newSession"
+          type="button"
         >
           <span
-            class="newSessionContent"
+            class="newSessionLabelMask"
           >
-            <svg
-              aria-hidden="true"
-              data-content="6e5e38f3"
-              data-icon="dsw-icon-new-chat-outline-regular"
-              height="16"
-              width="16"
-            />
+            <span
+              class="newSessionContent"
+            >
+              <svg
+                aria-hidden="true"
+                data-content="6e5e38f3"
+                data-icon="dsw-icon-new-chat-outline-regular"
+                height="16"
+                width="16"
+              />
+            </span>
           </span>
-        </span>
-      </button>
+        </button>
+      </div>
     </div>
     <div
       class="scrollRegion"
@@ -136,10 +140,12 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
                 class="copyVersion"
                 data-copy-version="true"
               >
-                <img
-                  alt=""
+                <svg
                   aria-hidden="true"
-                  src="/favicon.png"
+                  data-content="965fe321"
+                  fill="none"
+                  height="17.6580310880829"
+                  viewBox="0 0 23.16 17.04"
                   width="24"
                 />
               </span>
@@ -159,7 +165,7 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
                 <span
                   class="localBuildTitle"
                 >
-                  BirdCoder
+                  DSH Local Build
                 </span>
                 <span
                   class="buildVersion"
@@ -188,35 +194,39 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
       </button>
     </div>
     <div
-      data-slot="sidebar.actions"
-      style="display: contents;"
+      class="newSessionRow"
     >
-      <button
-        aria-label="New session"
-        class="newSession"
-        type="button"
+      <div
+        data-slot="sidebar.session.action"
+        style="display: contents;"
       >
-        <span
-          class="newSessionLabelMask"
+        <button
+          aria-label="New session"
+          class="newSession"
+          type="button"
         >
           <span
-            class="newSessionContent"
+            class="newSessionLabelMask"
           >
-            <svg
-              aria-hidden="true"
-              data-content="532cf99a"
-              data-icon="dsw-icon-new-chat-outline-medium"
-              height="14"
-              width="14"
-            />
             <span
-              class="newSessionLabel wide"
+              class="newSessionContent"
             >
-              New Session
+              <svg
+                aria-hidden="true"
+                data-content="532cf99a"
+                data-icon="dsw-icon-new-chat-outline-medium"
+                height="14"
+                width="14"
+              />
+              <span
+                class="newSessionLabel wide"
+              >
+                New Session
+              </span>
             </span>
           </span>
-        </span>
-      </button>
+        </button>
+      </div>
     </div>
     <div
       class="scrollRegion"
@@ -290,10 +300,12 @@ exports[`sidebar shell snapshots > renders the collapsed rail after the crossfad
             data-slot="sidebar.brand.mark"
             style="display: contents;"
           >
-            <img
-              alt=""
+            <svg
               aria-hidden="true"
-              src="/favicon.png"
+              data-content="965fe321"
+              fill="none"
+              height="17.6580310880829"
+              viewBox="0 0 23.16 17.04"
               width="24"
             />
           </div>
@@ -313,30 +325,34 @@ exports[`sidebar shell snapshots > renders the collapsed rail after the crossfad
       </button>
     </div>
     <div
-      data-slot="sidebar.actions"
-      style="display: contents;"
+      class="newSessionRow"
     >
-      <button
-        aria-label="New session"
-        class="newSession"
-        type="button"
+      <div
+        data-slot="sidebar.session.action"
+        style="display: contents;"
       >
-        <span
-          class="newSessionLabelMask"
+        <button
+          aria-label="New session"
+          class="newSession"
+          type="button"
         >
           <span
-            class="newSessionContent"
+            class="newSessionLabelMask"
           >
-            <svg
-              aria-hidden="true"
-              data-content="6e5e38f3"
-              data-icon="dsw-icon-new-chat-outline-regular"
-              height="18"
-              width="18"
-            />
+            <span
+              class="newSessionContent"
+            >
+              <svg
+                aria-hidden="true"
+                data-content="6e5e38f3"
+                data-icon="dsw-icon-new-chat-outline-regular"
+                height="18"
+                width="18"
+              />
+            </span>
           </span>
-        </span>
-      </button>
+        </button>
+      </div>
     </div>
     <div
       class="scrollRegion"
@@ -415,10 +431,12 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
                 class="copyVersion"
                 data-copy-version="true"
               >
-                <img
-                  alt=""
+                <svg
                   aria-hidden="true"
-                  src="/favicon.png"
+                  data-content="965fe321"
+                  fill="none"
+                  height="17.6580310880829"
+                  viewBox="0 0 23.16 17.04"
                   width="24"
                 />
               </span>
@@ -438,7 +456,7 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
                 <span
                   class="localBuildTitle"
                 >
-                  BirdCoder
+                  DSH Local Build
                 </span>
                 <span
                   class="buildVersion"
@@ -467,35 +485,39 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
       </button>
     </div>
     <div
-      data-slot="sidebar.actions"
-      style="display: contents;"
+      class="newSessionRow"
     >
-      <button
-        aria-label="New session"
-        class="newSession"
-        type="button"
+      <div
+        data-slot="sidebar.session.action"
+        style="display: contents;"
       >
-        <span
-          class="newSessionLabelMask"
+        <button
+          aria-label="New session"
+          class="newSession"
+          type="button"
         >
           <span
-            class="newSessionContent"
+            class="newSessionLabelMask"
           >
-            <svg
-              aria-hidden="true"
-              data-content="532cf99a"
-              data-icon="dsw-icon-new-chat-outline-medium"
-              height="14"
-              width="14"
-            />
             <span
-              class="newSessionLabel wide"
+              class="newSessionContent"
             >
-              New Session
+              <svg
+                aria-hidden="true"
+                data-content="532cf99a"
+                data-icon="dsw-icon-new-chat-outline-medium"
+                height="14"
+                width="14"
+              />
+              <span
+                class="newSessionLabel wide"
+              >
+                New Session
+              </span>
             </span>
           </span>
-        </span>
-      </button>
+        </button>
+      </div>
     </div>
     <div
       class="scrollRegion"
@@ -575,10 +597,12 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
                 class="copyVersion"
                 data-copy-version="true"
               >
-                <img
-                  alt=""
+                <svg
                   aria-hidden="true"
-                  src="/favicon.png"
+                  data-content="965fe321"
+                  fill="none"
+                  height="17.6580310880829"
+                  viewBox="0 0 23.16 17.04"
                   width="24"
                 />
               </span>
@@ -598,7 +622,7 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
                 <span
                   class="localBuildTitle"
                 >
-                  BirdCoder
+                  DSH 本地构建
                 </span>
                 <span
                   class="buildVersion"
@@ -627,35 +651,39 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
       </button>
     </div>
     <div
-      data-slot="sidebar.actions"
-      style="display: contents;"
+      class="newSessionRow"
     >
-      <button
-        aria-label="新建会话"
-        class="newSession"
-        type="button"
+      <div
+        data-slot="sidebar.session.action"
+        style="display: contents;"
       >
-        <span
-          class="newSessionLabelMask"
+        <button
+          aria-label="新建会话"
+          class="newSession"
+          type="button"
         >
           <span
-            class="newSessionContent"
+            class="newSessionLabelMask"
           >
-            <svg
-              aria-hidden="true"
-              data-content="532cf99a"
-              data-icon="dsw-icon-new-chat-outline-medium"
-              height="14"
-              width="14"
-            />
             <span
-              class="newSessionLabel wide"
+              class="newSessionContent"
             >
-              新会话
+              <svg
+                aria-hidden="true"
+                data-content="532cf99a"
+                data-icon="dsw-icon-new-chat-outline-medium"
+                height="14"
+                width="14"
+              />
+              <span
+                class="newSessionLabel wide"
+              >
+                新会话
+              </span>
             </span>
           </span>
-        </span>
-      </button>
+        </button>
+      </div>
     </div>
     <div
       class="scrollRegion"

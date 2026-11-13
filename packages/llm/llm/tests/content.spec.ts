@@ -1,10 +1,11 @@
 // WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
 // so the literal is the value under assertion rather than a binding this build resolves
 import { describe, expect, it } from 'vitest'
-import { AttachmentId, ImageVariantId } from '@deepseek-ai/dsh-attachment'
+import type { AttachmentId, ImageVariantId } from '@deepseek-ai/dsh-attachment/types'
 import type { AttachmentStore, ImageMediaType } from '@deepseek-ai/dsh-attachment'
+import { brandString } from '@deepseek-ai/dsh-brand'
 import {
-  ToolCallId,
+  type ToolCallId,
   contentHasFile,
   createDeveloperMessage,
   createToolResultMessage,
@@ -29,7 +30,7 @@ function image(bytes: number, offloaded?: true): Extract<ContentBlock, { type: '
   return {
     type: 'image',
     attachment: {
-      attachmentId: AttachmentId(`sha256:${'a'.repeat(64)}`),
+      attachmentId: brandString<AttachmentId>(`sha256:${'a'.repeat(64)}`),
       mediaType: 'image/png',
       bytes,
       width: 1,
@@ -45,12 +46,12 @@ describe('requiredImageOffload traversal', () => {
     const messages = [
       createUserMessage({ content: [{ type: 'text', text: 'before' }, image(1)], source }),
       createToolResultMessage({
-        callId: ToolCallId('shot'),
+        callId: brandString<ToolCallId>('shot'),
         content: [{ type: 'text', text: 'x' }, image(2)],
         isError: false,
       }),
       createToolResultMessage({
-        callId: ToolCallId('second'),
+        callId: brandString<ToolCallId>('second'),
         content: [image(4)],
         isError: false,
       }),
@@ -85,7 +86,7 @@ describe('projectOffloadedImages', () => {
   it('replaces marked user and tool occurrences with route placeholders', () => {
     const messages = [
       createToolResultMessage({
-        callId: ToolCallId('shot'),
+        callId: brandString<ToolCallId>('shot'),
         content: [image(3, true)],
         isError: false,
       }),
@@ -99,7 +100,7 @@ describe('projectOffloadedImages', () => {
 
   it('keeps unchanged tool content while replacing a later image', () => {
     const unchanged = createToolResultMessage({
-      callId: ToolCallId('text-only'),
+      callId: brandString<ToolCallId>('text-only'),
       content: [{ type: 'text', text: 'kept' }],
       isError: false,
     })
@@ -142,7 +143,7 @@ describe('requiredImageOffload', () => {
 describe('model-facing image access', () => {
   it('describes the request preview, immutable normalized path, and source uncertainty', () => {
     const attachment = {
-      attachmentId: AttachmentId(`sha256:${'b'.repeat(64)}`),
+      attachmentId: brandString<AttachmentId>(`sha256:${'b'.repeat(64)}`),
       mediaType: 'image/png' as const,
       bytes: 4_000,
       width: 2048,
@@ -151,7 +152,7 @@ describe('model-facing image access', () => {
     }
     const access = { readonlyPath: '/tmp/.dsh/attachments/v1/objects/bb/object' }
     const version = {
-      variantId: ImageVariantId(`sha256:${'c'.repeat(64)}`),
+      variantId: brandString<ImageVariantId>(`sha256:${'c'.repeat(64)}`),
       attachment,
       data: Uint8Array.of(1),
       mediaType: 'image/png' as const,
@@ -197,7 +198,7 @@ describe('model-facing image access', () => {
 
   it('names each occurrence from its own reference when one prepared version is shared', () => {
     const attachment = {
-      attachmentId: AttachmentId(`sha256:${'b'.repeat(64)}`),
+      attachmentId: brandString<AttachmentId>(`sha256:${'b'.repeat(64)}`),
       mediaType: 'image/png' as const,
       bytes: 4_000,
       width: 8,
@@ -205,7 +206,7 @@ describe('model-facing image access', () => {
       name: 'second.png',
     }
     const version = {
-      variantId: ImageVariantId(`sha256:${'c'.repeat(64)}`),
+      variantId: brandString<ImageVariantId>(`sha256:${'c'.repeat(64)}`),
       attachment,
       data: Uint8Array.of(1),
       mediaType: 'image/png' as const,
@@ -222,7 +223,7 @@ describe('model-facing image access', () => {
 
   it('keeps a useful omission identity with and without a local path', () => {
     const ref = {
-      attachmentId: AttachmentId(`sha256:${'d'.repeat(64)}`),
+      attachmentId: brandString<AttachmentId>(`sha256:${'d'.repeat(64)}`),
       mediaType: 'image/jpeg' as const,
       bytes: 10,
       width: 10,
@@ -245,7 +246,7 @@ describe('model-facing image access', () => {
     ['image/gif', '.gif'],
   ] as const)('names the writable extension for %s', (mediaType, suffix) => {
     const ref = {
-      attachmentId: AttachmentId(`sha256:${'e'.repeat(64)}`),
+      attachmentId: brandString<AttachmentId>(`sha256:${'e'.repeat(64)}`),
       mediaType,
       bytes: 1,
       width: 1,
@@ -257,7 +258,7 @@ describe('model-facing image access', () => {
 
   it('rejects a media type that escaped the closed union at runtime', () => {
     const ref = {
-      attachmentId: AttachmentId(`sha256:${'e'.repeat(64)}`),
+      attachmentId: brandString<AttachmentId>(`sha256:${'e'.repeat(64)}`),
       mediaType: 'image/tiff' as unknown as ImageMediaType,
       bytes: 1,
       width: 1,
@@ -273,7 +274,7 @@ describe('projectImagesForTextModel', () => {
     const messages = [createUserMessage({ content: [{ type: 'text', text: 'plain' }], source })]
     expect(projectImagesForTextModel(messages)).toBe(messages)
     const results = [createToolResultMessage({
-      callId: ToolCallId('plain-result'),
+      callId: brandString<ToolCallId>('plain-result'),
       content: messages[0]!.content,
       isError: false,
     })]
@@ -283,7 +284,7 @@ describe('projectImagesForTextModel', () => {
   it('replaces direct images while retaining unaffected messages', () => {
     const plain = createUserMessage({ content: [{ type: 'text', text: 'plain' }], source })
     const unchangedTool = createToolResultMessage({
-      callId: ToolCallId('text-only'),
+      callId: brandString<ToolCallId>('text-only'),
       content: [{ type: 'text', text: 'unchanged' }],
       isError: false,
     })
@@ -292,7 +293,7 @@ describe('projectImagesForTextModel', () => {
       source,
     })
     const visualTool = createToolResultMessage({
-      callId: ToolCallId('nested-image'),
+      callId: brandString<ToolCallId>('nested-image'),
       content: [
         { type: 'text', text: 'before' },
         image(3),
@@ -321,7 +322,7 @@ describe('file projection', () => {
     return {
       type: 'file',
       attachment: {
-        attachmentId: AttachmentId(`sha256:${'ab'.repeat(32)}`),
+        attachmentId: brandString<AttachmentId>(`sha256:${'ab'.repeat(32)}`),
         name,
         bytes: 42,
       },
@@ -383,7 +384,7 @@ describe('file projection', () => {
         source,
       }),
       createToolResultMessage({
-        callId: ToolCallId('call-3'),
+        callId: brandString<ToolCallId>('call-3'),
         content: [fileBlock('nested.csv')],
         isError: false,
       }),

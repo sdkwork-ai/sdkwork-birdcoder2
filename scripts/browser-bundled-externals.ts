@@ -100,6 +100,7 @@ async function collectClientBundles(
     const client = configs.find(config => config.name === `${manifest.name}/client`)
     if (client === undefined) throw new Error(`browser notices: ${manifest.name} has no browser build config`)
     if (typeof client.inputOptions === 'function') throw new Error(`browser notices: ${manifest.name} needs resolved input options`)
+    if (typeof client.outputOptions === 'function') throw new Error(`browser notices: ${manifest.name} needs resolved output options`)
     const bundle = await Rolldown.rolldown({
       ...client.inputOptions,
       cwd: dir,

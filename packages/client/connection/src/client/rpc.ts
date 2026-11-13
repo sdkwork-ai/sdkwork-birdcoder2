@@ -1,7 +1,7 @@
 /** Browser caller for generic Connection unary RPC channels. */
 
+import { brandString } from '@deepseek-ai/dsh-brand'
 import {
-  RpcId,
   connectionTransportFailure,
   type ClientRequest,
   type RpcId as RpcIdType,
@@ -37,7 +37,7 @@ export function createWebConnectionRpc(doFetch?: RpcFetch, openStream?: RpcStrea
   return {
     async call(channel, endpoint, payload, signal) {
       assertTarget(channel, endpoint)
-      const rpcId = RpcId(randomUuid())
+      const rpcId = brandString<RpcIdType>(randomUuid())
       const message: ClientRequest = {
         type: 'client-request',
         rpcId,
@@ -150,7 +150,7 @@ function parseConnectionResponse(value: unknown): {
   if (!isRecord(result)) throw new TypeError('connection: invalid server-response result')
   if (result.ok === true) {
     return {
-      rpcId: RpcId(value.rpcId),
+      rpcId: brandString<RpcIdType>(value.rpcId),
       result: { ok: true, value: result.value },
     }
   }
@@ -162,7 +162,7 @@ function parseConnectionResponse(value: unknown): {
     throw new TypeError('connection: invalid server-response failure')
   }
   return {
-    rpcId: RpcId(value.rpcId),
+    rpcId: brandString<RpcIdType>(value.rpcId),
     result: {
       ok: false,
       error: { code: error.code, message: error.message, details: error.details },

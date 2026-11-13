@@ -6,7 +6,7 @@
 
 import { describe, expect, onTestFinished, vi } from 'vitest'
 import { RemoteStreamCarrierError, type ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
-import { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import { frames, openStream, type RemoteMock, type StreamScript } from '@deepseek-ai/dsh-remote-mock'
 import { createClientTest, type TestClient, webApp } from '@deepseek-ai/dsh-client-test-runtime/src/assembly/index.ts'
@@ -21,6 +21,7 @@ import {
 import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/client'
 import type { WorkspaceFollowFrame, WorkspaceId } from '../src/types.ts'
 import { FOLLOW, baseline, err, followGenerations, workspace, workspaceWorld } from './remote/workspace.client.ts'
+import { brandString } from '@deepseek-ai/dsh-brand'
 
 const SELF = '@deepseek-ai/dsh-api-workspace-controller'
 /** The plugin as the web bundle composes it: itself plus the Gateway client, the Connection, and the Typert registry. */
@@ -42,7 +43,7 @@ const rpc: ClientConnectionRpc = {
 }
 
 const wid = (id: string): WorkspaceId => id as WorkspaceId
-const sid = (id: string): SessionId => SessionId(id)
+const sid = (id: string): SessionId => brandString<SessionId>(id)
 
 /** Boot the plugin with `follow` answering its state stream. */
 async function pluginClient(mock: RemoteMock, start: () => Promise<TestClient>, follow: StreamScript): Promise<TestClient> {

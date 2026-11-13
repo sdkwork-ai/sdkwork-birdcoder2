@@ -24,7 +24,7 @@ const fileDrag = vi.hoisted(() => ({ dispose: vi.fn<() => Promise<void>>(), inst
 vi.mock('../src/file-drag.ts', () => ({ installDesktopFileDrag: () => { fileDrag.install(); return fileDrag.dispose } }))
 
 vi.mock('../src/web-document.ts', () => ({
-  authenticateWebHost: async () => 'test-cookie', serveWebDocument: vi.fn(), forwardWebRequest: vi.fn(),
+  serveWebDocument: vi.fn(), forwardWebRequest: vi.fn(),
   removeLegacyHostCookies: harness.removeLegacyHostCookies,
 }))
 vi.mock('../src/operation-report-job.ts', () => ({ runOperationReportJob: vi.fn(async () => ({ appended: false, timedOut: false, cancelled: false })) }))
@@ -158,14 +158,18 @@ const harness = await vi.hoisted(async () => {
     readonly inspectQuit = vi.fn(async () => ({ activeTasks: false, scheduledTasks: false }))
     injections: readonly unknown[] = []
     readonly bootInjections = vi.fn(async () => this.injections)
-    url = 'http://127.0.0.1:3080/?token=test'
+    url = 'http://127.0.0.1:3080/'
     fetch = vi.fn(async () => Response.json({ hasApiKey: true, writable: true, localePreference: null, themePreference: 'system' }))
     readonly ready = deferred()
     readonly exited = deferred()
     readonly stopping = deferred()
     readonly start = vi.fn(() => {
       hostStarted.resolve()
-      return this.ready.promise.then(() => ({ url: this.url, injections: this.injections }))
+      return this.ready.promise.then(() => ({
+        url: this.url,
+        injections: this.injections,
+        authenticationCookie: 'dsh-desktop-session=test-private',
+      }))
     })
     readonly stop = vi.fn(() => {
       this.stopping.resolve()
@@ -1536,7 +1540,7 @@ describe('desktop main startup', () => {
     await harness.preparing.promise
     harness.prepared.resolve()
     await harness.hostStarted.promise
-    harness.hosts[0]!.url = `${protocol}//127.0.0.1:3080/?token=test`
+    harness.hosts[0]!.url = `${protocol}//127.0.0.1:3080/`
     harness.hosts[0]!.ready.resolve()
     await Promise.resolve(invoke(DESKTOP_IPC.boot))
     // FORK DIVERGENCE: the fork's welcome backend also receives the packaged
@@ -1544,11 +1548,11 @@ describe('desktop main startup', () => {
     // desktop can reach a self-signed host while keeping TLS verification
     // otherwise. Upstream passes the URL and cookie only.
     const welcome = harness.connectWelcome.mock.calls[0]!
-    expect(welcome[0]).toBe(`${protocol}//127.0.0.1:3080/?token=test`)
-    expect(welcome[1]).toBe('test-cookie')
+    expect(welcome[0]).toBe(`${protocol}//127.0.0.1:3080/`)
+    expect(welcome[1]).toBe('dsh-desktop-session=test-private')
     expect(welcome[2]).toBeTypeOf('function')
     expect(welcome[3]).toBe(false)
-    expect(harness.removeLegacyHostCookies).toHaveBeenCalledWith(harness.hostCookies, `${protocol}//127.0.0.1:3080/?token=test`)
+    expect(harness.removeLegacyHostCookies).toHaveBeenCalledWith(harness.hostCookies, `${protocol}//127.0.0.1:3080/`)
     const handler = harness.socketHeaders.mock.calls[0]![1] as (
       details: { url: string; webContentsId: number; requestHeaders: Record<string, string> },
       callback: (result: unknown) => void,
@@ -1558,7 +1562,7 @@ describe('desktop main startup', () => {
     const details = { url: `${socketProtocol}//127.0.0.1:3080/api/remote.mux`, webContentsId: 42, requestHeaders: { Origin: 'dsh-app://app' } }
     handler(details, callback)
     expect(callback).toHaveBeenLastCalledWith({ requestHeaders: {
-      origin: `${protocol}//127.0.0.1:3080`, cookie: 'test-cookie', 'sec-fetch-site': 'same-origin',
+      origin: `${protocol}//127.0.0.1:3080`, cookie: 'dsh-desktop-session=test-private', 'sec-fetch-site': 'same-origin',
     } })
     handler({ ...details, requestHeaders: { Origin: 'https://other.example' } }, callback)
     expect(callback).toHaveBeenLastCalledWith({ cancel: true })
@@ -3180,7 +3184,7 @@ describe('desktop main startup', () => {
     await harness.dialogShown.promise
     preferences.resolve(Response.json({ hasApiKey: true, localePreference: null }))
     await startup
-    expect(harness.windows[0]!.urls).not.toContain('http://127.0.0.1:3080/?token=test')
+    expect(harness.windows[0]!.urls).not.toContain('http://127.0.0.1:3080/')
     const failureDialog = harness.dialog.showMessageBox.mock.calls[0]![0] as { detail: string }
     expect(failureDialog.detail).toContain('backend exited during startup preferences')
     expect(harness.windows[0]!.show).not.toHaveBeenCalled()

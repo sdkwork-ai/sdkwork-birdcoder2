@@ -2,144 +2,49 @@
 
 本文件只记录**当前版本**——`##` 标题就是本次发布打的 tag，不累积历史版本条目；往期条目随各自版本的提交保留在 git 历史里（`git log -p CHANGELOG.md`）。「上游变更」逐字摘自上游该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；上游尚未发布 Release notes 时，按该 tag 内的实际提交归纳并注明来源。「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
-## 0.2.2-rc.2（fork 发布 2026-11-12）
+## 0.2.2-rc.3（fork 发布 2026-11-13）
 
-本版本把 `deepseek-ai/deepseek-harness` 的 `0.2.2-rc.2` 完整合入 fork，并在合并后完成接口修复、版本统一与发布链路修复。版本线因此从上一发布 `birdcoder-v0.2.2-rc.1` 前移到 **0.2.2-rc.2**：449 个 dsh 家族清单共用这一个版本，tag `birdcoder-v0.2.2-rc.2` 与之同名（`container-release.yml` 在 `package.json` 与 tag 不一致时直接拒绝发布）。发布资产仍是六个平台（win-x64、win-arm64、mac-x64、mac-arm64、linux-x64、linux-arm64）桌面安装包、两套原生容器镜像与 Compose/Kubernetes 部署包，共 31 个附件。
+本版本把 `deepseek-ai/deepseek-harness` 的 `0.2.2-rc.3` 完整合入 fork。上游 `master` 停在 `39163dd30f7`（`Merge release/dsh-0.2.2-rc.3 to master`），相对上一合并基底 `e8f7b93a34`（tag `dsh-v0.2.2-rc.2`）新增 **448 个提交、3262 个文件变更**（+93416 / −34804，其中新增 517、修改 2652、删除 45、重命名 48）。合并保留真实双亲 merge commit，上游提交记录、commit message 与代码注释逐字保留；版本线前移到 **0.2.2-rc.3**，tag `birdcoder-v0.2.2-rc.3` 与之同名。
 
-### 上游变更（deepseek-harness 0.2.2-rc.2）
+### 上游变更（deepseek-harness 0.2.2-rc.3）
 
-以下逐字摘自上游 [v0.2.2-rc.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.2) 官方 Release notes 中文部分；英文版见该 Release 页面。
+以下逐字摘自上游 [v0.2.2-rc.3](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.3) 官方 Release notes 中文部分；英文版见该 Release 页面。
 
 #### 新增功能
 
-- Git Worktree 支持按分支、提交和文件类型审阅改动，并直接处理 GitHub 评审、同步已审阅进度和更新分支。 @LegGasai
-- SubAgent 支持具名与多层协作，AgentTeam 可按会话开启，共用成员与任务面板。 @Dudu-0223, @Yifffan
-- 桌面端支持在设置中切换正式版与开发版更新渠道。 @winewill
-
-#### 体验优化
-
-- 改善代码审阅时的评论、文件导航与窄屏布局，减少查看大型改动时的卡顿，并放宽大型仓库创建工作树的等待时间。 @LegGasai
-- 改善多层子代理的浏览与任务协调，优先展示任务描述，支持逐层展开和读取失败后重试。 @Dudu-0223
-- 优化左侧栏插件入口的收纳，不常用入口可移入“更多”，重新固定时保持原顺序。 @Yifffan
-- 简化个性化页面安装后的操作，移除“保留”按钮，统一使用撤销与恢复。 @ZiyaZhang
-- 改善自定义主题对通知、卡片、计划和任务等界面颜色的覆盖。 @turtle2099
-- 改善页面缩放、平移及长列表场景下的菜单定位，保持菜单与触发位置对齐；自定义浮层需适配新定位接口。 @Stevring, @LegGasai
-- 改善暗色模式下文件树浮层的显示，使用背景层次区分面板，避免白色投影。 @turtle2099
-- 改善在侧栏查找文件的体验，支持按名称或路径搜索，并可调整排除规则与隐藏文件显示。 @yudshj
-- 改善侧栏长列表的浏览与拖动体验，插件导航和会话列表共用滚动区域，工作区工具栏保持可见。 @Yifffan
-- 优化从会话打开工作目录的操作，统一“在应用中打开”菜单，并改善窄屏使用体验。 @Yifffan
-- 加快文件右键菜单的打开；关联应用查询较慢时，先提供默认应用入口。 @yudshj
-- 向上回看聊天时自动加载更早消息，优先保持阅读位置，并保留手动加载和重试入口。 @imccyu
-- 改善聊天过程的可查看性，可展开工作区指令、技能目录等信息，了解模型收到的上下文。 @turtle2099
-- 改善补丁编辑的回执，折叠状态下也可查看修改的文件，并在成功后直接打开。 @sjw1231
-- 优化会话首页的交互动画。 @ZiyaZhang
-- 改善会话恢复或压缩后的上下文提示，明确当前运行信息与旧信息的替换关系。 @kermanx
-- 改善聊天中代码差异的阅读，显示增删行颜色，并按文件语言高亮。 @mektpoy
-- 改善粘贴图片和文件的体验，未聚焦输入框时也可粘贴到最近使用的可用输入框或主对话。 @std4453
-- 改善暂停、恢复定时任务时的操作反馈，保持按钮焦点与显示稳定，避免重复操作。 @turtle2099
-- 优化目标栏的操作排列与按钮间距，统一为“编辑、清除、暂停或恢复”。 @turtle2099
-- 优化模型请求失败后的重试设置，可在模型设置中选择重试条件、次数和等待时间。 @turtle2099
-- 改善临时请求失败后的恢复操作，可直接点击“继续生成”，无需另写消息。 @LegGasai
-- 改善 API Key 的管理，已保存密钥以掩码显示，支持整体替换或清除，不显示完整旧密钥。 @Magolor
-- 优化多问题检索，单次网页搜索默认支持最多 10 个查询和 10 个来源。 @turtle2099
-- 改善 Agent 终端的可见性与接管体验，命令在侧栏终端运行，用户输入即可接管；允许读取的用户终端内容会进入模型与会话记录。 @LegGasai
-- 优化批量查询文件、任务和资源时的执行效率，更多只读工具可并行运行，结果仍按调用顺序返回。 @turtle2099
-- 改善桌面更新下载时的进度显示，可点击下载百分比或“检查更新”查看状态。 @winewill
+新增实验性「DeepSeek 会话导入」插件，支持将 DeepSeek App 或网页版的历史会话导入工作区，并继续对话。(@imccyu)
 
 #### 问题修复
 
-- 修复 PR 更新后审阅差异与提交行号不一致的问题，并改善大量评审讨论的统计。 @LegGasai
-- 修复只有 SSH 凭据时无法查看私有 Git 插件详情的问题。 @turtle2099
-- 修复可选插件加载失败导致整个 Web 页面无法启动的问题；必需插件失败仍会提示。 @imccyu
-- 修复已启用但未成功加载的插件容易被误认为正在运行的问题，明确显示“未运行”及原因。 @turtle1999
-- 修复 PTC 中重复等待子代理消息时，同一条消息反复触发唤醒的问题。 @Dudu-0223
-- 修复浏览特殊文件名或扩展名时，文件树视图崩溃的问题。 @LegGasai
-- 修复“未分组”会话中显示无效“新建会话”按钮的问题。 @turtle2099
-- 修复复制聊天公式时出现乱码的问题，同一条 Markdown 内容中的公式可复制为 TeX 源码。 @turtle2099
-- 修复查看 Perl 代码时，正则表达式导致后续内容高亮错误的问题。 @turtle2099
-- 修复聊天更新出错后，历史加载和新消息显示持续卡住的问题。 @Magolor
-- 改善重复创建会话分支时的标题编号，跳过已用编号，减少同名会话。 @turtle2099
-- 修复停止任务或关闭会话时，部分错误导致任务未中止或资源提前释放的问题。 @liukx0205
-- 修复发送消息或准备附件期间重试请求，导致同一消息被重复提交的问题。 @liukx0205
-- 修复中文目标栏混淆“待继续”与“已暂停”状态的问题。 @imccyu
-- 修复桌面端多次启动后，因鉴权信息累积而无法启动的问题。 @turtle2099
-- 修复 Windows 通过短路径启动命令行时，无法保存欢迎页确认的问题。 @winewill
-- 修复 macOS 窗口拖动与粘贴快捷键问题，以及 Windows 暗色模式启动白闪。 @yxy72, @winewill, @turtle2099
-- 改善 Windows 更新安装期间的反馈，显示安装状态窗口，减少重启过程中的无提示等待。 @winewill
-- 修复移动端 Safari 在展开屏幕或切换视口后，聊天文字被额外放大的问题，保留用户主动缩放。 @Saafo
-- 修复 Linux 存在长期后台进程时，会话加载与新建变慢的问题。 @turtle2099
-- 修复会话中移除或替换工具后，部分模型拒绝继续请求的问题。 @Tuyixiang
-- 通过 Anthropic Messages 接入时，历史前缀变化后省略失效的签名 thinking，减少压缩后持续请求失败。 @turtle2099
-- 修复部分模型网关错误被误报为“API 密钥无效”的问题，使重试按实际响应状态处理。 @LegGasai
-- 修复在 DSH 用户目录中配置 DeepSeek 端点后无法启动的问题；项目目录中的环境配置仍不能覆盖端点。 @LegGasai
-- 修复连续浏览多页 PDF 时加载越来越慢、快速翻页卡顿的问题。 @turtle2099
-- 修复使用 Inspector 查看较大的 Cordis 树时，快照接近上限可能导致服务退出的问题。 @turtle2099
-
-#### 其他变更
-
-- 网页搜索默认改用 DeepSeek Search API，搜索与获取可分别选择计费账号或 API Key；旧提供方和自定义配置需按升级指南调整。 @yudshj
-- 归档会话默认清理符合条件的 Git 工作树，保留分支与提交；需保留本地目录时请关闭清理，自定义配置与 Forge 插件需迁移。 @LegGasai
-- AgentTeam 改用统一的具名子代理，中断工具默认关闭；自定义插件与 SDK 集成需迁移，共享会话的进程须同步升级。 @Dudu-0223
-- SDK 可通过配置为新会话默认开启团队协作，恢复已有会话时保留原选择。 @Dudu-0223
-- 允许插件动态注册和移除 MCP 服务，并查询状态、重启或探测连接，无需用户逐项维护服务配置。 @LegGasai
-- 插件可按语言扩展聊天代码块的显示，未匹配或渲染失败时回退为普通代码块。 @imccyu
-- 插件索引可提供 GitHub Star 和 npm 周下载量，默认仍按索引提供的顺序排列。 @turtle1999
-- Creator 的开发指引统一到 dsh-doc，用于定制 DSH 并查阅当前版本资料；引用旧技能名称或路径的扩展需迁移。 @turtle1999
-- 自定义模型提供方支持 Gemini 原生接口，可获取模型列表并设置推理等级。 @turtle2099
-- 模型请求的 User-Agent 增加启动配置标记，便于服务端区分桌面端、Web、命令行与 SDK 请求。 @imccyu
-- 调整账号通知，支持产品公告等消息并随界面语言更新；已有登录保留，自定义账号插件与配置需迁移。 @lsdsjy
-- PTC 按运行时限限制工具调用总量，超限会终止代码并清空保留状态，已完成的操作不会撤销。 @kermanx
-- Session 支持批量追加事件，日志格式不变；自定义追加接口的包装代码需适配批量调用。 @liukx0205
-- 工具失败提供更明确的错误类型与代码，便于定位问题；依赖旧错误分类的插件和 SDK 集成需同步适配。 @sjw1231
-- 调整 Computer Use 的窗口操作、键盘控制和授权，默认不移动系统鼠标；自定义脚本与 helper 需同步升级。 @CreatixChu, @Tuyixiang, @Dudu-0223
-- Office 改用原生工具，Web 与 SDK 均可加载技能；旧包和技能需迁移，文档解析在 DSH 主进程中运行，不受命令行沙箱保护。 @yudshj
-- Windows 的额外目录授权仅供文件工具使用，不扩大终端或 PTC 的访问范围；相关沙箱扩展需迁移。 @Tuyixiang
-- 调整 LiveShare 的多会话分享与插件授权，旧授权需重新配置；PTC 可访问分享目录之外，仅应分享给可信任的人。 @mektpoy
-- npm 安装与桌面端随附对应版本的源码和文档，方便查阅与开发扩展；Python 单文件运行时不包含这些资源。 @turtle1999
-- 升级 Zod 至 4.6.6、Stagehand 至 4.4.0；Stagehand 改为自动发现扩展，旧 extensionId 配置不再生效。 @imccyu
+修复 Windows 桌面版应用内更新可能失败、无法自动重新打开的问题。(@winewill)
 
 ### BirdCoder 本次更新
 
 #### 同步与冲突处理
 
-* 合并基底 `fcc0ad4621` → `e8f7b93a34`（tag `dsh-v0.2.2-rc.2`），共 **923 个上游提交、3479 个文件变更**（+108953 / −33648）。使用真实双亲 merge commit，上游提交记录、commit message 与代码注释逐字保留，未做 squash、rebase 或 cherry-pick。
-* 54 个冲突文件按 fork-first 规则解决：SDKWork 自有组件与品牌表面保留 ours，上游自有文件与全部无冲突改动完整采纳，双方同改的清单/配置按语义合并。上游新增的 602 个文件**零遗漏**合入，3479 个上游改动文件中 3233 个与 upstream/master 逐字一致。
-* 品牌与登录契约复核通过：`BirdLogo` / `BirdWordmark` / `LoginPanel` 仍是唯一的品牌与登录表面，上游鱼形 SVG、`favicon.svg`、`wordmark.svg` 与图标原始稿未回流。
+* 合并基底 `e8f7b93a34` → `39163dd30f7`（448 个上游提交、3262 个文件变更）。76 个文件存在文本冲突，按 fork-first 规则逐个并集解决：SDKWork 自有组件（`dsh-client-ui-sdkwork-*`、`dsh-sdkwork-*`、`dsh-client-sdkwork-office`、`ui-sdkwork-updater`、终端面板、Windows CUA、profile lease、gateway fallback、侧栏行菜单）与品牌表面（`BirdLogo` / `BirdWordmark` / 标语 / 图标）保留 fork 版本，上游对其余文件的改动完整采纳。
+* 上游新增文件零遗漏合入；上游删除的 `packages/experimental/ptc-runtime-python/` 整体接受删除。fork 已删除的 `ci-windows.yml`、`release-publish.yml`、`release-vendor-publish.yml` 与 `scripts/release/publish.ts` 维持删除——fork 的 Windows 车道已在 `ci.yml` 内，发布走 `container-release.yml`。
+* 合并后全仓校验无冲突标记残留，`docs/module-graph.md`（含中文版）按上游模块图重新生成，10 组中英文档配对重新记录哈希。
 
 #### 合并后接口修复
 
-上游 0.2.2-rc.2 重构了若干 fork 也在用的接口，合并按 fork-first 保留了实现，这些表面需要按升级指南补齐：
-
-* `ui-workspace` 行组件把上游的创建/重排 `actions` 与 fork rowMenus 插件的菜单 `actions` 混为一谈，导致 `ProjectRowActions` 未定义、`access` 读取崩溃；现拆分为 `ProjectRowAccess`（承载绑定到 Workspace 的 `create` 回调）与 fork 的 `actions`（rename/delete），并采纳上游 `onCreate(workspaceId)`、移除 `useRemoteAccess`。
-* `desktop-host/src/cli.ts` 保留 fork 的两参数 `runDesktopCli(runtimeDir, supportDir)`，补回 `runtimeArchivePath` 导出并修正 CLI 入口与测试的调用签名。
-* base 配置的 `deepseek-account` 行按上游升级指南从已删除的 `@deepseek-ai/dsh-deepseek-account-platform` 改指 `@deepseek-ai/dsh-deepseek-account`，清理失去 `package.json` 的孤儿源文件，功能由上游新包承接。
-* fork 的 OEM 能力（`applicationOrigins` 登录回调白名单、`allowInsecureHttp`）迁移进新账号服务，并修正 `platformOrigin` 三/四参数错配（否则字符串被当成真值、静默放开明文 HTTP）。
-* 删除零消费者、且依赖已被上游移除的 `ui-settings-account/AccountNotice.tsx`（通知能力由上游 `ui-account-notifications` 承接）。
-* 同步刷新 30 项中英文档配对记录，更新模块依赖图与 `AGENTS.md` 中的旧包名。
-
-#### 桌面 Office 组合交回上游
-
-上游把 Office 组合从「fork 的 Host 插件」改成了 profile 行：`packages/bundle/web-app/cordis.patch.yml` 现在自带 `office-kit`、按 `DSH_PRIMARY_RUNTIME` 门控的 `workspace-dependencies` 与 `skill-office` 三行，`desktop-host/src/index.ts` 也已把运行时目录写进该环境变量。因此本版本删除了 fork 自有的 `apps/desktop-host/src/office.ts` 插件及其 `ctx.plugin` 注册——两处同时存在会让桌面 profile 把同一套 Office 技能挂载两次——并移除随包删除的 `@deepseek-ai/dsh-office-to-pdf` 依赖声明（`packages/api/remotes`、`packages/bundle/web-app`）。`office-engine.ts` 的 ASAR 路径解析仍然保留，打包运行时冒烟检查依赖它。
-
-#### Windows 安装包解压失败修复
-
-`birdcoder-v0.2.2-rc.2` 的 win-x64 安装包在 52 字符的默认 per-user 安装目录下报 `Failed to decompress files. Please try running the installer again. / Error opening output file(s)`：
-
-* `apps/desktop-host` 的 `@deepseek-ai/libreoffice-kit` 仍停在 `^0.1.5`，而 `packages/document/office-kit` 与 `packages/bundle/web-app` 已是 `0.2.3`。pnpm 无法跨大版本去重，把 0.1.5 的适配器与 `libreoffice-kit-win32-x64` 引擎装进了 `dsh-desktop-host/node_modules`，载荷因此带**两份 Office 引擎**（顶层 0.2.3 + 内嵌 0.1.5，约 182MB），最深条目 `…/libreoffice-kit-win32-x64/sources/engine/native/patches/0063-….patch` 的相对路径被撑到 214 字符。三处声明现已统一到 `0.2.3`，运行时只保留一份引擎，最深相对路径降到 171 字符。
-* 安装器把载荷解压到 `$INSTDIR.new-{GUID}` 暂存目录再整体改名，这个 43 字符的后缀本身也在载体路径里：52 + 43 + 214 = 309，远超 Win32 的 259 字符上限（`InstallerExtract` 用不带 `\\?\` 的普通路径调 7-Zip）。暂存目录改为固定短名 `$INSTDIR.new`，创建前清理崩溃遗留的同名目录；备份目录仍保留 GUID，因为它只被改名、不写入新文件。安装期最坏路径因此从 309 降到 228。
-* `smoke-packaged-runtime.ts` 新增安装期路径预算校验：按「52 字符安装目录 + 暂存后缀 + 载荷相对路径」测算解包树里的每一条，超出即让打包作业失败。此前只有针对构建机绝对路径的引擎深度检查，看不到装到用户机器后的长度，这个缺陷才一路发布到了 Release。
-
-复测：重建后的运行时只剩一份 `libreoffice-kit@0.2.3`；用仓库自带的 NSIS 目录事务夹具在 52 字符安装目录下解压 171 字符的最深条目，安装退出码 0、目标文件齐全、无暂存残留。
+* **Web 客户端装配**：fork 的 shell 走 Vite source alias，浏览器图里没有 `__$dsh_client_module_manifest`。`packages/client/web/src/seed.ts` 对经 alias 引入的 fork 包改用 `platform()`（而非上游的 `compiledModule()`），其余包沿用上游的静态清单，`getStaticModules()` 返回上游的 `DshClientModuleManifest[]`。
+* **样式管线双轨并存**：采纳上游的 module CSS 元数据管线（`styles.set(compiledClientStyle(...))` + renderer 的 `meta.stylesheets`），fork 的全局 CSS 运行时注入（`styleInjectionModule`）继续服务 `ui-theme` 的样式表；构建预设同时保留 fork 的 `css-text-inline` / `css-global-inline` 与上游的 `css-modules-inline`、style-factory 插件。
+* **连接与鉴权**：采纳上游 `ConnectionAuthentication`（`ctx.inject(['connection.authentication'])`、路由 `auth: 'required'`、`rpc-host` 的 `admit`），保留 fork 的 426 事件路径、自有路由 404 语义与 `sdkworkApiFallback` 槽；上游移除的 `/connect` 路由随之删除。
+* **模型选择菜单**：采纳上游的 pane 对象与 `ModelMenuControls`，同时保留 fork 抽取的 `ModelPicker`、登录引导与 `conversation.input.model.pane` 槽位（新增 `renderPane`）。
+* **侧栏槽位**：fork 的 `sidebar.actions` 外层槽位保留，嵌套上游新增的 `sidebar.session.action` 槽位，新建会话胶囊在无注册者时仍作为回退。
+* **工作区契约**：槽位表并集 `sidebar.workspaces.rowMenus`（fork）与 `workspace.picker.directoryFlow`（上游）；插件注入加入 `uiSession` / `uiSession.sessionStatus`。
+* **桌面工具链**：上游把桌面自更新与上传逻辑抽到 `@deepseek-ai/dsh-desktop-publisher`，CUA macOS 原生产物改由 `@deepseek-ai/dsh-cua-macos/native/bin` 提供；`apps/desktop` 六个打包目标、`codeSplitting: false` 与自更新通道选择保持不变，路径与类型改为引用新包。
+* **实验插件**：`packages/experimental/client-ui-forge` 的改动页同时支持上游 `lensParam` 与 fork 的 `ChangesParams`；`tsconfig.client.json` 并入上游新增的 `experimental/deepseek-chat-import`。
 
 #### 版本与依赖
 
-* 全部 **449 个 dsh 家族清单统一到 0.2.2-rc.2**：上游合并已把 371 个推进到 rc.2，fork 自有的 88 个（含根 `package.json` 与五个 `apps/sdkwork-birdcoder2-*` 应用）此前仍停在 rc.1，导致 `release:verify --family dsh` 无法用单个 tag 命名版本。
-* `pnpm-lock.yaml` 重新与最终清单对齐。这正是 `main` 上 CI 持续变红的根因：`Install (immutable)` 报 `[ERR_PNPM_OUTDATED_LOCKFILE] ... apps/desktop-host/package.json`——合并新增的 `dsh-skill-office` / `dsh-tool-executor-native` 等依赖没有进锁文件。修复后 `pnpm install --frozen-lockfile` 本地通过，冻结安装不再依赖手工同步 importer 块。
-* 子模块推进到各自远端最新：`dsh-better-sidebar` → **0.31.1**（`95270afa`，超长单行 diff 改为线性高亮 + 有界预览）、`dsh-mcp-connector` → **0.2.101**（`ed73328`，启信宝迁移恢复）、`dsh-im` → `fc2ceab`（热重载后用原生 require 加载二维码）、`sdkwork-deepseekbot` → `5f10691a`（把用户可见的 Bot 术语统一为「助理 / Assistant」）。`dsh-skill-market`、`sdkwork-dsh-agents`、`dsh-ui-usage-billing` 已在最新提交上，未改动。
-* Windows 安装包修复同时更新 `pnpm-lock.yaml`：`apps/desktop-host` 的引擎声明改到 `0.2.3` 后，锁文件里 0.1.5 的适配器与五个平台引擎条目全部移除，`pnpm install --frozen-lockfile` 通过。
-* 依赖解析规则不变：本地开发走 `pnpm-workspace.yaml` 的相对路径与 `workspace:` 协议，发布产物走 git 仓库与 registry 依赖；SDKWork 生态兄弟仓库仍按 `scripts/sdkwork-sources.manifest.json` 与 `agent.workflow.json` 的双记录 pin 检出。
+* 全部 **449 个 dsh 家族清单统一到 0.2.2-rc.3**：上游推进了 371 个，fork 自有的 **80 个**清单（含根 `package.json`、`packages/client/runtime`、`native/system/packages/landlock-launcher`、SDKWork 组件包与五个 `apps/sdkwork-birdcoder2-*` 应用）此前仍在 rc.2，本版本一并推进。
+* 根依赖里残留的旧名 `@deepseek-ai/dsh-experimental-cua-macos` 删除——上游已把该包改名为 `@deepseek-ai/dsh-cua-macos`（`devDependencies` 中的新名由合并带入）。
+* `pnpm install --lockfile-only` 重新生成 `pnpm-lock.yaml`，补回 fork 包的 importer 块与全部 workspace 链接；`pnpm-workspace.yaml` 的 `@michengai/dsh-agency-agents>@deepseek-ai/dsh` override 同步改指 `0.2.2-rc.3`。
 
-#### 打包与发布
+#### 部署与发布
 
-* 版本号为 **0.2.2-rc.2**，tag `birdcoder-v0.2.2-rc.2` 指向本次构建的提交，由 `container-release.yml` 一次打包六个桌面目标、两套容器镜像与部署包，发布一个包含 31 个精确资产的 GitHub Release（`assemble-github-release.ts` 拒绝缺失或多余资产）。
+* 发布流程（`feat(deploy): add project app source picker and standalone publish entry`）新增项目应用来源选择器与独立发布入口：发布构建产物时可直接挑选项目内的应用目录，且无需先创建会话即可进入发布弹窗。
+* 版本号为 **0.2.2-rc.3**，tag `birdcoder-v0.2.2-rc.3` 指向本次构建的提交，由 `container-release.yml` 一次打包六个桌面目标、两套容器镜像与部署包，发布一个包含 31 个精确资产的 GitHub Release（`assemble-github-release.ts` 拒绝缺失或多余资产）。
 * 本文件只保留当前版本一节；往期条目随各自版本的提交留在 git 历史里（`git log -p CHANGELOG.md`）。Release notes 就是本节内容。

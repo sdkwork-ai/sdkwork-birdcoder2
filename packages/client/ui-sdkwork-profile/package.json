@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-profile",
   "description": "SDKWork 个人主页: the settings section that presents the signed-in SDKWork account — personal and enterprise — and ends the session through the shared IAM sign-out flow (confirmation, hosted sign-out page, local clear)",
-  "version": "0.2.2-rc.2",
+  "version": "0.2.2-rc.3",
   "publishConfig": {
     "access": "public"
   },

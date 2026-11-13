@@ -70,7 +70,7 @@ kind: "package-reference"
 - [skill 子系统参考](../../../docs/subsystems/skills.zh.md)——注册表、提供方约定、本地发现优先级，以及目录与工具。
 - [skill-filesystem 包](../skill-filesystem/README.zh.md)——本根复用的目录提供方，包括它占用的 bundled 等级。
 - [tool-skill 包](../tool-skill/README.zh.md)——目录条目如何到达会话目录与模型，以及行首 `/name` 如何注入正文。
-- [skill-badge 包](../skill-badge/README.zh.md)——另一个 bundled 提供方，也是“一个固定虚拟技能”的最小示例。
+- [skill-badge 包](../skill-badge/README.md)——另一个 bundled 提供方，也是“一个固定虚拟技能”的最小示例。
 
 -----
 

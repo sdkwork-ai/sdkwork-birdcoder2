@@ -10,7 +10,7 @@ import type { ReactNode } from 'react'
 import { useState } from 'react'
 import type {
   SidebarActionsOwnerProps, SidebarFooterActionOwnerProps, SidebarPanelMetadata, SidebarRootComponentProps,
-  SidebarSectionHookContext, SidebarSectionOwnerProps, SidebarSettingsOwnerProps,
+  SidebarSectionHookContext, SidebarSectionOwnerProps, SidebarSessionActionOwnerProps, SidebarSettingsOwnerProps,
 } from '../src/client/contract/slots.ts'
 import { HeaderLeadingControls, type HeaderLeadingControlsProps } from '../src/client/HeaderLeadingControls.tsx'
 import { SidebarRoot } from '../src/client/SidebarRoot.tsx'
@@ -69,6 +69,8 @@ function mountShell({ collapsed = false, width = 300, drawer = false, shortcuts 
   let settingsOwner: SidebarSettingsOwnerProps | undefined
   let footerActionOwner: SidebarFooterActionOwnerProps | undefined
   let actionsOwner: SidebarActionsOwnerProps | undefined
+  let sessionActionOwner: SidebarSessionActionOwnerProps | undefined
+  let sessionActionChildren: ReactNode
   const brandMark = <span data-testid="custom-brand-mark">M</span>
   const brandName = <span data-testid="custom-brand-name">Custom Brand</span>
   let current = { collapsed, width, drawer }
@@ -86,8 +88,9 @@ function mountShell({ collapsed = false, width = 300, drawer = false, shortcuts 
       renderFactorySlot={() => null}
       renderSlot={((
         key: string,
-        owner: SidebarFooterActionOwnerProps | SidebarSectionOwnerProps | SidebarSettingsOwnerProps,
-        options?: { fallback?: ReactNode; hookContext?: SidebarSectionHookContext },
+        owner: SidebarActionsOwnerProps | SidebarFooterActionOwnerProps | SidebarSectionOwnerProps
+          | SidebarSessionActionOwnerProps | SidebarSettingsOwnerProps,
+        options?: { fallback?: ReactNode; hookContext?: SidebarSectionHookContext; children?: ReactNode },
       ) => {
         if (key === 'sidebar.brand.mark') return brandMark
         if (key === 'sidebar.brand.name') return brandName
@@ -106,6 +109,11 @@ function mountShell({ collapsed = false, width = 300, drawer = false, shortcuts 
           // falls back to the built-in New Session capsule.
           actionsOwner = owner as SidebarActionsOwnerProps
           return options?.fallback ?? null
+        }
+        if (key === 'sidebar.session.action') {
+          sessionActionOwner = owner
+          sessionActionChildren = options?.children
+          return <>{options?.children}<div data-testid="session-action-seat" data-wide={owner.wide} /></>
         }
         regionOwner = owner as SidebarSectionOwnerProps
         regionContext = options?.hookContext
@@ -138,6 +146,11 @@ function mountShell({ collapsed = false, width = 300, drawer = false, shortcuts 
       if (actionsOwner === undefined) throw new Error('actions owner not rendered')
       return actionsOwner
     },
+    sessionActionOwner: () => {
+      if (sessionActionOwner === undefined) throw new Error('session action owner not rendered')
+      return sessionActionOwner
+    },
+    sessionActionChildren: () => sessionActionChildren,
     rerender(next: Partial<typeof current>) {
       current = { ...current, ...next }
       view.rerender(root())
@@ -399,6 +412,12 @@ describe('SidebarRoot shell', () => {
     // The settings seat rides the same wide flag (ui-settings renders the row).
     expect(b.settingsOwner().wide).toBe(true)
     expect(b.footerActionOwner().wide).toBe(true)
+    expect(b.sessionActionOwner().wide).toBe(true)
+    // The HOC layer receives the New-session row content as its children.
+    expect(b.sessionActionChildren()).toBeTruthy()
+    // Session actions follow New session inside the same row.
+    const newSession = screen.getAllByRole('button', { name: 'New session' }).at(-1)
+    expect(newSession?.nextElementSibling).toBe(screen.getByTestId('session-action-seat'))
     // Expanded: the request is a no-op (no accidental collapse).
     b.regionOwner().expandSidebar()
     expect(b.toggleSidebar).not.toHaveBeenCalled()
@@ -414,6 +433,7 @@ describe('SidebarRoot shell', () => {
     b.rerender({})
     expect(b.regionOwner().wide).toBe(false)
     expect(b.footerActionOwner().wide).toBe(false)
+    expect(b.sessionActionOwner().wide).toBe(false)
     expect(screen.getByTestId('region')).toBeTruthy()
     b.regionOwner().expandSidebar()
     expect(b.toggleSidebar).toHaveBeenCalledOnce()

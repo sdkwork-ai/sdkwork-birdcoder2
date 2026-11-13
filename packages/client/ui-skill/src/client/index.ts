@@ -42,7 +42,7 @@ import type {} from '@deepseek-ai/dsh-plugin-manager/types'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { InputTriggerServiceContract, InputTriggerSource } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
 import { fileAddressFor } from '@deepseek-ai/dsh-util-workspace-path'
-import { rankByName } from '@deepseek-ai/dsh-client-ui-primitives'
+import { TextSearchIndex } from '@deepseek-ai/dsh-util-text-search'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: pulls the SlotRegistry service merge (ctx.slots).
@@ -179,9 +179,8 @@ export function apply(ctx: ClientContext): void {
       // policy lives here rather than host-side because this is the boundary
       // that knows it is building a human command menu.
       const invocable = skills.filter(skill => skill.userInvocable)
-      // The same ranking as the command group of this menu: case-insensitive
-      // ordered subsequence, prefix hits first.
-      return rankByName(invocable, query)
+      // The same filter as the command group of this menu, over names only.
+      return new TextSearchIndex(invocable, skill => ({ fuzzy: [skill.name] })).search(query)
         .map(skill => ({
           name: skill.name,
           // The user-only marker rides the description (the menu's only

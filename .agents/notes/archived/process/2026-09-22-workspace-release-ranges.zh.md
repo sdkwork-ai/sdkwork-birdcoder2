@@ -15,7 +15,7 @@ DSH 包共享同一次产品发布。Cordis、其 vendored 库和 Node Addon Sys
 
 打包时替换为目标包的当前版本：Cordis 为 `4.0.3` 时，`workspace:~` 转为 `~4.0.3`；Node Addon System 为 `0.1.2` 时转为 `~0.1.2`。DSH 引用仍为精确版本。原生包族的成员仍以同一版本发布，但已安装的入口可以解析到后续的平台包补丁版本。
 
-这套范围策略细化了 npm 发布序列和[发布依赖门面](2026-08-26-published-dependency-faces.zh.md)。它们的独立发布族和依赖区段分类保持不变。
+这套范围策略细化了 [npm 发布序列](2026-08-10-npm-release-sequences.zh.md)和[发布依赖门面](2026-08-26-published-dependency-faces.zh.md)。它们的独立发布族和依赖区段分类保持不变。
 
 ## Alternatives considered
 

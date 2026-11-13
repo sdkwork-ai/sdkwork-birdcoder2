@@ -1,11 +1,12 @@
 // WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
 // so the literal is the value under assertion rather than a binding this build resolves
 import { describe, expect, it } from 'vitest'
+import { brandString } from '@deepseek-ai/dsh-brand'
 import { Context } from '@deepseek-ai/cordis'
 import Lsp, {
   finalExtension,
   LspError,
-  LspProviderId,
+  type LspProviderId,
   type LspProvider,
   type LspProviderQuery,
   type LspQueryResult,
@@ -20,7 +21,7 @@ function makeProvider(
   const seen: LspProviderQuery[] = []
   const seenSignals: (AbortSignal | undefined)[] = []
   return {
-    id: LspProviderId(id),
+    id: brandString<LspProviderId>(id),
     extensionToLanguage,
     seen,
     seenSignals,
@@ -184,6 +185,6 @@ describe('Lsp registration', () => {
   })
 
   it('brands a provider id without altering the string', () => {
-    expect(LspProviderId('ts')).toBe('ts')
+    expect(brandString<LspProviderId>('ts')).toBe('ts')
   })
 })

@@ -12,7 +12,7 @@ English | [中文](2026-07-19-gui-layering-and-rpc-protocol.zh.md)
 We need a UI integration layer. Beyond the existing ACP/stdio baseline, more product clients are coming — Web (server), Electron, and others. We call them Clients and want the following capabilities:
 
 - One `dsh` process supporting both `dsh web` (serve) and `dsh --profile headless` (headless) — one process, two modes (a design reservation)
-- The Electron desktop shell ([apps/desktop](../../../../apps/desktop)) launching with the same Web technologies as `dsh web` over IPC instead of HTTP/WebSocket
+- Launching inside Electron with the same Web technologies as `dsh web`
 
 That demands a stable layered responsibility model in the engineering codebase, so future clients plug in cleanly.
 
@@ -33,7 +33,7 @@ Directories layer as follows:
 - `apps/` holds the externally exported applications, assembled from Client / Host mixtures.
     - `apps/web` (`dsh-web-frontend`) is the vite application: a thin `main.ts` over the shell API exported by `dsh-client-web`.
     - `apps/cli` (`@deepseek-ai/dsh`) dispatches commands: `dsh web` = Host + webserver + the built `dsh-web-frontend` dist; `dsh --profile headless` = [a direct core Agent/Session entry point](2026-08-09-headless-direct-core-entry-point.md), with zero Host, HTTP, or browser layer.
-    - `apps/desktop` (`@deepseek-ai/dsh-desktop`) is the Electron shell: boots the canonical Web profile and applies the sdkwork-desktop-app bundle as an in-memory transport overlay, serves the built dist over the `app://` protocol through the [desktop carrier](../../../../packages/host/sdkwork-desktop-carrier/README.md), and carries the same wire over an IPC bridge — the same profile-installed plugins and web client packages over the IPC fetch carrier, with zero network ports.
+    - A future Electron application reuses the same web client packages over an IPC fetch carrier.
 
 ```
 apps/*  (applications: apps/web = vite app, apps/cli = bin dispatch)
@@ -76,7 +76,7 @@ Packages under `packages/host/*` and `packages/client/*` **must carry the direct
 
 #### How to integrate a new application (operational checklist)
 
-1. **Pick a fetch impersonation**: browser same-origin HTTP / in-process `host.handler.fetch` injection / your own transport-aspect subclass (the Electron shell's IPC bridge, see the "Subclass table" below).
+1. **Pick a fetch impersonation**: browser same-origin HTTP / in-process `host.handler.fetch` injection / your own transport-aspect subclass (e.g. future Electron IPC, see the "Subclass table" below).
 2. **Write an assembly module under `apps/`**: `startHost()` + a client subclass + the application's private signal/print/exit semantics; a mixture never becomes a package — assembly is written in the app.
 3. **Import `dsh-host-webserver` only if you need HTTP carriage**, otherwise zero ports.
 
@@ -219,7 +219,7 @@ All four quadrant full forms pass through `onEnvelope`; the base implementation 
 | `InProcessApiClient` | apiproxy itself | the injected `{ fetch }` handler | **The isomorphic point**: `new InProcessApiClient(toFetchHandler(api))` never touches the network yet runs the real wire serialization/zod/SSE framing; carrier tests and callers can exercise the protocol without opening a port, while product `dsh --profile headless` drives core directly |
 | `WebApiClient` | dsh-client-connection | `globalThis.fetch` uplink + one same-origin WebSocket downlink per logical stream | the browser client; physical boundary in the [WebSocket downlink carrier](2026-08-04-websocket-downlink-carrier.md) |
 | `FixtureApiClient` | dsh-client-connection | unused (protocol-layer override) | serverless UI development (`?fixture`): overrides the `callUnary`/`openMux`/`openHost`/`respond` virtuals and is itself the fake server (frame rpcIds minted by it, semantics self-consistent) |
-| `IpcApiClient` | dsh-client-connection | the preload-exposed `window.desktopBridge` (JSON round trips + downlink subscriptions) | the Electron renderer client: `doFetch`/`openMux`/`openHost` ride the bridge; selected by the connection plugin's apply on the bridge's presence. The host side (`dsh-client-connection`'s `/desktop` node half) reuses the web node half's `HostConnectionService` shared fetch handler + the `api.events.*` generators, with IPC pumps substituting for the socket ([desktop carrier Agent Note](2026-08-14-desktop-shell-ipc-carrier.md)) |
+| IPC bridge subclass (hypothetical example — no such shell exists) | an Electron shell | IPC serialization round trip | would swap only doFetch; contract and base class unchanged |
 
 ## How to extend (operational checklists)
 

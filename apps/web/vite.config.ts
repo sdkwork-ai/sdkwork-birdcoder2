@@ -392,6 +392,11 @@ export default defineConfig(({ mode }) => {
     // packages/client/web/README.md); they arrive as runtime
     // bundles through the client module system. Order matters — subpath
     // aliases must win over bare-name prefixes.
+    // The node:module alias supports Loader initialization; its filesystem
+    // resolver's other Node imports must stay default imports for Vite's
+    // browser-external stubs. Browser boot supplies loader.internal before
+    // importing plugin entries, so the filesystem resolver is never invoked in
+    // the browser.
     alias: [
       // Browserize the vendored Cordis Loader's only Node import.
       { find: /^node:module$/, replacement: src('./src/node-module-stub.ts') },

@@ -1,5 +1,5 @@
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import { AttachmentId } from '@deepseek-ai/dsh-attachment'
+import type { AttachmentId } from '@deepseek-ai/dsh-attachment'
 // @vitest-environment jsdom
 // WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
 // so the literal is the value under assertion rather than a binding this build resolves
@@ -19,6 +19,7 @@ import { ToolRow } from '../src/client/tool/components/ToolRow.tsx'
 import { GenericToolCard, type GenericToolCardProps } from '../src/client/tool/toolviews/GenericToolCard.tsx'
 import { en, zh } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
 import { PartialArguments } from '@deepseek-ai/dsh-util-values'
+import { brandString } from '@deepseek-ai/dsh-brand'
 
 afterEach(() => {
   cleanup()
@@ -243,7 +244,7 @@ describe('tool-call-model', () => {
 
   it('resultText retains text and image JSON and uses the structured failure when content is empty', () => {
     expect(resultText(result({ content: [{ type: 'text', text: 'a\nb' }] }))).toBe('a\nb')
-    const image = { type: 'image' as const, attachment: { attachmentId: AttachmentId('sha256:image'), mediaType: 'image/png' as const, width: 8, height: 4, bytes: 64 } }
+    const image = { type: 'image' as const, attachment: { attachmentId: brandString<AttachmentId>('sha256:image'), mediaType: 'image/png' as const, width: 8, height: 4, bytes: 64 } }
     expect(resultText(result({ content: [image] }))).toBe(JSON.stringify(image, null, 2))
     const reasoning = { type: 'reasoning' as const, text: 'detail' }
     expect(resultText(result({ content: [reasoning] }))).toBe(JSON.stringify(reasoning, null, 2))
@@ -261,7 +262,7 @@ describe('tool-call-model', () => {
   })
 
   it('separates image references without duplicating an emitted newline', () => {
-    const attachment = { attachmentId: AttachmentId('sha256:image'), mediaType: 'image/png' as const, width: 8, height: 4, bytes: 64 }
+    const attachment = { attachmentId: brandString<AttachmentId>('sha256:image'), mediaType: 'image/png' as const, width: 8, height: 4, bytes: 64 }
     for (const text of ['a', 'a\n']) {
       expect(resultText(result({ content: [{ type: 'text', text }, { type: 'image', attachment }] }), () => 'sha256:image'))
         .toBe('a\nsha256:image')
@@ -277,7 +278,7 @@ describe('tool-call-model', () => {
   })
 
   it.each([false, true])('shares formatted image output with its error summary, failure=%s', (isError) => {
-    const image = { type: 'image' as const, attachment: { attachmentId: AttachmentId('sha256:image'), mediaType: 'image/png' as const, width: 8, height: 4, bytes: 64 } }
+    const image = { type: 'image' as const, attachment: { attachmentId: brandString<AttachmentId>('sha256:image'), mediaType: 'image/png' as const, width: 8, height: 4, bytes: 64 } }
     const formatImage = vi.fn(() => 'selected image')
     const model = toolRowModel('run_code', result({ content: [image], isError }), undefined, undefined, formatImage)
     expect(model.output).toBe('selected image')
@@ -627,7 +628,7 @@ describe('GenericToolCard', () => {
     [t, 'sha256:image (8x4px，64 字节)'],
     [makeTranslate(en), 'sha256:image (8x4px, 64 bytes)'],
   ] as const)('localizes compact image references in the generic card', (translate, expected) => {
-    const attachment = { attachmentId: AttachmentId('sha256:image'), mediaType: 'image/png' as const, width: 8, height: 4, bytes: 64 }
+    const attachment = { attachmentId: brandString<AttachmentId>('sha256:image'), mediaType: 'image/png' as const, width: 8, height: 4, bytes: 64 }
     const block = result({ content: [{ type: 'text', text: 'before\n' }, { type: 'image', attachment }] })
     const view = render(<GenericToolCard {...props('run_code', block)} t={translate} />)
     fireEvent.click(view.getByRole('button'))

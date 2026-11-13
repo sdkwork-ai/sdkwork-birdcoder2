@@ -1,15 +1,17 @@
 /** Retain completed CI packages for later manual publication. */
 import { appendFile, readFile } from 'node:fs/promises'
-import { dirname, isAbsolute, join, resolve } from 'node:path'
+import { join, resolve } from 'node:path'
 import { desktopTargetBuildPaths, resolveDesktopBuildTarget } from './desktop-build-paths.mjs'
 import type { DesktopBuildTarget } from './desktop-build-paths.d.mts'
-import type { DesktopAutoUpdateTarget } from './desktop-auto-update-environment.d.mts'
-import { desktopBuildRecordFilename, desktopUpdateMetadataFilename, resolveDesktopUpdateChannel } from './desktop-auto-update-environment.mjs'
+import type { DesktopAutoUpdateTarget } from '@deepseek-ai/dsh-desktop-publisher/desktop-auto-update-environment.mjs'
+import { desktopBuildRecordFilename, desktopUpdateMetadataFilename, resolveDesktopUpdateChannel } from '@deepseek-ai/dsh-desktop-publisher/desktop-auto-update-environment.mjs'
 import { loadDesktopPackageEnvironment } from './desktop-package-environment.mjs'
-import { retainDesktopRelease, type DesktopRetainedSource } from './desktop-release-store.ts'
+import { retainDesktopRelease, type DesktopRetainedSource } from '@deepseek-ai/dsh-desktop-publisher/desktop-release-store.ts'
 import { validateDesktopBuildVersion } from './desktop-build-version.mjs'
-import { desktopPublishRunnersSchema } from './desktop-publish-targets.ts'
-import { desktopPublishQualificationError } from './desktop-publish-qualification.mjs'
+import { desktopPublishRunnersSchema } from '@deepseek-ai/dsh-desktop-publisher/desktop-publish-targets.ts'
+import { desktopPublishQualificationError } from '@deepseek-ai/dsh-desktop-publisher/desktop-publish-qualification.mjs'
+
+export { desktopReleasesRoot } from '@deepseek-ai/dsh-desktop-publisher/desktop-releases-root.ts'
 
 function required(env: NodeJS.ProcessEnv, name: string): string {
   const value = env[name]

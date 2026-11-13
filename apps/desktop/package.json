@@ -2,7 +2,7 @@
   "name": "@deepseek-ai/dsh-desktop",
   "productName": "BirdCoder",
   "description": "Electron desktop shell for a bundled dsh runtime and external plugins",
-  "version": "0.2.2-rc.2",
+  "version": "0.2.2-rc.3",
   "private": true,
   "license": "MIT",
   "author": {
@@ -73,6 +73,7 @@
     "@deepseek-ai/dsh-api-gateway": "workspace:*",
     "@deepseek-ai/dsh-app-boot": "workspace:*",
     "@deepseek-ai/dsh-deepseek-account": "workspace:*",
+    "@deepseek-ai/dsh-error": "workspace:*",
     "@deepseek-ai/dsh-home-paths": "workspace:*",
     "@deepseek-ai/dsh-launch-environment": "workspace:*",
     "@deepseek-ai/dsh-llm": "workspace:*",
@@ -83,6 +84,11 @@
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "3.1067.0",
+    "@deepseek-ai/dsh-brand": "workspace:*",
+    "@deepseek-ai/dsh-app-boot": "workspace:*",
+    "@deepseek-ai/dsh-client-connection": "workspace:*",
+    "@deepseek-ai/dsh-host-authentication-desktop": "workspace:*",
+    "@deepseek-ai/dsh-host-webserver": "workspace:*",
     "@deepseek-ai/dsh-client-ui-settings-general": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sidebar-browser": "workspace:*",
     "@deepseek-ai/dsh-official-bundles": "workspace:*",
@@ -115,6 +121,7 @@
     "zod": "4.6.6",
     "@deepseek-ai/dsh-util-file-drag": "workspace:*",
     "@deepseek-ai/dsh-client-ui-file-actions": "workspace:*",
-    "tencentcloud-sdk-nodejs-teo": "4.1.330"
+    "tencentcloud-sdk-nodejs-teo": "4.1.330",
+    "@deepseek-ai/dsh-desktop-publisher": "workspace:*"
   }
 }
