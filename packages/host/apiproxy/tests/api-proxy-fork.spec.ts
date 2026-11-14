@@ -278,7 +278,9 @@ describe('sessions.fork', () => {
     if (!response.result.ok) return
     const child = ctx.agents.get(response.result.value.sessionId)
     if (child === undefined) throw new Error('fork did not publish the child agent')
-    const assembly = await child.ctx.get('systemPrompt').assemble()
+    const systemPrompt = child.ctx.get('systemPrompt')
+    if (systemPrompt === undefined) throw new Error('fork did not publish the system prompt service')
+    const assembly = await systemPrompt.assemble()
     expect(assembly.variables).toMatchObject({
       provider: 'inherited-provider',
       model: 'inherited-model',
