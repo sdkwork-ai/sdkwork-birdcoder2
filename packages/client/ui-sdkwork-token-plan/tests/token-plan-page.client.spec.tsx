@@ -8,16 +8,20 @@ import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controlle
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { TokenPlanPage, type TokenPlanPageProps } from '../src/client/TokenPlanPage.tsx'
 
+let capturedTeam: { port: object } | undefined
 vi.mock('@sdkwork/membership-pc-subscription/catalog', () => ({
   SdkworkSubscriptionCatalogPage: (props: {
     notifyOutlet?: () => unknown
     onLoginRequired?: () => void
     onNotify?: (message: string, tone: 'error' | 'info' | 'success') => void
+    team?: { port: object }
   }) => {
     const Outlet = props.notifyOutlet
+    capturedTeam = props.team
     return (
       <div data-testid="token-plan-catalog">
         {Outlet ? <Outlet /> : null}
+        {props.team ? <div data-testid="token-plan-team-port" /> : null}
         <button type="button" onClick={() => props.onLoginRequired?.()}>login</button>
         <button type="button" onClick={() => props.onNotify?.('paid', 'success')}>notify-success</button>
         <button type="button" onClick={() => props.onNotify?.('wait', 'info')}>notify-info</button>
@@ -66,12 +70,15 @@ vi.mock('../src/client/commerce-components.tsx', () => ({
 let configured = false
 let serviceListener: (() => void) | undefined
 const openSignIn = vi.fn()
+const teamPort = { kind: 'token-plan-team-port' }
+const readTeamSubscriptionPort = vi.fn(() => teamPort)
 
 vi.mock('../src/client/token-plan-service.ts', () => ({
   TokenPlanService: class {
     isConfigured(): boolean { return configured }
     openSignIn(): void { openSignIn() }
     readCommerce(): { checkout: object; membership: object } { return { checkout: {}, membership: {} } }
+    readTeamSubscriptionPort(): object { return readTeamSubscriptionPort() }
     subscribe(listener: () => void): () => void {
       serviceListener = listener
       return () => { serviceListener = undefined }
@@ -123,6 +130,8 @@ describe('TokenPlanPage host chrome', () => {
   afterEach(() => {
     cleanup()
     vi.useRealTimers()
+    capturedTeam = undefined
+    readTeamSubscriptionPort.mockClear()
   })
 
   it('keeps light mode without the dark class and shows the unconfigured copy', () => {
@@ -135,6 +144,8 @@ describe('TokenPlanPage host chrome', () => {
     expect(document.documentElement.classList.contains('dark')).toBe(false)
     expect(document.documentElement.getAttribute('data-sdk-color-mode')).toBe('light')
     expect(surface.textContent).toContain('page.unconfigured')
+    expect(container.querySelector('[data-testid="token-plan-team-port"]')).toBeNull()
+    expect(capturedTeam).toBeUndefined()
     const catalog = surface.querySelector('[data-token-plan-catalog]')
     expect(catalog).not.toBeNull()
     expect(catalog?.className).toContain('max-w-7xl')
@@ -158,6 +169,11 @@ describe('TokenPlanPage host chrome', () => {
     expect(document.documentElement.classList.contains('dark')).toBe(true)
     expect(document.documentElement.getAttribute('data-sdk-color-mode')).toBe('dark')
     expect(view.getByTestId('token-plan-catalog')).toBeTruthy()
+    // The desktop host hands the shared catalog page its team port, so the
+    // personal/team audience switch is available in this window.
+    expect(view.getByTestId('token-plan-team-port')).toBeTruthy()
+    expect(capturedTeam?.port).toBe(teamPort)
+    expect(readTeamSubscriptionPort).toHaveBeenCalled()
     act(() => { serviceListener?.() })
     fireEvent.click(view.getByText('login'))
     expect(openSignIn).toHaveBeenCalled()

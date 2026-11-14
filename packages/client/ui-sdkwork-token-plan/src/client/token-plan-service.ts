@@ -26,6 +26,8 @@ import {
   type SdkworkMembershipCheckoutService,
   type SdkworkPointsRechargeService,
 } from '@sdkwork/order-service'
+import type { SdkworkTeamSubscriptionPort } from '@sdkwork/membership-pc-subscription/catalog'
+import { createTokenPlanTeamSubscriptionPort } from './team-subscription-port.ts'
 
 /** Minimal environment face consumed across the plugin boundary. */
 export interface EnvServiceLike {
@@ -253,6 +255,7 @@ export class TokenPlanService {
   private baseUrl: string | undefined
   private commerce: TokenPlanCommerce | undefined
   private accountClient: { baseUrl: string; client: SdkworkAccountAppClient } | undefined
+  private teamPort: { baseUrl: string; port: SdkworkTeamSubscriptionPort } | undefined
 
   /**
    * @param env - deployment environment face.
@@ -337,6 +340,33 @@ export class TokenPlanService {
       },
     }
     return this.commerce
+  }
+
+  /**
+   * Build or return the organization (team) subscription port for the active
+   * environment.
+   *
+   * The port is the host half of the shared team surface: it reads the
+   * membership team subscription and seat rows through the generated membership
+   * app SDK, the organization roster and the caller's role through the generated
+   * IAM app SDK, and starts seat payments through the same order-owned checkout
+   * the personal catalog uses. It is cached per gateway origin so the shared
+   * surface never re-bootstraps on a locale or theme render.
+   * @returns The team subscription port for the active deployment.
+   */
+  readTeamSubscriptionPort(): SdkworkTeamSubscriptionPort {
+    this.syncTokens()
+    const baseUrl = appApiOrigin(this.env.apiBaseUrl())
+    if (baseUrl === '') throw new Error('ui-sdkwork-token-plan: SDKWork API environment is not configured')
+    if (this.teamPort !== undefined && this.teamPort.baseUrl === baseUrl) return this.teamPort.port
+    const port = createTokenPlanTeamSubscriptionPort({
+      baseUrl,
+      checkout: this.readCommerce().checkout,
+      refreshSession: () => { this.syncTokens() },
+      tokenManager: this.tokenManager,
+    })
+    this.teamPort = { baseUrl, port }
+    return port
   }
 
   /**
@@ -456,6 +486,7 @@ export class TokenPlanService {
       if (this.baseUrl !== this.env.apiBaseUrl().trim()) {
         this.commerce = undefined
         this.accountClient = undefined
+        this.teamPort = undefined
       }
       this.syncTokens()
       listener()

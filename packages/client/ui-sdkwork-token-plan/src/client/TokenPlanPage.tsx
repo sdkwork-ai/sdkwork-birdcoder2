@@ -4,6 +4,7 @@ import { AlertCircle, CheckCircle2, X } from 'lucide-react'
 import { SdkworkThemeProvider } from '@sdkwork/ui-pc-react'
 import {
   SdkworkSubscriptionCatalogPage,
+  type SdkworkSubscriptionCatalogTeamProps,
 } from '@sdkwork/membership-pc-subscription/catalog'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
@@ -85,6 +86,14 @@ export function TokenPlanPage({ mode, env, iam, theme, t }: TokenPlanPageProps) 
     }
   }, [colorScheme])
   const commerce = service.isConfigured() ? service.readCommerce() : undefined
+  // One port per gateway origin: the service caches it, so the shared team
+  // surface re-bootstraps only when the deployment itself changes, not on a
+  // locale or theme render.
+  const teamPort = service.isConfigured() ? service.readTeamSubscriptionPort() : undefined
+  const team = useMemo<SdkworkSubscriptionCatalogTeamProps | undefined>(
+    () => (teamPort === undefined ? undefined : { port: teamPort }),
+    [teamPort],
+  )
 
   return (
     <div className={css.page} data-mode={mode} data-mode-page={mode}>
@@ -111,6 +120,7 @@ export function TokenPlanPage({ mode, env, iam, theme, t }: TokenPlanPageProps) 
                 notifyOutlet={NotifyOutlet}
                 onLoginRequired={() => { service.openSignIn() }}
                 onNotify={onNotify}
+                team={team}
               />
             ) : (
               <div className="flex h-full items-center justify-center px-6 py-12 text-sm text-zinc-500 dark:text-zinc-400">
