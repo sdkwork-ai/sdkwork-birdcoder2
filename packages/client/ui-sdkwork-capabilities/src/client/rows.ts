@@ -126,7 +126,6 @@ function skillRow(deps: CapabilityRowDeps): CommandContribution {
     available: session => deps.available(session),
     ui: {
       kind: 'popupSelect',
-      searchMode: 'fuzzy-label',
       searchLabels: () => searchLabels(t('label.skills'), t('search.empty.skills'), t),
       options: (session, signal) => loadRows(
         catalogSignal => deps.loadSkills(session.sessionId, catalogSignal),

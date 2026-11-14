@@ -82,8 +82,13 @@ function stylesheetText(output: string | null, resolve: (reference: string) => s
     return descriptors[0]!.text({ asset: resolve })
   }
   const call = RESOLVER_CALL.exec(output)?.[0]
+  const resolverScope = { ...call === undefined ? {} : { [call]: resolve }, document: undefined }
+  // The global-inline arm emits a style *injector*: the payload is the first
+  // statement's initializer, and only the guard below it touches the marker.
+  const injected = /^const css = (.*);$/mu.exec(output)?.[1]
+  if (injected !== undefined) return runInNewContext(`(() => {\nreturn ${injected};\n})()`, resolverScope) as string
   const body = output.replace(/^export default (.*);$/mu, 'return $1;')
-  return runInNewContext(`(() => {\n${body}\n})()`, { ...call === undefined ? {} : { [call]: resolve }, document: undefined }) as string
+  return runInNewContext(`(() => {\n${body}\n})()`, resolverScope) as string
 }
 
 /** Capture the actual manifest emitted by the stylesheet render hook. */
@@ -238,7 +243,8 @@ describe('client bundle global CSS', () => {
     const output = await loadImport(browserPlugins(root)('dsh-css-global-inline'), context, './base.css', join(root, 'src/client/index.ts'))
 
     expect(context.watched).toEqual([stylesheet])
-    expect(output).not.toContain('data-plugin-css')
+    // The tag marker lives in the injector's guard, never in the stylesheet text.
+    expect(stylesheetText(output, reference => reference)).toBe('body{color:red}')
     expect(output).toContain('body{color:red}')
   })
 
@@ -534,7 +540,11 @@ describe('client bundle stylesheet url()', () => {
     const id = resolveId('./theme.css', join(root, 'src/client/index.ts'))
     if (typeof id !== 'string') throw new Error('global-inline did not resolve ./theme.css')
 
-    const output = await load.call(recordingContext(), `${id}?inline`)
+    const loaded = await load.call(recordingContext(), `${id}?inline`)
+    // The inline rule emits the stylesheet as module text, never as a bundle
+    // record; the rollup hook type widens to `LoadedModule`, so narrow it here.
+    if (typeof loaded !== 'string') throw new Error('global-inline must emit the stylesheet as text')
+    const output = loaded
 
     expect(output).toBe('export default "body{color:red}";')
     // The value must be the stylesheet text itself: a quoted literal parses to zero
@@ -552,7 +562,11 @@ describe('client bundle stylesheet url()', () => {
     const id = resolveId('./theme.css', join(root, 'src/client/index.ts'))
     if (typeof id !== 'string') throw new Error('global-inline did not resolve ./theme.css')
 
-    const output = await load.call(recordingContext(), `${id}?inline`)
+    const loaded = await load.call(recordingContext(), `${id}?inline`)
+    // The inline rule emits the stylesheet as module text, never as a bundle
+    // record; the rollup hook type widens to `LoadedModule`, so narrow it here.
+    if (typeof loaded !== 'string') throw new Error('global-inline must emit the stylesheet as text')
+    const output = loaded
 
     expect(output).not.toContain('\\"')
     expect(stylesheetText(output, reference => `resolved:${reference}`))

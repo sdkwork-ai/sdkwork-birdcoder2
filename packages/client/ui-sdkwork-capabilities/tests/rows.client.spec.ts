@@ -139,7 +139,9 @@ describe('skill row', () => {
       empty: '没有可用的技能',
       noResults: '没有匹配项',
     })
-    expect(popup.searchMode).toBe('fuzzy-label')
+    // The shell owns the matching rule now (one multilingual fuzzy filter over
+    // labels, substring over details), so a row states copy and rows only.
+    expect(popup).not.toHaveProperty('searchMode')
   })
 
   it('marks a skill the draft already invokes', async () => {
