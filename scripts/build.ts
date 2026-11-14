@@ -109,6 +109,18 @@ export function buildGates(
       needs: [],
       env,
     })
+    // The better-sidebar plugin's `lib/` is gitignored upstream too, and the
+    // web composition mounts it by name; the same content-addressed build
+    // keeps a fresh checkout's boot from failing the plugin's import.
+    gates.push({
+      id: 'better-sidebar',
+      label: 'Better-sidebar plugin build',
+      displayCommand: 'node scripts/build-better-sidebar.mjs',
+      command: process.execPath,
+      args: [resolve(root, 'scripts', 'build-better-sidebar.mjs')],
+      needs: [],
+      env,
+    })
     for (const step of libraryBuildSteps(root, 'all')) {
       gates.push(libraryGate(step, step.id === 'host-src' ? ['native', ...step.needs] : step.needs, env))
     }
