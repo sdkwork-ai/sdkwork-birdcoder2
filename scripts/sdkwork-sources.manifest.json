@@ -44,7 +44,7 @@
     {
       "name": "sdkwork-membership",
       "url": "https://github.com/sdkwork-ai/sdkwork-membership.git",
-      "commit": "1028fe7ddd00eb7cba52bdc129f61465c5ea6787"
+      "commit": "00cf902b432103d85450f55466f6f321b316241f"
     },
     {
       "name": "sdkwork-cloudrouter",

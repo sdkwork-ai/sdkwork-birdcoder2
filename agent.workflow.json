@@ -291,7 +291,7 @@
     {
       "id": "sdkwork-membership",
       "repository": "sdkwork-ai/sdkwork-membership",
-      "ref": "1028fe7ddd00eb7cba52bdc129f61465c5ea6787",
+      "ref": "00cf902b432103d85450f55466f6f321b316241f",
       "refInput": "SDKWORK_MEMBERSHIP_REF",
       "tokenSecret": "SDKWORK_RELEASE_TOKEN"
     },
