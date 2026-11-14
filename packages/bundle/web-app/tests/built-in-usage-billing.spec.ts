@@ -21,8 +21,7 @@ import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import * as yaml from 'js-yaml'
-import { entryListSchema } from '@deepseek-ai/cordis-plugin-include'
+import { parseEntryYaml } from '@deepseek-ai/cordis-plugin-include'
 import type { EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
 
 /** Loader row id and npm name of the built-in usage billing plugin. */
@@ -54,7 +53,7 @@ const require = createRequire(import.meta.url)
  * @returns the addressed rows.
  */
 function rows(path: string = patchPath): EntryOptions[] {
-  const parsed = yaml.load(readFileSync(path, 'utf8'), { schema: entryListSchema }) as
+  const parsed = parseEntryYaml(readFileSync(path, 'utf8')) as
     | ({ insert?: EntryOptions[] } & EntryOptions)[]
     | undefined
   return (parsed ?? []).flatMap(patch => patch.insert === undefined ? [patch] : patch.insert)

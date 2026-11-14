@@ -6,6 +6,9 @@ settings:
 
 catalogs:
   default:
+    '@monaco-editor/react':
+      specifier: ^4.7.0
+      version: 4.7.0
     '@tailwindcss/node':
       specifier: ^4.1.14
       version: 4.3.5
@@ -15,15 +18,54 @@ catalogs:
     '@tailwindcss/vite':
       specifier: ^4.3.3
       version: 4.3.5
+    '@testing-library/dom':
+      specifier: 10.4.1
+      version: 10.4.1
+    '@testing-library/jest-dom':
+      specifier: ^7.0.1
+      version: 7.0.1
+    '@testing-library/react':
+      specifier: 16.3.2
+      version: 16.3.2
+    '@tiptap/core':
+      specifier: ^3.23.4
+      version: 3.33.1
+    '@tiptap/extension-placeholder':
+      specifier: ^3.23.4
+      version: 3.33.1
+    '@tiptap/pm':
+      specifier: ^3.23.4
+      version: 3.33.1
+    '@tiptap/react':
+      specifier: ^3.23.4
+      version: 3.33.1
+    '@tiptap/starter-kit':
+      specifier: ^3.23.4
+      version: 3.33.1
+    '@types/qrcode':
+      specifier: ^1.5.6
+      version: 1.5.6
+    '@types/react':
+      specifier: 19.2.18
+      version: 19.2.18
+    '@types/react-dom':
+      specifier: 19.2.5
+      version: 19.2.5
     '@vitejs/plugin-react':
       specifier: ^6.0.5
       version: 6.3.0
     clsx:
       specifier: ^2.1.1
       version: 2.1.1
+    emoji-picker-react:
+      specifier: ^4.18.0
+      version: 4.22.3
     i18next:
       specifier: ^26.3.6
       version: 26.7.2
+    jsdom:
+      specifier: 29.1.1
+      version: 29.1.1
     lucide-react:
       specifier: ^1.31.0
       version: 1.72.0
@@ -57,12 +99,18 @@ catalogs:
     tailwindcss-animate:
       specifier: ^1.0.7
       version: 1.0.7
+    tsx:
+      specifier: ^4.23.12
+      version: 4.23.13
     typescript:
       specifier: ^6.0.2
       version: 6.0.3
     vite:
       specifier: ^8.0.3
       version: 8.2.2
+    vite-plugin-dts:
+      specifier: ^5.0.3
+      version: 5.1.2
     vitest:
       specifier: ^4.1.10
       version: 4.1.11
@@ -8099,6 +8147,9 @@ importers:
       deepseekbot:
         specifier: workspace:*
         version: link:../../../plugins/sdkwork-deepseekbot/packages/deepseekbot
+      dsh-better-sidebar:
+        specifier: workspace:*
+        version: link:../../../plugins/dsh-better-sidebar
       dsh-mcp-connector:
         specifier: workspace:*
         version: link:../../../plugins/dsh-mcp-connector
@@ -8175,9 +8226,6 @@ importers:
       '@deepseek-ai/libreoffice-kit':
         specifier: 0.2.3
         version: 0.2.3
-      dsh-better-sidebar:
-        specifier: workspace:*
-        version: link:../../../plugins/dsh-better-sidebar
 
   packages/client/connection:
     dependencies:
@@ -51672,7 +51720,7 @@ snapshots:
       obug: 2.1.3
       std-env: 4.1.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+      vitest: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
 
   '@vitest/expect@3.2.7':
     dependencies:

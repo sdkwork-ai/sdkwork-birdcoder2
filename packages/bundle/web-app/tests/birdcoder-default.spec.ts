@@ -8,8 +8,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import * as yaml from 'js-yaml'
-import { entryListSchema } from '@deepseek-ai/cordis-plugin-include'
+import { parseEntryYaml } from '@deepseek-ai/cordis-plugin-include'
 import type { EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
 import { resolveProfiles } from '../../../llm/llm-pi-ai/src/config.ts'
 import type { PiAiProviderProfile } from '../../../llm/llm-pi-ai/src/config.ts'
@@ -18,7 +17,7 @@ const patchPath = fileURLToPath(new URL('../cordis.patch.yml', import.meta.url))
 
 /** Every row the patch list inserts or addresses, in composition order. */
 function rows(): EntryOptions[] {
-  const parsed = yaml.load(readFileSync(patchPath, 'utf8'), { schema: entryListSchema }) as
+  const parsed = parseEntryYaml(readFileSync(patchPath, 'utf8')) as
     | ({ insert?: EntryOptions[] } & EntryOptions)[]
     | undefined
   return (parsed ?? []).flatMap(patch => patch.insert === undefined ? [patch] : patch.insert)

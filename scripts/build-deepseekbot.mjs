@@ -16,7 +16,7 @@
 
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -86,6 +86,52 @@ function directoryFiles(path) {
 }
 
 /**
+ * Every workspace-linked package the bundle inlines, reachable through the
+ * three runtime packages' `node_modules` links. tsdown bundles each
+ * workspace-linked dependency (their package exports point at built `lib/`),
+ * so a repository-side change to an inlined package must rebuild the plugin
+ * even though nothing under `plugins/sdkwork-deepseekbot` changed.
+ * @returns absolute paths of hashed manifests and built trees, one per linked package.
+ */
+function linkedWorkspaceInputs() {
+  const inputs = []
+  const visited = new Set()
+  const roots = ['core', 'client', 'deepseekbot'].map(name => join(PLUGIN, 'packages', name, 'node_modules'))
+  for (let next = roots.shift(); next !== undefined; next = roots.shift()) {
+    if (!existsSync(next)) continue
+    for (const entry of readdirSync(next, { withFileTypes: true })) {
+      const links = entry.isDirectory() && entry.name.startsWith('@')
+        ? readdirSync(join(next, entry.name), { withFileTypes: true })
+            .map(child => join(next, entry.name, child.name))
+        : [join(next, entry.name)]
+      for (const link of links) {
+        let real
+        try {
+          real = realpathSync.native(link)
+        } catch {
+          // A broken link resolves at load time, not here; skip it.
+          continue
+        }
+        // npm dependencies resolve into pnpm's virtual store and are covered by
+        // the plugin's own lockfile; only workspace links inline repository sources.
+        if (visited.has(real) || real.includes(`${sep}.pnpm${sep}`)) continue
+        visited.add(real)
+        const manifest = join(real, 'package.json')
+        if (!existsSync(manifest)) continue
+        inputs.push(manifest)
+        for (const built of ['lib', 'dist']) {
+          const tree = join(real, built)
+          if (existsSync(tree)) inputs.push(...directoryFiles(tree))
+        }
+        const nested = join(real, 'node_modules')
+        if (existsSync(nested)) roots.push(nested)
+      }
+    }
+  }
+  return inputs
+}
+
+/**
  * Hash every build input into one digest.
  * @returns digest of the sorted input paths and their contents.
  */
@@ -93,6 +139,7 @@ function inputDigest() {
   const files = [
     ...SOURCE_DIRECTORIES.flatMap(directoryFiles),
     ...SOURCE_FILES.filter(path => existsSync(path)),
+    ...linkedWorkspaceInputs(),
   ].sort()
   const digest = createHash('sha256')
   for (const path of files) digest.update(`${relativePath(path)}\0${fileDigest(path)}\n`)
