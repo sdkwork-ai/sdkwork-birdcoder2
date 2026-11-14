@@ -123,9 +123,14 @@ export interface Config {
   webSurface: boolean
 }
 
-export const Config: zod.ZodType<Config> = zod.object({
-  webSurface: zod.boolean().default(true),
-})
+export const Config: zod.ZodType<Config> = zod
+  .object({
+    webSurface: zod.boolean().default(true),
+  })
+  // Rows that declare no config validate against the defaults, so a
+  // composition mounting the plugin without a config block keeps the
+  // web-surface registration.
+  .default({ webSurface: true })
 
 /**
  * Register the two sections, their runtime-context values, and the
