@@ -81,7 +81,7 @@ async function promptLoop(systemPromptUpdate: SystemPromptUpdate | undefined) {
   await mountAgentLoopTestDependencies(ctx)
   const adapter = new RecordingAdapter(systemPromptUpdate)
   ctx.llm.registerAdapter([ROUTE.provider], adapter)
-  await ctx.plugin(HarnessDevContext)
+  await ctx.plugin(HarnessDevContext, { webSurface: true })
   const harness = await mountAgentLoopTestHarness(ctx)
   /** Resume the Session's complete log under a new Agent, as a restarted process does. */
   const resume = async (session: Session, id: string): Promise<Agent> => (await ctx.agents.create({
@@ -136,7 +136,7 @@ describe('harness-dev-context', () => {
     onTestFinished(() => ctx.fiber.dispose())
     provideWebServices(ctx)
     await mountAgentLoopTestDependencies(ctx)
-    const fiber = ctx.plugin(HarnessDevContext)
+    const fiber = ctx.plugin(HarnessDevContext, { webSurface: true })
     await fiber
     const assembly = await ctx.systemPrompt.assemble()
     expect(assembly.sections.filter(entry => entry.name === 'harness:source' || entry.name === 'app:web-surface')

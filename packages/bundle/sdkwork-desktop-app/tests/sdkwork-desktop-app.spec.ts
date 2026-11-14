@@ -28,6 +28,7 @@ import {
   type ProfileContext,
 } from '@deepseek-ai/dsh-app-boot'
 import { PROFILE_TEMPLATES } from '@deepseek-ai/dsh-official-bundles'
+import type { Context } from '@deepseek-ai/cordis'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
 import { apply as applyDesktopAuthentication, inject as desktopAuthenticationInject } from '@deepseek-ai/dsh-host-authentication-desktop'
 import { DSH_LAUNCH_ENVIRONMENT_KEY } from '@deepseek-ai/dsh-launch-environment'
