@@ -667,6 +667,7 @@
       "@sdkwork/membership-sdk-ports": ["../sdkwork-membership/apps/sdkwork-membership-common/packages/sdkwork-membership-sdk-ports/src/index.ts"],
       "@sdkwork/membership-service": ["../sdkwork-membership/apps/sdkwork-membership-common/packages/sdkwork-membership-service/src/index.ts"],
       "@sdkwork/memory-app-sdk": ["../sdkwork-memory/sdks/sdkwork-memory-app-sdk/sdkwork-memory-app-sdk-typescript/src/index.ts"],
+      "@sdkwork/memory-backend-sdk": ["../sdkwork-memory/sdks/sdkwork-memory-backend-sdk/sdkwork-memory-backend-sdk-typescript/src/index.ts"],
       "@sdkwork/memory-pc-commons": ["../sdkwork-memory/apps/sdkwork-memory-pc/packages/sdkwork-memory-pc-commons/src/index.ts"],
       "@sdkwork/messaging-app-sdk": ["../sdkwork-messaging/sdks/sdkwork-messaging-app-sdk/sdkwork-messaging-app-sdk-typescript/src/index.ts"],
       "@sdkwork/messaging-backend-sdk": ["../sdkwork-messaging/sdks/sdkwork-messaging-backend-sdk/sdkwork-messaging-backend-sdk-typescript/src/index.ts"],
