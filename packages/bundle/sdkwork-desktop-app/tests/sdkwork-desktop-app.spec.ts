@@ -29,6 +29,7 @@ import {
 } from '@deepseek-ai/dsh-app-boot'
 import { PROFILE_TEMPLATES } from '@deepseek-ai/dsh-official-bundles'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
+import { apply as applyDesktopAuthentication, inject as desktopAuthenticationInject } from '@deepseek-ai/dsh-host-authentication-desktop'
 import { DSH_LAUNCH_ENVIRONMENT_KEY } from '@deepseek-ai/dsh-launch-environment'
 import { InProcessApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
 import type { DesktopBridgeHost } from '@deepseek-ai/dsh-sdkwork-api-gateway/desktop'
@@ -73,7 +74,7 @@ async function stageHome(): Promise<{ configPath: string; profileDir: string }> 
   return { configPath: join(profileDir, 'cordis.yml'), profileDir }
 }
 
-async function bootDesktop(): Promise<{ ctx: Awaited<ReturnType<typeof boot>>; bridge: DesktopBridgeHost }> {
+async function bootDesktop(): Promise<{ ctx: Awaited<ReturnType<typeof boot>>; bridge: DesktopBridgeHost; desktopSecret: string }> {
   const { configPath, profileDir } = await stageHome()
   const profile = loadProfile(NAME, PROFILE, INSTALL_ANCHOR, workdir ?? '')
   const desktopLayer = loadBundleLayer(NAME, DESKTOP_OVERLAY_BUNDLE, INSTALL_ANCHOR, profileDir)
@@ -121,7 +122,7 @@ async function bootDesktop(): Promise<{ ctx: Awaited<ReturnType<typeof boot>>; b
   if (carrier === undefined) throw new Error('webServer service missing after desktop boot')
   const bridge = ctx.get('desktopBridge') as DesktopBridgeHost | undefined
   if (bridge === undefined) throw new Error('desktopBridge service missing after desktop boot')
-  return { ctx, bridge }
+  return { ctx, bridge, desktopSecret }
 }
 
 maybeDescribe('desktop composition over the Web profile', () => {
@@ -130,7 +131,7 @@ maybeDescribe('desktop composition over the Web profile', () => {
   // Windows gate machines; these are integration tests, not unit tests.
   vi.setConfig({ testTimeout: 120_000 })
   it('swaps the HTTP webserver for the desktop carrier and serves the boot manifest', async () => {
-    const { ctx } = await bootDesktop()
+    const { ctx, desktopSecret } = await bootDesktop()
     try {
       // The Context merge types webServer as the HTTP WebServer; the desktop
       // composition provides the structurally-compatible DesktopWebServer.
@@ -143,7 +144,7 @@ maybeDescribe('desktop composition over the Web profile', () => {
       // requests carry (the dist fallback's index requires an authenticated
       // peer).
       const index = await carrier.dispatch(new Request('http://dsh.internal/index.html', {
-        headers: { cookie: `dsh-desktop-session=${DESKTOP_SECRET}` },
+        headers: { cookie: `dsh-desktop-session=${desktopSecret}` },
       }))
       expect(index.status).toBe(200)
       const html = await index.text()

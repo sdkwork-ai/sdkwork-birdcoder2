@@ -22,7 +22,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { Peer } from '@deepseek-ai/dsh-client-connection'
-import type { WebRoute, WebUpgradeRoute } from '@deepseek-ai/dsh-host-webserver'
+import type { WebFallback, WebResource, WebRoute, WebUpgradeRoute } from '@deepseek-ai/dsh-host-webserver'
 import { renderIndexInjections, type IndexInjection } from '@deepseek-ai/dsh-host-webserver'
 import type { PeerScope } from '@deepseek-ai/dsh-typert-protocol'
 
@@ -95,7 +95,8 @@ export class DesktopWebServer extends Service {
   private readonly prefixes = new Map<string, WebRoute>()
   private readonly upgrades = new Map<string, WebUpgradeRoute>()
   private readonly indexTaps: ((html: string) => string)[] = []
-  private fallback: WebRoute['handler'] | undefined
+  /** The claimed fallback seat, normalized to the HTTP WebServer's object shape. */
+  private fallback: { handler?: WebRoute['handler']; resource?: WebResource; auth?: unknown } | undefined
   /** The minted browser-session cookie; undefined until first minted. */
   private sessionCookie: string | undefined
 
@@ -156,17 +157,20 @@ export class DesktopWebServer extends Service {
   }
 
   /**
-   * Claim the fallback seat: the handler answering every request no named
-   * route matches (the SPA dist server in the shipped composition). One owner
-   * only.
-   * @param handler - owns the full response lifecycle of unmatched requests.
+   * Claim the fallback seat: the handler or resource answering every request
+   * no named route matches (the SPA dist server in the shipped composition —
+   * frontend-static registers a `WebResourceRoute`-shaped `{ resource, auth }`
+   * fallback, the same object the HTTP WebServer accepts). One owner only.
+   * @param route - owns the full response lifecycle of unmatched requests: a
+   *   bare handler, or a resource route whose `resource(request, peer)` runs
+   *   with the dispatch's Fetch request and the carrier's owner Peer.
    * @returns the disposer releasing the seat.
    */
-  registerFallback(handler: WebRoute['handler']): () => void {
+  registerFallback(fallback: WebRoute['handler'] | WebFallback): () => void {
     if (this.fallback !== undefined) {
       throw new Error('sdkwork-desktop-carrier: fallback already registered')
     }
-    this.fallback = handler
+    this.fallback = typeof fallback === 'function' ? { handler: fallback } : fallback
     return () => { this.fallback = undefined }
   }
 
@@ -274,10 +278,25 @@ export class DesktopWebServer extends Service {
       return new Response(null, { status: 400 })
     }
     const route = this.match(pathname)
-    const target = route?.handler ?? this.fallback
-    if (target === undefined) return new Response(null, { status: 404 })
+    const resource = this.fallback?.resource
+    const handler = route?.handler ?? this.fallback?.handler
     const res = new ShimResponse()
     try {
+      if (route === undefined && resource !== undefined) {
+        // Resource fallbacks speak Fetch: the dispatch's own request carries
+        // the method, headers, signal, and (for POST) the streamed body the
+        // resource reads. The Peer is the carrier's owner scope — the shell's
+        // renderer is the trusted first navigation.
+        if (request.method !== 'GET' && request.method !== 'HEAD') {
+          res.writeHead(405, { allow: 'GET, HEAD' })
+          res.end()
+          return res.toResponse()
+        }
+        const response = await resource(request, this.peerScope())
+        return this.writeResourceResponse(res, response, request.method === 'HEAD')
+      }
+      const target = handler
+      if (target === undefined) return new Response(null, { status: 404 })
       // Handlers are typed against node:http req/res; the shims implement the
       // subset the web composition's /api bridge reads (async-iterable body,
       // response close/drain hooks, streamed write/end).
@@ -291,6 +310,24 @@ export class DesktopWebServer extends Service {
       if (res.headersSent) return new Response(null, { status: 500 })
       return new Response(null, { status: 400 })
     }
+  }
+
+  /**
+   * Write one resource route's Fetch response through the response shim.
+   * @param res - the dispatch's response shim.
+   * @param response - the resource's response.
+   * @param head - whether only headers are wanted.
+   * @returns the collected fetch Response.
+   */
+  private async writeResourceResponse(res: ShimResponse, response: Response, head: boolean): Promise<Response> {
+    const headers: Record<string, string> = {}
+    for (const [name, value] of response.headers) headers[name.toLowerCase()] = value
+    res.writeHead(response.status, headers)
+    if (!head && response.body !== null) {
+      for await (const chunk of response.body) res.write(chunk)
+    }
+    res.end()
+    return res.toResponse()
   }
 
   /** Longest-prefix-wins over the prefix table after an exact-table miss. */
