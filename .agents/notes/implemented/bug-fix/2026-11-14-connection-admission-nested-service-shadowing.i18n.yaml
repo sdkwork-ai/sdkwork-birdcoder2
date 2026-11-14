@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-14-connection-admission-nested-service-shadowing.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-11-14-connection-admission-nested-service-shadowing.md
+/agent-note-host-admission-reads-the-authentication-registry-outside-a-nested-service-shadow:
+  en: 4ff8fd14194a312e
+  zh: 41a996cec7fd1e16
+/agent-note-host-admission-reads-the-authentication-registry-outside-a-nested-service-shadow/problem:
+  en: d0974afb62efcb7b
+  zh: 171478d2dccc4c1c
+/agent-note-host-admission-reads-the-authentication-registry-outside-a-nested-service-shadow/decision:
+  en: f7d2475d4b452f8d
+  zh: e8b5d225a83cedb2
+/agent-note-host-admission-reads-the-authentication-registry-outside-a-nested-service-shadow/alternatives-considered:
+  en: 405b2c1350fa540e
+  zh: 5c38c505393d58d8
+/agent-note-host-admission-reads-the-authentication-registry-outside-a-nested-service-shadow/consequences:
+  en: 15a3cf61f91db552
+  zh: 7dc354c2ed195214
+/agent-note-host-admission-reads-the-authentication-registry-outside-a-nested-service-shadow/verification:
+  en: 566cd7b1b2604fd3
+  zh: 2c0fe0f5f6a98e36

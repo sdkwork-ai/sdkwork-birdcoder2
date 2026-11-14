@@ -76,16 +76,29 @@ COPY --from=prebuilt . /src/
 ARG DSH_CLIENT_COMMIT_HASH
 ENV DSH_CLIENT_COMMIT_HASH=${DSH_CLIENT_COMMIT_HASH}
 
+# This stage only assembles tarballs from the tree the runner already built,
+# but `pnpm run` first verifies the installed tree and installs when it looks
+# stale — and inside the image it always does, because `node_modules` was
+# copied here from the runner's checkout. That install runs this repository's
+# postinstall, which rebuilds the assistant client bundle with whatever public
+# environment the image inherited (never the official artifact profile the
+# runner built), and `release:pack` then refuses the result:
+# `client artifacts differ from .dsh-build/client-build-environment.json`
+# (0.2.2-rc.3 container lanes). `--config.verify-deps-before-run=false` is the
+# setting that install consults; it has to be passed on each invocation because
+# pnpm 11 reads this key from the command line, not from `.npmrc`.
+#
 # Install the same tarballs verified by the npm release workflow into an
 # ordinary consumer. npm resolves the Landlock entry's matching public platform
 # package; pnpm deploy cannot materialize the profile's bare plugins and
 # workspace peer dependencies as a complete standalone runtime.
 RUN mkdir -p /packs/dsh /packs/vendor /packs/landlock \
-  && pnpm run release:pack --family dsh --out /packs/dsh \
-  && pnpm run release:pack:assistant --out /packs/dsh \
-  && pnpm run release:pack --family vendor --out /packs/vendor \
-  && pnpm --dir native/system run build:ts \
+  && pnpm --config.verify-deps-before-run=false run release:pack --family dsh --out /packs/dsh \
+  && pnpm --config.verify-deps-before-run=false run release:pack:assistant --out /packs/dsh \
+  && pnpm --config.verify-deps-before-run=false run release:pack --family vendor --out /packs/vendor \
+  && pnpm --config.verify-deps-before-run=false --dir native/system run build:ts \
   && node native/system/scripts/pack-release.mjs /packs/landlock --current-platform-only
+
 # The runtime install requests the members this platform accepts instead of the
 # whole pack set. Some members ship a native provider for one target only and
 # say so in their manifest (`"os": ["darwin"]`); npm refuses a direct request for
@@ -94,7 +107,7 @@ RUN mkdir -p /packs/dsh /packs/vendor /packs/landlock \
 # platform can never host those members, so they stay packed and published for
 # the platforms that can — the selection here decides what the image asks for,
 # not what the release contains.
-RUN packs="$(pnpm exec tsx scripts/release/platform-packs.ts /packs/dsh /packs/vendor /packs/landlock)" \
+RUN packs="$(pnpm --config.verify-deps-before-run=false exec tsx scripts/release/platform-packs.ts /packs/dsh /packs/vendor /packs/landlock)" \
   && mkdir /runtime \
   && cd /runtime \
   && npm init --yes \
