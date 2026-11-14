@@ -11,6 +11,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { EnvServiceLike, IamServiceLike } from './token-plan-service.ts'
 import { TokenPlanService } from './token-plan-service.ts'
 import { createTokenPlanCommerceComponents } from './commerce-components.tsx'
+import type { TokenPlanKey } from './locales.ts'
 import css from './TokenPlanPage.module.css'
 import './tokenPlan.css'
 
@@ -90,9 +91,22 @@ export function TokenPlanPage({ mode, env, iam, theme, t }: TokenPlanPageProps) 
   // surface re-bootstraps only when the deployment itself changes, not on a
   // locale or theme render.
   const teamPort = service.isConfigured() ? service.readTeamSubscriptionPort() : undefined
+  // The shared team surface looks up `token_plan.*` keys; this host publishes the
+  // organization/seat copy under the same keys, so the unbound purchase and the
+  // organization bind step are localized instead of falling back to the shared
+  // Chinese defaults.
+  const teamTranslate = useCallback(
+    (key: string, defaultValue: string) => {
+      const translated = t(key as TokenPlanKey)
+      // The locale service echoes the key when the namespace has no entry; the
+      // shared surface's default copy is the correct fallback in that case.
+      return translated === key ? defaultValue : translated
+    },
+    [t],
+  )
   const team = useMemo<SdkworkSubscriptionCatalogTeamProps | undefined>(
-    () => (teamPort === undefined ? undefined : { port: teamPort }),
-    [teamPort],
+    () => (teamPort === undefined ? undefined : { port: teamPort, translate: teamTranslate }),
+    [teamPort, teamTranslate],
   )
 
   return (

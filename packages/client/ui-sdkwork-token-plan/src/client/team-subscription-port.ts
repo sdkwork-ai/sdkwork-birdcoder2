@@ -310,11 +310,29 @@ export function createTokenPlanTeamSubscriptionPort(
     },
 
     /**
+     * Binds the caller's paid-but-unbound team subscription to an organization.
+     *
+     * Business rule: a team subscription can be bought before any organization
+     * exists. The membership endpoint answers that unbound purchase
+     * (`organizationBindingStatus: 'unbound'`, empty `organizationId`) and this
+     * call consumes it after IAM authorizes the caller's `TEAM_SEAT_MANAGE`
+     * capability in the target organization.
+     */
+    async bindOrganization(organizationId: string): Promise<SdkworkTeamSubscriptionOverview> {
+      try {
+        return await memberships().teamSubscription.bind({ organizationId })
+      } catch (error) {
+        throw normalizeSdkworkTeamError(error)
+      }
+    },
+
+    /**
      * Starts the order-owned membership checkout for a team plan.
      *
      * `quantity` is the seat count of the requested action: the total seat
      * count for a first `purchase`, or the number of ADDITIONAL seats for
-     * `add_seats`.
+     * `add_seats`. A `purchase` needs no organization: the paid order is
+     * fulfilled as an unbound team subscription and bound afterwards.
      */
     async startCheckout(teamCheckout: SdkworkTeamCheckoutInput): Promise<SdkworkTeamCheckoutPayment> {
       try {

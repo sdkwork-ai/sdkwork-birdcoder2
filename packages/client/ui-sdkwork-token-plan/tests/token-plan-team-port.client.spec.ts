@@ -8,6 +8,8 @@ import { describe, expect, it, vi } from 'vitest'
 
 const membershipState = {
   overviewIssue: undefined as unknown,
+  bindIssue: undefined as unknown,
+  unboundOverview: false,
   packagePages: [] as Array<{ items: unknown[]; pageInfo: { hasMore: boolean } }>,
   seatPages: [] as Array<{ hasMore?: boolean; items: unknown[] }>,
   calls: [] as Array<{ method: string; args: unknown[] }>,
@@ -64,9 +66,35 @@ vi.mock('@sdkwork/membership-app-sdk', () => ({
         },
       },
       teamSubscription: {
+        bind: async (body: { organizationId: string }) => {
+          membershipState.calls.push({ method: 'teamSubscription.bind', args: [body] })
+          if (membershipState.bindIssue !== undefined) throw membershipState.bindIssue
+          return {
+            autoAssignSeat: true,
+            hasSubscription: true,
+            organizationBindingStatus: 'bound',
+            organizationId: body.organizationId,
+            seatPolicy: 'strict',
+            seatsAvailable: 5,
+            seatsPurchased: 5,
+            seatsUsed: 0,
+          }
+        },
         retrieve: async () => {
           membershipState.calls.push({ method: 'teamSubscription.retrieve', args: [] })
           if (membershipState.overviewIssue !== undefined) throw membershipState.overviewIssue
+          if (membershipState.unboundOverview) {
+            return {
+              autoAssignSeat: true,
+              hasSubscription: true,
+              organizationBindingStatus: 'unbound',
+              organizationId: '',
+              seatPolicy: 'strict',
+              seatsAvailable: 5,
+              seatsPurchased: 5,
+              seatsUsed: 0,
+            }
+          }
           return {
             autoAssignSeat: true,
             hasSubscription: true,
@@ -285,6 +313,64 @@ describe('desktop team subscription port', () => {
       seatsUsed: 3,
     })
     expect(membershipState.calls.some(call => call.method === 'teamSeats.reconcile')).toBe(true)
+  })
+
+  it('binds the unbound team subscription to the selected organization', async () => {
+    membershipState.bindIssue = undefined
+    membershipState.calls.length = 0
+    const port = createPort()
+
+    const bound = await port.bindOrganization('org-team')
+
+    expect(bound).toMatchObject({
+      organizationBindingStatus: 'bound',
+      organizationId: 'org-team',
+      seatsPurchased: 5,
+    })
+    const bindCall = membershipState.calls.find(call => call.method === 'teamSubscription.bind')
+    expect(bindCall?.args).toEqual([{ organizationId: 'org-team' }])
+  })
+
+  it('normalizes a bind conflict into the shared failure vocabulary', async () => {
+    membershipState.bindIssue = Object.assign(new Error('conflict'), {
+      httpStatus: 409,
+      problem: {
+        code: 40901,
+        detail: 'organization already subscribed',
+        reason: 'team_organization_already_subscribed',
+        status: 409,
+      },
+    })
+    const port = createPort()
+
+    await expect(port.bindOrganization('org-team')).rejects.toMatchObject({
+      httpStatus: 409,
+      reason: 'team_organization_already_subscribed',
+    })
+    membershipState.bindIssue = undefined
+  })
+
+  it('reports the unbound state and buys a team plan without an organization', async () => {
+    membershipState.unboundOverview = true
+    checkoutCalls.length = 0
+    const port = createPort()
+
+    const overview = await port.getOverview()
+    expect(overview).toMatchObject({
+      hasSubscription: true,
+      organizationBindingStatus: 'unbound',
+      organizationId: '',
+    })
+
+    // A first team purchase carries no organization: the seat count is the whole
+    // order quantity and the backend fulfils it as an unbound subscription.
+    await port.startCheckout({ action: 'purchase', packageId: '42', seats: 5 })
+    expect(checkoutCalls[0]).toMatchObject({
+      action: 'purchase',
+      packageId: 42,
+      quantity: 5,
+    })
+    membershipState.unboundOverview = false
   })
 
   it('switches the organization through the IAM selection and refreshes the session', async () => {
