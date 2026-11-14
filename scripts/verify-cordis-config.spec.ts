@@ -15,6 +15,7 @@ import {
   metadataExpressionErrors,
   packageTestFixtureDependencyErrors,
   packageTestPluginDependencyErrors,
+  readLoaderYaml,
 } from './verify-cordis-config.ts'
 
 describe('verify-cordis-config metadata expressions', () => {
@@ -162,6 +163,32 @@ describe('package-owned Loader test dependency closures', () => {
     try {
       expect(packageTestFixtureDependencyErrors(fixture)).toEqual([
         'package test fixture dependency scan found no package-owned Loader configs',
+      ])
+    } finally {
+      rmSync(fixture, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('Windows materialized-symlink reads', () => {
+  it('follows a symlink the checkout materialized as plain text and rejects a missing target', () => {
+    const fixture = mkdtempSync(join(tmpdir(), 'dsh-materialized-symlink-'))
+    try {
+      const profilesDir = join(fixture, 'apps/cli/tests/profiles/acp')
+      const snapshotDir = join(fixture, 'snapshots/acp/escalation-approved')
+      mkdirSync(profilesDir, { recursive: true })
+      mkdirSync(snapshotDir, { recursive: true })
+      writeFileSync(join(snapshotDir, 'cordis.yml'), '- id: llm-deepseek\n')
+      // `core.symlinks=false` writes the stored target as the file's whole content.
+      writeFileSync(join(profilesDir, 'cordis.yml'), '../../../../../snapshots/acp/escalation-approved/cordis.yml')
+      const errors: string[] = []
+      const document = readLoaderYaml(fixture, 'apps/cli/tests/profiles/acp/cordis.yml', errors)
+      expect(errors).toEqual([])
+      expect(document).toEqual('- id: llm-deepseek\n')
+      writeFileSync(join(profilesDir, 'dangling.yml'), '../missing/cordis.yml')
+      expect(readLoaderYaml(fixture, 'apps/cli/tests/profiles/acp/dangling.yml', errors)).toBeUndefined()
+      expect(errors).toEqual([
+        'apps/cli/tests/profiles/acp/dangling.yml: checkout materialized this symlink as text and its target ../missing/cordis.yml is missing',
       ])
     } finally {
       rmSync(fixture, { recursive: true, force: true })

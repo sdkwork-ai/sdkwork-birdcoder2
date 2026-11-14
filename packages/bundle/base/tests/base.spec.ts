@@ -56,10 +56,7 @@ describe('dsh-base bundle', () => {
   // `oem` injection that makes its `!!js` expression wait for the service.
   it('feeds the DeepSeek origins and endpoint bases from the OEM profile', () => {
     const root = fileURLToPath(new URL('..', import.meta.url))
-    const parsed = yaml.load(
-      readFileSync(resolve(root, 'cordis.patch.yml'), 'utf8'),
-      { schema: entryListSchema },
-    )
+    const parsed = parseEntryYaml(readFileSync(resolve(root, 'cordis.patch.yml'), 'utf8'))
     if (!Array.isArray(parsed)) throw new TypeError('base patch must parse to a patch list')
     const rows = parsed.flatMap((patch): Record<string, unknown>[] =>
       typeof patch === 'object' && patch !== null

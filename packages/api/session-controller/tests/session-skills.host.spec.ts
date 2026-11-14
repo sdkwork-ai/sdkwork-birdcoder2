@@ -305,7 +305,7 @@ describe('SessionSkillCatalog', () => {
 
   it('prefers the session view when a request carries both selectors', async () => {
     const ctx = await context()
-    const sessionId = SessionId('both-selectors')
+    const sessionId = brandString<SessionId>('both-selectors')
     ctx.provide('sessionQuery', {
       observeSession: () => Promise.resolve(observation(sessionId, { cwd: '/project' })),
     } as never)
@@ -321,7 +321,7 @@ describe('SessionSkillCatalog', () => {
 
   it('collapses every provider source onto the closed wire vocabulary', async () => {
     const ctx = await context()
-    const sessionId = SessionId('sources')
+    const sessionId = brandString<SessionId>('sources')
     ctx.provide('sessionQuery', {
       observeSession: () => Promise.resolve(observation(sessionId, { cwd: '/project' })),
     } as never)

@@ -69,8 +69,9 @@ if (import.meta.main) {
   const files = cordisConfigFiles(root)
 
   for (const file of files) {
-    const document = loadCordisYaml(readLoaderYaml(root, file, errors))
-    if (document === undefined) continue
+    const text = readLoaderYaml(root, file, errors)
+    if (text === undefined) continue
+    const document = loadCordisYaml(text)
     if (!isUnknownArray(document)) {
       errors.push(`${file}: root must be a Loader entry array`)
       continue
@@ -478,11 +479,9 @@ function validateSourcePlaneResolution(): string[] {
  * @param repoRoot Repository root.
  * @param file Repository-relative config path.
  * @param errors Collector for read failures; a failure yields `undefined`.
- * @returns the parsed YAML document, or `undefined` when the read failed.
+ * @returns the YAML text to parse, or `undefined` when the read failed.
  */
-export function readLoaderYaml(
-  repoRoot: string, file: string, errors: string[],
-): ReturnType<typeof loadCordisYaml> {
+export function readLoaderYaml(repoRoot: string, file: string, errors: string[]): string | undefined {
   let text = readFileSync(resolve(repoRoot, file), 'utf8')
   const trimmed = text.trim()
   if (/^[^\s]+\.(?:ya?ml)$/.test(trimmed) && !trimmed.startsWith('[')) {
@@ -493,7 +492,7 @@ export function readLoaderYaml(
     }
     text = readFileSync(target, 'utf8')
   }
-  return loadCordisYaml(text)
+  return text
 }
 
 function missingPluginDependencies(

@@ -1,56 +1,42 @@
 /**
- * Desktop app:// protocol trust regression: renderer fetch that bypasses IPC
- * must pass the same /api trust fence as loopback-normalized IPC traffic.
+ * Desktop /api trust regression: renderer traffic that bypasses the IPC
+ * carriers must pass the same /api trust fence as loopback-normalized IPC.
  *
- * Surfaces audited:
- * - Unary RPC, respond, generic Connection channels, event streams: IPC /
- *   WebSocket carriers (not raw app:// fetch).
- * - session.export HEAD/GET: raw renderer fetch over app:// (Session log export).
- * - Static assets and plugin bundles: app:// routes outside /api (no fence).
+ * The two renderer surfaces and their fences:
+ * - `desktopBridge.fetch` — the Electron main process wires IPC to it; the
+ *   loopback rewrite in the app's ipc.ts is the IPC-side normalization, and
+ *   the bridge dispatches as the owner Peer without the HTTP fence.
+ * - Raw renderer fetch — the shell forwards `dsh-app://app` requests to the
+ *   Host's loopback HTTP listener through `forwardWebRequest` (the shell
+ *   rejects every other origin and strips `origin`/`host`/`sec-fetch-site`),
+ *   and the Host answers through the webserver fence plus the desktop Host's
+ *   private `dsh-desktop-session` credential.
  */
 
-import { EventEmitter } from 'node:events'
-import { Readable } from 'node:stream'
 import { describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import type { IncomingMessage, ServerResponse } from 'node:http'
-import DesktopWebServer, { Config as DesktopConfig } from '@deepseek-ai/dsh-sdkwork-desktop-carrier'
-import type { CredentialProvider } from '@deepseek-ai/dsh-credentials'
+import WebServer from '@deepseek-ai/dsh-host-webserver'
 import type { ApiProxy } from '@deepseek-ai/dsh-host-apiproxy/api'
 import { RpcId } from '@deepseek-ai/dsh-host-apiproxy/api'
-import type { HostConnectionHandle } from '@deepseek-ai/dsh-client-connection'
 import { apply as applyConnection, inject as connectionInject } from '@deepseek-ai/dsh-client-connection'
+import { apply as applyDesktopAuthentication, inject as desktopAuthenticationInject } from '@deepseek-ai/dsh-host-authentication-desktop'
 import { apply as applyGateway, name as gatewayName } from '../src/index.ts'
 import { apply as applyDesktopConnection, inject as desktopConnectionInject } from '../src/desktop.ts'
+import { forwardWebRequest } from '../../../../apps/desktop/src/web-document.ts'
 
-const APP_ORIGIN = 'app://dsh'
+/** The shell origin `forwardWebRequest` admits; every other origin is refused. */
+const APP_ORIGIN = 'dsh-app://app'
 const SESSION_ID = 'session-desktop-trust'
 
-/** Mutable credential-record double for Connection authentication setup. */
-class RecordCredentials {
-  record: unknown = undefined
+/** The desktop Host's private session credential: the parent process validates
+ * it over its own IPC channel and the Host accepts it as an ordinary cookie
+ * (`packages/host/authentication-desktop`), so the spec presents the same
+ * `dsh-desktop-session` credential the shipped main process presents. */
+const DESKTOP_SECRET = 'A'.repeat(43)
 
-  readRecord(): Promise<unknown> {
-    return Promise.resolve(this.record)
-  }
-
-  async modifyRecord(
-    _key: unknown,
-    mutate: (current: unknown) => Promise<unknown>,
-  ): Promise<unknown> {
-    this.record = await mutate(this.record)
-    return this.record
-  }
-
-  deleteRecord(): Promise<void> {
-    this.record = undefined
-    return Promise.resolve()
-  }
-}
-
-/** Provide the record operations Connection needs during authentication setup. */
-function provideBrowserCredentials(ctx: Context): void {
-  ctx.provide('credentials', new RecordCredentials() as unknown as CredentialProvider)
+/** The cookie header the shipped desktop renderer fetches carry. */
+function desktopCookie(): string {
+  return `dsh-desktop-session=${DESKTOP_SECRET}`
 }
 
 /** Minimal apiProxy stub covering session.export and one privileged unary route. */
@@ -71,51 +57,25 @@ function stubApiProxy(): ApiProxy {
     downloads: {
       sessionLog: async () => new Response('zip-bytes', {
         status: 200,
-        headers: {
-          'content-type': 'application/zip',
-          'content-disposition': `attachment; filename="dsh-session-${SESSION_ID}.zip"`,
-        },
+        headers: { 'content-type': 'application/zip', 'content-disposition': `attachment; filename="dsh-session-${SESSION_ID}.zip"` },
       }),
     },
   } as unknown as ApiProxy
 }
 
-/** Mint the browser cookie bound to the carrier's IPC-normalized 127.0.0.1 authority. */
-function desktopCookie(connection: HostConnectionHandle): string {
-  const url = new URL(connection.authenticatedUrl('http://127.0.0.1'))
-  const state: { headers?: Record<string, string> } = {}
-  const response = Object.assign(new EventEmitter(), {
-    writeHead(status: number, headers?: Record<string, string>) {
-      void status
-      if (headers !== undefined) state.headers = headers
-      return response
-    },
-    write() { return true },
-    end() { return response },
-  }) as unknown as ServerResponse & { writableEnded?: boolean }
-  connection.authorizeIndex(
-    Object.assign(Readable.from([]) as unknown as IncomingMessage, {
-      url: `${url.pathname}${url.search}`, method: 'GET', headers: { host: '127.0.0.1' },
-    }),
-    response,
-  )
-  const setCookie = state.headers?.['set-cookie']
-  if (setCookie === undefined) throw new Error('browser token exchange did not set a cookie')
-  return setCookie.split(';', 1)[0]!
-}
-
 async function mountedDesktopApi(): Promise<{
-  carrier: DesktopWebServer
+  origin: string
   ctx: Context
   cookie: string
   dispose: () => Promise<void>
 }> {
   const ctx = new Context()
-  const carrier = new DesktopWebServer(ctx, new DesktopConfig({ host: '127.0.0.1', port: 0 }))
+  // The raw-fetch surface is the Host's loopback HTTP listener: the shell's
+  // forwardWebRequest proxies `dsh-app://app` traffic to it, so the spec mounts
+  // the ordinary webserver composition the desktop Host runs. The carrier is
+  // the in-process dispatch service the bridge tests read separately.
+  await ctx.plugin(WebServer, { host: '127.0.0.1', port: 0 }).await()
   ctx.provide('apiProxy', stubApiProxy())
-  // The merged Connection mounts BrowserAuth: the credential record double
-  // stands in for the OS keychain (same pattern as node-half.host.spec).
-  provideBrowserCredentials(ctx)
   // Mount in two fibers: desktop-connection injects `connection`, which
   // applyConnection creates — a single combined inject would fail before apply.
   const connectionFiber = ctx.plugin({ inject: connectionInject, apply: applyConnection })
@@ -125,11 +85,19 @@ async function mountedDesktopApi(): Promise<{
   await gatewayFiber.await()
   const desktopFiber = ctx.plugin({ inject: desktopConnectionInject, apply: applyDesktopConnection })
   await desktopFiber.await()
+  // The desktop Host's private credential verifier accepts the shared-secret
+  // cookie (the shipped main process delivers it over the parent IPC channel).
+  const authenticationFiber = ctx.plugin({
+    inject: desktopAuthenticationInject,
+    apply: (scope: Context) => applyDesktopAuthentication(scope, { readSecret: () => DESKTOP_SECRET }),
+  })
+  await authenticationFiber.await()
   return {
-    carrier,
+    origin: ctx.webServer.getOrigin(),
     ctx,
-    cookie: desktopCookie(ctx.get('connection') as HostConnectionHandle),
+    cookie: desktopCookie(),
     dispose: async () => {
+      await authenticationFiber.dispose()
       await gatewayFiber.dispose()
       await desktopFiber.dispose()
       await connectionFiber.dispose()
@@ -137,11 +105,11 @@ async function mountedDesktopApi(): Promise<{
   }
 }
 
-function appRequest(path: string, init?: RequestInit): Request {
+/** One renderer fetch exactly as the app:// protocol handler receives it. */
+function rendererRequest(path: string, init?: RequestInit): Request {
   return new Request(`${APP_ORIGIN}${path}`, {
     ...init,
     headers: {
-      host: 'dsh',
       origin: APP_ORIGIN,
       ...(init?.headers ?? {}),
     },
@@ -160,14 +128,18 @@ function ipcNormalizedRequest(path: string, init?: RequestInit): Request {
   })
 }
 
-describe('desktop app:// /api trust (renderer fetch bypassing IPC)', () => {
-  it('allows session.export HEAD preflight from app://dsh', async () => {
-    const { carrier, cookie, dispose } = await mountedDesktopApi()
+function unaryBody(rpcId: string, method: string): string {
+  return JSON.stringify({ type: 'client-request', rpcId: RpcId(rpcId), method, payload: {} })
+}
+
+describe('desktop /api trust (renderer traffic bypassing IPC)', () => {
+  it('allows session.export HEAD preflight through the forwarded raw fetch', async () => {
+    const { origin, cookie, dispose } = await mountedDesktopApi()
     try {
-      const response = await carrier.dispatch(appRequest(
+      const response = await forwardWebRequest(rendererRequest(
         `/api/session.export?sessionId=${SESSION_ID}&includeDescendants=true`,
-        { method: 'HEAD', headers: { cookie } },
-      ))
+        { method: 'HEAD' },
+      ), origin, cookie)
       expect(response.status).toBe(200)
       expect(response.headers.get('content-type')).toBe('application/zip')
       expect(response.body).toBeNull()
@@ -176,13 +148,13 @@ describe('desktop app:// /api trust (renderer fetch bypassing IPC)', () => {
     }
   })
 
-  it('allows session.export GET download from app://dsh', async () => {
-    const { carrier, cookie, dispose } = await mountedDesktopApi()
+  it('allows session.export GET download through the forwarded raw fetch', async () => {
+    const { origin, cookie, dispose } = await mountedDesktopApi()
     try {
-      const response = await carrier.dispatch(appRequest(
+      const response = await forwardWebRequest(rendererRequest(
         `/api/session.export?sessionId=${SESSION_ID}&includeDescendants=true`,
-        { method: 'GET', headers: { cookie } },
-      ))
+        { method: 'GET' },
+      ), origin, cookie)
       expect(response.status).toBe(200)
       expect(await response.text()).toBe('zip-bytes')
     } finally {
@@ -190,20 +162,14 @@ describe('desktop app:// /api trust (renderer fetch bypassing IPC)', () => {
     }
   })
 
-  it('allows unary POST that would use IPC when sent as raw app:// fetch', async () => {
-    const { carrier, cookie, dispose } = await mountedDesktopApi()
+  it('allows unary POST that would use IPC when sent as raw renderer fetch', async () => {
+    const { origin, cookie, dispose } = await mountedDesktopApi()
     try {
-      const body = JSON.stringify({
-        type: 'client-request',
-        rpcId: RpcId('desktop-trust-list'),
-        method: 'session.list',
-        payload: {},
-      })
-      const response = await carrier.dispatch(appRequest('/api/session.list', {
+      const response = await forwardWebRequest(rendererRequest('/api/session.list', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', cookie },
-        body,
-      }))
+        headers: { 'content-type': 'application/json' },
+        body: unaryBody('desktop-trust-list', 'session.list'),
+      }), origin, cookie)
       expect(response.status).toBe(200)
       const parsed = await response.json() as { rpcId: string; result: { ok: boolean } }
       expect(parsed.rpcId).toBe('desktop-trust-list')
@@ -213,20 +179,14 @@ describe('desktop app:// /api trust (renderer fetch bypassing IPC)', () => {
     }
   })
 
-  it('allows privileged unary POST from app://dsh after loopback Host normalization', async () => {
-    const { carrier, cookie, dispose } = await mountedDesktopApi()
+  it('allows privileged unary POST from the shell origin after normalization', async () => {
+    const { origin, cookie, dispose } = await mountedDesktopApi()
     try {
-      const body = JSON.stringify({
-        type: 'client-request',
-        rpcId: RpcId('desktop-trust-settings'),
-        method: 'settings.describe',
-        payload: {},
-      })
-      const response = await carrier.dispatch(appRequest('/api/settings.describe', {
+      const response = await forwardWebRequest(rendererRequest('/api/settings.describe', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', cookie },
-        body,
-      }))
+        headers: { 'content-type': 'application/json' },
+        body: unaryBody('desktop-trust-settings', 'settings.describe'),
+      }), origin, cookie)
       expect(response.status).toBe(200)
       const parsed = await response.json() as { rpcId: string; result: { ok: boolean } }
       expect(parsed.rpcId).toBe('desktop-trust-settings')
@@ -236,24 +196,35 @@ describe('desktop app:// /api trust (renderer fetch bypassing IPC)', () => {
     }
   })
 
-  it('still refuses explicit cross-site fetch metadata after Host normalization', async () => {
-    const { carrier, dispose } = await mountedDesktopApi()
+  it('refuses renderer fetches from any origin other than the shell origin', async () => {
+    const { origin, cookie, dispose } = await mountedDesktopApi()
     try {
-      const response = await carrier.dispatch(appRequest('/api/session.list', {
+      const request = new Request(`${APP_ORIGIN}/api/session.list`, {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'sec-fetch-site': 'cross-site',
-        },
-        body: JSON.stringify({
-          type: 'client-request',
-          rpcId: RpcId('desktop-trust-cross-site'),
-          method: 'session.list',
-          payload: {},
-        }),
-      }))
+        headers: { origin: 'https://cross-site.example', 'content-type': 'application/json' },
+        body: unaryBody('desktop-trust-cross-site', 'session.list'),
+      })
+      const response = await forwardWebRequest(request, origin, cookie)
       expect(response.status).toBe(403)
-      expect(await response.text()).toBe('forbidden')
+    } finally {
+      await dispose()
+    }
+  })
+
+  it('accepts same-origin renderer fetch metadata after the shell strips it', async () => {
+    const { origin, cookie, dispose } = await mountedDesktopApi()
+    try {
+      // The shell strips `sec-fetch-site` before forwarding, so the Host fence
+      // sees plain loopback traffic; same-origin metadata must not survive and
+      // turn into a refusal.
+      const response = await forwardWebRequest(rendererRequest('/api/session.list', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'sec-fetch-site': 'same-origin' },
+        body: unaryBody('desktop-trust-same-origin', 'session.list'),
+      }), origin, cookie)
+      expect(response.status).toBe(200)
+      const parsed = await response.json() as { rpcId: string; result: { ok: boolean } }
+      expect(parsed.result.ok).toBe(true)
     } finally {
       await dispose()
     }
@@ -266,7 +237,7 @@ describe('desktop app:// /api trust (renderer fetch bypassing IPC)', () => {
     }
     try {
       // IPC bypasses the webServer route trust fence; loopback rewrite in ipc.ts
-      // is the IPC-side normalization. Raw renderer fetch uses carrier.dispatch instead.
+      // is the IPC-side normalization.
       const response = await bridge.fetch(new Request(`http://127.0.0.1/api/session.export?sessionId=${SESSION_ID}`, {
         method: 'HEAD',
         headers: { host: '127.0.0.1' },
@@ -283,16 +254,10 @@ describe('desktop app:// /api trust (renderer fetch bypassing IPC)', () => {
       fetch(request: Request): Promise<Response>
     }
     try {
-      const body = JSON.stringify({
-        type: 'client-request',
-        rpcId: RpcId('desktop-trust-bridge-settings'),
-        method: 'settings.describe',
-        payload: {},
-      })
       const response = await bridge.fetch(ipcNormalizedRequest('/api/settings.describe', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body,
+        body: unaryBody('desktop-trust-bridge-settings', 'settings.describe'),
       }))
       expect(response.status).toBe(200)
       const parsed = await response.json() as { rpcId: string; result: { ok: boolean } }
@@ -309,12 +274,6 @@ describe('desktop app:// /api trust (renderer fetch bypassing IPC)', () => {
       fetch(request: Request): Promise<Response>
     }
     try {
-      const body = JSON.stringify({
-        type: 'client-request',
-        rpcId: RpcId('desktop-trust-bridge-origin'),
-        method: 'settings.describe',
-        payload: {},
-      })
       const response = await bridge.fetch(new Request('http://127.0.0.1/api/settings.describe', {
         method: 'POST',
         headers: {
@@ -322,33 +281,10 @@ describe('desktop app:// /api trust (renderer fetch bypassing IPC)', () => {
           origin: APP_ORIGIN,
           'content-type': 'application/json',
         },
-        body,
+        body: unaryBody('desktop-trust-bridge-origin', 'settings.describe'),
       }))
       expect(response.status).toBe(403)
       expect(await response.text()).toBe('forbidden')
-    } finally {
-      await dispose()
-    }
-  })
-
-  it('accepts same-origin fetch metadata on raw app:// traffic after Host rewrite', async () => {
-    const { carrier, cookie, dispose } = await mountedDesktopApi()
-    try {
-      const response = await carrier.dispatch(appRequest('/api/session.list', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'sec-fetch-site': 'same-origin',
-          cookie,
-        },
-        body: JSON.stringify({
-          type: 'client-request',
-          rpcId: RpcId('desktop-trust-same-origin'),
-          method: 'session.list',
-          payload: {},
-        }),
-      }))
-      expect(response.status).toBe(200)
     } finally {
       await dispose()
     }

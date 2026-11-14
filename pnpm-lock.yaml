@@ -21895,6 +21895,12 @@ importers:
       '@deepseek-ai/dsh-credentials':
         specifier: workspace:*
         version: link:../../credentials/credentials
+      '@deepseek-ai/dsh-host-authentication-desktop':
+        specifier: workspace:*
+        version: link:../authentication-desktop
+      '@deepseek-ai/dsh-host-webserver':
+        specifier: workspace:*
+        version: link:../webserver
       '@deepseek-ai/dsh-sdkwork-desktop-carrier':
         specifier: workspace:*
         version: link:../sdkwork-desktop-carrier
