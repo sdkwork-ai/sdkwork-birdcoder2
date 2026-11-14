@@ -156,6 +156,34 @@ it('refuses admission when its service owner is disposed inside verification', a
   expect(peer.signal.aborted).toBe(false)
 })
 
+it('admits a request for a plugin that injects only connection', async () => {
+  const ctx = new Context()
+  roots.push(ctx)
+  const service = ctx.plugin(ConnectionAuthentication)
+  await service.await()
+  const consumer = ctx.plugin({
+    inject: ['connection.authentication'],
+    apply(owner: Context) { new HostConnectionService(owner, []) },
+  })
+  await consumer.await()
+  const peer = new Peer(ctx, { principal: { kind: 'owner' } })
+  ctx['connection.authentication'].register({ authenticate: () => peer })
+  // A third-party plugin declares the parent service only, so the nested
+  // `connection.authentication` association must not leak into its admission.
+  let admission: unknown
+  let rejection: unknown
+  const caller = ctx.plugin({
+    inject: ['connection'],
+    apply(scope: Context) {
+      admission = scope.connection.admit(request)
+      rejection = (scope.connection as unknown as HostConnectionService).requestRejection(request)
+    },
+  })
+  await caller.await()
+  expect(admission).toEqual({ peer })
+  expect(rejection).toBeUndefined()
+})
+
 it('withdraws a dependent Connection before its authentication service leaves', async () => {
   const ctx = new Context()
   roots.push(ctx)

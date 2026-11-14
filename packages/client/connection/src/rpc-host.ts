@@ -59,6 +59,17 @@ export class HostConnectionService extends Service implements HostConnectionHand
   /** Connection-owned Peer for trusted in-process callers, not network authentication. */
   readonly browserPeer: PeerScope
   readonly authentication: ConnectionAuthentication
+  /**
+   * The same registry, read through a name no nested service shadows.
+   *
+   * Cordis republishes a service property that names a nested service
+   * (`connection.authentication`) to the *reading* Context, so `this.authentication`
+   * inside a method called through a plugin's `connection` proxy resolves as that
+   * associated service and throws for a caller injecting only `connection`.
+   * Internal admission reads this field instead; `authentication` stays the
+   * published association surface that plugins inject.
+   */
+  private readonly authenticationRegistry: ConnectionAuthentication
   private readonly owner: Context
   private disposed = false
   private readonly interceptors = new Map<string, ConnectionRpcInterceptor>()
@@ -77,7 +88,9 @@ export class HostConnectionService extends Service implements HostConnectionHand
   ) {
     super(ctx, 'connection')
     this.owner = ctx
-    this.authentication = ctx['connection.authentication']
+    const authentication = ctx['connection.authentication']
+    this.authentication = authentication
+    this.authenticationRegistry = authentication
     this.browserPeer = new Peer(ctx, { principal: { kind: 'owner' } })
     ctx.effect(() => async () => {
       this.disposed = true
@@ -88,7 +101,7 @@ export class HostConnectionService extends Service implements HostConnectionHand
       const facts = { ...request, url: request.url.href }
       if (!this.isTrustedRequest(facts)) return { kind: 'deny', status: 403 }
       if (policy === 'anonymous') return { kind: 'allow' }
-      const admission = this.authentication.authenticate(facts)
+      const admission = this.authenticationRegistry.authenticate(facts)
       return 'rejection' in admission
         ? { kind: 'deny', status: admission.rejection }
         : { kind: 'allow', peer: admission.peer }
@@ -118,7 +131,6 @@ export class HostConnectionService extends Service implements HostConnectionHand
     const admission = this.admit(request)
     return 'rejection' in admission ? admission.rejection : undefined
   }
-
   /**
    * Whether an exact Fetch route owns a pathname — a route's own `404` is that
    * route's answer, never a miss for the fork's gateway fallback to pick up.
@@ -133,7 +145,7 @@ export class HostConnectionService extends Service implements HostConnectionHand
   admit(request: ConnectionTrustRequest): PeerAdmission {
     if (!this.isTrustedRequest(request)) return { rejection: 403 }
     if (this.disposed) return { rejection: 401 }
-    return this.authentication.authenticate(request)
+    return this.authenticationRegistry.authenticate(request)
   }
 
   /** Create one in-process Peer owned by the Context that read this service. */
