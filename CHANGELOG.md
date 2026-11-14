@@ -44,7 +44,7 @@
 
 #### 模型目录与选择器
 
-* **模型选择器只列现行通用 LLM（2026-11-14）**：`birdcoder` / `sdkwork` 中转种子此前会列出目录仍标为 `active` 的旧代模型（GPT-5.6 Sol/Terra/Luna、GPT-6 Sol/Luna、Grok 4.3/4.5/4.6、GLM-5/5.1/5.2/5-Turbo、Qwen3.7 Max/Flash、Kimi K2.6/K3、Claude Mythos 5、Gemini 3.6 Flash、Gemini 3 Flash Preview、Gemini 3.1 Pro Preview、Step 3.5 Flash、Doubao/Seed 2.0、Tencent Hy3/Hy4 Preview），以及混在对话能力里的专用端点（GLM-OCR、Hy-MT2、Hy-Role、Doubao Seed Character/Translation、Gemini Live/Robotics、MiniMax H3 Context-IR）。现在在 sdkwork-models 目录（2026.11.14.1）里给被新代取代的行补上 `replacementModel` + `lifecycle/releaseStage: deprecated`、`shelfState: hidden`、`routingState: catalog_only`（显式调用仍可用），并让种子生成器在解析替换链之后按 `codingVisible` 只保留通用 LLM：`scripts/generate-sdkwork-relay-models.mjs` 产出 40 个现行模型 / 14 家厂商，目录自带选择器生成器（`tools/generate-mainstream-agent-model-catalog.mjs`）套用同一套「偏好区域判定 → 替换链去重 → `codingVisible`」规则，两端选择器现在给出完全相同的模型集合。
+* **模型选择器只列现行通用 LLM（2026-11-14）**：`birdcoder` / `sdkwork` 中转种子此前会列出目录仍标为 `active` 的旧代模型（GPT-5.6 Sol/Terra/Luna、GPT-6 Sol/Luna、Grok 4.3/4.5/4.6、GLM-5/5.1/5.2/5-Turbo、Qwen3.7 Max/Flash、Kimi K2.6/K3、Claude Mythos 5、Gemini 3.6 Flash、Gemini 3 Flash Preview、Gemini 3.1 Pro Preview、Step 3.5 Flash、Doubao/Seed 2.0、Tencent Hy3/Hy4 Preview），以及混在对话能力里的专用端点（GLM-OCR、Hy-MT2、Hy-Role、Doubao Seed Character/Translation、Gemini Live/Robotics、MiniMax H3 Context-IR）。现在在 sdkwork-models 目录（已推进到 2026.11.14.6）里给被新代取代的行补上 `replacementModel` + `lifecycle/releaseStage: deprecated`、`shelfState: hidden`、`routingState: catalog_only`（显式调用仍可用），并让种子生成器在解析替换链之后按 `codingVisible` 只保留通用 LLM：`scripts/generate-sdkwork-relay-models.mjs` 产出 40 个现行模型 / 14 家厂商，目录自带选择器生成器（`tools/generate-mainstream-agent-model-catalog.mjs`）套用同一套「偏好区域判定 → 替换链去重 → `codingVisible`」规则，两端选择器现在给出完全相同的模型集合。
 * 更新面同步：`packages/llm/llm-pi-ai` 的模块注释、README（中英）与 `docs/user/guide/providers*` 说明新口径，`tests/catalog.spec.ts` 增加「专用端点不进入种子」用例并更新旧代缺席断言；改完目录后跑 `node scripts/generate-sdkwork-relay-models.mjs` 即可刷新种子（`--check` 校验一致性）。
 
 #### 版本与依赖
@@ -53,11 +53,19 @@
 * 根依赖里残留的旧名 `@deepseek-ai/dsh-experimental-cua-macos` 删除——上游已把该包改名为 `@deepseek-ai/dsh-cua-macos`（`devDependencies` 中的新名由合并带入）。
 * `pnpm install --lockfile-only` 重新生成 `pnpm-lock.yaml`，补回 fork 包的 importer 块与全部 workspace 链接；`pnpm-workspace.yaml` 的 `@michengai/dsh-agency-agents>@deepseek-ai/dsh` override 同步改指 `0.2.2-rc.3`。
 
+#### 桌面、账号与订阅
+
+* **桌面 carrier 与随包装配对齐**：`packages/host/sdkwork-desktop-carrier` 的模块回退闭包与凭据处理改为按实际发布的装配运行 —— `apps/cli` 补上 `@deepseek-ai/dsh-sdkwork-desktop-carrier` 依赖（profile-boot 的安装锚点从 `apps/desktop` 移到 `apps/cli`，随包 Host 的模块闭包因此包含桌面装配挂载的全部 bundle，包括外壳自身不声明的 web-app）；`packages/bundle/sdkwork-desktop-app` 的装配用例改走 `createRuntimeResolution` + `PluginPackages`，与外壳宿主启动时安装的模块拦截一致。之前该用例用的是测试进程的环境模块图，装配回归因此可能漏检。
+* **官方账号头像上传**（`feat(ui-sdkwork-official-accounts): support account logo uploads from the settings modal`）：设置弹窗内的官方账号页支持上传账号 logo，中英文档同步说明。
+* **Token 计划接入团队组织与联合结算**：`ui-sdkwork-token-plan` 新增团队订阅端口，把团队组织绑定接进计费客户端，联合结算的订阅态由团队组织决定。
+
 #### 部署与发布
 
 * 发布流程（`feat(deploy): add project app source picker and standalone publish entry`）新增项目应用来源选择器与独立发布入口：发布构建产物时可直接挑选项目内的应用目录，且无需先创建会话即可进入发布弹窗。
 * 版本号为 **0.2.2-rc.3**，tag `birdcoder-v0.2.2-rc.3` 指向本次构建的提交，由 `container-release.yml` 一次打包六个桌面目标、两套容器镜像与部署包，发布一个包含 31 个精确资产的 GitHub Release（`assemble-github-release.ts` 拒绝缺失或多余资产）。
 * **发布打包修复（2026-11-14）**：按 `sdkwork-specs` 的双轨依赖规范重新对齐本地与 release —— 本地继续以 `../sdkwork-*` 相对路径作为 pnpm workspace 成员（`workspace:*`），发布链路仍由 `setup-sdkwork-siblings` 按 `scripts/sdkwork-sources.manifest.json` 的 git pin 克隆、不改写 `package.json`。把 21 个已推送 `origin/main` 的 sibling pin 推到最新，并同步 `agent.workflow.json` 双记录，消除 CI 冻结安装与本地锁文件的偏差。
 * **新增 AIoT 依赖闭包**：`sdkwork-cloudrouter` 新 pin 的硬件控制台引入 `@sdkwork/aiot-app-sdk` / `@sdkwork/aiot-backend-sdk` / `@sdkwork/cloudrouter-pc-console-hardware/contribution` / `@sdkwork/documents-pc-public-documents` 四个导入。新增 `sdkwork-aiot` git pin（`da972b099`）、`Dockerfile` 与 `Dockerfile.debug` 的 sibling `COPY` 行，并用 `analyze-sdkwork-closure.mjs --rewrite` 补齐源映射与最小 workspace 成员；`pnpm-lock.yaml` 重新生成后 `pnpm install --frozen-lockfile`、`verify-sdkwork-dependencies`、`verify:container`、`release:verify --family dsh` 全部通过。
-* **submodule 更新**：`dsh-better-sidebar` 抬到 `v0.32.1-2-g44ee165f`，`dsh-mcp-connector` 抬到 `v0.2.106`（含同提交构建的 `lib/` 产物）；其余 5 个 submodule 已处于各自跟踪分支的最新提交。
+* **submodule 更新**：`dsh-better-sidebar` 抬到 `v0.32.1-8-g2811573c`（含上游 code-slimming 合并，`lib/` 由 `scripts/build-better-sidebar.mjs` 现场重建），`dsh-mcp-connector` 抬到 `v0.2.106`（含同提交构建的 `lib/` 产物）；其余 5 个 submodule 已处于各自跟踪分支的最新提交。
+* **安装即构建 sidecar 产物**：`postinstall` 与 `build:artifacts` 都调用 `scripts/build-better-sidebar.mjs`，并把 sidecar 装配的激活纳入 gate；`lib/` 被上游 gitignore 时，新检出不再以「插件 import 失败」的状态启动。
+* **expert-market 插件依赖收敛**：`pnpm-workspace.yaml` 给 `@michengai/dsh-agency-agents` 的 `@deepseek-ai/*` 边加 scoped override —— `cordis` / `schemastery` 指向 `link:vendor/*`，其余钉到 `0.2.2-rc.3`，`typert-protocol` / `typert-registry` 同此，插件不再解析 0.2.2-rc.1 的 tarball（其 `TypertRegistryContract` 再导出让 `ctx.typert.register` 丢成员），也不再带第二份 Typert/cordis 实例；插件自身的 `lib/` 重建于新类型面之上。
 * 本文件只保留当前版本一节；往期条目随各自版本的提交留在 git 历史里（`git log -p CHANGELOG.md`）。Release notes 就是本节内容。
