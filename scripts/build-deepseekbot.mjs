@@ -87,16 +87,22 @@ function directoryFiles(path) {
 
 /**
  * Every workspace-linked package the bundle inlines, reachable through the
- * three runtime packages' `node_modules` links. tsdown bundles each
+ * core and client packages' `node_modules` links. tsdown bundles each
  * workspace-linked dependency (their package exports point at built `lib/`),
  * so a repository-side change to an inlined package must rebuild the plugin
  * even though nothing under `plugins/sdkwork-deepseekbot` changed.
+ *
+ * The `deepseekbot` runtime package's own links are deliberately excluded: its
+ * artifacts are pure `loader.import` strings that inline nothing, and its
+ * `@deepseek-ai/dsh` edge exists for that runtime resolution — hashing the
+ * CLI's closure would both hash trees the artifacts never ingest and race the
+ * host-bundle gate that rebuilds them.
  * @returns absolute paths of hashed manifests and built trees, one per linked package.
  */
 function linkedWorkspaceInputs() {
   const inputs = []
   const visited = new Set()
-  const roots = ['core', 'client', 'deepseekbot'].map(name => join(PLUGIN, 'packages', name, 'node_modules'))
+  const roots = ['core', 'client'].map(name => join(PLUGIN, 'packages', name, 'node_modules'))
   for (let next = roots.shift(); next !== undefined; next = roots.shift()) {
     if (!existsSync(next)) continue
     for (const entry of readdirSync(next, { withFileTypes: true })) {

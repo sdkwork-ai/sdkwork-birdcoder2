@@ -98,15 +98,17 @@ export function buildGates(
     gates.push(pnpmGate('native', 'native addon', ['run', 'build:native-system'], [], env))
     // The assistant plugin's `lib/`/`dist/` are gitignored upstream, so the
     // Desktop runtime, the Web bundle and the bundle's acceptance spec need this
-    // build before they load the plugin; it is independent of the harness
-    // artifacts and runs beside them.
+    // build before they load the plugin. Its stamp hashes the built `lib/` of
+    // every workspace package the bundle inlines, so it must run after the host
+    // bundle has written those trees — beside them it would race the rebuild
+    // and hash half-written chunk files.
     gates.push({
       id: 'deepseekbot',
       label: 'Assistant plugin build',
       displayCommand: 'node scripts/build-deepseekbot.mjs',
       command: process.execPath,
       args: [resolve(root, 'scripts', 'build-deepseekbot.mjs')],
-      needs: [],
+      needs: ['host-bundle'],
       env,
     })
     // The better-sidebar plugin's `lib/` is gitignored upstream too, and the
