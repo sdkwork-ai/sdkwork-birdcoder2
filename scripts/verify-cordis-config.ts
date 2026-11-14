@@ -10,7 +10,7 @@
  * Loader fixtures resolve from their package manifest.
  */
 
-import { globSync, readFileSync } from 'node:fs'
+import { existsSync, globSync, readFileSync } from 'node:fs'
 import { dirname, relative, resolve } from 'node:path'
 import { Script } from 'node:vm'
 import ts from 'typescript'
@@ -69,7 +69,8 @@ if (import.meta.main) {
   const files = cordisConfigFiles(root)
 
   for (const file of files) {
-    const document = loadCordisYaml(readFileSync(resolve(root, file), 'utf8'))
+    const document = loadCordisYaml(readLoaderYaml(root, file, errors))
+    if (document === undefined) continue
     if (!isUnknownArray(document)) {
       errors.push(`${file}: root must be a Loader entry array`)
       continue
@@ -464,6 +465,35 @@ function validateSourcePlaneResolution(): string[] {
     violations.push(`${[...locations].join(', ')}: ${specifier} does not resolve to workspace source through tsconfig.base.json paths (add a mapping so the tsx source launch does not depend on built lib/)`)
   }
   return violations
+}
+
+/**
+ * Read one Loader YAML file, following a symlink the checkout materialized as
+ * plain text. Git checkouts with `core.symlinks=false` (the default on Windows
+ * without developer mode) write a symlink's stored target as the file's whole
+ * content — a single relative path token, which can never be a Loader entry
+ * array. Loader itself reads through the filesystem and follows the real
+ * symlink, so the gate must resolve the same target to stay consistent with
+ * what the product loads.
+ * @param repoRoot Repository root.
+ * @param file Repository-relative config path.
+ * @param errors Collector for read failures; a failure yields `undefined`.
+ * @returns the parsed YAML document, or `undefined` when the read failed.
+ */
+export function readLoaderYaml(
+  repoRoot: string, file: string, errors: string[],
+): ReturnType<typeof loadCordisYaml> {
+  let text = readFileSync(resolve(repoRoot, file), 'utf8')
+  const trimmed = text.trim()
+  if (/^[^\s]+\.(?:ya?ml)$/.test(trimmed) && !trimmed.startsWith('[')) {
+    const target = resolve(dirname(resolve(repoRoot, file)), trimmed)
+    if (!existsSync(target)) {
+      errors.push(`${file}: checkout materialized this symlink as text and its target ${trimmed} is missing`)
+      return undefined
+    }
+    text = readFileSync(target, 'utf8')
+  }
+  return loadCordisYaml(text)
 }
 
 function missingPluginDependencies(
