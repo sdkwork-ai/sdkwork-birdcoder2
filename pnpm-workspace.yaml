@@ -263,6 +263,53 @@ overrides:
   # resolves the published tarball instead (which drags in a second closure —
   # and a `dsh-subprocess-local` build script the install allowlist refuses).
   '@michengai/dsh-agency-agents>@deepseek-ai/dsh': '0.2.2-rc.3'
+  # The expert-market plugin's Typert edges resolve the published 0.2.2-rc.1
+  # pair, whose protocol entry re-exports `TypertRegistryContract` from
+  # `./types.ts` — a type alias the registry's `declare module` augmentation
+  # cannot reach, so `ctx.typert.register` misses its `register` member and the
+  # plugin's own typecheck gate fails. The workspace carries 0.2.2-rc.3, whose
+  # sources declare the contract in place; the scoped pins point the plugin's
+  # edges there (linkWorkspacePackages links them instead of fetching), which
+  # also drops the second Typert instance the plugin's runtime otherwise
+  # carries beside the workspace sources.
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-typert-protocol': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-typert-registry': '0.2.2-rc.3'
+  # The plugin is mounted by THIS build, so every remaining @deepseek-ai edge
+  # typechecks against the types it actually runs against: this checkout's
+  # sources, not the 0.2.2-rc.1 tarballs its manifest pins. The plugin was
+  # authored against the published line and its own CI installs those, so the
+  # rows stay scoped to this plugin — the workspace's own workspace:*
+  # declarations are untouched. Bump each pin together with the workspace
+  # release version; a stale pin resolves the published tarball again and the
+  # plugin's typecheck gate fails loudly (rc.1's TypertRegistryContract
+  # re-export already proved that).
+  '@michengai/dsh-agency-agents>@deepseek-ai/cordis': 'link:vendor/cordis'
+  '@michengai/dsh-agency-agents>@deepseek-ai/schemastery': 'link:vendor/schemastery'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-api-remotes': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-connection': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-locale': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-ui-conversation': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-ui-input-trigger': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-ui-primitives': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-ui-settings': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-ui-slots': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-host-webserver': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-llm': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-settings': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-subagent': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-system-prompt': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-tools': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-session': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-agent': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-attachment': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-brand': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-ptc-runtime': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-sandbox': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-sandbox-policy': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-scope': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-session-projection': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-user-approval': '0.2.2-rc.3'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-util-time': '0.2.2-rc.3'
   # Converge rolldown on 1.2.7 (the version this repository built with before
   # the upstream sync): 1.1.x panics with "SymbolRef ... is not in any chunk"
   # on the knowledge bundle's sibling-sourced graph.
