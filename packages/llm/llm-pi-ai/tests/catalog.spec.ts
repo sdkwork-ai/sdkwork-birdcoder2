@@ -1348,7 +1348,7 @@ describe('harness-shipped relay routes', () => {
     // The seed is the SDKWork catalog projection, not a hand-kept list: the
     // picker's order and membership are the catalog's, with DeepSeek hoisted.
     expect(RELAY_MODEL_CATALOG_VERSION).toMatch(/^\d{4}\.\d{2}\.\d{2}\.\d+$/u)
-    expect(RELAY_MODEL_PRESETS.length).toBeGreaterThan(50)
+    expect(RELAY_MODEL_PRESETS.length).toBeGreaterThan(30)
     const catalogKeys = RELAY_MODEL_PRESETS.map(preset => preset.catalogKey)
     // One row per model: a duplicated key would render two indistinguishable rows.
     expect(new Set(catalogKeys).size).toBe(catalogKeys.length)
@@ -1364,11 +1364,11 @@ describe('harness-shipped relay routes', () => {
     expect(vendors.filter((vendor, index) => vendor !== vendors[index - 1]))
       .toHaveLength(new Set(vendors).size)
     // Current flagships are offered; deprecated, retired, hidden, regionally
-    // deprecated, and already-replaced rows are not.
+    // deprecated, replaced, and specialized rows are not.
     expect(catalogKeys).toContain('openai/gpt-6-astra')
     expect(catalogKeys).toContain('anthropic/claude-opus-5-5')
     expect(catalogKeys).toContain('anthropic/claude-sonnet-5-5')
-    expect(catalogKeys).toContain('google/gemini-3.8-live')
+    expect(catalogKeys).toContain('google/gemini-4-argon')
     for (const gone of [
       // retired by the catalog
       'deepseek/deepseek-v4-flash',
@@ -1397,6 +1397,31 @@ describe('harness-shipped relay routes', () => {
     }
     // A relay answers with the same order the catalog declares.
     expect([...catalogModels('birdcoder').keys()]).toEqual(catalogKeys)
+  })
+
+  it('never seeds a model the catalog keeps off code surfaces', () => {
+    // `codingVisible: false` marks a specialized endpoint — OCR, translation,
+    // role-play, character, live audio, robotics — that a coding picker must not
+    // offer as if it were a general-purpose LLM.
+    const catalogKeys = RELAY_MODEL_PRESETS.map(preset => preset.catalogKey)
+    for (const gone of [
+      'zhipu/glm-ocr',
+      'tencent/hy-mt2-lite',
+      'tencent/hy-mt2-plus',
+      'tencent/hy-mt2-pro',
+      'tencent/hy-role',
+      'tencent/hy-role-latest',
+      'google/gemini-3.8-live',
+      'google/gemini-3.8-live-extended-thinking',
+      'google/gemini-robotics-er-2-preview',
+      'google/gemini-robotics-er-2-streaming-preview',
+      'bytedance/doubao-seed-character-251128',
+      'bytedance/doubao-seed-character-260628',
+      'bytedance/doubao-seed-translation-250915',
+      'minimax/MiniMax-H3-Context-IR',
+    ]) {
+      expect(catalogKeys).not.toContain(gone)
+    }
   })
 
   it('resolves the relay route to exactly the seeded catalog, in order', () => {

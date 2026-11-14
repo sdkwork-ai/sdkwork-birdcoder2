@@ -29,6 +29,7 @@ const VIEW_SOURCE_ROOTS = [
   resolvePath(SPACE_ROOT, 'sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-iam-pc-oauth/src'),
   resolvePath(SPACE_ROOT, 'sdkwork-ui/sdkwork-ui-pc-react/src'),
   resolvePath(SPACE_ROOT, 'sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react/src'),
+  resolvePath(SPACE_ROOT, 'sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-upload-image/src'),
 ]
 
 interface ResolverContext {

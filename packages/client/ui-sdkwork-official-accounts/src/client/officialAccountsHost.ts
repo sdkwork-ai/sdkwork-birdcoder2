@@ -14,6 +14,12 @@ import {
   createClient as createIamAppClient,
   type SdkworkAppClient,
 } from '@sdkwork/iam-app-sdk'
+import { createClient as createDriveAppClient } from '@sdkwork/drive-app-sdk'
+import {
+  createDriveNodesImagePreviewReader,
+  createDriveUploadImageService,
+  type DriveUploadImageService,
+} from '@sdkwork/drive-upload-image-core'
 import {
   createSdkworkIamOfficialAccountsClient,
   SdkworkIamOfficialAccountsController,
@@ -22,6 +28,7 @@ import {
   getSdkworkGlobalTokenManager,
   syncSdkworkGlobalTokenManager,
 } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
+import { OFFICIAL_ACCOUNT_LOGO_UPLOAD } from './officialAccountLogoUpload.ts'
 
 /** IAM session credential fields the adapter forwards to the token manager. */
 export interface OfficialAccountsHostSession {
@@ -77,6 +84,8 @@ export class OfficialAccountsHost {
   private client: SdkworkAppClient | undefined
   private controller: SdkworkIamOfficialAccountsController | undefined
   private clientBaseUrl: string | undefined
+  private logoUploadService: DriveUploadImageService | undefined
+  private logoUploadBaseUrl: string | undefined
   private identityKey: string | undefined
   private offEnvironment: (() => void) | undefined
   private offIam: (() => void) | undefined
@@ -109,6 +118,8 @@ export class OfficialAccountsHost {
     this.client = undefined
     this.controller = undefined
     this.clientBaseUrl = undefined
+    this.logoUploadService = undefined
+    this.logoUploadBaseUrl = undefined
     this.identityKey = undefined
   }
 
@@ -166,18 +177,53 @@ export class OfficialAccountsHost {
     return this.controller
   }
 
+  /**
+   * The Drive image-upload capability the account logo field consumes.
+   *
+   * The service is built once per gateway origin from this application's
+   * declared upload intent (`DRIVE_SPEC.md` section 18) over the shared global
+   * token manager, so the panel never composes upload intent or sees the SDK
+   * client. A host that is not configured with a gateway origin returns
+   * undefined and the field states that uploads are unavailable.
+   * @returns the Drive logo upload service, or undefined while unconfigured.
+   */
+  readLogoUploadService(): DriveUploadImageService | undefined {
+    if (this.disposed) return undefined
+    const baseUrl = this.readBaseUrl()
+    if (baseUrl === '') return undefined
+    this.syncTokens()
+    if (this.logoUploadService === undefined || this.logoUploadBaseUrl !== baseUrl) {
+      const driveClient = createDriveAppClient({
+        authMode: 'dual-token',
+        baseUrl,
+        platform: 'pc',
+        tokenManager: this.tokenManager,
+      })
+      this.logoUploadBaseUrl = baseUrl
+      this.logoUploadService = createDriveUploadImageService({
+        uploader: driveClient.uploader,
+        declaration: OFFICIAL_ACCOUNT_LOGO_UPLOAD,
+        previewReader: createDriveNodesImagePreviewReader(driveClient.drive.nodes),
+      })
+    }
+    return this.logoUploadService
+  }
+
   /** Re-publish credentials and readiness after an environment or session change. */
   refresh(): void {
     if (this.disposed) return
     if (this.readBaseUrl() !== '') this.syncTokens()
     // A different signed-in account must not keep rendering the previous
     // account's channel list: the controller caches that list, so drop it and
-    // let the next read build one for the new identity.
+    // let the next read build one for the new identity. The Drive preview cache
+    // is per-account state too, so the logo service is rebuilt with it.
     const identityKey = this.readIdentityKey()
     if (this.identityKey !== undefined && this.identityKey !== identityKey) {
       this.client = undefined
       this.controller = undefined
       this.clientBaseUrl = undefined
+      this.logoUploadService = undefined
+      this.logoUploadBaseUrl = undefined
     }
     this.identityKey = identityKey
     this.publish()

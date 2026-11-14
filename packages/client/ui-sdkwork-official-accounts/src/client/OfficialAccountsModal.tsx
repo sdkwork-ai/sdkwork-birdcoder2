@@ -19,8 +19,10 @@
  * dismissal path (close control, mask click, Escape). The panel is a workspace
  * with no heading of its own, so this modal contributes the only title and
  * description on screen; the panel's header is the single toolbar row that
- * holds search on the left and refresh/add on the right. The page's own
- * create/edit drawer and confirm dialog portal to `document.body`;
+ * holds search on the left and refresh/add on the right. The logo field uploads
+ * through Drive: the host adapter builds the upload service from this
+ * application's declared intent and this modal hands it to the panel. The
+ * page's own create/edit drawer and confirm dialog portal to `document.body`;
  * `officialAccountsView.css` lifts them above this harness layer so they stay
  * operable.
  */
@@ -35,6 +37,7 @@ import {
   SdkworkIamOfficialAccountsPanel,
   type SdkworkIamOfficialAccountsController,
 } from '@sdkwork/iam-pc-oauth'
+import type { DriveUploadImageService } from '@sdkwork/drive-upload-image-core'
 import { SdkworkThemeProvider } from '@sdkwork/ui-pc-react'
 import {
   OFFICIAL_ACCOUNTS_EMBED_ATTRIBUTE,
@@ -42,10 +45,15 @@ import {
 } from './embedScope.ts'
 import css from './OfficialAccountsModal.module.css'
 
-/** The adapter face the modal reads: the account controller. */
+/** The adapter face the modal reads: the account controller and the Drive logo upload service. */
 export interface OfficialAccountsPanelSource {
   /** @returns the controller for the embedded panel, or undefined while unconfigured. */
   readController(): SdkworkIamOfficialAccountsController | undefined
+  /**
+   * @returns the Drive image-upload service the panel's logo field consumes, or
+   * undefined while the gateway origin is unconfigured.
+   */
+  readLogoUploadService(): DriveUploadImageService | undefined
 }
 
 /** Injected business face: the host adapter, the sign-in gesture, and live host facts. */
@@ -112,6 +120,11 @@ export function OfficialAccountsModal(props: OfficialAccountsModalProps): ReactN
   // render, so the modal falls back to the same configuration notice instead
   // of dereferencing nothing.
   const controller = available ? host.readController() : undefined
+  // The Drive capability is only needed once the panel can render, and it must
+  // never be built for a signed-out surface whose account rows do not exist.
+  const logoUploadService = controller === undefined || !signedIn
+    ? undefined
+    : host.readLogoUploadService()
 
   return (
     <WideModal
@@ -148,7 +161,10 @@ export function OfficialAccountsModal(props: OfficialAccountsModalProps): ReactN
                   catalogs={[SDKWORK_IAM_OFFICIAL_ACCOUNTS_I18N_CATALOG]}
                   locale={toOfficialAccountsLocale(language)}
                 >
-                  <SdkworkIamOfficialAccountsPanel controller={controller} />
+                  <SdkworkIamOfficialAccountsPanel
+                    controller={controller}
+                    driveUploadImageService={logoUploadService}
+                  />
                 </SdkworkI18nProvider>
               </SdkworkThemeProvider>
             )}

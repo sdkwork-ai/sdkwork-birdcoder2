@@ -26,6 +26,15 @@
     surfaceContext: false
     trustedHosts: []
 
+# The web-surface prompt section and its URL context line describe a browser
+# GUI reached through a server URL — facts a desktop shell does not have. The
+# sdkwork-desktop-app row provides the desktop-surface section instead, so the
+# harness-dev-context row keeps its harness-source orientation and drops only
+# the URL-bearing web-surface half.
+- id: harness-dev-context
+  config:
+    webSurface: false
+
 # The web node half stays MOUNTED: its /api route and WebSocket upgrade
 # registrations land on the desktop carrier and are inert (IPC never drives
 # them), but the row is what carries the connection browser half into the

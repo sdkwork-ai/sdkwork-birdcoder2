@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "appId": "app_01a18b4f-6f61-7ff1-b86c-75b54995883f",
+  "declarations": [
+    {
+      "appResourceType": "iam.official_account_logo",
+      "appResourceIdKind": "entity",
+      "scene": "official-account-logo",
+      "source": "birdcoder-pc-official-account-logo-upload",
+      "uploadProfileCode": "image",
+      "retention": "long_term",
+      "purpose": "Official (公众号) account logo uploaded from the account settings dialog and attached to the account record."
+    }
+  ]
+}

@@ -67,6 +67,34 @@ describe('OfficialAccountsHost', () => {
     expect(new OfficialAccountsHost(harness()).readController()).toBeUndefined()
   })
 
+  it('exposes no Drive logo upload service without a gateway origin', () => {
+    expect(new OfficialAccountsHost(harness()).readLogoUploadService()).toBeUndefined()
+  })
+
+  it('builds one Drive logo upload service per gateway origin and identity', () => {
+    const bench = harness({
+      baseUrl: 'https://gateway.example',
+      session: { accessToken: 'token-a', context: { tenantId: 'tenant', userId: 'user-a' } },
+    })
+    const host = mountOfficialAccountsHost(bench)
+    const first = host.readLogoUploadService()
+    expect(first).toBeDefined()
+    expect(typeof first?.upload).toBe('function')
+    expect(typeof first?.resolvePreview).toBe('function')
+    expect(host.readLogoUploadService()).toBe(first)
+
+    // A different origin invalidates the cached client and its service.
+    bench.setEnvironment({ baseUrl: 'https://other.example' })
+    const second = host.readLogoUploadService()
+    expect(second).not.toBe(first)
+
+    // A different account invalidates the per-account preview cache too.
+    bench.setEnvironment({ session: { accessToken: 'token-b', context: { tenantId: 'tenant', userId: 'user-b' } } })
+    expect(host.readLogoUploadService()).not.toBe(second)
+    host.dispose()
+    expect(host.readLogoUploadService()).toBeUndefined()
+  })
+
   it('builds one controller per gateway origin and rebuilds it when the origin changes', () => {
     const bench = harness({ baseUrl: 'https://gateway.example' })
     const host = mountOfficialAccountsHost(bench)

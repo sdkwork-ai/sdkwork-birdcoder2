@@ -8,9 +8,7 @@
  * @module @deepseek-ai/dsh-sdkwork-desktop-app
  */
 
-import { fileURLToPath } from 'node:url'
 import type { Context } from '@deepseek-ai/cordis'
-import { addHarnessSourceSection } from '@deepseek-ai/dsh-app-boot'
 import type {} from '@deepseek-ai/dsh-system-prompt'
 
 /** Stable Cordis plugin name. */
@@ -18,9 +16,6 @@ export const name = 'sdkwork-desktop-app'
 
 /** Services required before the glue can mount (systemPrompt arrives via ctx.inject). */
 export const inject: string[] = []
-
-/** This dsh installation's root, from either this package's source or built entry. */
-const SOURCE_ROOT = fileURLToPath(new URL('../../../..', import.meta.url))
 
 /**
  * Model-visible orientation and acceptance boundary for sessions created
@@ -36,13 +31,15 @@ function desktopSurfacePrompt(): string {
 }
 
 /**
- * Mount the desktop surface glue: the harness-source section (shared with the
- * web runtime) plus the desktop-surface prompt section.
+ * Mount the desktop-surface prompt section. The `harness:source` section is
+ * owned by harness-dev-context, which the composition this glue mounts into
+ * always carries; registering it here too raced that registration (both
+ * fibers activate concurrently) and nondeterministically dropped the
+ * desktop-surface section behind a duplicate-name error.
  * @param ctx - plugin context.
  */
 export function apply(ctx: Context): void {
   ctx.inject(['systemPrompt'], (promptCtx) => {
-    addHarnessSourceSection(promptCtx, SOURCE_ROOT)
     promptCtx.systemPrompt.section({
       name: 'app:desktop-surface',
       order: -98,

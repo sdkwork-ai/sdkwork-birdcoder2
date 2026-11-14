@@ -1,7 +1,6 @@
 /** Source-only parity checks between the Web and desktop plugin trees. */
 
-import { readFileSync, readdirSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import type { PatchOptions } from '@deepseek-ai/cordis-plugin-include'
@@ -11,12 +10,6 @@ const BASE_PATCH = fileURLToPath(new URL('../../base/cordis.patch.yml', import.m
 const WEB_PATCH = fileURLToPath(new URL('../../web-app/cordis.patch.yml', import.meta.url))
 const DESKTOP_PATCH = fileURLToPath(new URL('../cordis.patch.yml', import.meta.url))
 const DESKTOP_PACKAGE = fileURLToPath(new URL('../package.json', import.meta.url))
-// The desktop launcher's own shipped preset root, injected by the shell's
-// host boot as its ONLY system preset root.
-const DESKTOP_PRESETS = fileURLToPath(new URL('../../../../apps/desktop/config/agent-presets/', import.meta.url))
-// The roster that root mirrors: the presets bundled inside dsh-agent-presets,
-// which the CLI reads straight from the plugin.
-const PLUGIN_PRESETS = fileURLToPath(new URL('../../../../packages/preset/agent-presets/presets/', import.meta.url))
 // The browser welcome step's own namespace constant. Read as source: a
 // host-side project cannot import a browser package (see apps/web/tests/
 // scaffold.ts), and reading the reader's file is what makes an upstream rename
@@ -26,31 +19,11 @@ const SETTINGS_SHELL_PACKAGE = fileURLToPath(new URL('../../../client/ui-sdkwork
 /** A row id the fork must never occupy: it would be a second settings namespace nothing reads. */
 const FORK_ONLY_SETTINGS_ROW = 'ui-sdkwork-settings-menu'
 
-const CHANGED_ROWS = new Set(['webserver', 'web-runtime', 'client-hmr', 'connection'])
+const CHANGED_ROWS = new Set(['webserver', 'web-runtime', 'client-hmr', 'connection', 'harness-dev-context'])
 const ADDED_ROWS = ['sdkwork-desktop-carrier', 'desktop-connection', 'sdkwork-desktop-app', 'update-banner'] as const
 
 function compose(paths: readonly string[]): Map<string, PatchOptions> {
   return composeLayers(paths.map(path => loadOptionalPatches('desktop-parity', path) ?? []))
-}
-
-/** Every file under `dir`, keyed by its slash-separated relative path. */
-function treeOf(dir: string): Map<string, string> {
-  const files = new Map<string, string>()
-  const walk = (at: string, prefix: string): void => {
-    for (const child of readdirSync(join(dir, at), { withFileTypes: true })) {
-      const rel = prefix === '' ? child.name : `${prefix}/${child.name}`
-      if (child.isDirectory()) walk(join(at, child.name), rel)
-      else files.set(rel, join(dir, at, child.name))
-    }
-  }
-  walk('', '')
-  return files
-}
-
-/** The `name:` a preset's metadata file publishes, absent when it publishes none. */
-function presetName(path: string): string | undefined {
-  const match = /^name:\s*(.+)$/m.exec(readFileSync(path, 'utf8'))
-  return match?.[1]?.trim()
 }
 
 function composeLayers(layers: readonly PatchOptions[][]): Map<string, PatchOptions> {
@@ -66,7 +39,7 @@ describe('desktop and Web plugin composition parity', () => {
     const manifest = JSON.parse(readFileSync(DESKTOP_PACKAGE, 'utf8')) as {
       dependencies?: Record<string, string>
     }
-    expect(manifest.dependencies?.['@deepseek-ai/dsh-client-ui-sdkwork-updater']).toBe('workspace:^')
+    expect(manifest.dependencies?.['@deepseek-ai/dsh-client-ui-sdkwork-updater']).toBe('workspace:*')
   })
 
   it('preserves every Web row outside the explicit desktop carrier swap', () => {
@@ -131,39 +104,10 @@ describe('desktop and Web plugin composition parity', () => {
     expect(desktop.get('profile-addon')).toEqual(web.get('profile-addon'))
   })
 
-  it('keeps the desktop shipped preset root present beside the plugin-bundled presets', () => {
-    // The CLI no longer ships preset files (they moved inside
-    // dsh-agent-presets); the desktop launcher keeps its own fork preset root
-    // and injects it as a system root, so only its presence is asserted here.
-    expect(statSync(DESKTOP_PRESETS).isDirectory()).toBe(true)
-    expect(readdirSync(DESKTOP_PRESETS).length).toBeGreaterThan(0)
-  })
-
-  it('mirrors the plugin-bundled roster exactly, with no duplicate display names', () => {
-    // The desktop host makes `config/agent-presets` the ONLY system root
-    // (`includeShippedRoot: false`), so this directory is not a shadow of the
-    // plugin's presets — it is the roster the desktop shell actually offers.
-    // Drift therefore shows up as a missing or stale mode rather than as a
-    // silent fallback: a preset the plugin gains is absent here until copied,
-    // and a preset the plugin RENAMED survives here under its old id, which is
-    // how one picker once listed the same capability twice — the plugin's
-    // `ptc` and this directory's stale `code`, both published as "PTC 模式".
-    const desktop = treeOf(DESKTOP_PRESETS)
-    const plugin = treeOf(PLUGIN_PRESETS)
-    expect([...desktop.keys()].sort()).toEqual([...plugin.keys()].sort())
-    for (const [rel, path] of desktop) {
-      const mirrored = plugin.get(rel)
-      if (mirrored === undefined) throw new Error(`plugin presets are missing ${rel}`)
-      expect(readFileSync(path, 'utf8'), `desktop preset file ${rel} drifted`).toBe(
-        readFileSync(mirrored, 'utf8'),
-      )
-    }
-    // The symptom this guards: two ids publishing one display name.
-    const names = readdirSync(DESKTOP_PRESETS, { withFileTypes: true })
-      .filter(child => child.isDirectory())
-      .map(child => presetName(join(DESKTOP_PRESETS, child.name, 'preset.yml')))
-    expect(new Set(names).size, `duplicate preset display name in ${names.join(', ')}`).toBe(names.length)
-  })
+  // The desktop launcher's own `config/agent-presets` root and its
+  // `includeShippedRoot` injection were removed with the old in-process shell
+  // (54561513cf); presets reach the desktop through the composition's
+  // dsh-agent-preset rows, which the parity assertions above already cover.
 })
 
 describe('profile-backed settings namespaces', () => {

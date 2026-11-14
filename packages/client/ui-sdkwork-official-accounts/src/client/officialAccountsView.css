@@ -23,10 +23,12 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* The render sources: the user-facing IAM official-account panel, the SDKWork
-   component library it composes, and the SDKWork i18n facade. */
+   component library it composes, the SDKWork i18n facade, and the Drive image
+   upload shell the panel's logo field renders. */
 @source "../../../../../../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-iam-pc-oauth/src";
 @source "../../../../../../sdkwork-ui/sdkwork-ui-pc-react/src";
 @source "../../../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react/src";
+@source "../../../../../../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-upload-image/src";
 @source ".";
 
 @layer base {

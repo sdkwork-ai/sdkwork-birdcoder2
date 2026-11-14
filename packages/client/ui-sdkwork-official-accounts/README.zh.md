@@ -25,8 +25,9 @@ SDKWork IAM 公众号账号管理插件（浏览器侧）：在设置菜单弹�
 - `src/client/index.ts` 注册 `officialAccounts` 语言字典、挂载宿主适配器，并把弹窗贡献到 `settings.officialAccounts` 座位（单座；运行时授权表在 `ui-sdkwork-settings-menu` 的 `mode.rail.settings` children 中）。
 - `src/client/officialAccountsHost.ts` 依据共享 `ui-sdkwork-env` 的网关源地址构建 IAM **app** 客户端（`@sdkwork/iam-app-sdk`，dual-token，`pc`），在每次读取前把 `ui-sdkwork-iam` 会话镜像进浏览器全局 token manager，通过 `createSdkworkIamOfficialAccountsClient` 适配 `client.iam.oauth.officialAccounts`，并把得到的控制器交给面板；环境切换时就地重建客户端与控制器。
 - `src/client/OfficialAccountsModal.tsx` 是弹窗外壳：它判断网关就绪、会话存在、宿主语言与宿主配色，然后渲染 `@sdkwork/iam-pc-oauth` 的 `SdkworkIamOfficialAccountsPanel`。账号创建/编辑、启用/停用、消息推送配置、删除以及自定义菜单草稿编辑器都是该模块控制器自身的调用。其创建/编辑抽屉在弹窗上层从左侧打开。面板只是工作区、自身不渲染标题，因此屏幕上只出现本弹窗的标题与说明；面板头部只有一行工具栏：左侧是搜索框与其搜索按钮，右侧是刷新与添加。
+- `src/client/officialAccountsHost.ts` 同时按本应用的声明式上传意图（`specs/upload.declaration.json`，经 `src/client/officialAccountLogoUpload.ts` 带入代码）构建 Drive `DriveUploadImageService`，并交给面板的 Logo 字段：编辑时以账号 id 作为归属锚点立即上传，新建时先暂存选择、账号创建后再补传（`DRIVE_SPEC.md` 第 18 节）。声明值不在此处内联，`appId` 由运行时令牌决定。
+- 面板的 Tailwind 工具类由本包自己的样式表 `src/client/officialAccountsView.css` 针对 IAM app 级模块、`@sdkwork/ui-pc-react` 与 Drive 图片上传组件源码根编译；该表只引入 Tailwind 子表，并为面板根写入作用域内的 reset，因此不会重排 Harness 界面。编译后的样式表收敛在 `dsh-sdkwork-official-accounts-embed` 级联层（由 `apps/web/src/index.css` 声明），并作用于嵌入根节点以及面板挂到 `document.body` 的覆盖层；`src/client/embedScope.ts` 保存组件与构建共享的属性名和选择器。
 - `SdkworkThemeProvider` 提供 SDKWork 设计令牌以及面板 `dark:` 变体所绑定的 `.dark` 类；`SdkworkI18nProvider` 把模块的 zh-CN/en-US 语言目录限定到宿主语言：弹窗位于 Harness（自带主题契约的 CSS Module 应用）中，而不是 SDKWork 应用外壳里。
-- 面板的 Tailwind 工具类由本包自己的样式表 `src/client/officialAccountsView.css` 针对 IAM app 级模块与 `@sdkwork/ui-pc-react` 源码根编译；该表只引入 Tailwind 子表，并为面板根写入作用域内的 reset，因此不会重排 Harness 界面。编译后的样式表收敛在 `dsh-sdkwork-official-accounts-embed` 级联层（由 `apps/web/src/index.css` 声明），并作用于嵌入根节点以及面板挂到 `document.body` 的覆盖层；`src/client/embedScope.ts` 保存组件与构建共享的属性名和选择器。
 
 <a id="build"></a>
 ## 构建
@@ -54,5 +55,5 @@ pnpm --filter @deepseek-ai/dsh-client-ui-sdkwork-official-accounts bundle
 
 - 嵌入样式表的级联层位置是与外壳的契约：`apps/web/src/index.css` 必须在 `utilities`、`dsh-sdkwork-embedded-app` 与 `dsh-sdkwork-appstore-embed` 之后声明 `dsh-sdkwork-official-accounts-embed`。丢掉该声明会让位置取决于 bundle 加载顺序，而这正是收敛要消除的冲突。
 - 自定义菜单编辑器只保存草稿。推送到微信（以及发布文章）需要 provider 调用链，暂时延后；app API 当前只暴露 list/create/retrieve/update/delete。
-- 账号 Logo 为外链地址字段：面板未挂载 Drive 图片上传服务，因此暂不提供应用内上传。
+- 账号 Logo 经 Drive 上传：宿主必须注入 `driveUploadImageService`（本弹窗已按 `specs/upload.declaration.json` 构建）。未注入时面板只显示已存 Logo 并提示不可上传，不再提供 URL 输入。
 - 弹窗需要已登录的 IAM 会话：登录动作会在弹窗之上打开共享登录界面，会话出现后挂载面板。

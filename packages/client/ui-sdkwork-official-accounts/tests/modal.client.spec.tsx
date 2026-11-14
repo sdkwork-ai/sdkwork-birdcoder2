@@ -27,16 +27,29 @@ vi.mock('@sdkwork/i18n-pc-react', () => ({
 
 vi.mock('@sdkwork/iam-pc-oauth', () => ({
   SDKWORK_IAM_OFFICIAL_ACCOUNTS_I18N_CATALOG: { namespace: 'iam.oauth.officialAccounts' },
-  SdkworkIamOfficialAccountsPanel: () => <div data-official-accounts-panel="" />,
+  SdkworkIamOfficialAccountsPanel: (
+    props: { controller?: unknown; driveUploadImageService?: { marker: string } | undefined },
+  ) => (
+    <div
+      data-logo-service={props.driveUploadImageService?.marker ?? 'none'}
+      data-official-accounts-panel=""
+    />
+  ),
 }))
 
 /** Locale seat stand-in: keys render verbatim so assertions read the contract. */
 const t = ((key: string) => key) as OfficialAccountsModalProps['t']
 
-/** Host double: the drawer reads only the controller seam from the adapter. */
+/** Host double: the drawer reads only the controller and the Drive logo capability. */
 const host: OfficialAccountsModalProps['host'] = {
   readController: () => ({}) as ReturnType<OfficialAccountsModalProps['host']['readController']>,
+  readLogoUploadService: () => undefined,
 }
+
+/** Drive capability double the modal hands to the panel. */
+const logoService = { marker: 'drive-logo' } as unknown as NonNullable<
+  ReturnType<OfficialAccountsModalProps['host']['readLogoUploadService']>
+>
 
 interface State {
   open?: boolean
@@ -112,6 +125,19 @@ describe('OfficialAccountsModal', () => {
     expect(document.querySelector('[data-sdkwork-theme-provider]')).not.toBeNull()
     expect(document.querySelector('[data-sdkwork-i18n-provider]')).not.toBeNull()
     expect(document.querySelector('[data-official-accounts-panel]')).not.toBeNull()
+  })
+
+  it('hands the host Drive logo upload capability to the panel', () => {
+    view({}, { host: { ...host, readLogoUploadService: () => logoService } })
+    expect(
+      document.querySelector('[data-official-accounts-panel]')?.getAttribute('data-logo-service'),
+    ).toBe('drive-logo')
+  })
+
+  it('does not build the Drive capability while signed out', () => {
+    const readLogoUploadService = vi.fn(() => undefined)
+    view({ signedIn: false }, { host: { ...host, readLogoUploadService } })
+    expect(readLogoUploadService).not.toHaveBeenCalled()
   })
 
   it('closes on Escape and on a mask click', () => {

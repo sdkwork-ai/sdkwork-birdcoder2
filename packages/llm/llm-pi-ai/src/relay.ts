@@ -11,9 +11,13 @@
  * activated by storing an API key, and served from a seed catalog.
  *
  * Each route speaks the OpenRouter wire dialect and seeds from the SDKWork
- * models catalog — every current chat model the catalog offers, in the
- * catalog's own mainstream order, with the DeepSeek block first. Deprecated,
- * retired, and hidden catalog rows never seed. The seed module is generated (`relay-models.generated.ts`, projected by
+ * models catalog — every current general-purpose chat model the catalog offers,
+ * in the catalog's own mainstream order, with the DeepSeek block first.
+ * Deprecated, retired, hidden, and replaced catalog rows never seed, and neither
+ * does a row the catalog keeps off code surfaces (`codingVisible: false`: OCR,
+ * translation, role-play, character, live audio, or robotics), because a coding
+ * picker must not offer a specialized endpoint as a general LLM. The seed module
+ * is generated (`relay-models.generated.ts`, projected by
  * `scripts/generate-sdkwork-relay-models.mjs`), so a catalog bump refreshes
  * what the picker offers instead of leaving a hand-kept list behind. A seed
  * model borrows the wire facts and compatibility block of the same model in

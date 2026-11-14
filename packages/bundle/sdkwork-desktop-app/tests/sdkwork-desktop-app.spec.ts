@@ -18,11 +18,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   boot,
+  createRuntimeResolution,
   initProfile,
   loadBundleLayer,
   loadLayeredEnv,
   loadProfile,
+  PluginPackages,
   resolveProfileDir,
+  type ProfileContext,
 } from '@deepseek-ai/dsh-app-boot'
 import { PROFILE_TEMPLATES } from '@deepseek-ai/dsh-official-bundles'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
@@ -35,8 +38,11 @@ const NAME = 'dsh-desktop'
 const PROFILE = 'web'
 const DESKTOP_OVERLAY_BUNDLE = '@deepseek-ai/dsh-sdkwork-desktop-app'
 
-/** The desktop shell's package.json — the installation anchor of the module fallback closure. */
-const INSTALL_ANCHOR = fileURLToPath(new URL('../../../../apps/desktop/package.json', import.meta.url))
+/** The dsh CLI's package.json — the installation anchor the shipped desktop
+ * Host boots with (profile-boot's own INSTALL_ANCHOR); its dependency closure
+ * carries every bundle the desktop composition mounts, including the web-app
+ * bundle the shell itself does not declare. */
+const INSTALL_ANCHOR = fileURLToPath(new URL('../../../../apps/cli/package.json', import.meta.url))
 
 let workdir: string | undefined
 
@@ -75,17 +81,40 @@ async function bootDesktop(): Promise<{ ctx: Awaited<ReturnType<typeof boot>>; b
     ...profile.layers.flatMap(layer => layer.patches),
     ...profile.patches,
     ...desktopLayer.patches,
-    // The desktop shell's host boot remounts the ApiProxy gateway beside the
-    // Typert gateway: the renderer's IpcApiClient speaks the ApiProxy
-    // dot-method protocol over the desktop bridge (see apps/desktop host.ts).
-    // Mirrored here so this suite boots the same tree the shell boots.
-    { insert: [{ id: 'api-gateway', name: '@deepseek-ai/dsh-host-apiproxy' }] },
   ]
   writeFileSync(configPath, '[]\n')
-  // Mirror the shell's host boot: bare plugin specifiers resolve against the
-  // loaded profile, not the test process's ambient module graph.
-  const ctx = await boot(NAME, configPath, patches, (hostCtx) => {
+  // Mirror the shell's host boot: the runtime resolution installs the module
+  // interception the loader's bare imports consult (profile-boot mounts
+  // PluginPackages with the resolution computed from the installation anchor —
+  // here the desktop shell's own manifest), and the profileContext gates every
+  // `!!js` row that switches on the launching surface (the settings rows the
+  // desktop profile needs are disabled without it).
+  const resolution = await createRuntimeResolution({ installAnchor: INSTALL_ANCHOR, profile })
+  const profileContext: ProfileContext = {
+    name: NAME,
+    dir: profileDir, patchPath: configPath,
+    installAnchor: INSTALL_ANCHOR,
+    startedBundles: profile.layers.map(layer => layer.packageName),
+    cwd: process.cwd(), home: workdir ?? '',
+    overlays: [], telemetryDisabledEnv: process.env.DSH_TELEMETRY_DISABLED,
+  }
+  // The launcher `ready` signal is deliberately absent: Profile HMR fails fast
+  // without it (the desktop shell's client-plugin HMR is a later milestone —
+  // rebuild + window reload today), and a provided-but-uncommitted readiness
+  // would deadlock the boot against the commit that only follows settlement.
+  // The launcher `ready` signal is deliberately absent: Profile HMR fails fast
+  // without it (the desktop shell's client-plugin HMR is a later milestone —
+  // rebuild + window reload today), and a provided-but-uncommitted readiness
+  // would deadlock the boot against the commit that only follows settlement.
+  const desktopSecret = 'A'.repeat(43)
+  const ctx = await boot(NAME, configPath, patches, async (hostCtx) => {
+    hostCtx.provide('profileContext', profileContext)
     hostCtx.provide(DSH_LAUNCH_ENVIRONMENT_KEY, loadLayeredEnv(NAME, profileDir))
+    await hostCtx.plugin(PluginPackages, { resolution })
+    await hostCtx.plugin({
+      inject: desktopAuthenticationInject,
+      apply: (scope: Context) => applyDesktopAuthentication(scope, { readSecret: () => desktopSecret }),
+    })
     provideCmdline(hostCtx, { args: [], exit: () => {} })
   }, pathToFileURL(join(profileDir, 'package.json')).href)
   const carrier = ctx.get('webServer') as unknown as DesktopWebServer | undefined
@@ -109,8 +138,13 @@ maybeDescribe('desktop composition over the Web profile', () => {
       // The carrier is a DesktopWebServer (dispatch surface), not an HTTP server.
       expect(typeof carrier.dispatch).toBe('function')
       expect(carrier.host).toBe('127.0.0.1')
-      // The web runtime mounted the dist fallback through the carrier.
-      const index = await carrier.dispatch(new Request('http://dsh.internal/index.html'))
+      // The web runtime mounted the dist fallback through the carrier. The
+      // dispatch presents the desktop-session credential the shell's forwarded
+      // requests carry (the dist fallback's index requires an authenticated
+      // peer).
+      const index = await carrier.dispatch(new Request('http://dsh.internal/index.html', {
+        headers: { cookie: `dsh-desktop-session=${DESKTOP_SECRET}` },
+      }))
       expect(index.status).toBe(200)
       const html = await index.text()
       // The real built frontend shell is served.
@@ -146,6 +180,12 @@ maybeDescribe('desktop composition over the Web profile', () => {
       expect(systemPrompt).toBeDefined()
       const assembly = await systemPrompt?.assemble()
       expect(assembly).toBeDefined()
+      for (const row of ctx.loader.entries()) {
+        if (String(row.options.name ?? row.options.id).includes('sdkwork-desktop-app')) {
+          console.log('DIAG row:', row.options.id, '| name:', row.options.name, '| fiber:', row.fiber === undefined ? 'none' : row.fiber.state)
+        }
+      }
+      console.log('DIAG sections:', JSON.stringify((assembly as PromptAssembly).sections.map(s => s.name)))
       const names = (assembly as PromptAssembly).sections.map(section => section.name)
       expect(names).toContain('app:desktop-surface')
       expect(names).toContain('harness:source')

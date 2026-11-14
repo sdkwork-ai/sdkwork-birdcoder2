@@ -6,11 +6,13 @@
  * model catalog before any configuration exists, so the seed decides what the
  * model picker offers a user who has not fetched an endpoint's own listing.
  * That seed is projected from the catalog rather than hand-kept: every current
- * chat model of every vendor — rows the catalog deprecates, retires, or hides
- * are excluded, and so is a row the catalog replaced with another offered row —
- * in the catalog's own mainstream order (vendor `sortOrder`, then lifecycle,
- * then `rankScore`), with the DeepSeek block hoisted to the top because
- * BirdCoder's picker keeps DeepSeek first.
+ * general-purpose chat model of every vendor — rows the catalog deprecates,
+ * retires, or hides are excluded, so is a row the catalog replaced with another
+ * offered row, and so is a specialized endpoint the catalog keeps off code
+ * surfaces (`codingVisible: false`: OCR, translation, role-play, character,
+ * live audio, or robotics) — in the catalog's own mainstream order (vendor
+ * `sortOrder`, then lifecycle, then `rankScore`), with the DeepSeek block
+ * hoisted to the top because BirdCoder's picker keeps DeepSeek first.
  *
  *   node scripts/generate-sdkwork-relay-models.mjs
  *   node scripts/generate-sdkwork-relay-models.mjs --check   # fail when stale
@@ -74,6 +76,19 @@ function isCurrentOffer(model) {
 }
 
 /**
+ * Whether the catalog offers one row to code and agent surfaces. A chat model
+ * the catalog marks `codingVisible: false` is a specialized endpoint — OCR,
+ * translation, role-play, character, live audio, or robotics — rather than a
+ * general-purpose LLM, so the model picker behind a coding agent must not list
+ * it.
+ * @param {object} model - one catalog model row.
+ * @returns {boolean} whether the row is a general-purpose LLM.
+ */
+function isGeneralLlm(model) {
+  return model.codingVisible === true
+}
+
+/**
  * The catalog key a row's `replacementModel` names. The field is a vendor-local
  * model id, so it is qualified with the row's vendor unless it already carries
  * a vendor prefix.
@@ -122,11 +137,12 @@ function hideSuperseded(rowsByKey, models) {
  * decides a key's status. A model the preferred region retires is therefore
  * not offered even when a regional catalog still lists it as active, while a
  * model that exists only in a regional catalog keeps that region's row. Only
- * rows the catalog calls current survive, and a row the catalog replaced with
- * another offered row is left out. The vendor metadata (display name, ordering)
- * comes from the preferred entry.
+ * rows the catalog calls current survive, a row the catalog replaced with
+ * another current row is left out, and the survivors are narrowed to
+ * general-purpose LLMs so a specialized endpoint never reaches a coding picker.
+ * The vendor metadata (display name, ordering) comes from the preferred entry.
  * @param {{ catalog: object, vendorEntries: Map<string, object> }} input - catalog index and vendor regions.
- * @returns {{ models: object[], excluded: Record<string, number> }} current chat models in mainstream order, plus why other rows were dropped.
+ * @returns {{ models: object[], excluded: Record<string, number> }} current general-purpose chat models in mainstream order, plus why other rows were dropped.
  */
 function collectModels({ catalog, vendorEntries }) {
   const rowsByKey = new Map()
@@ -146,7 +162,7 @@ function collectModels({ catalog, vendorEntries }) {
       if (current === undefined || preferred) rowsByKey.set(model.catalogKey, model)
     }
   }
-  const excluded = { deprecated: 0, retired: 0, hidden: 0, disabled: 0, superseded: 0, other: 0 }
+  const excluded = { deprecated: 0, retired: 0, hidden: 0, disabled: 0, superseded: 0, specialized: 0, other: 0 }
   const currentRows = []
   for (const model of rowsByKey.values()) {
     if (isCurrentOffer(model)) {
@@ -165,8 +181,13 @@ function collectModels({ catalog, vendorEntries }) {
       excluded.other += 1
     }
   }
-  const models = hideSuperseded(rowsByKey, currentRows)
-  excluded.superseded = currentRows.length - models.length
+  // Supersession resolves over every current offer, including the specialized
+  // rows this projection drops: a legacy preview is replaced by a live-audio
+  // model, and it must not resurface because its head is filtered out.
+  const offered = hideSuperseded(rowsByKey, currentRows)
+  excluded.superseded = currentRows.length - offered.length
+  const models = offered.filter(row => isGeneralLlm(row.model))
+  excluded.specialized = offered.length - models.length
   models.sort((left, right) => (
     (left.vendor?.sortOrder ?? Number.MAX_SAFE_INTEGER) - (right.vendor?.sortOrder ?? Number.MAX_SAFE_INTEGER)
     || lifecycleOrder(left.model.lifecycle) - lifecycleOrder(right.model.lifecycle)
@@ -255,9 +276,10 @@ function renderModel(row) {
 function render(rows, catalog) {
   return `/**
  * Generated relay seed catalog for the harness-shipped relay routes
- * (\`sdkwork\`, \`birdcoder\`): every current chat model the SDKWork models
- * catalog offers — no deprecated, retired, hidden, or already-replaced row — in
- * the catalog's own mainstream order, with the DeepSeek block leading.
+ * (\`sdkwork\`, \`birdcoder\`): every current general-purpose chat model the
+ * SDKWork models catalog offers — no deprecated, retired, hidden,
+ * already-replaced, or specialized (non-LLM) row — in the catalog's own
+ * mainstream order, with the DeepSeek block leading.
  *
  * Source: sdkwork-models catalog ${catalog.catalogVersion} (generatedAt ${catalog.generatedAt}).
  * Regenerate with \`node scripts/generate-sdkwork-relay-models.mjs\`; do not edit by hand.

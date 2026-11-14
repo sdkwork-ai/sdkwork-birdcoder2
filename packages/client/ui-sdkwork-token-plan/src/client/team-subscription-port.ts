@@ -29,6 +29,7 @@ import {
   type SdkworkTeamCheckoutPayment,
   type SdkworkTeamOwnMembership,
   type SdkworkTeamPackage,
+  type SdkworkTeamPackageGroup,
   type SdkworkTeamRosterPage,
   type SdkworkTeamRosterQuery,
   type SdkworkTeamSeatAssignment,
@@ -242,6 +243,26 @@ export function createTokenPlanTeamSubscriptionPort(
           if (!result.pageInfo.hasMore) break
         }
         return packages
+      } catch (error) {
+        throw normalizeSdkworkTeamError(error)
+      }
+    },
+
+    async listPackageGroups(): Promise<readonly SdkworkTeamPackageGroup[]> {
+      try {
+        const api = memberships()
+        const groups: SdkworkTeamPackageGroup[] = []
+        for (let page = 1; page <= TEAM_PACKAGE_MAX_PAGES; page += 1) {
+          const result = await api.packageGroups.list({
+            audience: 'team',
+            category: 'token',
+            page,
+            pageSize: TEAM_PACKAGE_PAGE_SIZE,
+          })
+          groups.push(...result.items)
+          if (!result.pageInfo.hasMore) break
+        }
+        return groups
       } catch (error) {
         throw normalizeSdkworkTeamError(error)
       }

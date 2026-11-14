@@ -114,6 +114,18 @@ export class DesktopWebServer extends Service {
   }
 
   /**
+   * The origin the shell's renderer pages live on (`dsh-app://app` — the same
+   * origin the shell's protocol handler fences). The HTTP WebServer analogue
+   * surface: webApp's advertised-URL read (`getAdvertisedUrl`) and any other
+   * `getOrigin()` consumer must resolve to the shell origin on the desktop,
+   * where no loopback HTTP listener exists.
+   * @returns the fixed shell origin.
+   */
+  getOrigin(): string {
+    return 'dsh-app://app'
+  }
+
+  /**
    * Register a named route. Duplicate (kind, path) throws — route patterns are
    * a composition-level contract, so a collision is a misconfiguration.
    * @param route - kind, path, and the owning handler.
@@ -225,16 +237,20 @@ export class DesktopWebServer extends Service {
    * The browser-session cookie that satisfies the composing application's
    * /api trust fence, minted once through the connection service's process
    * launch-token exchange against the request shim's `127.0.0.1` authority.
-   * `app://` serves only this shell's renderer, so the shell's own navigation
-   * is the trusted first navigation; the carrier supplies the cookie the HTTP
-   * web carrier receives through the token URL printed by `dsh web`.
+   * The shipped desktop shell no longer mints here: its credential is the
+   * parent-authentication `dsh-desktop-session` secret delivered over the
+   * shell↔Host IPC and presented by the shell's own forwarded requests, and
+   * the connection service no longer exposes the token-exchange members this
+   * mint read. The path stays for compositions that mount a connection
+   * carrying those members.
    * @returns the cookie `name=value` pair, or undefined when no connection
-   *   service is mounted (a composition serving no authenticated surface).
+   *   service is mounted or the mounted connection carries no token exchange.
    */
   private browserSessionCookie(): string | undefined {
     if (this.sessionCookie !== undefined) return this.sessionCookie
     const connection = this.ctx.get('connection') as ConnectionBrowserAuth | undefined
-    if (connection === undefined) return undefined
+    if (connection === undefined || typeof connection.authenticatedUrl !== 'function'
+      || typeof connection.authorizeIndex !== 'function') return undefined
     this.sessionCookie = mintSessionCookie(connection)
     return this.sessionCookie
   }

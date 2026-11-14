@@ -11,6 +11,7 @@ const membershipState = {
   bindIssue: undefined as unknown,
   unboundOverview: false,
   packagePages: [] as Array<{ items: unknown[]; pageInfo: { hasMore: boolean } }>,
+  packageGroupPages: [] as Array<{ items: unknown[]; pageInfo: { hasMore: boolean } }>,
   seatPages: [] as Array<{ hasMore?: boolean; items: unknown[] }>,
   calls: [] as Array<{ method: string; args: unknown[] }>,
 }
@@ -30,6 +31,13 @@ vi.mock('@sdkwork/membership-app-sdk', () => ({
         list: async (params: Record<string, unknown>) => {
           membershipState.calls.push({ method: 'packages.list', args: [params] })
           return membershipState.packagePages.shift()
+            ?? { items: [], pageInfo: { hasMore: false } }
+        },
+      },
+      packageGroups: {
+        list: async (params: Record<string, unknown>) => {
+          membershipState.calls.push({ method: 'packageGroups.list', args: [params] })
+          return membershipState.packageGroupPages.shift()
             ?? { items: [], pageInfo: { hasMore: false } }
         },
       },
@@ -248,6 +256,88 @@ describe('desktop team subscription port', () => {
       category: 'token',
       page: 1,
     })
+  })
+
+  it('reads the four team billing groups the cycle tabs render', async () => {
+    membershipState.calls.length = 0
+    membershipState.packageGroupPages = [
+      {
+        items: [
+          {
+            audience: 'team',
+            billingCycle: 'year',
+            description: '9.7折',
+            durationDays: '365',
+            id: '601',
+            name: '连续包年',
+            packages: [{
+              id: '612',
+              name: '团队基础版 - 按年按坐席',
+              packageGroupId: '601',
+              planId: 'plan-team-starter',
+              planRank: '11',
+              price: '999',
+              recommended: false,
+              recurrenceCycle: 'year',
+              seatMax: '200',
+              seatMin: '3',
+              seatPointsAmount: '5000',
+              sortWeight: '11',
+            }],
+          },
+          {
+            audience: 'team',
+            billingCycle: 'month',
+            description: '9.9折',
+            durationDays: '30',
+            id: '602',
+            name: '连续包月',
+            packages: [],
+          },
+        ],
+        pageInfo: { hasMore: true },
+      },
+      {
+        items: [
+          {
+            audience: 'team',
+            billingCycle: 'quarter',
+            description: '9.8折',
+            durationDays: '90',
+            id: '603',
+            name: '连续包季',
+            packages: [],
+          },
+          {
+            audience: 'team',
+            billingCycle: 'once',
+            durationDays: '30',
+            id: '604',
+            name: '单月购买',
+            packages: [],
+          },
+        ],
+        pageInfo: { hasMore: false },
+      },
+    ]
+    const port = createPort()
+
+    const groups = await port.listPackageGroups()
+
+    expect(groups.map(group => group.id)).toEqual(['601', '602', '603', '604'])
+    expect(groups[0]?.name).toBe('连续包年')
+    expect(groups[0]?.description).toBe('9.7折')
+    expect(groups[0]?.billingCycle).toBe('year')
+    expect(groups[0]?.durationDays).toBe('365')
+    expect(groups[0]?.packages[0]?.packageGroupId).toBe('601')
+    const groupCalls = membershipState.calls.filter(call => call.method === 'packageGroups.list')
+    expect(groupCalls).toHaveLength(2)
+    expect(groupCalls[0]?.args[0]).toMatchObject({
+      audience: 'team',
+      category: 'token',
+      page: 1,
+    })
+    expect(groupCalls[1]?.args[0]).toMatchObject({ page: 2 })
   })
 
   it('sends the seat count as the order quantity of the requested checkout action', async () => {

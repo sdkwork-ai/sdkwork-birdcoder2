@@ -34,7 +34,7 @@ function fakeSystemPrompt(): {
 }
 
 describe('sdkwork-desktop-app glue', () => {
-  it('registers the harness-source and desktop-surface prompt sections', async () => {
+  it('registers the desktop-surface prompt section (harness:source is owned by harness-dev-context)', async () => {
     const ctx = new Context()
     const fake = fakeSystemPrompt()
     apply(ctx)
@@ -43,13 +43,11 @@ describe('sdkwork-desktop-app glue', () => {
     const provider = ctx.plugin({ apply: (child: Context) => { child.provide('systemPrompt', fake.service) } })
     await provider
     await new Promise(resolve => setTimeout(resolve, 0))
-    expect(fake.sections.map(section => section.name)).toEqual(['harness:source', 'app:desktop-surface'])
+    expect(fake.sections.map(section => section.name)).toEqual(['app:desktop-surface'])
     const desktop = fake.sections.find(section => section.name === 'app:desktop-surface')
     expect(desktop?.text).toContain('desktop application')
     expect(desktop?.text).toContain('no server URL')
     expect(desktop?.text).not.toContain('http://')
-    const harness = fake.sections.find(section => section.name === 'harness:source')
-    expect(harness?.text).toContain('DeepSeek Harness implementation checkout')
   })
 
   it('does nothing when no systemPrompt service exists', async () => {
