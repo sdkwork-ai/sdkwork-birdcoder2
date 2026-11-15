@@ -18,6 +18,7 @@ import { selectDevelopmentHome } from './development-home.ts'
 import { LEGACY_DSH_HOME_DIR_NAME, brandHomePath, resolveRuntimeBrand } from '../src/brand.ts'
 import { applyDevelopmentGateway, resolveDevelopmentGateway } from './development-gateway.ts'
 import { parseDevelopmentArguments, type DevelopmentArguments } from './development-arguments.ts'
+import { assertDevelopmentLanePortFree } from './development-ports.ts'
 import { INSECURE_TLS_ELECTRON_SWITCH, ONLINE_REQUEST_LOG_VARIABLE, PRODUCTION_GATEWAY_URL, PRODUCTION_PROFILE_ID, insecureTlsLaunchEnvironment, onlineBuildEnvironment, onlineLaunchEnvironment } from './online-debug-launch.ts'
 
 const APP_ROOT = resolve(import.meta.dirname, '..')
@@ -254,6 +255,13 @@ async function launchDevelopment(
     allowInstalledHome: process.env.DSH_DESKTOP_DEV_INSTALLED_HOME === '1',
   })
   if (homeSelection.notice !== undefined) console.log(homeSelection.notice)
+  // A previous window of this lane owns the Host web port, and the Electron
+  // single-instance lock would only focus it: the launch would render that old
+  // Host's plugin snapshots instead of this build. Refuse before building.
+  await assertDevelopmentLanePortFree({
+    lane: online ? 'online' : 'development',
+    port: debugPort('DSH_DESKTOP_HOST_WEB_PORT', online ? ONLINE_HOST_WEB_PORT : DEVELOPMENT_HOST_WEB_PORT),
+  })
   if (!options.skipBuild) {
     // The Web build bakes the SDKWork env file its mode selects, so each lane
     // builds its own environment: the development shell bakes
