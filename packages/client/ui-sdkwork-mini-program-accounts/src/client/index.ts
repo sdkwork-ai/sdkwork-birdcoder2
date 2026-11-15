@@ -1,15 +1,14 @@
 /**
  * SDKWork mini-program account plugin, browser half: registers the
  * "小程序账号" settings-menu row's dialog into the settings-menu shell's
- * `settings.miniPrograms` seat and hosts the account capability there.
+ * `settings.miniPrograms` seat and hosts the SDKWork IAM capability there.
  *
- * The capability is the IAM backend OAuth resource-account surface that the
- * sdkwork-iam PC admin mini-program page manages — the same rows, the same
- * `wechat_mini_program` login integration, and the same backend login check.
- * This plugin owns only the harness frame: the settings row's dialog, the host
+ * The capability itself lives in `@sdkwork/iam-pc-mini-program` (the shared
+ * mini-program component; this host mounts its operator posture): this plugin
+ * owns only the harness frame — the settings row, the dialog chrome, the host
  * adapter that binds the shared deployment environment and IAM session to the
- * generated backend client, and the locale bridge. It imports no other feature
- * plugin and exports no value the cordis loader does not need.
+ * generated backend client, and the locale/theme bridge. It imports no other
+ * feature plugin and exports no value the cordis loader does not need.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: pulls the settings slot declarations (settings.miniPrograms).
@@ -18,11 +17,17 @@ import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 // Type-only: pulls ctx.iam into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
+// Type-only: pulls ctx.theme + theme/change into this program.
+import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type { IamService } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
+import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
 import { MiniProgramsModal, type MiniProgramsModalInjected } from './MiniProgramsModal.tsx'
 import { mountMiniProgramHost } from './miniProgramHost.ts'
 import { en, NS, zh, type MiniProgramKey } from './locales.ts'
+import './miniProgramView.css'
+
+export type { MiniProgramKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -32,7 +37,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 }
 
 /** Services required by the plugin: slot registration, copy, and the host faces. */
-export const inject = ['slots', 'locale', 'env', 'iam']
+export const inject = ['slots', 'locale', 'env', 'iam', 'theme']
 
 /**
  * Client plugin body: register the dictionaries, mount the host adapter, and
@@ -44,6 +49,7 @@ export function apply(ctx: ClientContext): void {
 
   const env = ctx.get('env') as EnvService
   const iam = ctx.get('iam') as IamService
+  const theme = ctx.get('theme') as ThemeRuntime
   const host = mountMiniProgramHost({ env, iam })
   ctx.effect(() => () => { host.dispose() }, 'ui-sdkwork-mini-program-accounts: SDKWork IAM backend host adapter')
 
@@ -62,10 +68,18 @@ export function apply(ctx: ClientContext): void {
         },
         // The sign-in gate reads the shared IAM controller: a successful login
         // (from the dialog's own action or anywhere else) swaps the prompt for
-        // the ledger in place.
+        // the workspace in place.
         signedIn: {
           getSnapshot: () => iam.isSignedIn(),
           subscribe: listener => iam.controller.subscribe(listener),
+        },
+        language: {
+          getSnapshot: () => ctx.locale.getSnapshot().active,
+          subscribe: listener => ctx.locale.subscribe(listener),
+        },
+        colorScheme: {
+          getSnapshot: () => theme.getTheme().active.colorScheme,
+          subscribe: listener => ctx.on('theme/change', listener),
         },
         // Environment switches keep readiness true while the generated client
         // must be rebuilt; the revision is the dialog's re-read trigger.

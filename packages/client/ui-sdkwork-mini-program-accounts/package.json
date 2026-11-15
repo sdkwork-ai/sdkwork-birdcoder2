@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-mini-program-accounts",
-  "description": "SDKWork mini-program account management plugin: the settings-menu row below 公众号账号 and its wide dialog over the IAM backend OAuth resource-account API — listing, creating (AppID/AppSecret), editing, enabling, deleting, and login-checking WeChat mini-program accounts",
+  "description": "SDKWork mini-program account management plugin: the settings-menu row below 公众号账号 and its wide dialog over the shared @sdkwork/iam-pc-mini-program operator panel — listing, creating (AppID/AppSecret), editing, enabling, deleting, and login-checking WeChat mini-program accounts",
   "version": "0.2.2-rc.3",
   "publishConfig": {
     "access": "public"
@@ -31,7 +31,8 @@
         "@deepseek-ai/dsh-client-locale",
         "@deepseek-ai/dsh-client-ui-settings",
         "@deepseek-ai/dsh-client-ui-sdkwork-env",
-        "@deepseek-ai/dsh-client-ui-sdkwork-iam"
+        "@deepseek-ai/dsh-client-ui-sdkwork-iam",
+        "@deepseek-ai/dsh-client-ui-theme"
       ],
       "platform": "web"
     }
@@ -52,10 +53,16 @@
     "@deepseek-ai/dsh-client-ui-sdkwork-iam": "workspace:*",
     "@deepseek-ai/dsh-client-ui-settings": "workspace:*",
     "@deepseek-ai/dsh-client-ui-slots": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-theme": "workspace:*",
+    "@sdkwork/i18n-pc-react": "workspace:^",
     "@sdkwork/iam-backend-sdk": "workspace:^",
+    "@sdkwork/iam-pc-mini-program": "workspace:^",
     "@sdkwork/sdk-common": "workspace:^",
-    "clsx": "^2.0.0",
-    "react": "^18.2.0"
+    "@sdkwork/ui-pc-react": "workspace:^",
+    "@tailwindcss/node": "catalog:",
+    "@tailwindcss/oxide": "catalog:",
+    "react": "^18.2.0",
+    "tailwindcss": "catalog:"
   },
   "files": [
     "lib/index.js",

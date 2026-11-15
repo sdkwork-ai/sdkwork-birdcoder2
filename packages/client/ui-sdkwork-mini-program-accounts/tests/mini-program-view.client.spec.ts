@@ -1,37 +1,42 @@
 // @vitest-environment jsdom
-/** Mini-program form validation and display helpers. */
+/**
+ * The compatibility re-exports for the mini-program view helpers: the shared
+ * package owns the row projection and the copy, and this module stays a thin
+ * alias.
+ */
 import { describe, expect, it } from 'vitest'
 import {
-  errorText, formatTimestamp, validateMiniProgramDraft, validateMiniProgramEdit,
+  MINI_PROGRAM_ACCOUNT_KIND,
+  MINI_PROGRAM_PROVIDER_CODE,
+  resolveMiniProgramMessages,
+  toMiniProgramAccount,
 } from '../src/client/miniProgramView.ts'
 
-describe('miniProgramView', () => {
-  it('validates the create form field by field', () => {
-    expect(validateMiniProgramDraft({ appId: '', appSecret: 's', displayName: 'n' }))
-      .toEqual({ ok: false, problem: 'appIdRequired' })
-    expect(validateMiniProgramDraft({ appId: 'wx1', appSecret: ' ', displayName: 'n' }))
-      .toEqual({ ok: false, problem: 'appSecretRequired' })
-    expect(validateMiniProgramDraft({ appId: 'wx1', appSecret: 's', displayName: ' ' }))
-      .toEqual({ ok: false, problem: 'displayNameRequired' })
-    expect(validateMiniProgramDraft({ appId: ' wx1 ', appSecret: ' s ', displayName: ' n ' })).toEqual({ ok: true })
+describe('miniProgramView re-exports', () => {
+  it('exposes the shared aggregate constants', () => {
+    expect(MINI_PROGRAM_ACCOUNT_KIND).toBe('mini_program')
+    expect(MINI_PROGRAM_PROVIDER_CODE).toBe('wechat_mini_program')
   })
 
-  it('requires a display name when editing and leaves credentials optional', () => {
-    expect(validateMiniProgramEdit({ displayName: ' ' })).toEqual({ ok: false, problem: 'displayNameRequired' })
-    expect(validateMiniProgramEdit({ displayName: 'Name' })).toEqual({ ok: true })
+  it('projects a backend row through the shared normalizer', () => {
+    expect(toMiniProgramAccount({
+      id: 'iamora-1',
+      integrationId: 'iamoi-1',
+      providerAccountId: 'wx1234567890abcdef',
+      displayName: 'My mini program',
+      resourceAccountKind: 'mini_program',
+      enabled: 1,
+    })).toMatchObject({
+      miniProgramId: 'iamora-1',
+      appId: 'wx1234567890abcdef',
+      displayName: 'My mini program',
+      integrationId: 'iamoi-1',
+      enabled: true,
+    })
   })
 
-  it('reads failure text from Errors, strings, and nothing else', () => {
-    expect(errorText(new Error('  wire failure  '))).toBe('wire failure')
-    expect(errorText('plain')).toBe('plain')
-    expect(errorText({ code: 1 })).toBe('')
-    expect(errorText(undefined)).toBe('')
-  })
-
-  it('formats valid timestamps in UTC minutes and hides invalid ones', () => {
-    expect(formatTimestamp('2026-01-02T03:04:05.000Z')).toBe('2026-01-02 03:04')
-    expect(formatTimestamp('')).toBe('')
-    expect(formatTimestamp(undefined)).toBe('')
-    expect(formatTimestamp('not-a-date')).toBe('')
+  it('resolves the shared copy for a locale tag', () => {
+    expect(resolveMiniProgramMessages('en-US').title).toBe('Mini programs')
+    expect(resolveMiniProgramMessages('zh-CN').title).toBe('小程序账号')
   })
 })

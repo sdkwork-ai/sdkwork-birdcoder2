@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
- * The mini-program host adapter: readiness, client identity across environment
- * switches, token mirroring, listener fan-out, and disposal.
+ * The mini-program host adapter: readiness, controller identity across
+ * environment switches, token mirroring, listener fan-out, and disposal.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -45,33 +45,34 @@ afterEach(() => {
 })
 
 describe('MiniProgramHost', () => {
-  it('reports unconfigured and builds no client without a gateway origin', () => {
+  it('reports unconfigured and builds no controller without a gateway origin', () => {
     const b = bench()
     const host = new MiniProgramHost({ env: b.env, iam: b.iam })
     expect(host.readReady()).toBe(false)
-    expect(host.readClient()).toBeUndefined()
+    expect(host.readController()).toBeUndefined()
     expect(host.readRevision()).toBe(0)
   })
 
-  it('builds one client per normalized origin and replaces it when the origin moves', () => {
+  it('builds one controller per normalized origin and replaces it when the origin moves', () => {
     const b = bench({ baseUrl: 'https://api.example.com/' })
     const host = new MiniProgramHost({ env: b.env, iam: b.iam })
-    const first = host.readClient()
+    const first = host.readController()
     expect(first).not.toBeUndefined()
-    expect(host.readClient()).toBe(first)
+    expect(first?.getState()).toMatchObject({ status: 'idle', items: [] })
+    expect(host.readController()).toBe(first)
     b.state.baseUrl = 'https://api.example.com'
-    expect(host.readClient()).toBe(first)
+    expect(host.readController()).toBe(first)
     b.state.baseUrl = 'https://api2.example.com'
-    expect(host.readClient()).not.toBe(first)
+    expect(host.readController()).not.toBe(first)
   })
 
   it('mirrors the IAM session into the shared token manager on every read', () => {
     const b = bench({ baseUrl: 'https://api.example.com' })
     const host = new MiniProgramHost({ env: b.env, iam: b.iam })
-    host.readClient()
+    host.readController()
     expect(getSdkworkGlobalTokenManager().getTokens()).toEqual({})
     b.state.session = { accessToken: 'access-1', authToken: 'auth-1', refreshToken: 'refresh-1' }
-    host.readClient()
+    host.readController()
     expect(getSdkworkGlobalTokenManager().getTokens()).toEqual({
       accessToken: 'access-1',
       authToken: 'auth-1',
@@ -79,7 +80,7 @@ describe('MiniProgramHost', () => {
     })
     b.state.session = null
     b.state.accessToken = 'static-token'
-    host.readClient()
+    host.readController()
     expect(getSdkworkGlobalTokenManager().getTokens()).toEqual({ accessToken: 'static-token' })
   })
 
@@ -101,17 +102,19 @@ describe('MiniProgramHost', () => {
   })
 
   it('stops publishing after disposal and is idempotent', () => {
-    const b = bench()
+    const b = bench({ baseUrl: 'https://api.example.com' })
     const host = new MiniProgramHost({ env: b.env, iam: b.iam })
     host.mount()
     const listener = vi.fn()
     host.subscribe(listener)
+    expect(host.readController()).not.toBeUndefined()
     const lateNotifier = [...b.envListeners][0]
     host.dispose()
     host.dispose()
     lateNotifier()
     for (const notify of b.envListeners) notify()
     expect(listener).not.toHaveBeenCalled()
+    expect(host.readController()).toBeUndefined()
     expect(b.envListeners.size).toBe(0)
     expect(b.iamListeners.size).toBe(0)
   })
@@ -121,6 +124,7 @@ describe('MiniProgramHost', () => {
     const host = mountMiniProgramHost({ env: b.env, iam: b.iam })
     expect(host).toBeInstanceOf(MiniProgramHost)
     expect(host.readReady()).toBe(true)
+    expect(host.readController()).not.toBeUndefined()
     host.dispose()
   })
 })

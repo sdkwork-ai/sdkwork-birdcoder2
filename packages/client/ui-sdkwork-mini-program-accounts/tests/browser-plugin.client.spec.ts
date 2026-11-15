@@ -37,7 +37,10 @@ function makeServices() {
       }),
     },
   }
-  return { state, env, iam, envListeners, iamListeners }
+  const theme = {
+    getTheme: () => ({ active: { colorScheme: 'dark' as const } }),
+  }
+  return { state, env, iam, theme, envListeners, iamListeners }
 }
 
 async function bench() {
@@ -48,6 +51,7 @@ async function bench() {
   const services = makeServices()
   ctx.provide('env', services.env as never)
   ctx.provide('iam', services.iam as never)
+  ctx.provide('theme', services.theme as never)
   return { ctx, locale, ...services }
 }
 
@@ -61,7 +65,7 @@ function declareSeat(slots: SlotRegistry): void {
 
 describe('ui-sdkwork-mini-program-accounts client plugin', () => {
   it('declares its required services', () => {
-    expect(inject).toEqual(['slots', 'locale', 'env', 'iam'])
+    expect(inject).toEqual(['slots', 'locale', 'env', 'iam', 'theme'])
   })
 
   it('contributes no host-side behavior', () => {
@@ -99,7 +103,7 @@ describe('ui-sdkwork-mini-program-accounts client plugin', () => {
     expect(b.ctx.slots.entries('settings.miniPrograms')).toHaveLength(0)
   })
 
-  it('projects readiness, session, and revision through the injected face', async () => {
+  it('projects readiness, session, locale, appearance, and revision through the injected face', async () => {
     const b = await bench()
     declareSeat(b.ctx.slots as unknown as SlotRegistry)
     const fiber = b.ctx.plugin({ inject: [...inject], apply })
@@ -109,6 +113,8 @@ describe('ui-sdkwork-mini-program-accounts client plugin', () => {
     expect(injected.host.readReady()).toBe(true)
     expect(injected.hooks.available.getSnapshot()).toBe(true)
     expect(injected.hooks.signedIn.getSnapshot()).toBe(true)
+    expect(injected.hooks.language.getSnapshot()).toBe('en')
+    expect(injected.hooks.colorScheme.getSnapshot()).toBe('dark')
     const revision = injected.hooks.revision.getSnapshot()
     const revisionListener = vi.fn()
     const offRevision = injected.hooks.revision.subscribe(revisionListener)

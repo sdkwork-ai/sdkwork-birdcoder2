@@ -2954,6 +2954,37 @@ importers:
         specifier: 'catalog:'
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
 
+  ../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-iam-pc-mini-program:
+    dependencies:
+      '@sdkwork/i18n-pc-react':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react
+      '@sdkwork/ui-pc-react':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-ui/sdkwork-ui-pc-react
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@testing-library/react':
+        specifier: 'catalog:'
+        version: 16.3.2(@testing-library/dom@10.4.2)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.2.5(@types/react@19.2.18)
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+
   ../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-iam-pc-oauth:
     dependencies:
       '@sdkwork/drive-upload-image-core':
@@ -12642,18 +12673,36 @@ importers:
       '@deepseek-ai/dsh-client-ui-slots':
         specifier: workspace:*
         version: link:../ui-slots
+      '@deepseek-ai/dsh-client-ui-theme':
+        specifier: workspace:*
+        version: link:../ui-theme
+      '@sdkwork/i18n-pc-react':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react
       '@sdkwork/iam-backend-sdk':
         specifier: workspace:^
         version: link:../../../../sdkwork-iam/sdks/sdkwork-iam-backend-sdk/sdkwork-iam-backend-sdk-typescript
+      '@sdkwork/iam-pc-mini-program':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-iam-pc-mini-program
       '@sdkwork/sdk-common':
         specifier: workspace:^
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
+      '@sdkwork/ui-pc-react':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-ui/sdkwork-ui-pc-react
+      '@tailwindcss/node':
+        specifier: 'catalog:'
+        version: 4.3.5
+      '@tailwindcss/oxide':
+        specifier: 'catalog:'
+        version: 4.3.5
       react:
         specifier: 19.2.8
         version: 19.2.8
+      tailwindcss:
+        specifier: 'catalog:'
+        version: 4.3.5
 
   packages/client/ui-sdkwork-mobile-simulator:
     devDependencies:

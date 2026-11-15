@@ -10,9 +10,11 @@
     { "path": "../../../vendor/cordis" },
     { "path": "../locale/tsconfig.client.json" },
     { "path": "../ui-primitives" },
+    { "path": "../ui-renderer" },
     { "path": "../ui-slots" },
     { "path": "../ui-sdkwork-env/tsconfig.client.json" },
     { "path": "../ui-sdkwork-iam" },
-    { "path": "../ui-settings/tsconfig.client.json" }
+    { "path": "../ui-settings/tsconfig.client.json" },
+    { "path": "../ui-theme/tsconfig.client.json" }
   ]
 }

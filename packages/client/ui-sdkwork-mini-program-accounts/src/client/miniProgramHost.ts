@@ -1,24 +1,35 @@
 /**
  * BirdCoder host adapter for the SDKWork mini-program account capability.
  *
- * The capability is the IAM backend OAuth admin surface that the sdkwork-iam
- * PC admin mounts: `iamOauth.iam.oauth.resourceAccounts` rows whose
- * `resourceAccountKind` is `mini_program`, created together with (or reusing) a
- * `wechat_mini_program` login integration. This adapter owns only the transport
- * seam: the gateway origin from the shared ui-sdkwork-env profile, the IAM
- * session credentials mirrored into the browser-global token manager, and one
- * generated backend client rebuilt when the deployment origin changes.
+ * The capability itself lives in `@sdkwork/iam-pc-mini-program`: the shared
+ * operator panel over the unified `iam_oauth_resource_account` aggregate
+ * (`resourceAccountKind = "mini_program"`). This adapter owns everything behind
+ * that panel: the gateway origin from the shared ui-sdkwork-env profile, the
+ * IAM session credentials mirrored into the browser-global token manager, and
+ * the generated backend client whose `iam.oauth.resourceAccounts` slice backs
+ * every list/create/update/delete request.
  *
- * The backend routes enforce their own permissions. A session without the
- * OAuth admin permission reaches the API and is refused there; the dialog
- * renders the server message instead of guessing at the local scope.
+ * The transport is built with `createMiniProgramOperatorTransport` over the
+ * generated backend operations: creating an account reuses or creates the
+ * `wechat_mini_program` login integration (which owns the AppSecret secret row)
+ * exactly as the sdkwork-iam PC admin surface does, so a saved account is
+ * usable for mini-program login immediately. No raw HTTP and no hand-written
+ * auth header exists here.
  */
-import { createClient, type SdkworkBackendClient } from '@sdkwork/iam-backend-sdk'
 import type { AuthTokenManager } from '@sdkwork/sdk-common'
+import {
+  DEFAULT_OPERATOR_CAPABILITIES,
+  createMiniProgramBackendOperations,
+  createMiniProgramController,
+  createMiniProgramOperatorTransport,
+  type MiniProgramAccount,
+  type MiniProgramController,
+} from '@sdkwork/iam-pc-mini-program'
 import {
   getSdkworkGlobalTokenManager,
   syncSdkworkGlobalTokenManager,
 } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
+import { createMiniProgramBackendClient } from './miniProgramApi.ts'
 
 /** IAM session credential fields the adapter forwards to the token manager. */
 export interface MiniProgramHostSession {
@@ -54,26 +65,32 @@ export interface MiniProgramHostOptions {
 }
 
 /**
- * What the dialog reads from the adapter: readiness plus the generated backend
- * client. `readClient()` returns undefined while no gateway origin is
+ * What the dialog reads from the adapter: readiness plus the shared account
+ * controller. `readController()` returns undefined while no gateway origin is
  * configured, so the dialog can render its configuration notice.
  */
 export interface MiniProgramHostSource {
   /** @returns whether a gateway origin is configured. */
   readReady(): boolean
-  /** @returns the generated IAM backend client, or undefined while unconfigured. */
-  readClient(): SdkworkBackendClient | undefined
+  /** @returns the shared mini-program controller, or undefined while unconfigured. */
+  readController(): MiniProgramController | undefined
+  /**
+   * @returns the environment/session revision; a new value tells the dialog to
+   * re-read the controller after an environment switch.
+   */
+  readRevision(): number
 }
 
 /**
- * Host adapter: keeps the client current across environment and IAM changes and
- * syncs the browser-global token manager before every read.
+ * Host adapter: keeps the generated client and its controller current across
+ * environment and IAM changes, and syncs the browser-global token manager
+ * before every read.
  */
 export class MiniProgramHost implements MiniProgramHostSource {
   private readonly options: MiniProgramHostOptions
   private readonly tokenManager: AuthTokenManager
   private readonly listeners = new Set<() => void>()
-  private client: SdkworkBackendClient | undefined
+  private controller: MiniProgramController | undefined
   private clientBaseUrl: string | undefined
   private revision = 0
   private offEnvironment: (() => void) | undefined
@@ -94,7 +111,7 @@ export class MiniProgramHost implements MiniProgramHostSource {
     this.offIam = this.options.iam.controller.subscribe(() => { this.publish() })
   }
 
-  /** Stop observing and drop the built client. */
+  /** Stop observing and drop the built controller. */
   dispose(): void {
     if (this.disposed) return
     this.disposed = true
@@ -103,7 +120,7 @@ export class MiniProgramHost implements MiniProgramHostSource {
     this.offEnvironment = undefined
     this.offIam = undefined
     this.listeners.clear()
-    this.client = undefined
+    this.controller = undefined
     this.clientBaseUrl = undefined
   }
 
@@ -119,7 +136,7 @@ export class MiniProgramHost implements MiniProgramHostSource {
 
   /**
    * A counter that moves on every environment or session transition, so the
-   * dialog re-reads `readClient()` after an environment switch.
+   * dialog re-reads `readController()` after an environment switch.
    * @returns the current revision.
    */
   readRevision(): number {
@@ -135,23 +152,26 @@ export class MiniProgramHost implements MiniProgramHostSource {
   }
 
   /**
-   * The generated backend client the dialog reads its account operations from.
-   * @returns the client, or undefined while the gateway origin is unconfigured.
+   * The shared controller the embedded panel renders from.
+   * @returns the controller, or undefined while the gateway origin is unconfigured.
    */
-  readClient(): SdkworkBackendClient | undefined {
+  readController(): MiniProgramController | undefined {
+    if (this.disposed) return undefined
     const baseUrl = this.readBaseUrl()
     if (baseUrl === '') return undefined
     this.syncTokens()
-    if (this.client === undefined || this.clientBaseUrl !== baseUrl) {
-      this.clientBaseUrl = baseUrl
-      this.client = createClient({
-        authMode: 'dual-token',
-        platform: 'pc',
+    if (this.controller === undefined || this.clientBaseUrl !== baseUrl) {
+      const client = createMiniProgramBackendClient({
         baseUrl,
         tokenManager: this.tokenManager,
       })
+      this.clientBaseUrl = baseUrl
+      this.controller = createMiniProgramController(
+        createMiniProgramOperatorTransport(createMiniProgramBackendOperations(client.iamOauth.iam.oauth)),
+        DEFAULT_OPERATOR_CAPABILITIES,
+      )
     }
-    return this.client
+    return this.controller
   }
 
   private readBaseUrl(): string {
@@ -171,6 +191,10 @@ export class MiniProgramHost implements MiniProgramHostSource {
     for (const listener of [...this.listeners]) listener()
   }
 }
+
+// The account model is re-exported so a host that already imported it from this
+// package keeps one source of truth.
+export type { MiniProgramAccount }
 
 /**
  * Mount a mini-program-account adapter over the shared environment and IAM faces.
