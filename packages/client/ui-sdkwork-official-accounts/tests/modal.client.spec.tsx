@@ -155,8 +155,9 @@ describe('OfficialAccountsModal', () => {
     view()
     const panel = document.querySelector('[data-official-accounts-panel]')
     expect(panel?.getAttribute('data-capabilities-mode')).toBe('self-service')
-    // The app tier owns no menu publishing, so the capability stays off.
-    expect(panel?.getAttribute('data-capabilities-publish-menu')).toBe('false')
+    // The app API exposes the caller-owned menu sync/publish/rollback actions,
+    // so the self-service posture keeps them enabled.
+    expect(panel?.getAttribute('data-capabilities-publish-menu')).toBe('true')
   })
 
   it('hands the host Drive logo upload capability to the panel', () => {

@@ -35,12 +35,12 @@ import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@dee
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import { SdkworkI18nProvider } from '@sdkwork/i18n-pc-react'
 import {
-  DEFAULT_SELF_SERVICE_CAPABILITIES,
   SDKWORK_OFFICIAL_ACCOUNTS_I18N_CATALOG,
   SdkworkOfficialAccountsPanel,
   type OfficialAccountsController,
   type OfficialAccountsDomainVerification,
 } from '@sdkwork/iam-pc-official-accounts'
+import { HOST_SELF_SERVICE_CAPABILITIES } from './officialAccountsHost.ts'
 import type { DriveUploadImageService } from '@sdkwork/drive-upload-image-core'
 import { SdkworkThemeProvider } from '@sdkwork/ui-pc-react'
 import {
@@ -211,7 +211,7 @@ export function OfficialAccountsModal(props: OfficialAccountsModalProps): ReactN
                   locale={toOfficialAccountsLocale(language)}
                 >
                   <SdkworkOfficialAccountsPanel
-                    capabilities={DEFAULT_SELF_SERVICE_CAPABILITIES}
+                    capabilities={HOST_SELF_SERVICE_CAPABILITIES}
                     controller={controller}
                     domainVerification={domainVerification}
                     driveUploadImageService={logoUploadService}

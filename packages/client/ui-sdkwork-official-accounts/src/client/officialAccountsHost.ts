@@ -25,6 +25,7 @@ import {
   createOfficialAccountsController,
   createSelfServiceTransport,
   DEFAULT_SELF_SERVICE_CAPABILITIES,
+  type OfficialAccountsCapabilities,
   type OfficialAccountsController,
   type OfficialAccountsDomainVerification,
 } from '@sdkwork/iam-pc-official-accounts'
@@ -35,6 +36,15 @@ import {
   syncSdkworkGlobalTokenManager,
 } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
 import { OFFICIAL_ACCOUNT_LOGO_UPLOAD } from './officialAccountLogoUpload.ts'
+
+/** The self-service capability posture this host's app SDK actually supports. */
+export const HOST_SELF_SERVICE_CAPABILITIES: OfficialAccountsCapabilities = {
+  ...DEFAULT_SELF_SERVICE_CAPABILITIES,
+  // The app API now exposes the caller-owned menu sync/publish/rollback actions.
+  publishMenu: true,
+  refreshMenu: true,
+  rollbackMenu: true,
+}
 
 /** IAM session credential fields the adapter forwards to the token manager. */
 export interface OfficialAccountsHostSession {
@@ -236,7 +246,7 @@ export class OfficialAccountsHost {
       this.clientBaseUrl = baseUrl
       this.controller = createOfficialAccountsController(
         createSelfServiceTransport(client.iam.oauth.officialAccounts),
-        DEFAULT_SELF_SERVICE_CAPABILITIES,
+        HOST_SELF_SERVICE_CAPABILITIES,
       )
     }
     return this.controller
