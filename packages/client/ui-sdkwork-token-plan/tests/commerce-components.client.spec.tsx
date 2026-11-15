@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   createTokenPlanCommerceComponents,
   resetTokenPlanCommerceRuntime,
   type TokenPlanCopy,
 } from '../src/client/commerce-components.tsx'
+import { createTokenPlanAccountStore } from '../src/client/token-plan-account.ts'
 import type { TokenPlanCommerce } from '../src/client/token-plan-service.ts'
 
 afterEach(() => {
@@ -33,7 +34,15 @@ vi.mock('@sdkwork/order-pc-checkout', () => ({
 }))
 
 vi.mock('@sdkwork/order-pc-recharge', () => ({
-  SdkworkPointsRechargeDialog: () => <div data-testid="recharge-dialog">recharge</div>,
+  SdkworkPointsRechargeDialog: (props: {
+    currentPoints?: number | null
+    onCompleted?: () => Promise<void> | void
+  }) => (
+    <div data-testid="recharge-dialog">
+      {String(props.currentPoints)}
+      <button type="button" onClick={() => { void props.onCompleted?.() }}>complete</button>
+    </div>
+  ),
 }))
 
 const t = ((key: string) => key === 'redeem.success' ? 'ok {amount}' : key) as TokenPlanCopy
@@ -50,6 +59,24 @@ function commerce(overrides: Partial<TokenPlanCommerce> = {}): TokenPlanCommerce
   }
 }
 
+function createAccount(initial: { signedIn: boolean; available?: number }) {
+  let signedIn = initial.signedIn
+  let available = initial.available
+  const read = vi.fn(async () => (signedIn
+    ? { assetType: 'token_bank', available, frozen: 0, pending: 0 }
+    : undefined))
+  const store = createTokenPlanAccountStore({
+    read,
+    signedIn: () => signedIn,
+  })
+  return {
+    read,
+    store,
+    setAvailable(value: number | undefined) { available = value },
+    setSignedIn(value: boolean) { signedIn = value },
+  }
+}
+
 async function redeemCode(
   RedeemModal: ReturnType<typeof createTokenPlanCommerceComponents>['redeemModal'],
   code: string,
@@ -58,6 +85,12 @@ async function redeemCode(
   fireEvent.change(view.getByRole('textbox'), { target: { value: code } })
   fireEvent.submit(view.getByRole('textbox').closest('form')!)
   return view
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((resolvePromise) => { resolve = resolvePromise })
+  return { promise, resolve }
 }
 
 describe('createTokenPlanCommerceComponents', () => {
@@ -198,6 +231,196 @@ describe('createTokenPlanCommerceComponents', () => {
     })
   })
 
+  it('reads the Token Bank balance into the details dialog and recovers after sign-in', async () => {
+    const account = createAccount({ signedIn: false })
+    const openSignIn = vi.fn()
+    const components = createTokenPlanCommerceComponents({
+      account: account.store,
+      commerce: commerce(),
+      onCompleted: async () => { await account.store.refresh() },
+      openSignIn,
+      t,
+    })
+
+    const view = render(<components.pointsDetailsModal isOpen={true} onClose={() => undefined} />)
+    await waitFor(() => {
+      expect(view.getByRole('dialog').textContent).toContain('account.signedOutDescription')
+    })
+
+    fireEvent.click(view.getByRole('button', { name: 'account.signIn' }))
+    expect(openSignIn).toHaveBeenCalledTimes(1)
+
+    // The IAM overlay finishes and the page's service notification re-reads the
+    // account; the open dialog must swap to the settled balance without closing.
+    account.setSignedIn(true)
+    account.setAvailable(243.75)
+    await act(async () => { await account.store.refresh() })
+    await waitFor(() => {
+      const dialog = view.getByRole('dialog')
+      expect(dialog.textContent).toContain('pointsDetails.balance')
+      expect(dialog.textContent).toContain('243.75')
+      expect(dialog.textContent).not.toContain('account.signedOutDescription')
+    })
+  })
+
+  it('gates the purchase dialog on sign-in and forwards the rounded Token Bank balance', async () => {
+    const account = createAccount({ signedIn: false })
+    const openSignIn = vi.fn()
+    const components = createTokenPlanCommerceComponents({
+      account: account.store,
+      commerce: commerce(),
+      onCompleted: async () => { await account.store.refresh() },
+      openSignIn,
+      t,
+    })
+
+    const view = render(<components.pointsPurchaseModal isOpen={true} onClose={() => undefined} />)
+    await waitFor(() => {
+      expect(view.getByRole('dialog').textContent).toContain('account.signedOutDescription')
+    })
+    expect(view.queryByTestId('recharge-dialog')).toBeNull()
+    fireEvent.click(view.getByRole('button', { name: 'account.signIn' }))
+    expect(openSignIn).toHaveBeenCalledTimes(1)
+
+    account.setSignedIn(true)
+    account.setAvailable(610.567891)
+    await act(async () => { await account.store.refresh() })
+    await waitFor(() => {
+      expect(view.getByTestId('recharge-dialog').textContent).toContain('610.5679')
+    })
+
+    view.rerender(<components.pointsPurchaseModal isOpen={false} onClose={() => undefined} />)
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('re-reads the Token Bank balance after a recharge completes', async () => {
+    const account = createAccount({ signedIn: true, available: 10 })
+    const components = createTokenPlanCommerceComponents({
+      account: account.store,
+      commerce: commerce(),
+      onCompleted: async () => { await account.store.refresh() },
+      t,
+    })
+
+    const view = render(<components.pointsPurchaseModal isOpen={true} onClose={() => undefined} />)
+    await waitFor(() => {
+      expect(view.getByTestId('recharge-dialog').textContent).toContain('10')
+    })
+
+    account.setAvailable(25)
+    fireEvent.click(view.getByRole('button', { name: 'complete' }))
+    await waitFor(() => {
+      expect(view.getByTestId('recharge-dialog').textContent).toContain('25')
+    })
+  })
+
+  it('surfaces a failed account read and retries it', async () => {
+    let fail = true
+    const read = vi.fn(async () => {
+      if (fail) throw new Error('gateway down')
+      return { assetType: 'token_bank', available: 5, frozen: 0, pending: 0 }
+    })
+    const store = createTokenPlanAccountStore({ read, signedIn: () => true })
+    const components = createTokenPlanCommerceComponents({
+      account: store,
+      commerce: commerce(),
+      onCompleted: () => undefined,
+      t,
+    })
+
+    const view = render(<components.pointsDetailsModal isOpen={true} onClose={() => undefined} />)
+    await waitFor(() => {
+      expect(view.getByRole('dialog').textContent).toContain('account.loadFailed')
+    })
+    fail = false
+    fireEvent.click(view.getByRole('button', { name: 'account.retry' }))
+    await waitFor(() => {
+      expect(view.getByRole('dialog').textContent).toContain('5')
+    })
+  })
+
+  it('surfaces a failed purchase balance read and retries it', async () => {
+    let fail = true
+    const read = vi.fn(async () => {
+      if (fail) throw new Error('gateway down')
+      return { assetType: 'token_bank', available: 15, frozen: 0, pending: 0 }
+    })
+    const store = createTokenPlanAccountStore({ read, signedIn: () => true })
+    const components = createTokenPlanCommerceComponents({
+      account: store,
+      commerce: commerce(),
+      onCompleted: () => undefined,
+      t,
+    })
+
+    const view = render(<components.pointsPurchaseModal isOpen={true} onClose={() => undefined} />)
+    await waitFor(() => {
+      expect(view.getByRole('dialog').textContent).toContain('account.loadFailed')
+    })
+    expect(view.queryByTestId('recharge-dialog')).toBeNull()
+
+    fail = false
+    fireEvent.click(view.getByRole('button', { name: 'account.retry' }))
+    await waitFor(() => {
+      expect(view.getByTestId('recharge-dialog').textContent).toContain('15')
+    })
+  })
+
+  it('keeps the last balance and flags a failed refresh in the details dialog', async () => {
+    let fail = false
+    const read = vi.fn(async () => {
+      if (fail) throw new Error('gateway down')
+      return { assetType: 'token_bank', available: 6.5, frozen: 0, pending: 0 }
+    })
+    const store = createTokenPlanAccountStore({ read, signedIn: () => true })
+    const components = createTokenPlanCommerceComponents({
+      account: store,
+      commerce: commerce(),
+      onCompleted: () => undefined,
+      t,
+    })
+
+    const view = render(<components.pointsDetailsModal isOpen={true} onClose={() => undefined} />)
+    await waitFor(() => {
+      expect(view.getByRole('dialog').textContent).toContain('6.5')
+    })
+
+    fail = true
+    await act(async () => { await store.refresh() })
+    await waitFor(() => {
+      const text = view.getByRole('dialog').textContent
+      expect(text).toContain('6.5')
+      expect(text).toContain('account.refreshFailed')
+    })
+  })
+
+  it('lets an in-flight redemption settle before closing the dialog', async () => {
+    const pending = deferred<{ benefitKind: string; grantPoints: number }>()
+    const ports = commerce({ coupon: { redeem: vi.fn(() => pending.promise) } })
+    const onClose = vi.fn()
+    const components = createTokenPlanCommerceComponents({
+      commerce: ports,
+      onCompleted: () => undefined,
+      t,
+    })
+
+    const view = render(<components.redeemModal isOpen={true} onClose={onClose} />)
+    fireEvent.change(view.getByRole('textbox'), { target: { value: 'CODE' } })
+    fireEvent.submit(view.getByRole('textbox').closest('form')!)
+    await waitFor(() => { expect(ports.coupon.redeem).toHaveBeenCalled() })
+
+    // A pending redemption must settle: Escape cannot cancel it.
+    fireEvent.keyDown(view.getByRole('dialog'), { key: 'Escape' })
+    expect(onClose).not.toHaveBeenCalled()
+
+    pending.resolve({ benefitKind: 'points_credit', grantPoints: 3 })
+    await waitFor(() => {
+      expect(view.getByRole('dialog').textContent).toContain('ok 3')
+    })
+    fireEvent.keyDown(view.getByRole('dialog'), { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
   it('closes host dialogs on Escape and fails loud before configuration', () => {
     const onClose = vi.fn()
     const PointsDetails = createTokenPlanCommerceComponents({
@@ -234,7 +457,9 @@ describe('createTokenPlanCommerceComponents', () => {
     error.mockRestore()
     const idle = render(<Details isOpen={true} onClose={() => undefined} />)
     expect(idle.getByRole('dialog').textContent).toContain('pointsDetails.title')
-    expect(idle.getByRole('dialog').textContent).toContain('0')
+    // No configured account read and no host figure: the dialog must not invent
+    // a zero balance.
+    expect(idle.getByRole('dialog').textContent).toContain('—')
     expect(idle.getByRole('dialog').textContent).not.toContain('custom:')
   })
 })

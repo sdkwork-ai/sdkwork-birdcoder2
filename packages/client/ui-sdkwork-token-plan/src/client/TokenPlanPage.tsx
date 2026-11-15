@@ -10,6 +10,7 @@ import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { EnvServiceLike, IamServiceLike } from './token-plan-service.ts'
 import { TokenPlanService } from './token-plan-service.ts'
+import { createTokenPlanAccountStore, useTokenPlanAccount } from './token-plan-account.ts'
 import { createTokenPlanCommerceComponents } from './commerce-components.tsx'
 import type { TokenPlanKey } from './locales.ts'
 import css from './TokenPlanPage.module.css'
@@ -64,12 +65,32 @@ export function TokenPlanPage({ mode, env, iam, theme, t }: TokenPlanPageProps) 
     () => new TokenPlanService(env, iam, () => copyRef.current('commerce.signInRequired')),
     [env, iam],
   )
+  // The Token Bank wallet is the points figure both dialogs and the catalog
+  // render. The store keeps one read for the whole page so a payment, a
+  // redemption, or a sign-in can settle every surface from one refresh.
+  const accountStore = useMemo(
+    () => createTokenPlanAccountStore({
+      read: () => service.readComputeAccount(),
+      signedIn: () => iam.controller.getState().session !== null,
+    }),
+    [iam, service],
+  )
+  const account = useTokenPlanAccount(accountStore)
   const [, forceUpdate] = useState(0)
-  const [reload, setReload] = useState(0)
   const [colorScheme, setColorScheme] = useState<'light' | 'dark'>(() => theme.getColorScheme())
   const { NotifyOutlet, onNotify } = useTokenPlanNotify(t)
-  const onCompleted = useCallback(() => { setReload(value => value + 1) }, [])
-  useEffect(() => service.subscribe(() => { forceUpdate(value => value + 1) }), [service])
+  const onCompleted = useCallback(
+    async () => { await accountStore.refresh() },
+    [accountStore],
+  )
+  useEffect(() => { void accountStore.refresh() }, [accountStore])
+  useEffect(
+    () => service.subscribe(() => {
+      forceUpdate(value => value + 1)
+      void accountStore.refresh()
+    }),
+    [accountStore, service],
+  )
   useEffect(() => theme.subscribe(() => { setColorScheme(theme.getColorScheme()) }), [theme])
   useLayoutEffect(() => {
     const root = document.documentElement
@@ -108,6 +129,9 @@ export function TokenPlanPage({ mode, env, iam, theme, t }: TokenPlanPageProps) 
     () => (teamPort === undefined ? undefined : { port: teamPort, translate: teamTranslate }),
     [teamPort, teamTranslate],
   )
+  // A guest has no Token Bank balance to show; a signed-in account forwards its
+  // settled figure (or a stale one while a refresh is failing) to the dialogs.
+  const currentPoints = account.status === 'signed-out' ? null : account.points
 
   return (
     <div className={css.page} data-mode={mode} data-mode-page={mode}>
@@ -128,9 +152,15 @@ export function TokenPlanPage({ mode, env, iam, theme, t }: TokenPlanPageProps) 
           <div className={clsx(css.catalog, 'mx-auto w-full max-w-7xl')} data-token-plan-catalog>
             {service.isConfigured() && commerce !== undefined ? (
               <SdkworkSubscriptionCatalogPage
-                key={reload}
                 checkoutPort={commerce.checkout}
-                components={createTokenPlanCommerceComponents({ commerce, onCompleted, t })}
+                components={createTokenPlanCommerceComponents({
+                  account: accountStore,
+                  commerce,
+                  onCompleted,
+                  openSignIn: () => { service.openSignIn() },
+                  t,
+                })}
+                currentPoints={currentPoints}
                 notifyOutlet={NotifyOutlet}
                 onLoginRequired={() => { service.openSignIn() }}
                 onNotify={onNotify}

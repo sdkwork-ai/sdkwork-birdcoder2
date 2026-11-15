@@ -11,6 +11,11 @@ import {
 } from '@sdkwork/membership-pc-subscription/catalog'
 import type { TokenPlanKey } from './locales.ts'
 import { pointsRechargeCopy } from './recharge-copy.ts'
+import { formatPointBalance, roundPointBalance } from './points-format.ts'
+import {
+  useTokenPlanAccount,
+  type TokenPlanAccountStore,
+} from './token-plan-account.ts'
 import type { TokenPlanCommerce } from './token-plan-service.ts'
 import css from './TokenPlanDialogs.module.css'
 import './pointsRechargeTheme.css'
@@ -19,23 +24,35 @@ import './pointsRechargeTheme.css'
 export type TokenPlanCopy = (key: TokenPlanKey) => string
 
 export interface TokenPlanCommerceComponentsOptions {
+  /**
+   * Token Bank account read shared with the page. When omitted the dialogs
+   * fall back to the `currentPoints` prop the catalog forwards.
+   */
+  account?: TokenPlanAccountStore
   commerce: TokenPlanCommerce
   onCompleted: () => Promise<void> | void
+  /** Open the host sign-in surface from the signed-out points dialogs. */
+  openSignIn?: () => void
   t: TokenPlanCopy
 }
 
 interface TokenPlanCommerceRuntime {
+  account: TokenPlanAccountStore | undefined
   commerce: TokenPlanCommerce | undefined
   onCompleted: () => Promise<void> | void
+  openSignIn: () => void
   t: TokenPlanCopy
 }
 
 function defaultCommerceCompleted(): void {}
 function defaultCommerceCopy(key: TokenPlanKey): string { return key }
+function defaultOpenSignIn(): void {}
 
 const runtime: TokenPlanCommerceRuntime = {
+  account: undefined,
   commerce: undefined,
   onCompleted: defaultCommerceCompleted,
+  openSignIn: defaultOpenSignIn,
   t: defaultCommerceCopy,
 }
 
@@ -51,10 +68,13 @@ function requireCommerce(): TokenPlanCommerce {
  * @returns nothing.
  */
 export function resetTokenPlanCommerceRuntime(): void {
+  runtime.account = undefined
   runtime.commerce = undefined
   runtime.onCompleted = defaultCommerceCompleted
+  runtime.openSignIn = defaultOpenSignIn
   runtime.t = defaultCommerceCopy
   defaultCommerceCompleted()
+  defaultOpenSignIn()
 }
 
 /**
@@ -64,16 +84,21 @@ export function resetTokenPlanCommerceRuntime(): void {
  * Component identities stay stable across locale and commerce refreshes so
  * the checkout dialog does not remount and abort `createPayment`.
  *
- * @param options - commerce ports, completion hook, and locale lookup.
+ * @param options - commerce ports, Token Bank account read, completion hook,
+ * sign-in hook, and locale lookup.
  * @returns catalog host components that replace the Membership placeholders.
  */
 export function createTokenPlanCommerceComponents({
+  account,
   commerce,
   onCompleted,
+  openSignIn = defaultOpenSignIn,
   t,
 }: TokenPlanCommerceComponentsOptions): SdkworkSubscriptionCatalogHostComponents {
+  runtime.account = account
   runtime.commerce = commerce
   runtime.onCompleted = onCompleted
+  runtime.openSignIn = openSignIn
   runtime.t = t
   return tokenPlanCommerceComponents
 }
@@ -133,11 +158,62 @@ function TokenPlanCheckoutModal({
 
 function TokenPlanPointsPurchaseModal({ currentPoints, isOpen, onClose }: SdkworkSubscriptionCatalogModalProps) {
   const t = runtime.t
+  const account = runtime.account
+  const snapshot = useTokenPlanAccount(account)
+
+  // Re-read whenever the purchase opens: the catalog figure can be as old as
+  // the last page load, and the header must show the settled account.
+  useEffect(() => {
+    if (isOpen && account !== undefined) void account.refresh()
+  }, [account, isOpen])
+
+  if (!isOpen) return null
+
+  const points = snapshot.points ?? currentPoints ?? null
+  if (account !== undefined && snapshot.status === 'signed-out') {
+    return (
+      <TokenPlanAccountGate
+        closeLabel={t('redeem.close')}
+        description={t('account.signedOutDescription')}
+        doneLabel={t('pointsDetails.done')}
+        onClose={onClose}
+        onSignIn={runtime.openSignIn}
+        signInLabel={t('account.signIn')}
+        title={t('recharge.title')}
+      />
+    )
+  }
+  if (account !== undefined && snapshot.status === 'loading' && points === null) {
+    return (
+      <TokenPlanAccountStatus
+        busy
+        closeLabel={t('redeem.close')}
+        doneLabel={t('pointsDetails.done')}
+        onClose={onClose}
+        text={t('account.loading')}
+        title={t('recharge.title')}
+      />
+    )
+  }
+  if (account !== undefined && snapshot.status === 'error' && points === null) {
+    return (
+      <TokenPlanAccountStatus
+        closeLabel={t('redeem.close')}
+        doneLabel={t('pointsDetails.done')}
+        onClose={onClose}
+        onRetry={() => { void account.refresh() }}
+        retryLabel={t('account.retry')}
+        text={t('account.loadFailed')}
+        title={t('recharge.title')}
+      />
+    )
+  }
+
   return (
     <SdkworkPointsRechargeDialog
       copy={pointsRechargeCopy(t)}
-      currentPoints={currentPoints}
-      isOpen={isOpen}
+      currentPoints={points === null ? null : roundPointBalance(points)}
+      isOpen
       onClose={onClose}
       onCompleted={runtime.onCompleted}
       service={requireCommerce().recharge}
@@ -146,7 +222,13 @@ function TokenPlanPointsPurchaseModal({ currentPoints, isOpen, onClose }: Sdkwor
 }
 
 function TokenPlanPointsDetailsHostModal(props: SdkworkSubscriptionCatalogModalProps) {
-  return <TokenPlanPointsDetailsModal {...props} t={runtime.t} />
+  return (
+    <TokenPlanPointsDetailsModal
+      {...props}
+      account={runtime.account}
+      t={runtime.t}
+    />
+  )
 }
 
 function TokenPlanRedeemHostModal({ isOpen, onClose }: SdkworkSubscriptionCatalogModalProps) {
@@ -170,12 +252,65 @@ const tokenPlanCommerceComponents: SdkworkSubscriptionCatalogHostComponents = {
 }
 
 function TokenPlanPointsDetailsModal({
+  account,
   currentPoints,
   isOpen,
   onClose,
   t,
-}: SdkworkSubscriptionCatalogModalProps & { t: TokenPlanCopy }) {
+}: SdkworkSubscriptionCatalogModalProps & {
+  account: TokenPlanAccountStore | undefined
+  t: TokenPlanCopy
+}) {
+  const snapshot = useTokenPlanAccount(account)
+
+  // Opening the details dialog is a balance read, not a render of a cached
+  // catalog figure: the Token Bank account is the source of truth.
+  useEffect(() => {
+    if (isOpen && account !== undefined) void account.refresh()
+  }, [account, isOpen])
+
   if (!isOpen) return null
+
+  const points = snapshot.points ?? currentPoints ?? null
+  if (account !== undefined && snapshot.status === 'signed-out') {
+    return (
+      <TokenPlanAccountGate
+        closeLabel={t('redeem.close')}
+        description={t('account.signedOutDescription')}
+        doneLabel={t('pointsDetails.done')}
+        onClose={onClose}
+        onSignIn={runtime.openSignIn}
+        signInLabel={t('account.signIn')}
+        title={t('pointsDetails.title')}
+      />
+    )
+  }
+  if (account !== undefined && snapshot.status === 'loading' && points === null) {
+    return (
+      <TokenPlanAccountStatus
+        busy
+        closeLabel={t('redeem.close')}
+        doneLabel={t('pointsDetails.done')}
+        onClose={onClose}
+        text={t('account.loading')}
+        title={t('pointsDetails.title')}
+      />
+    )
+  }
+  if (account !== undefined && snapshot.status === 'error' && points === null) {
+    return (
+      <TokenPlanAccountStatus
+        closeLabel={t('redeem.close')}
+        doneLabel={t('pointsDetails.done')}
+        onClose={onClose}
+        onRetry={() => { void account.refresh() }}
+        retryLabel={t('account.retry')}
+        text={t('account.loadFailed')}
+        title={t('pointsDetails.title')}
+      />
+    )
+  }
+
   return (
     <Modal
       className={css.detailsDialog}
@@ -188,9 +323,96 @@ function TokenPlanPointsDetailsModal({
       <div className={css.content}>
         <div className={css.balanceCard}>
           <span className={css.balanceLabel}>{t('pointsDetails.balance')}</span>
-          <span className={css.balanceValue}>{currentPoints ?? 0}</span>
+          <span className={css.balanceValue}>
+            {points === null ? '—' : formatPointBalance(points)}
+          </span>
         </div>
+        {account !== undefined && snapshot.status === 'error' ? (
+          <p className={css.hint} role="status">{t('account.refreshFailed')}</p>
+        ) : null}
         <p className={css.hint}>{t('pointsDetails.hint')}</p>
+      </div>
+    </Modal>
+  )
+}
+
+/** Signed-out gate shared by the points details and purchase dialogs. */
+function TokenPlanAccountGate({
+  closeLabel,
+  description,
+  doneLabel,
+  onClose,
+  onSignIn,
+  signInLabel,
+  title,
+}: {
+  closeLabel: string
+  description: string
+  doneLabel: string
+  onClose: () => void
+  onSignIn: () => void
+  signInLabel: string
+  title: string
+}) {
+  return (
+    <Modal
+      className={css.detailsDialog}
+      closeLabel={closeLabel}
+      footer={<Button onClick={onClose} type="button" variant="primary">{doneLabel}</Button>}
+      onClose={onClose}
+      open
+      title={title}
+    >
+      <div className={css.content}>
+        <p className={css.hint}>{description}</p>
+        <div className={css.formActions}>
+          <Button onClick={onSignIn} type="button" variant="primary">{signInLabel}</Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+/** Loading/failure dialog shared by the points details and purchase dialogs. */
+function TokenPlanAccountStatus({
+  busy,
+  closeLabel,
+  doneLabel,
+  onClose,
+  onRetry,
+  retryLabel,
+  text,
+  title,
+}: {
+  busy?: boolean
+  closeLabel: string
+  doneLabel: string
+  onClose: () => void
+  onRetry?: () => void
+  retryLabel?: string
+  text: string
+  title: string
+}) {
+  return (
+    <Modal
+      className={css.detailsDialog}
+      closeLabel={closeLabel}
+      footer={<Button onClick={onClose} type="button" variant="primary">{doneLabel}</Button>}
+      onClose={onClose}
+      open
+      title={title}
+    >
+      <div className={css.content} role="status">
+        <p className={css.hint}>
+          {busy === true ? <Loader2 aria-hidden="true" className={css.spinner} /> : null}
+          {' '}
+          {text}
+        </p>
+        {onRetry === undefined || retryLabel === undefined ? null : (
+          <div className={css.formActions}>
+            <Button onClick={onRetry} type="button" variant="outline">{retryLabel}</Button>
+          </div>
+        )}
       </div>
     </Modal>
   )

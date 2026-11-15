@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { act, cleanup, fireEvent, render } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createSnapshotStore, type SessionListState } from '@deepseek-ai/dsh-client-runtime/client'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
@@ -11,6 +11,7 @@ import { TokenPlanPage, type TokenPlanPageProps } from '../src/client/TokenPlanP
 let capturedTeam: { port: object } | undefined
 vi.mock('@sdkwork/membership-pc-subscription/catalog', () => ({
   SdkworkSubscriptionCatalogPage: (props: {
+    currentPoints?: number | null
     notifyOutlet?: () => unknown
     onLoginRequired?: () => void
     onNotify?: (message: string, tone: 'error' | 'info' | 'success') => void
@@ -22,6 +23,7 @@ vi.mock('@sdkwork/membership-pc-subscription/catalog', () => ({
       <div data-testid="token-plan-catalog">
         {Outlet ? <Outlet /> : null}
         {props.team ? <div data-testid="token-plan-team-port" /> : null}
+        <div data-testid="token-plan-points">{String(props.currentPoints)}</div>
         <button type="button" onClick={() => props.onLoginRequired?.()}>login</button>
         <button type="button" onClick={() => props.onNotify?.('paid', 'success')}>notify-success</button>
         <button type="button" onClick={() => props.onNotify?.('wait', 'info')}>notify-info</button>
@@ -59,25 +61,36 @@ vi.mock('@sdkwork/ui-pc-react', () => ({
   ),
 }))
 
-let capturedOnCompleted: (() => void) | undefined
+let capturedOnCompleted: (() => Promise<void> | void) | undefined
+let capturedCommerceOptions: {
+  onCompleted: () => Promise<void> | void
+  openSignIn?: () => void
+} | undefined
 vi.mock('../src/client/commerce-components.tsx', () => ({
-  createTokenPlanCommerceComponents: (options: { onCompleted: () => void }) => {
+  createTokenPlanCommerceComponents: (options: {
+    onCompleted: () => Promise<void> | void
+    openSignIn?: () => void
+  }) => {
     capturedOnCompleted = options.onCompleted
+    capturedCommerceOptions = options
     return {}
   },
 }))
 
 let configured = false
+let signedIn = false
 let serviceListener: (() => void) | undefined
 const openSignIn = vi.fn()
 const teamPort = { kind: 'token-plan-team-port' }
 const readTeamSubscriptionPort = vi.fn(() => teamPort)
+const readComputeAccount = vi.fn()
 
 vi.mock('../src/client/token-plan-service.ts', () => ({
   TokenPlanService: class {
     isConfigured(): boolean { return configured }
     openSignIn(): void { openSignIn() }
     readCommerce(): { checkout: object; membership: object } { return { checkout: {}, membership: {} } }
+    readComputeAccount(): Promise<unknown> { return readComputeAccount() }
     readTeamSubscriptionPort(): object { return readTeamSubscriptionPort() }
     subscribe(listener: () => void): () => void {
       serviceListener = listener
@@ -103,7 +116,10 @@ const t = ((key: string) => key) as TokenPlanPageProps['t']
 const standard = { useSessions: emptySessions(), useWorkspaces: emptyWorkspaces() }
 const env = { isConfigured: () => configured, apiBaseUrl: () => '', accessToken: () => '', subscribe: () => () => {} }
 const iam = {
-  controller: { getState: () => ({ session: null }), subscribe: () => () => {} },
+  controller: {
+    getState: () => ({ session: signedIn ? { authToken: 'test-auth-token' } : null }),
+    subscribe: () => () => {},
+  },
   openSignIn,
   requireSignedInInPlace: async () => undefined,
 }
@@ -131,7 +147,14 @@ describe('TokenPlanPage host chrome', () => {
     cleanup()
     vi.useRealTimers()
     capturedTeam = undefined
+    capturedCommerceOptions = undefined
+    openSignIn.mockClear()
     readTeamSubscriptionPort.mockClear()
+    readComputeAccount.mockReset()
+    readComputeAccount.mockResolvedValue(undefined)
+    configured = false
+    signedIn = false
+    serviceListener = undefined
   })
 
   it('keeps light mode without the dark class and shows the unconfigured copy', () => {
@@ -158,7 +181,7 @@ describe('TokenPlanPage host chrome', () => {
     expect(css).toContain('repeat(4, minmax(0, 1fr))')
   })
 
-  it('applies the dark class and mounts checkout after sign-in and payment completion', () => {
+  it('applies the dark class and mounts checkout after sign-in and payment completion', async () => {
     vi.useFakeTimers()
     configured = true
     const scheme = { current: 'dark' as 'light' | 'dark' }
@@ -177,7 +200,7 @@ describe('TokenPlanPage host chrome', () => {
     act(() => { serviceListener?.() })
     fireEvent.click(view.getByText('login'))
     expect(openSignIn).toHaveBeenCalled()
-    act(() => { capturedOnCompleted?.() })
+    await act(async () => { await capturedOnCompleted?.() })
     fireEvent.click(view.getByText('notify-success'))
     expect(view.getByRole('status').textContent).toContain('paid')
     fireEvent.click(view.getByLabelText('notify.close'))
@@ -190,5 +213,53 @@ describe('TokenPlanPage host chrome', () => {
     act(() => { view.fireTheme() })
     expect(view.container.querySelector('[data-token-plan-surface="sdkwork"]')?.classList.contains('dark')).toBe(false)
     vi.useRealTimers()
+  })
+
+  it('reads the Token Bank account and refills the catalog figure after completion', async () => {
+    configured = true
+    signedIn = true
+    readComputeAccount.mockResolvedValue({
+      assetType: 'token_bank',
+      available: 42.5,
+      frozen: 0,
+      pending: 0,
+    })
+    const view = renderPage('light')
+    await waitFor(() => {
+      expect(view.getByTestId('token-plan-points').textContent).toBe('42.5')
+    })
+    expect(readComputeAccount).toHaveBeenCalledTimes(1)
+
+    // A settled recharge/redemption asks the page to refresh; the new account
+    // figure must flow into every points dialog without reloading the catalog.
+    readComputeAccount.mockResolvedValue({
+      assetType: 'token_bank',
+      available: 100,
+      frozen: 0,
+      pending: 0,
+    })
+    await act(async () => { await capturedOnCompleted?.() })
+    await waitFor(() => {
+      expect(view.getByTestId('token-plan-points').textContent).toBe('100')
+    })
+  })
+
+  it('keeps the points figure empty while signed out', async () => {
+    configured = true
+    signedIn = false
+    const view = renderPage('light')
+    await waitFor(() => {
+      expect(view.getByTestId('token-plan-points').textContent).toBe('null')
+    })
+    expect(readComputeAccount).not.toHaveBeenCalled()
+  })
+
+  it('opens the host sign-in surface from the account dialogs', async () => {
+    configured = true
+    signedIn = false
+    renderPage('light')
+    await waitFor(() => { expect(capturedCommerceOptions).toBeDefined() })
+    act(() => { capturedCommerceOptions?.openSignIn?.() })
+    expect(openSignIn).toHaveBeenCalledTimes(1)
   })
 })
