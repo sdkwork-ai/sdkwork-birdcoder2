@@ -30,6 +30,10 @@
       "types": "./lib/types/assistant-stream.d.ts",
       "default": "./lib/types/assistant-stream.js"
     },
+    "./model-catalog": {
+      "types": "./lib/types/model-catalog/index.d.ts",
+      "default": "./lib/types/model-catalog/index.js"
+    },
     "./typert": {
       "types": "./lib/typert.host.d.ts",
       "default": "./lib/typert.host.js"

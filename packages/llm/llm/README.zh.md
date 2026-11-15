@@ -90,6 +90,7 @@ const configure = (maxTokens: number): ConfigureCall =>
 - **通过配置暴露并激活提供方**——适配器声明可配置提供方路由与 settings namespace，配置界面因此可以激活休眠提供方并编辑连接信息，无需重启。`LlmConfigurableProvider.error` 报告供修复的配置诊断；未受影响的模型仍可提供服务。条目还可携带 `defaultBaseURL`，即配置未设置端点时适配器使用的端点；以及 `nativeAuth`，即配置未指定凭据引用时适配器认证读取的环境变量与 OAuth 登录；`baseURLEnv` 列出配置端点所用的环境变量。配置界面直接从目录读取这些字段，无需调用适配器。
 - **发现与解析模型**——列出适配器公布的模型、询问端点它提供哪些模型（候选携带可选的 `inputModalities`；缺省表示未知），并解析某个精确模型的上下文窗口、输出默认值、推理（reasoning）强度、输入模态与系统提示词更新模式：当模型把任意位置最新的 `system` 消息读作有效系统提示词时，`LlmResolvedModelInfo.systemPromptUpdate` 为 `'in-history'`；只读取开头 system 消息时该字段缺失；`normalizeModelInfo` 以 `INVALID_MODEL_INFO` 拒绝任何其他值。
 - **校验调用配置**——显式或配置的推理强度会在任何提供方 I/O 之前对照精确模型校验；请求省略输出上限时，会填入适配器配置的输出上限。
+- **同步带版本的模型目录**——`ModelCatalogSync` 实现 SDKWork 目录契约（`/model_catalog`、`/model_catalog/changes`），并通过写时复制存储发布：不可变快照、带墓碑（tombstone）的增量流、`ETag` 条件请求、严格 revision 校验以及最近可用副本回退。`resolveEffectiveCatalog` 落实来源规则（非空后端目录整体替换构建期种子；空后端目录保留种子），`CopyOnWriteCatalogPersistence` 先写 revision 文件再替换指针，读者因此永远看不到半成品目录。传输、文件系统、时钟与种子均由外部注入，由组合决定端点与凭据。
 - **不展开即读取内嵌 Assistant 流**——`assistantStreamFirstTokenTime`（首 token）、`assistantStreamHasVisibleContent`（任一可见内容）与 `assistantStreamHasVisibleText`（任一可见文本）通过可提前退出的扫描直接从紧凑记录得出结果；`lastAssistantStreamChunk` 反向扫描到某一类型的最后一个原始 chunk，`assistantStreamChunks` 与 `joinAssistantStreamText` 扫描整个流，`assembleAssistantStream` 向 `BlockAssembler` 每个 run 喂一段拼接 delta，blocks／usage／replayState 与逐成员展开相同。`runFirstTokenTime` 与 `runFirstVisibleTime` 对单个打包 run 做提前退出扫描，`isTokenDelta`、`isVisibleChunk` 与 `chunkHasVisibleText` 定义单个 chunk 的 token 与可见性规则。`expandAssistantStream` 仍是持久边界读取记录的校验路径；它不被记忆化，因为保留的展开在事件生命周期内约花费紧凑流的十倍内存。
 
 ### 失败与恢复
@@ -125,6 +126,7 @@ const configure = (maxTokens: number): ConfigureCall =>
 | [`src/content.ts`](src/content.ts) | 共享文件与图片辅助函数：内容遍历、文件投影、图片卸载计数与已卸载图片投影 |
 | [`src/api-key.ts`](src/api-key.ts) | 每个适配器共享的凭据格式校验 |
 | [`src/adapter-failure.ts`](src/adapter-failure.ts) | 把失败归一化为终止 finish 分片 |
+| [`src/model-catalog/`](src/model-catalog/) | 带版本的目录契约、校验、增量应用、写时复制存储与持久化、来源优先级，以及同步客户端 |
 
 ### 主流程
 
@@ -182,6 +184,7 @@ const configure = (maxTokens: number): ConfigureCall =>
 - **`GenerateOptions` 采样只包含 `temperature`／`maxTokens`／`stop`**——没有 `tool_choice`、`top_p` 或 penalty 字段；有产生方落地时词汇才会增长（见[已删除惰性旋钮](../../../.agents/notes/archived/simplification/2026-07-04-drop-inert-request-knobs.md)）。
 - **变体通常要求实际产生方**——`prefill`、逐工具 `strict`、内容块 `cache` 提示和 `agent` 消息来源变体都没有产生方（见 [Agent Note](../../../.agents/notes/archived/simplification/2026-07-04-prune-producerless-vocabulary-variants.md)）。
 - **`BlockAssembler` 只处理核心块类型**——插件添加块类型的流若从未由 `block-end` 关闭，`blocks()` 会抛出异常。
+- **目录同步客户端尚未被组合挂载**——`ModelCatalogSync` 已完整实现并针对契约测试通过，但当前没有已发布的组合启动它，也没有把它的快照喂给提供方适配器的种子，因此 relay 路由在集成落地前仍然读取生成期种子。
 - **`GenerateOptions.sessionId` 是本地声明的品牌类型**——导入 dsh-session 的 `SessionId` 会产生依赖循环。
 - **工具更新需要会话历史** — `GenerateOptions.tools` 包含当前有效定义。`toolHistory` 提供 `Session.toolHistory()` 派生的初始声明及已解析历史定义的添加记录。适配器分发时，`projectToolUpdates` 构造延迟声明，并在 `in-history` 模式保留已移除定义；`addition-only` 省略已移除定义和移除消息。在 addition-only 路由移除任何工具或向空工具集添加工具时，使用该次更新后的可用声明重建基线。延迟声明也计入已有工具。已被取代的工具块会被省略，其他内容保留；后续添加仍保持延迟加载。不支持更新的路由接收有效工具，不携带 developer 消息或 `deferLoading`。缺少历史或请求前缀遗漏已记录更新时，回退为当前声明且不发送 developer 消息。显式延迟工具仅在已有添加记录将其激活时，才会在重建时变为立即加载；尚未激活的声明仍保持延迟加载。
 
