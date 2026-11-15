@@ -4,14 +4,15 @@
  * `settings.officialAccounts` seat and hosts the SDKWork IAM official-account
  * capability inside it.
  *
- * The capability itself lives in `@sdkwork/iam-pc-admin-oauth` (the IAM PC
- * admin workspace mounts the same panel): this plugin owns only the harness
- * frame — the settings row, the dialog chrome, the host adapter that binds the
- * shared deployment environment and IAM session to the SDKWork clients, and the
- * locale/theme bridge. Registered capability: account configuration (AppID,
- * AppSecret, type, original id, message-push notifications, the follow QR
- * code) plus the custom-menu editor, which is what later menu publishing and
- * article pushes operate on.
+ * The capability itself lives in `@sdkwork/iam-pc-official-accounts` (the
+ * shared official-account component; this host mounts its self-service
+ * posture): this plugin owns only the harness frame — the settings row, the
+ * dialog chrome, the host adapter that binds the shared deployment environment
+ * and IAM session to the SDKWork clients, and the locale/theme bridge.
+ * Registered capability: account configuration (AppID, AppSecret, type,
+ * original id, message-push notifications, the follow QR code) plus the
+ * custom-menu editor, which is what later menu publishing and article pushes
+ * operate on.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: pulls the settings slot declarations (settings.officialAccounts).

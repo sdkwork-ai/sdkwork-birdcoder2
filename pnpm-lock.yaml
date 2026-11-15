@@ -2962,6 +2962,46 @@ importers:
       '@sdkwork/i18n-pc-react':
         specifier: workspace:*
         version: link:../../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react
+      '@sdkwork/iam-pc-official-accounts':
+        specifier: workspace:*
+        version: link:../sdkwork-iam-pc-official-accounts
+      '@sdkwork/ui-pc-react':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-ui/sdkwork-ui-pc-react
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+      sdkwork-drive-pc-upload-image:
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-upload-image
+    devDependencies:
+      '@testing-library/react':
+        specifier: 'catalog:'
+        version: 16.3.2(@testing-library/dom@10.4.2)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.2.5(@types/react@19.2.18)
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+
+  ../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-iam-pc-official-accounts:
+    dependencies:
+      '@sdkwork/drive-upload-image-core':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-drive/apps/sdkwork-drive-common/packages/sdkwork-drive-upload-image-core
+      '@sdkwork/i18n-pc-react':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react
       '@sdkwork/ui-pc-react':
         specifier: workspace:*
         version: link:../../../../../sdkwork-ui/sdkwork-ui-pc-react
@@ -12780,9 +12820,9 @@ importers:
       '@sdkwork/iam-app-sdk':
         specifier: workspace:^
         version: link:../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript
-      '@sdkwork/iam-pc-oauth':
+      '@sdkwork/iam-pc-official-accounts':
         specifier: workspace:^
-        version: link:../../../../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-iam-pc-oauth
+        version: link:../../../../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-iam-pc-official-accounts
       '@sdkwork/sdk-common':
         specifier: workspace:^
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript

@@ -1,14 +1,15 @@
 /**
  * BirdCoder host adapter for the user-facing IAM official-account capability.
  *
- * The capability lives in `@sdkwork/iam-pc-oauth` (app tier, IAM app API). This
- * adapter owns everything behind that surface: the gateway origin from the
- * shared ui-sdkwork-env profile, the IAM session credentials from `ctx.iam`
- * mirrored into the browser-global token manager, and the generated
- * `@sdkwork/iam-app-sdk` app client whose `iam.oauth.officialAccounts` slice
- * backs every list/create/update/delete request. No backend-admin client and
- * no tenant login resource are involved: these rows are the signed-in account's
- * own channel configuration.
+ * The capability lives in `@sdkwork/iam-pc-official-accounts` (the shared
+ * official-account component): its self-service transport wraps the app tier of
+ * the IAM API. This adapter owns everything behind that surface: the gateway
+ * origin from the shared ui-sdkwork-env profile, the IAM session credentials
+ * from `ctx.iam` mirrored into the browser-global token manager, and the
+ * generated `@sdkwork/iam-app-sdk` app client whose `iam.oauth.officialAccounts`
+ * slice backs every list/create/update/delete request. No backend-admin client
+ * and no tenant login resource are involved: these rows are the signed-in
+ * account's own channel configuration.
  */
 import {
   createClient as createIamAppClient,
@@ -21,10 +22,12 @@ import {
   type DriveUploadImageService,
 } from '@sdkwork/drive-upload-image-core'
 import {
-  createSdkworkIamOfficialAccountsClient,
-  SdkworkIamOfficialAccountsController,
-  type SdkworkIamDomainVerification,
-} from '@sdkwork/iam-pc-oauth'
+  createOfficialAccountsController,
+  createSelfServiceTransport,
+  DEFAULT_SELF_SERVICE_CAPABILITIES,
+  type OfficialAccountsController,
+  type OfficialAccountsDomainVerification,
+} from '@sdkwork/iam-pc-official-accounts'
 import { createClient as createDeploymentsAppClient } from '@sdkwork/deployments-app-sdk'
 import { DomainVerificationPort } from './officialAccountDomainVerification.ts'
 import {
@@ -90,11 +93,11 @@ export class OfficialAccountsHost {
   private readonly tokenManager: ReturnType<typeof getSdkworkGlobalTokenManager>
   private readonly listeners = new Set<() => void>()
   private client: SdkworkAppClient | undefined
-  private controller: SdkworkIamOfficialAccountsController | undefined
+  private controller: OfficialAccountsController | undefined
   private clientBaseUrl: string | undefined
   private logoUploadService: DriveUploadImageService | undefined
   private logoUploadBaseUrl: string | undefined
-  private domainVerification: SdkworkIamDomainVerification | undefined
+  private domainVerification: OfficialAccountsDomainVerification | undefined
   private domainVerificationBaseUrl: string | undefined
   private domainVerificationIdentity: string | undefined
   private identityKey: string | undefined
@@ -195,7 +198,7 @@ export class OfficialAccountsHost {
    * the zone of each configured domain and reads or replaces that file.
    * @returns the capability, or undefined while the gateway origin is unconfigured.
    */
-  readDomainVerification(): SdkworkIamDomainVerification | undefined {
+  readDomainVerification(): OfficialAccountsDomainVerification | undefined {
     const baseUrl = this.readBaseUrl()
     if (baseUrl === '') return undefined
     this.syncTokens()
@@ -224,7 +227,7 @@ export class OfficialAccountsHost {
    * @returns the account controller, or undefined while the gateway origin is
    * unconfigured.
    */
-  readController(): SdkworkIamOfficialAccountsController | undefined {
+  readController(): OfficialAccountsController | undefined {
     const baseUrl = this.readBaseUrl()
     if (baseUrl === '') return undefined
     this.syncTokens()
@@ -237,8 +240,9 @@ export class OfficialAccountsHost {
       })
       this.client = client
       this.clientBaseUrl = baseUrl
-      this.controller = new SdkworkIamOfficialAccountsController(
-        createSdkworkIamOfficialAccountsClient(client.iam.oauth.officialAccounts),
+      this.controller = createOfficialAccountsController(
+        createSelfServiceTransport(client.iam.oauth.officialAccounts),
+        DEFAULT_SELF_SERVICE_CAPABILITIES,
       )
     }
     return this.controller

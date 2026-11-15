@@ -9,9 +9,9 @@
  */
 import type { SdkworkDeployAppClient } from '@sdkwork/deployments-app-sdk'
 import type {
-  SdkworkIamDomainVerification,
-  SdkworkIamDomainVerificationStatus,
-} from '@sdkwork/iam-pc-oauth'
+  OfficialAccountsDomainVerification,
+  OfficialAccountsDomainVerificationStatus,
+} from '@sdkwork/iam-pc-official-accounts'
 
 /** One DNS zone this deployment manages. */
 export interface ManagedZone {
@@ -50,7 +50,7 @@ export function matchManagedZone(
 }
 
 /** Map the Deploy response onto the panel's verification status. */
-function toStatus(fileName?: string, updatedAt?: string): SdkworkIamDomainVerificationStatus {
+function toStatus(fileName?: string, updatedAt?: string): OfficialAccountsDomainVerificationStatus {
   return {
     managed: true,
     ...(fileName === undefined ? {} : { fileName }),
@@ -63,7 +63,7 @@ function toStatus(fileName?: string, updatedAt?: string): SdkworkIamDomainVerifi
  * configured domain once per session, then reads or replaces that zone's
  * verification file.
  */
-export class DomainVerificationPort implements SdkworkIamDomainVerification {
+export class DomainVerificationPort implements OfficialAccountsDomainVerification {
   private readonly client: SdkworkDeployAppClient
   private zones: Promise<readonly ManagedZone[]> | undefined
 
@@ -77,7 +77,7 @@ export class DomainVerificationPort implements SdkworkIamDomainVerification {
    * @param domain - the configured domain.
    * @returns the zone's file state, or `managed: false` outside the zones.
    */
-  async read(domain: string): Promise<SdkworkIamDomainVerificationStatus> {
+  async read(domain: string): Promise<OfficialAccountsDomainVerificationStatus> {
     const zone = await this.zoneFor(domain)
     if (zone === undefined) return { managed: false }
     const result = await this.client.domain.domainZones.wechatVerification.retrieve(zone.id)
@@ -94,7 +94,7 @@ export class DomainVerificationPort implements SdkworkIamDomainVerification {
   async upload(
     domain: string,
     file: { fileName: string; content: string },
-  ): Promise<SdkworkIamDomainVerificationStatus> {
+  ): Promise<OfficialAccountsDomainVerificationStatus> {
     const zone = await this.zoneFor(domain)
     if (zone === undefined) {
       throw new Error(`domain ${domain} is not managed by this deployment`)

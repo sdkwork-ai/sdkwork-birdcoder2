@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概要
 
-SDKWork IAM 公众号账号管理插件（浏览器侧）：在设置菜单弹出面板中注册 **公众号账号** 行（位于中转站 API Key 行上方），并把该行打开的90% 视口的弹窗注册到根作用域的 `settings.officialAccounts` 座位。弹窗承载面向用户的能力模块 `@sdkwork/iam-pc-oauth`，它通过 IAM app API 维护已登录账号自己的公众号配置——不涉及后台管理面，也不涉及租户登录资源。
+SDKWork IAM 公众号账号管理插件（浏览器侧）：在设置菜单弹出面板中注册 **公众号账号** 行（位于中转站 API Key 行上方），并把该行打开的90% 视口的弹窗注册到根作用域的 `settings.officialAccounts` 座位。弹窗承载统一组件 `@sdkwork/iam-pc-official-accounts` 的自助维护形态，它通过 IAM app API 维护已登录账号自己的公众号配置——不涉及后台管理面，也不涉及租户登录资源。
 
 ## 目录
 
@@ -23,8 +23,8 @@ SDKWork IAM 公众号账号管理插件（浏览器侧）：在设置菜单弹�
 ## 实现方式
 
 - `src/client/index.ts` 注册 `officialAccounts` 语言字典、挂载宿主适配器，并把弹窗贡献到 `settings.officialAccounts` 座位（单座；运行时授权表在 `ui-sdkwork-settings-menu` 的 `mode.rail.settings` children 中）。
-- `src/client/officialAccountsHost.ts` 依据共享 `ui-sdkwork-env` 的网关源地址构建 IAM **app** 客户端（`@sdkwork/iam-app-sdk`，dual-token，`pc`），在每次读取前把 `ui-sdkwork-iam` 会话镜像进浏览器全局 token manager，通过 `createSdkworkIamOfficialAccountsClient` 适配 `client.iam.oauth.officialAccounts`，并把得到的控制器交给面板；环境切换时就地重建客户端与控制器。
-- `src/client/OfficialAccountsModal.tsx` 是弹窗外壳：它判断网关就绪、会话存在、宿主语言与宿主配色，然后渲染 `@sdkwork/iam-pc-oauth` 的 `SdkworkIamOfficialAccountsPanel`。账号创建/编辑、启用/停用、消息推送配置、删除以及自定义菜单草稿编辑器都是该模块控制器自身的调用。其创建/编辑抽屉在弹窗上层从左侧打开。面板只是工作区、自身不渲染标题，因此屏幕上只出现本弹窗的标题与说明；面板头部只有一行工具栏：左侧是搜索框与其搜索按钮，右侧是刷新与添加。账号抽屉本身以两个页签对齐微信公众平台：基础信息（凭据）与域名配置（三组受保护域名 + 服务器配置），并按公众平台的规则校验每个值。
+- `src/client/officialAccountsHost.ts` 依据共享 `ui-sdkwork-env` 的网关源地址构建 IAM **app** 客户端（`@sdkwork/iam-app-sdk`，dual-token，`pc`），在每次读取前把 `ui-sdkwork-iam` 会话镜像进浏览器全局 token manager，通过 `createSelfServiceTransport` 适配 `client.iam.oauth.officialAccounts`，并把 `createOfficialAccountsController(...)`（capabilities 为 `DEFAULT_SELF_SERVICE_CAPABILITIES`）得到的控制器交给面板；环境切换时就地重建客户端与控制器。
+- `src/client/OfficialAccountsModal.tsx` 是弹窗外壳：它判断网关就绪、会话存在、宿主语言与宿主配色，然后渲染 `@sdkwork/iam-pc-official-accounts` 的 `SdkworkOfficialAccountsPanel`（显式传入 `DEFAULT_SELF_SERVICE_CAPABILITIES`）。账号创建/编辑、启用/停用、消息推送配置、删除以及自定义菜单草稿编辑器都是该模块控制器自身的调用。其创建/编辑抽屉在弹窗上层从左侧打开。面板只是工作区、自身不渲染标题，因此屏幕上只出现本弹窗的标题与说明；面板头部只有一行工具栏：左侧是搜索框与其搜索按钮，右侧是刷新与添加。账号抽屉本身以两个页签对齐微信公众平台：基础信息（凭据）与域名配置（三组受保护域名 + 服务器配置），并按公众平台的规则校验每个值。
 - `src/client/officialAccountsHost.ts` 同时按本应用的声明式上传意图（`specs/upload.declaration.json`，经 `src/client/officialAccountLogoUpload.ts` 带入代码）构建 Drive `DriveUploadImageService`，并交给面板的 Logo 字段：编辑时以账号 id 作为归属锚点立即上传，新建时先暂存选择、账号创建后再补传（`DRIVE_SPEC.md` 第 18 节）。声明值不在此处内联，`appId` 由运行时令牌决定。
 - 抽屉的「服务器信息」页签列出部署公布的服务器出口 IP，供运营复制到公众号 IP 白名单；适配器从当前环境 profile 读取（由 `SDKWORK_OFFICIAL_ACCOUNT_SERVER_IPS` 投影），列表为空时明确提示该部署未公布，而不是编造地址。
 - 域名配置页签的每条域名都可上传微信下发的 `MP_verify_*.txt`：适配器用 Deploy 应用 API 把域名解析到所属 DNS Zone，读写该 Zone 已有的验证文件（边缘对该 Zone 的每个主机名原样提供该文件），域名不在受管 Zone 时明确提示无法代托管。
@@ -41,7 +41,7 @@ pnpm --filter @deepseek-ai/dsh-client-ui-sdkwork-official-accounts bundle
 <a id="dev-note"></a>
 ## 开发说明
 
-弹窗仅运行于浏览器，并且只对接两个接缝：此处构建的 IAM app 客户端，以及 `@sdkwork/iam-pc-oauth` 提供的控制器/面板端口（作为依赖解析用途加入的 workspace 成员；打包时通过 `tsconfig.base.json` 源码别名内联）。app 级的行按会话的租户与用户隔离，且从不参与登录——`@sdkwork/iam-pc-admin-oauth` 中的后台管理能力 `iam.oauth.resourceAccounts.*` 是另一个表面，这里不使用。
+弹窗仅运行于浏览器，并且只对接两个接缝：此处构建的 IAM app 客户端，以及 `@sdkwork/iam-pc-official-accounts` 提供的控制器/面板端口（作为依赖解析用途加入的 workspace 成员；打包时通过 `tsconfig.base.json` 源码别名内联）。本宿主使用该组件的**自助维护**形态，因此不会触达运营侧才有的菜单发布与扫码登录默认号能力。app 级的行按会话的租户与用户隔离，且从不参与登录——`@sdkwork/iam-pc-admin-oauth` 中的后台管理能力 `iam.oauth.resourceAccounts.*` 是另一个表面，这里不使用。
 
 <a id="model-experience"></a>
 ## 模型体验

@@ -25,10 +25,20 @@ vi.mock('@sdkwork/i18n-pc-react', () => ({
   ),
 }))
 
-vi.mock('@sdkwork/iam-pc-oauth', () => ({
-  SDKWORK_IAM_OFFICIAL_ACCOUNTS_I18N_CATALOG: { namespace: 'iam.oauth.officialAccounts' },
-  SdkworkIamOfficialAccountsPanel: (
+vi.mock('@sdkwork/iam-pc-official-accounts', () => ({
+  DEFAULT_SELF_SERVICE_CAPABILITIES: {
+    mode: 'self-service',
+    editCredentials: true,
+    publishMenu: false,
+    manageQrLogin: false,
+    manageDomains: true,
+    manageNotify: true,
+    deleteAccount: true,
+  },
+  SDKWORK_OFFICIAL_ACCOUNTS_I18N_CATALOG: { namespace: 'iam.oauth.officialAccounts' },
+  SdkworkOfficialAccountsPanel: (
     props: {
+      capabilities?: { mode?: string; publishMenu?: boolean }
       controller?: unknown
       domainVerification?: unknown
       driveUploadImageService?: { marker: string } | undefined
@@ -37,6 +47,8 @@ vi.mock('@sdkwork/iam-pc-oauth', () => ({
     },
   ) => (
     <div
+      data-capabilities-mode={props.capabilities?.mode ?? 'none'}
+      data-capabilities-publish-menu={String(props.capabilities?.publishMenu)}
       data-domain-verification={props.domainVerification === undefined ? 'absent' : 'present'}
       data-logo-service={props.driveUploadImageService?.marker ?? 'none'}
       data-notify-base-url={props.notifyBaseUrl ?? ''}
@@ -137,6 +149,14 @@ describe('OfficialAccountsModal', () => {
     expect(document.querySelector('[data-sdkwork-theme-provider]')).not.toBeNull()
     expect(document.querySelector('[data-sdkwork-i18n-provider]')).not.toBeNull()
     expect(document.querySelector('[data-official-accounts-panel]')).not.toBeNull()
+  })
+
+  it('hands the self-service capability posture to the panel', () => {
+    view()
+    const panel = document.querySelector('[data-official-accounts-panel]')
+    expect(panel?.getAttribute('data-capabilities-mode')).toBe('self-service')
+    // The app tier owns no menu publishing, so the capability stays off.
+    expect(panel?.getAttribute('data-capabilities-publish-menu')).toBe('false')
   })
 
   it('hands the host Drive logo upload capability to the panel', () => {

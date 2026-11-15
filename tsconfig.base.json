@@ -647,7 +647,7 @@
       "@sdkwork/iam-contracts": ["../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-contracts/src/index.ts"],
       "@sdkwork/iam-credential-entry": ["../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-credential-entry/src/index.ts"],
       "@sdkwork/iam-desktop-auth": ["../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-desktop-auth/src/index.ts"],
-      "@sdkwork/iam-pc-oauth": ["../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-iam-pc-oauth/src/index.ts"],
+      "@sdkwork/iam-pc-official-accounts": ["../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-iam-pc-official-accounts/src/index.ts"],
       "@sdkwork/iam-runtime": ["../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-runtime/src/index.ts"],
       "@sdkwork/iam-sdk-adapter": ["../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-sdk-adapter/src/index.ts"],
       "@sdkwork/iam-sdk-ports": ["../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-sdk-ports/src/index.ts"],

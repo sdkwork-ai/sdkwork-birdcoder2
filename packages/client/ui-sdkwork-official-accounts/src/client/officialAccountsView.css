@@ -1,8 +1,9 @@
 /**
  * Per-plugin Tailwind v4 source sheet for the official-account embed (the
- * relay API-key and token-plan precedent): the IAM OAuth admin pages and the
- * shared `@sdkwork/ui-pc-react` components style with Tailwind utilities, and
- * the harness shell sheet does not scan the IAM checkout. Compiling here keeps
+ * relay API-key and token-plan precedent): the shared official-account panel
+ * and the shared `@sdkwork/ui-pc-react` components style with Tailwind
+ * utilities, and the harness shell sheet does not scan the IAM checkout.
+ * Compiling here keeps
  * the plugin self-contained — the compiled utilities inject as a
  * `<style data-plugin-css>` tag when the bundle loads — and the `dark:` variant
  * rebinds to the `.dark` class `SdkworkThemeProvider` puts on the document
@@ -13,8 +14,7 @@
  * `document.head` as a `<style>` tag, so the umbrella form's `@layer base`
  * preflight reset would restyle the ENTIRE harness application. The reset the
  * embedded surface needs is written explicitly below and scoped to the panel
- * root (`data-sdkwork-iam-official-accounts-panel`, rendered by
- * `SdkworkIamOfficialAccountsPanel`).
+ * root selector (`data-sdkwork-iam-official-accounts-panel`).
  */
 @layer theme, base, components, utilities;
 @import "tailwindcss/theme.css" layer(theme);
@@ -22,10 +22,10 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* The render sources: the user-facing IAM official-account panel, the SDKWork
+/* The render sources: the shared official-account panel, the SDKWork
    component library it composes, the SDKWork i18n facade, and the Drive image
    upload shell the panel's logo field renders. */
-@source "../../../../../../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-iam-pc-oauth/src";
+@source "../../../../../../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-iam-pc-official-accounts/src";
 @source "../../../../../../sdkwork-ui/sdkwork-ui-pc-react/src";
 @source "../../../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react/src";
 @source "../../../../../../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-upload-image/src";

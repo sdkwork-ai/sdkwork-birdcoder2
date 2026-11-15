@@ -5,10 +5,10 @@
  * The modal is a host frame, not a reimplementation. It decides three things —
  * whether the deployment can reach IAM, whether a session exists, and which
  * host locale/color scheme the embedded surface follows — and then renders
- * `SdkworkIamOfficialAccountsPanel` from `@sdkwork/iam-pc-oauth` (the
- * user-facing app-tier module over the IAM app API) unchanged. Every account,
- * credential, message-push, and custom-menu-draft operation is the module's own
- * controller call; no backend-admin surface is involved.
+ * `SdkworkOfficialAccountsPanel` from `@sdkwork/iam-pc-official-accounts` (the
+ * shared official-account component over the IAM app API) unchanged. Every
+ * account, credential, message-push, and custom-menu-draft operation is the
+ * module's own controller call; no backend-admin surface is involved.
  *
  * `SdkworkThemeProvider` supplies the SDKWork design tokens (and the `.dark`
  * class the panel's `dark:` variants bind to), because this modal lives in the
@@ -35,11 +35,12 @@ import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@dee
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import { SdkworkI18nProvider } from '@sdkwork/i18n-pc-react'
 import {
-  SDKWORK_IAM_OFFICIAL_ACCOUNTS_I18N_CATALOG,
-  SdkworkIamOfficialAccountsPanel,
-  type SdkworkIamDomainVerification,
-  type SdkworkIamOfficialAccountsController,
-} from '@sdkwork/iam-pc-oauth'
+  DEFAULT_SELF_SERVICE_CAPABILITIES,
+  SDKWORK_OFFICIAL_ACCOUNTS_I18N_CATALOG,
+  SdkworkOfficialAccountsPanel,
+  type OfficialAccountsController,
+  type OfficialAccountsDomainVerification,
+} from '@sdkwork/iam-pc-official-accounts'
 import type { DriveUploadImageService } from '@sdkwork/drive-upload-image-core'
 import { SdkworkThemeProvider } from '@sdkwork/ui-pc-react'
 import {
@@ -51,7 +52,7 @@ import css from './OfficialAccountsModal.module.css'
 /** The adapter face the modal reads: the account controller and the Drive logo upload service. */
 export interface OfficialAccountsPanelSource {
   /** @returns the controller for the embedded panel, or undefined while unconfigured. */
-  readController(): SdkworkIamOfficialAccountsController | undefined
+  readController(): OfficialAccountsController | undefined
   /**
    * @returns the Drive image-upload service the panel's logo field consumes, or
    * undefined while the gateway origin is unconfigured.
@@ -71,7 +72,7 @@ export interface OfficialAccountsPanelSource {
    * @returns the WeChat verification-file capability for configured domains,
    * or undefined while the gateway origin is unconfigured.
    */
-  readDomainVerification(): SdkworkIamDomainVerification | undefined
+  readDomainVerification(): OfficialAccountsDomainVerification | undefined
 }
 
 /** Injected business face: the host adapter, the sign-in gesture, and live host facts. */
@@ -187,10 +188,11 @@ export function OfficialAccountsModal(props: OfficialAccountsModalProps): ReactN
                 themeSelection={colorScheme}
               >
                 <SdkworkI18nProvider
-                  catalogs={[SDKWORK_IAM_OFFICIAL_ACCOUNTS_I18N_CATALOG]}
+                  catalogs={[SDKWORK_OFFICIAL_ACCOUNTS_I18N_CATALOG]}
                   locale={toOfficialAccountsLocale(language)}
                 >
-                  <SdkworkIamOfficialAccountsPanel
+                  <SdkworkOfficialAccountsPanel
+                    capabilities={DEFAULT_SELF_SERVICE_CAPABILITIES}
                     controller={controller}
                     domainVerification={domainVerification}
                     driveUploadImageService={logoUploadService}

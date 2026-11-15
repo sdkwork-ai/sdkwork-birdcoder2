@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-official-accounts",
-  "description": "SDKWork IAM official-account (公众号) management plugin: the settings-menu popover row and its dialog over the @sdkwork/iam-pc-admin-oauth official-account panel, with host-constructed IAM app/backend clients bound through the shared token manager",
+  "description": "SDKWork IAM official-account (公众号) management plugin: the settings-menu popover row and its dialog over the @sdkwork/iam-pc-official-accounts self-service panel, with host-constructed IAM app/Drive/Deploy clients bound through the shared token manager",
   "version": "0.2.2-rc.3",
   "publishConfig": {
     "access": "public"
@@ -57,7 +57,7 @@
     "@sdkwork/drive-upload-image-core": "workspace:^",
     "@sdkwork/i18n-pc-react": "workspace:^",
     "@sdkwork/iam-app-sdk": "workspace:^",
-    "@sdkwork/iam-pc-oauth": "workspace:^",
+    "@sdkwork/iam-pc-official-accounts": "workspace:^",
     "@sdkwork/sdk-common": "workspace:^",
     "@sdkwork/ui-pc-react": "workspace:^",
     "@tailwindcss/node": "catalog:",

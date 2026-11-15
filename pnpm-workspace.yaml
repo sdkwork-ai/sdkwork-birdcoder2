@@ -122,6 +122,7 @@ packages:
   # `workspace:*` dependency rows resolve; the client bundle still inlines it
   # through the tsconfig.base.json source alias.
   - "../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-iam-pc-oauth"
+  - "../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-iam-pc-official-accounts"
   - "../sdkwork-membership/apps/sdkwork-membership-common/packages/sdkwork-membership-contracts"
   - "../sdkwork-membership/apps/sdkwork-membership-common/packages/sdkwork-membership-sdk-ports"
   - "../sdkwork-membership/apps/sdkwork-membership-common/packages/sdkwork-membership-service"
