@@ -12765,6 +12765,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-theme':
         specifier: workspace:*
         version: link:../ui-theme
+      '@sdkwork/deployments-app-sdk':
+        specifier: workspace:*
+        version: link:../../../../sdkwork-deployments/sdks/sdkwork-deployments-app-sdk/sdkwork-deployments-app-sdk-typescript
       '@sdkwork/drive-app-sdk':
         specifier: workspace:^
         version: link:../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript

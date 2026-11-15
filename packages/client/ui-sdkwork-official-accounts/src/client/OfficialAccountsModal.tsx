@@ -22,7 +22,9 @@
  * holds search on the left and refresh/add on the right. The logo field uploads
  * through Drive: the host adapter builds the upload service from this
  * application's declared intent and this modal hands it to the panel. The
- * page's own create/edit drawer and confirm dialog portal to `document.body`;
+ * drawer's 服务器信息 tab lists the deployment's published egress IPs, which the
+ * host adapter reads from the active environment profile. The page's own
+ * create/edit drawer and confirm dialog portal to `document.body`;
  * `officialAccountsView.css` lifts them above this harness layer so they stay
  * operable.
  */
@@ -35,6 +37,7 @@ import { SdkworkI18nProvider } from '@sdkwork/i18n-pc-react'
 import {
   SDKWORK_IAM_OFFICIAL_ACCOUNTS_I18N_CATALOG,
   SdkworkIamOfficialAccountsPanel,
+  type SdkworkIamDomainVerification,
   type SdkworkIamOfficialAccountsController,
 } from '@sdkwork/iam-pc-oauth'
 import type { DriveUploadImageService } from '@sdkwork/drive-upload-image-core'
@@ -54,6 +57,21 @@ export interface OfficialAccountsPanelSource {
    * undefined while the gateway origin is unconfigured.
    */
   readLogoUploadService(): DriveUploadImageService | undefined
+  /**
+   * @returns the deployment's published server egress IPs for the WeChat IP
+   * allowlist; empty when the active environment publishes none.
+   */
+  readServerIps(): readonly string[]
+  /**
+   * @returns the gateway origin the standard WeChat callback URL is built from
+   * (empty when the deployment has no gateway origin).
+   */
+  readNotifyBaseUrl(): string
+  /**
+   * @returns the WeChat verification-file capability for configured domains,
+   * or undefined while the gateway origin is unconfigured.
+   */
+  readDomainVerification(): SdkworkIamDomainVerification | undefined
 }
 
 /** Injected business face: the host adapter, the sign-in gesture, and live host facts. */
@@ -120,11 +138,22 @@ export function OfficialAccountsModal(props: OfficialAccountsModalProps): ReactN
   // render, so the modal falls back to the same configuration notice instead
   // of dereferencing nothing.
   const controller = available ? host.readController() : undefined
+  // The standard WeChat callback URL is built from the same origin the app API
+  // lives on; the panel only composes it once the account has an id.
+  const notifyBaseUrl = controller === undefined ? undefined : host.readNotifyBaseUrl()
   // The Drive capability is only needed once the panel can render, and it must
   // never be built for a signed-out surface whose account rows do not exist.
   const logoUploadService = controller === undefined || !signedIn
     ? undefined
     : host.readLogoUploadService()
+  // The 服务器信息 tab lists the deployment's published egress IPs; the list is
+  // deployment metadata, so it is read even while the surface is signed out.
+  const serverIps = host.readServerIps()
+  // Domain verification files belong to the signed-in operator's managed zones,
+  // so the capability is only built once the panel can render.
+  const domainVerification = controller === undefined || !signedIn
+    ? undefined
+    : host.readDomainVerification()
 
   return (
     <WideModal
@@ -163,7 +192,10 @@ export function OfficialAccountsModal(props: OfficialAccountsModalProps): ReactN
                 >
                   <SdkworkIamOfficialAccountsPanel
                     controller={controller}
+                    domainVerification={domainVerification}
                     driveUploadImageService={logoUploadService}
+                    notifyBaseUrl={notifyBaseUrl}
+                    serverIps={serverIps}
                   />
                 </SdkworkI18nProvider>
               </SdkworkThemeProvider>

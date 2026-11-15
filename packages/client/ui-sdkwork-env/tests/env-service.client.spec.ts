@@ -134,6 +134,15 @@ describe('EnvService', () => {
     expect(service.accessToken()).toBe('tok-dev')
   })
 
+  it('parses the published server egress IPs into a de-duplicated list', () => {
+    const state = scopeOf({
+      environment: 'development',
+      development: { officialAccountServerIps: ' 1.2.3.4, 5.6.7.8；1.2.3.4\n10.0.0.1 ' },
+    })
+    const service = new EnvService(state.scope)
+    expect(service.officialAccountServerIps()).toEqual(['1.2.3.4', '5.6.7.8', '10.0.0.1'])
+  })
+
   it('reports unconfigured when the active profile carries an empty base URL', () => {
     const state = scopeOf({
       environment: 'production',
@@ -171,7 +180,7 @@ describe('EnvService', () => {
     expect(service.profile()).toEqual({
       apiBaseUrl: 'https://api.birdcoder.com', imApiBaseUrl: 'https://api.birdcoder.com',
       appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: 'boot-token', imEmbedUrl: '',
-      cloudRouterUrl: 'https://router.sdkwork.com',
+      cloudRouterUrl: 'https://router.sdkwork.com', officialAccountServerIps: '',
     })
   })
 

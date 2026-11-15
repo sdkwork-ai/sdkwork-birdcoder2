@@ -87,12 +87,14 @@ export function projectSdkworkEnvBase(env: LaunchEnvironmentSnapshot): Partial<U
   const accessToken = env.get('SDKWORK_ACCESS_TOKEN')?.value.trim()
   const imEmbedUrl = firstValue(env, IM_EMBED_URL_KEYS)
   const cloudRouterUrl = firstValue(env, SDKWORK_CLOUD_ROUTER_URL_KEYS)
+  const officialAccountServerIps = env.get('SDKWORK_OFFICIAL_ACCOUNT_SERVER_IPS')?.value.trim()
   const profile = {
     ...baseUrl === undefined ? {} : { apiBaseUrl: baseUrl },
     ...imApiBaseUrl === undefined ? {} : { imApiBaseUrl },
     ...accessToken ? { accessToken } : {},
     ...imEmbedUrl === undefined ? {} : { imEmbedUrl },
     ...cloudRouterUrl === undefined ? {} : { cloudRouterUrl },
+    ...officialAccountServerIps ? { officialAccountServerIps } : {},
   }
   return {
     environment,

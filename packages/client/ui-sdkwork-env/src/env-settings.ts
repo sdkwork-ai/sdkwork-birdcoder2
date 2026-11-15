@@ -60,6 +60,13 @@ export interface SdkworkEnvProfile {
    * gesture only ends the local session.
    */
   cloudRouterUrl: string
+  /**
+   * Comma-separated public egress IPs of the SDKWork server that calls the
+   * WeChat API. The official-account drawer lists them so an operator can paste
+   * them into the 公众号 IP allowlist; empty means the deployment publishes no
+   * list and the drawer states that instead.
+   */
+  officialAccountServerIps: string
 }
 
 /** Durable ui-sdkwork-env section shared by the Host schema and the browser scope. */
@@ -137,6 +144,7 @@ function profileFields(
     accessToken: z.string().default(''),
     imEmbedUrl: z.string().default(''),
     cloudRouterUrl: z.string().default(defaultCloudRouterUrl),
+    officialAccountServerIps: z.string().default(''),
   })
 }
 
@@ -169,9 +177,9 @@ export const ENV_PROFILE_KEYS = ['development', 'testing', 'production'] as cons
  */
 export const DEFAULT_UI_ENV_SETTINGS: UiEnvSettings = {
   [UI_ENV_ENVIRONMENT_FIELD]: 'development',
-  development: { apiBaseUrl: DEFAULT_API_BASE_URL.development, imApiBaseUrl: DEFAULT_IM_API_BASE_URL.development, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '', imEmbedUrl: '', cloudRouterUrl: DEFAULT_CLOUD_ROUTER_URL.development },
-  testing: { apiBaseUrl: DEFAULT_API_BASE_URL.testing, imApiBaseUrl: DEFAULT_IM_API_BASE_URL.testing, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '', imEmbedUrl: '', cloudRouterUrl: DEFAULT_CLOUD_ROUTER_URL.testing },
-  production: { apiBaseUrl: DEFAULT_API_BASE_URL.production, imApiBaseUrl: DEFAULT_IM_API_BASE_URL.production, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '', imEmbedUrl: '', cloudRouterUrl: DEFAULT_CLOUD_ROUTER_URL.production },
+  development: { apiBaseUrl: DEFAULT_API_BASE_URL.development, imApiBaseUrl: DEFAULT_IM_API_BASE_URL.development, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '', imEmbedUrl: '', cloudRouterUrl: DEFAULT_CLOUD_ROUTER_URL.development, officialAccountServerIps: '' },
+  testing: { apiBaseUrl: DEFAULT_API_BASE_URL.testing, imApiBaseUrl: DEFAULT_IM_API_BASE_URL.testing, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '', imEmbedUrl: '', cloudRouterUrl: DEFAULT_CLOUD_ROUTER_URL.testing, officialAccountServerIps: '' },
+  production: { apiBaseUrl: DEFAULT_API_BASE_URL.production, imApiBaseUrl: DEFAULT_IM_API_BASE_URL.production, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '', imEmbedUrl: '', cloudRouterUrl: DEFAULT_CLOUD_ROUTER_URL.production, officialAccountServerIps: '' },
 }
 
 /**

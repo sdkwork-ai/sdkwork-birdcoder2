@@ -64,7 +64,8 @@
     "@tailwindcss/oxide": "catalog:",
     "clsx": "^2.0.0",
     "react": "^18.2.0",
-    "tailwindcss": "catalog:"
+    "tailwindcss": "catalog:",
+    "@sdkwork/deployments-app-sdk": "workspace:*"
   },
   "files": [
     "lib/index.js",

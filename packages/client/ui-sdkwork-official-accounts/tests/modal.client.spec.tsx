@@ -28,11 +28,20 @@ vi.mock('@sdkwork/i18n-pc-react', () => ({
 vi.mock('@sdkwork/iam-pc-oauth', () => ({
   SDKWORK_IAM_OFFICIAL_ACCOUNTS_I18N_CATALOG: { namespace: 'iam.oauth.officialAccounts' },
   SdkworkIamOfficialAccountsPanel: (
-    props: { controller?: unknown; driveUploadImageService?: { marker: string } | undefined },
+    props: {
+      controller?: unknown
+      domainVerification?: unknown
+      driveUploadImageService?: { marker: string } | undefined
+      notifyBaseUrl?: string
+      serverIps?: readonly string[]
+    },
   ) => (
     <div
+      data-domain-verification={props.domainVerification === undefined ? 'absent' : 'present'}
       data-logo-service={props.driveUploadImageService?.marker ?? 'none'}
+      data-notify-base-url={props.notifyBaseUrl ?? ''}
       data-official-accounts-panel=""
+      data-server-ips={(props.serverIps ?? []).join(',')}
     />
   ),
 }))
@@ -40,10 +49,13 @@ vi.mock('@sdkwork/iam-pc-oauth', () => ({
 /** Locale seat stand-in: keys render verbatim so assertions read the contract. */
 const t = ((key: string) => key) as OfficialAccountsModalProps['t']
 
-/** Host double: the drawer reads only the controller and the Drive logo capability. */
+/** Host double: the drawer reads the controller, the Drive logo capability, the published server IPs, and domain verification. */
 const host: OfficialAccountsModalProps['host'] = {
   readController: () => ({}) as ReturnType<OfficialAccountsModalProps['host']['readController']>,
   readLogoUploadService: () => undefined,
+  readNotifyBaseUrl: () => 'https://api.example.test',
+  readServerIps: () => [],
+  readDomainVerification: () => undefined,
 }
 
 /** Drive capability double the modal hands to the panel. */
@@ -132,6 +144,41 @@ describe('OfficialAccountsModal', () => {
     expect(
       document.querySelector('[data-official-accounts-panel]')?.getAttribute('data-logo-service'),
     ).toBe('drive-logo')
+  })
+
+  it('hands the deployment server IPs to the panel', () => {
+    view({}, { host: { ...host, readServerIps: () => ['1.2.3.4', '5.6.7.8'] } })
+    expect(
+      document.querySelector('[data-official-accounts-panel]')?.getAttribute('data-server-ips'),
+    ).toBe('1.2.3.4,5.6.7.8')
+  })
+
+  it('hands the standard callback base URL to the panel', () => {
+    view({}, { host: { ...host, readNotifyBaseUrl: () => 'https://gateway.example' } })
+    expect(
+      document
+        .querySelector('[data-official-accounts-panel]')
+        ?.getAttribute('data-notify-base-url'),
+    ).toBe('https://gateway.example')
+  })
+
+  it('hands the domain verification capability to the panel', () => {
+    const capability = {
+      read: async () => ({ managed: false }),
+      upload: async () => ({ managed: false }),
+    }
+    view({}, { host: { ...host, readDomainVerification: () => capability } })
+    expect(
+      document
+        .querySelector('[data-official-accounts-panel]')
+        ?.getAttribute('data-domain-verification'),
+    ).toBe('present')
+  })
+
+  it('does not build the domain verification capability while signed out', () => {
+    const readDomainVerification = vi.fn(() => undefined)
+    view({ signedIn: false }, { host: { ...host, readDomainVerification } })
+    expect(readDomainVerification).not.toHaveBeenCalled()
   })
 
   it('does not build the Drive capability while signed out', () => {

@@ -149,6 +149,26 @@ export class EnvService {
   }
 
   /**
+   * The active environment's published server egress IPs.
+   *
+   * The official-account drawer lists them for the WeChat IP allowlist. The
+   * profile stores a comma/newline separated string; this accessor returns the
+   * trimmed, de-duplicated entries and an empty list when none is configured.
+   * @returns the server egress IPs in profile order.
+   */
+  officialAccountServerIps(): readonly string[] {
+    const seen = new Set<string>()
+    const ips: string[] = []
+    for (const entry of this.profile().officialAccountServerIps.split(/[\s,;，；]+/u)) {
+      const ip = entry.trim()
+      if (ip === '' || seen.has(ip)) continue
+      seen.add(ip)
+      ips.push(ip)
+    }
+    return ips
+  }
+
+  /**
    * Observe environment or profile changes.
    * @param listener - the change listener.
    * @returns the disposer removing this listener.

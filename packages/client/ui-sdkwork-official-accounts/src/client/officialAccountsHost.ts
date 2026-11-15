@@ -23,7 +23,10 @@ import {
 import {
   createSdkworkIamOfficialAccountsClient,
   SdkworkIamOfficialAccountsController,
+  type SdkworkIamDomainVerification,
 } from '@sdkwork/iam-pc-oauth'
+import { createClient as createDeploymentsAppClient } from '@sdkwork/deployments-app-sdk'
+import { DomainVerificationPort } from './officialAccountDomainVerification.ts'
 import {
   getSdkworkGlobalTokenManager,
   syncSdkworkGlobalTokenManager,
@@ -52,6 +55,11 @@ export interface OfficialAccountsHostEnvironment {
   apiBaseUrl(): string
   /** @returns the configured static access token, if any. */
   accessToken(): string
+  /**
+   * @returns the deployment's published server egress IPs for the WeChat IP
+   * allowlist; empty when this deployment publishes none.
+   */
+  officialAccountServerIps(): readonly string[]
   /** Observe profile or active-environment changes. */
   subscribe(listener: () => void): () => void
 }
@@ -86,6 +94,9 @@ export class OfficialAccountsHost {
   private clientBaseUrl: string | undefined
   private logoUploadService: DriveUploadImageService | undefined
   private logoUploadBaseUrl: string | undefined
+  private domainVerification: SdkworkIamDomainVerification | undefined
+  private domainVerificationBaseUrl: string | undefined
+  private domainVerificationIdentity: string | undefined
   private identityKey: string | undefined
   private offEnvironment: (() => void) | undefined
   private offIam: (() => void) | undefined
@@ -120,6 +131,9 @@ export class OfficialAccountsHost {
     this.clientBaseUrl = undefined
     this.logoUploadService = undefined
     this.logoUploadBaseUrl = undefined
+    this.domainVerification = undefined
+    this.domainVerificationBaseUrl = undefined
+    this.domainVerificationIdentity = undefined
     this.identityKey = undefined
   }
 
@@ -150,6 +164,59 @@ export class OfficialAccountsHost {
     const tenantId = session?.context?.tenantId?.trim() ?? ''
     const userId = (session?.context?.userId ?? session?.user?.id ?? '').trim()
     return tenantId === '' || userId === '' ? '' : `${tenantId}:${userId}`
+  }
+
+  /**
+   * The deployment's published server egress IPs.
+   *
+   * The drawer's 服务器信息 tab lists them so an operator can paste them into
+   * the WeChat 公众号 IP allowlist. The active environment profile owns the
+   * list; a deployment that publishes none yields an empty list and the tab
+   * states that instead of inventing addresses.
+   * @returns the egress IPs in profile order, de-duplicated by the environment.
+   */
+  readServerIps(): readonly string[] {
+    return this.options.env.officialAccountServerIps()
+  }
+
+  /**
+   * The gateway origin the standard WeChat callback URL is built from.
+   * @returns the active environment's gateway origin (possibly empty).
+   */
+  readNotifyBaseUrl(): string {
+    return this.readBaseUrl()
+  }
+
+  /**
+   * The WeChat verification-file capability for configured domains.
+   *
+   * Backed by the Deploy app API, which owns DNS zones and already serves each
+   * zone's `MP_verify_*.txt` at every hostname of the zone. The port resolves
+   * the zone of each configured domain and reads or replaces that file.
+   * @returns the capability, or undefined while the gateway origin is unconfigured.
+   */
+  readDomainVerification(): SdkworkIamDomainVerification | undefined {
+    const baseUrl = this.readBaseUrl()
+    if (baseUrl === '') return undefined
+    this.syncTokens()
+    const identity = this.readIdentityKey()
+    if (
+      this.domainVerification === undefined
+      || this.domainVerificationBaseUrl !== baseUrl
+      || this.domainVerificationIdentity !== identity
+    ) {
+      this.domainVerificationBaseUrl = baseUrl
+      this.domainVerificationIdentity = identity
+      this.domainVerification = new DomainVerificationPort(
+        createDeploymentsAppClient({
+          authMode: 'dual-token',
+          baseUrl,
+          platform: 'pc',
+          tokenManager: this.tokenManager,
+        }),
+      )
+    }
+    return this.domainVerification
   }
 
   /**

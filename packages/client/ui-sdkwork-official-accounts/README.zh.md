@@ -26,6 +26,8 @@ SDKWork IAM 公众号账号管理插件（浏览器侧）：在设置菜单弹�
 - `src/client/officialAccountsHost.ts` 依据共享 `ui-sdkwork-env` 的网关源地址构建 IAM **app** 客户端（`@sdkwork/iam-app-sdk`，dual-token，`pc`），在每次读取前把 `ui-sdkwork-iam` 会话镜像进浏览器全局 token manager，通过 `createSdkworkIamOfficialAccountsClient` 适配 `client.iam.oauth.officialAccounts`，并把得到的控制器交给面板；环境切换时就地重建客户端与控制器。
 - `src/client/OfficialAccountsModal.tsx` 是弹窗外壳：它判断网关就绪、会话存在、宿主语言与宿主配色，然后渲染 `@sdkwork/iam-pc-oauth` 的 `SdkworkIamOfficialAccountsPanel`。账号创建/编辑、启用/停用、消息推送配置、删除以及自定义菜单草稿编辑器都是该模块控制器自身的调用。其创建/编辑抽屉在弹窗上层从左侧打开。面板只是工作区、自身不渲染标题，因此屏幕上只出现本弹窗的标题与说明；面板头部只有一行工具栏：左侧是搜索框与其搜索按钮，右侧是刷新与添加。账号抽屉本身以两个页签对齐微信公众平台：基础信息（凭据）与域名配置（三组受保护域名 + 服务器配置），并按公众平台的规则校验每个值。
 - `src/client/officialAccountsHost.ts` 同时按本应用的声明式上传意图（`specs/upload.declaration.json`，经 `src/client/officialAccountLogoUpload.ts` 带入代码）构建 Drive `DriveUploadImageService`，并交给面板的 Logo 字段：编辑时以账号 id 作为归属锚点立即上传，新建时先暂存选择、账号创建后再补传（`DRIVE_SPEC.md` 第 18 节）。声明值不在此处内联，`appId` 由运行时令牌决定。
+- 抽屉的「服务器信息」页签列出部署公布的服务器出口 IP，供运营复制到公众号 IP 白名单；适配器从当前环境 profile 读取（由 `SDKWORK_OFFICIAL_ACCOUNT_SERVER_IPS` 投影），列表为空时明确提示该部署未公布，而不是编造地址。
+- 域名配置页签的每条域名都可上传微信下发的 `MP_verify_*.txt`：适配器用 Deploy 应用 API 把域名解析到所属 DNS Zone，读写该 Zone 已有的验证文件（边缘对该 Zone 的每个主机名原样提供该文件），域名不在受管 Zone 时明确提示无法代托管。
 - 面板的 Tailwind 工具类由本包自己的样式表 `src/client/officialAccountsView.css` 针对 IAM app 级模块、`@sdkwork/ui-pc-react` 与 Drive 图片上传组件源码根编译；该表只引入 Tailwind 子表，并为面板根写入作用域内的 reset，因此不会重排 Harness 界面。编译后的样式表收敛在 `dsh-sdkwork-official-accounts-embed` 级联层（由 `apps/web/src/index.css` 声明），并作用于嵌入根节点以及面板挂到 `document.body` 的覆盖层；`src/client/embedScope.ts` 保存组件与构建共享的属性名和选择器。
 - `SdkworkThemeProvider` 提供 SDKWork 设计令牌以及面板 `dark:` 变体所绑定的 `.dark` 类；`SdkworkI18nProvider` 把模块的 zh-CN/en-US 语言目录限定到宿主语言：弹窗位于 Harness（自带主题契约的 CSS Module 应用）中，而不是 SDKWork 应用外壳里。
 
