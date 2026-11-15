@@ -11,6 +11,13 @@ import { createMiniProgramController } from '@sdkwork/iam-pc-mini-program'
 import { MiniProgramsModal, type MiniProgramsModalProps } from '../src/client/MiniProgramsModal.tsx'
 import { zh, type MiniProgramKey } from '../src/client/locales.ts'
 
+// The workspace bridge (and the shared panel under it) is covered by
+// `mini-programs-workspace.client.spec.tsx` and the shared package's suite; the
+// frame test only needs to know the workspace mounted.
+vi.mock('../src/client/MiniProgramsWorkspace.tsx', () => ({
+  MiniProgramsWorkspace: () => <div data-testid="workspace" />,
+}))
+
 afterEach(cleanup)
 
 /** Shipped Chinese copy with `{name}` interpolation. */
@@ -82,7 +89,7 @@ describe('MiniProgramsModal', () => {
     expect(getByText(zh['section.signInRequired'])).toBeTruthy()
     fireEvent.click(getByText(zh['section.signIn']))
     expect(startSignIn).toHaveBeenCalledTimes(1)
-    expect(document.body.textContent).not.toContain('还没有小程序账号')
+    expect(document.querySelector('[data-testid="workspace"]')).toBeNull()
   })
 
   it('falls back to the configuration notice when readiness races the controller read', () => {
@@ -92,9 +99,9 @@ describe('MiniProgramsModal', () => {
     expect(getByText(zh['section.notConfigured'])).toBeTruthy()
   })
 
-  it('mounts the shared panel once ready and signed in', async () => {
-    const { findByText } = view()
-    expect(await findByText('还没有小程序账号。')).toBeTruthy()
+  it('mounts the shared panel workspace once ready and signed in', async () => {
+    const { findByTestId } = view()
+    expect(await findByTestId('workspace')).toBeTruthy()
   })
 
   it('closes on Escape and on a mask click', () => {
