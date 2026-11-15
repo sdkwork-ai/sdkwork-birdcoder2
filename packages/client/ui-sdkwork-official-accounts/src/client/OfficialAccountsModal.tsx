@@ -28,7 +28,7 @@
  * `officialAccountsView.css` lifts them above this harness layer so they stay
  * operable.
  */
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { WideModal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls the settings slot declarations (settings.officialAccounts) into this program.
@@ -63,6 +63,12 @@ export interface OfficialAccountsPanelSource {
    * allowlist; empty when the active environment publishes none.
    */
   readServerIps(): readonly string[]
+  /**
+   * Loads the tenant-maintained server egress IP allowlist through the app API
+   * (falling back to the environment profile when unavailable).
+   * @returns the current allowlist entries.
+   */
+  loadServerIps?(): Promise<readonly string[]>
   /**
    * @returns the gateway origin the standard WeChat callback URL is built from
    * (empty when the deployment has no gateway origin).
@@ -149,7 +155,20 @@ export function OfficialAccountsModal(props: OfficialAccountsModalProps): ReactN
     : host.readLogoUploadService()
   // The 服务器信息 tab lists the deployment's published egress IPs; the list is
   // deployment metadata, so it is read even while the surface is signed out.
-  const serverIps = host.readServerIps()
+  // The admin-maintained allowlist arrives asynchronously from the app API.
+  const [serverIps, setServerIps] = useState<readonly string[]>(() => host.readServerIps())
+  useEffect(() => {
+    if (!open) return
+    if (host.loadServerIps === undefined) {
+      setServerIps(host.readServerIps())
+      return
+    }
+    let cancelled = false
+    host.loadServerIps()
+      .then((ips) => { if (!cancelled) setServerIps(ips) })
+      .catch(() => { if (!cancelled) setServerIps(host.readServerIps()) })
+    return () => { cancelled = true }
+  }, [host, open])
   // Domain verification files belong to the signed-in operator's managed zones,
   // so the capability is only built once the panel can render.
   const domainVerification = controller === undefined || !signedIn

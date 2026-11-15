@@ -232,13 +232,7 @@ export class OfficialAccountsHost {
     if (baseUrl === '') return undefined
     this.syncTokens()
     if (this.controller === undefined || this.clientBaseUrl !== baseUrl) {
-      const client = createIamAppClient({
-        authMode: 'dual-token',
-        baseUrl,
-        platform: 'pc',
-        tokenManager: this.tokenManager,
-      })
-      this.client = client
+      const client = this.ensureClient(baseUrl)
       this.clientBaseUrl = baseUrl
       this.controller = createOfficialAccountsController(
         createSelfServiceTransport(client.iam.oauth.officialAccounts),
@@ -246,6 +240,45 @@ export class OfficialAccountsHost {
       )
     }
     return this.controller
+  }
+
+  /**
+   * Loads the tenant's maintained server egress IP allowlist through the app
+   * API, falling back to the environment profile when the gateway is
+   * unreachable. The admin page maintains the same list; the modal shows it and
+   * copies entries into the WeChat console.
+   * @returns the deduplicated IP list (possibly empty).
+   */
+  async loadServerIps(): Promise<readonly string[]> {
+    const baseUrl = this.readBaseUrl()
+    if (baseUrl === '') return this.readServerIps()
+    this.syncTokens()
+    try {
+      const client = this.ensureClient(baseUrl)
+      const settings = await client.iam.oauth.officialAccountSettings.retrieve()
+      const record = settings as { serverIps?: unknown }
+      if (!Array.isArray(record.serverIps)) return this.readServerIps()
+      const ips = record.serverIps
+        .filter((value): value is string => typeof value === 'string')
+        .map(value => value.trim())
+        .filter(value => value !== '')
+      return [...new Set(ips)]
+    } catch {
+      return this.readServerIps()
+    }
+  }
+
+  private ensureClient(baseUrl: string): SdkworkAppClient {
+    if (this.client === undefined || this.clientBaseUrl !== baseUrl) {
+      this.client = createIamAppClient({
+        authMode: 'dual-token',
+        baseUrl,
+        platform: 'pc',
+        tokenManager: this.tokenManager,
+      })
+      this.clientBaseUrl = baseUrl
+    }
+    return this.client
   }
 
   /**
