@@ -108,6 +108,15 @@
   z-index: 1160;
 }
 
+/* Radix Select portals its options panel to the body at `z-[200]`. Opened from
+   a field inside the lifted record drawer it must paint ABOVE that drawer
+   (1160), otherwise the drawer surface covers the options and every click lands
+   on the drawer instead of the option. 1170 keeps it inside the same band,
+   below the IAM sign-in surface (1200). */
+:is([data-sdk-ui='select-content']) {
+  z-index: 1170;
+}
+
 /* The page renders its create/edit drawer on the right; every record drawer in
    the harness opens from the left, so mirror the panel and its slide direction
    inside this embed only. */
