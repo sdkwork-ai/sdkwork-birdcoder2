@@ -527,11 +527,14 @@
       "@sdkwork/account-service": ["../sdkwork-account/apps/sdkwork-account-common/packages/sdkwork-account-service/src/index.ts"],
       "@sdkwork/agents-app-sdk": ["../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript/src/index.ts"],
       "@sdkwork/agents-backend-sdk": ["../sdkwork-agents/sdks/sdkwork-agents-backend-sdk/sdkwork-agents-backend-sdk-typescript/src/index.ts"],
+      "@sdkwork/agents-pc-agents/*": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-agents/src/*"],
       "@sdkwork/agents-pc-agents/components/CreateAgentModal": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-agents/src/components/CreateAgentModal.tsx"],
       // FORK DIVERGENCE: the sibling checkout the release lane clones carries
       // no `src/create.ts` — the curated entry exists only as an untracked
       // file in a local workspace, so the alias must land on the fork's own
-      // restatement of that surface (see agentsCreateSurface.ts).
+      // restatement of that surface (see agentsCreateSurface.ts). The exact
+      // key wins over `@sdkwork/agents-pc-agents/*` in TypeScript, and
+      // tsdown.client.ts skips wildcard keys, so the divergence stays in force.
       "@sdkwork/agents-pc-agents/create": ["./packages/client/ui-sdkwork-markets/src/client/agentsCreateSurface.ts"],
       "@sdkwork/agents-pc-agents/pages/CreateAgentView": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-agents/src/pages/CreateAgentView.tsx"],
       "@sdkwork/agents-pc-agents/services/createKnowledgebaseSelectionAdapter": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-agents/src/services/createKnowledgebaseSelectionAdapter.ts"],
