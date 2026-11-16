@@ -316,7 +316,14 @@ describe('ZoneDetail', () => {
     const api = makeClient()
     const onZoneChanged = vi.fn()
     render(
-      <ZoneDetail client={api.client} zone={zoneRow()} t={t} onBack={() => {}} onZoneChanged={onZoneChanged} />,
+      <ZoneDetail
+        client={api.client}
+        zone={zoneRow()}
+        t={t}
+        onBack={() => {}}
+        onZoneChanged={onZoneChanged}
+        onOpenVerification={() => {}}
+      />,
     )
     expect(await screen.findByText('www.example.com')).toBeTruthy()
     expect(screen.getByText('待验证')).toBeTruthy()
@@ -327,7 +334,16 @@ describe('ZoneDetail', () => {
 
   it('verifies a hostname and shows the TXT instruction, then the verified state', async () => {
     const api = makeClient()
-    render(<ZoneDetail client={api.client} zone={zoneRow()} t={t} onBack={() => {}} onZoneChanged={() => {}} />)
+    render(
+      <ZoneDetail
+        client={api.client}
+        zone={zoneRow()}
+        t={t}
+        onBack={() => {}}
+        onZoneChanged={() => {}}
+        onOpenVerification={() => {}}
+      />,
+    )
     await screen.findByText('www.example.com')
     fireEvent.click(screen.getByRole('button', { name: '验证' }))
     expect(await screen.findByText(/_sdkwork-verification\.example\.com/)).toBeTruthy()
@@ -340,7 +356,16 @@ describe('ZoneDetail', () => {
 
   it('validates and creates a subdomain, then deletes one after confirmation', async () => {
     const api = makeClient()
-    render(<ZoneDetail client={api.client} zone={zoneRow()} t={t} onBack={() => {}} onZoneChanged={() => {}} />)
+    render(
+      <ZoneDetail
+        client={api.client}
+        zone={zoneRow()}
+        t={t}
+        onBack={() => {}}
+        onZoneChanged={() => {}}
+        onOpenVerification={() => {}}
+      />,
+    )
     await screen.findByText('www.example.com')
 
     fireEvent.click(screen.getByRole('button', { name: '添加子域名' }))
@@ -365,7 +390,16 @@ describe('ZoneDetail', () => {
 
   it('switches to DNS records, syncs, toggles, and deletes them', async () => {
     const api = makeClient()
-    render(<ZoneDetail client={api.client} zone={zoneRow()} t={t} onBack={() => {}} onZoneChanged={() => {}} />)
+    render(
+      <ZoneDetail
+        client={api.client}
+        zone={zoneRow()}
+        t={t}
+        onBack={() => {}}
+        onZoneChanged={() => {}}
+        onOpenVerification={() => {}}
+      />,
+    )
     await screen.findByText('www.example.com')
     fireEvent.click(screen.getByRole('tab', { name: 'DNS 解析' }))
     expect(await screen.findByText('192.0.2.10')).toBeTruthy()
@@ -393,7 +427,16 @@ describe('ZoneDetail', () => {
 
   it('validates the record form field by field and submits a complete MX record', async () => {
     const api = makeClient()
-    render(<ZoneDetail client={api.client} zone={zoneRow()} t={t} onBack={() => {}} onZoneChanged={() => {}} />)
+    render(
+      <ZoneDetail
+        client={api.client}
+        zone={zoneRow()}
+        t={t}
+        onBack={() => {}}
+        onZoneChanged={() => {}}
+        onOpenVerification={() => {}}
+      />,
+    )
     await screen.findByText('www.example.com')
     fireEvent.click(screen.getByRole('tab', { name: 'DNS 解析' }))
     await screen.findByText('192.0.2.10')
@@ -436,7 +479,16 @@ describe('ZoneDetail', () => {
     const api = makeClient()
     api.hostnames.list.mockResolvedValue(page([]))
     api.records.list.mockResolvedValue(page([]))
-    render(<ZoneDetail client={api.client} zone={zoneRow()} t={t} onBack={() => {}} onZoneChanged={() => {}} />)
+    render(
+      <ZoneDetail
+        client={api.client}
+        zone={zoneRow()}
+        t={t}
+        onBack={() => {}}
+        onZoneChanged={() => {}}
+        onOpenVerification={() => {}}
+      />,
+    )
     expect(await screen.findByText('该根域名下还没有子域名。')).toBeTruthy()
     fireEvent.click(screen.getByRole('tab', { name: 'DNS 解析' }))
     expect(await screen.findByText('还没有解析记录，可从云账号同步或手动添加。')).toBeTruthy()
@@ -445,7 +497,16 @@ describe('ZoneDetail', () => {
   it('surfaces a failed tab load and dismisses it', async () => {
     const api = makeClient()
     api.records.list.mockRejectedValueOnce(new Error('record ledger unavailable'))
-    render(<ZoneDetail client={api.client} zone={zoneRow()} t={t} onBack={() => {}} onZoneChanged={() => {}} />)
+    render(
+      <ZoneDetail
+        client={api.client}
+        zone={zoneRow()}
+        t={t}
+        onBack={() => {}}
+        onZoneChanged={() => {}}
+        onOpenVerification={() => {}}
+      />,
+    )
     await screen.findByText('www.example.com')
     fireEvent.click(screen.getByRole('tab', { name: 'DNS 解析' }))
     expect(await screen.findByText('record ledger unavailable')).toBeTruthy()
@@ -456,7 +517,16 @@ describe('ZoneDetail', () => {
   it('surfaces a failed hostname load and a message-less action failure', async () => {
     const api = makeClient()
     api.hostnames.list.mockRejectedValueOnce(new Error('hostname ledger down'))
-    render(<ZoneDetail client={api.client} zone={zoneRow()} t={t} onBack={() => {}} onZoneChanged={() => {}} />)
+    render(
+      <ZoneDetail
+        client={api.client}
+        zone={zoneRow()}
+        t={t}
+        onBack={() => {}}
+        onZoneChanged={() => {}}
+        onOpenVerification={() => {}}
+      />,
+    )
     expect(await screen.findByText('hostname ledger down')).toBeTruthy()
     // A rejection without a message reads as the generic action copy.
     api.hostnames.create.mockRejectedValueOnce({})
@@ -473,7 +543,16 @@ describe('ZoneDetail', () => {
       hostnameRow({ id: 'h2', hostname: 'bad.example.com', verificationStatus: 'FAILED' }),
       hostnameRow({ id: 'h3', hostname: 'old.example.com', verificationStatus: 'EXPIRED' }),
     ]))
-    render(<ZoneDetail client={api.client} zone={zoneRow()} t={t} onBack={() => {}} onZoneChanged={() => {}} />)
+    render(
+      <ZoneDetail
+        client={api.client}
+        zone={zoneRow()}
+        t={t}
+        onBack={() => {}}
+        onZoneChanged={() => {}}
+        onOpenVerification={() => {}}
+      />,
+    )
     expect(await screen.findByText('*.example.com')).toBeTruthy()
     expect(screen.getByText('泛域名')).toBeTruthy()
     expect(screen.getByText('已验证')).toBeTruthy()
@@ -491,7 +570,16 @@ describe('ZoneDetail', () => {
 
   it('cancels both inline forms and both delete confirmations', async () => {
     const api = makeClient()
-    render(<ZoneDetail client={api.client} zone={zoneRow()} t={t} onBack={() => {}} onZoneChanged={() => {}} />)
+    render(
+      <ZoneDetail
+        client={api.client}
+        zone={zoneRow()}
+        t={t}
+        onBack={() => {}}
+        onZoneChanged={() => {}}
+        onOpenVerification={() => {}}
+      />,
+    )
     await screen.findByText('www.example.com')
     fireEvent.click(screen.getByRole('button', { name: '添加子域名' }))
     fireEvent.click(screen.getByRole('button', { name: '取消' }))
@@ -517,7 +605,16 @@ describe('ZoneDetail', () => {
     api.records.list.mockResolvedValue(page([
       recordRow({ recordStatus: 'DISABLED', ttlSeconds: undefined }),
     ]))
-    render(<ZoneDetail client={api.client} zone={zoneRow()} t={t} onBack={() => {}} onZoneChanged={() => {}} />)
+    render(
+      <ZoneDetail
+        client={api.client}
+        zone={zoneRow()}
+        t={t}
+        onBack={() => {}}
+        onZoneChanged={() => {}}
+        onOpenVerification={() => {}}
+      />,
+    )
     await screen.findByText('www.example.com')
     fireEvent.click(screen.getByRole('tab', { name: 'DNS 解析' }))
     expect(await screen.findByText('已暂停')).toBeTruthy()
@@ -536,7 +633,16 @@ describe('ZoneDetail', () => {
   it('submits a plain record without optional fields and a wildcard MX without priority', async () => {
     const api = makeClient()
     api.records.list.mockResolvedValue(page([]))
-    render(<ZoneDetail client={api.client} zone={zoneRow()} t={t} onBack={() => {}} onZoneChanged={() => {}} />)
+    render(
+      <ZoneDetail
+        client={api.client}
+        zone={zoneRow()}
+        t={t}
+        onBack={() => {}}
+        onZoneChanged={() => {}}
+        onOpenVerification={() => {}}
+      />,
+    )
     await screen.findByText('www.example.com')
     fireEvent.click(screen.getByRole('tab', { name: 'DNS 解析' }))
     await screen.findByText('还没有解析记录，可从云账号同步或手动添加。')
@@ -568,7 +674,16 @@ describe('ZoneDetail', () => {
   it('resumes a paused zone and switches back to the hostname tab', async () => {
     const api = makeClient()
     api.zones.update.mockResolvedValue(zoneRow({ status: 'ACTIVE' }))
-    render(<ZoneDetail client={api.client} zone={zoneRow({ status: 'PAUSED' })} t={t} onBack={() => {}} onZoneChanged={() => {}} />)
+    render(
+      <ZoneDetail
+        client={api.client}
+        zone={zoneRow({ status: 'PAUSED' })}
+        t={t}
+        onBack={() => {}}
+        onZoneChanged={() => {}}
+        onOpenVerification={() => {}}
+      />,
+    )
     await screen.findByText('www.example.com')
     fireEvent.click(screen.getByRole('tab', { name: 'DNS 解析' }))
     await screen.findByText('192.0.2.10')
@@ -587,7 +702,16 @@ describe('ZoneDetail', () => {
     api.records.create.mockRejectedValueOnce(new Error('record create denied'))
     api.records.status.update.mockRejectedValueOnce(new Error('record toggle denied'))
     api.records.delete.mockRejectedValueOnce(new Error('record delete denied'))
-    render(<ZoneDetail client={api.client} zone={zoneRow()} t={t} onBack={() => {}} onZoneChanged={() => {}} />)
+    render(
+      <ZoneDetail
+        client={api.client}
+        zone={zoneRow()}
+        t={t}
+        onBack={() => {}}
+        onZoneChanged={() => {}}
+        onOpenVerification={() => {}}
+      />,
+    )
     await screen.findByText('www.example.com')
     /** Dismiss the top banner (or close a pending confirmation) — the banner carries the first 取消. */
     const dismiss = (): void => {
@@ -632,7 +756,16 @@ describe('ZoneDetail', () => {
 
   it('closes the hostname and record drawers from their close controls', async () => {
     const api = makeClient()
-    render(<ZoneDetail client={api.client} zone={zoneRow()} t={t} onBack={() => {}} onZoneChanged={() => {}} />)
+    render(
+      <ZoneDetail
+        client={api.client}
+        zone={zoneRow()}
+        t={t}
+        onBack={() => {}}
+        onZoneChanged={() => {}}
+        onOpenVerification={() => {}}
+      />,
+    )
     await screen.findByText('www.example.com')
 
     fireEvent.click(screen.getByRole('button', { name: '添加子域名' }))

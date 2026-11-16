@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-SDKWork domain management plugin (browser half): registers the **域名管理** row in the settings-menu popover, directly below 公众号账号, and the 90%-viewport modal it opens at the root-scoped `settings.dns` seat. The modal manages the signed-in account's root domains (zones), their subdomains and ownership verification, and the DNS resolution records synced from the zone's cloud account. All operations are the deployments app API's `domain` surface (`@sdkwork/deployments-app-sdk`) — the same authority the sdkwork-webserver console reads — so the plugin introduces no second backend contract.
+SDKWork domain management plugin (browser half): registers the **域名管理** row in the settings-menu popover, directly below 公众号账号, and the 90%-viewport modal it opens at the root-scoped `settings.dns` seat. The modal manages the signed-in account's root domains (zones), their subdomains and ownership verification, the domain-ownership verification files each zone publishes (WeChat official account and mini program, Alipay, ByteDance, Google, Apple, or a custom platform), and the DNS resolution records synced from the zone's cloud account. All operations are the deployments app API's `domain` surface (`@sdkwork/deployments-app-sdk`) — the same authority the sdkwork-webserver console reads — so the plugin introduces no second backend contract.
 
 ## Table of Contents
 
@@ -26,8 +26,9 @@ SDKWork domain management plugin (browser half): registers the **域名管理** 
 - `src/client/dnsHost.ts` builds one generated deployments client from the shared `ui-sdkwork-env` gateway origin and the `ui-sdkwork-iam` session, mirroring the session into the browser-global token manager before every read. A host revision counter moves on every environment or session transition, so the modal re-reads the client after an environment switch even while readiness stays true.
 - `src/client/DnsModal.tsx` is the modal frame: it decides whether a gateway origin is configured, whether an IAM session exists, and which client the workspace calls, then renders `DnsWorkspace`. Its dismissal paths are the header button, a mask click, and Escape. Creating a root domain and adding a subdomain or DNS record open left `Drawer`s above the modal.
 - `src/client/DnsWorkspace.tsx` owns the root-domain ledger (`scope: USER`, so the platform's `app.<suffix>` zones are not presented as "my root domains"), the create form (apex, optional display name, DNS provider, and cloud account), pause/resume, and deletion behind an inline confirmation. It hands one selected zone to `ZoneDetail`.
-- `src/client/ZoneDetail.tsx` owns the per-zone subdomain ledger (create, verify, delete) and the DNS resolution ledger (sync from the cloud account, create, pause/resume, delete). Verification instructions render the TXT record name and proof exactly as the API returned them.
-- `src/client/dnsView.ts` holds the pure hostname/DNS validation (ASCII and IDN apexes, zone-relative names with one leftmost wildcard, record owners including `@`, TTL and priority parsing) and the locale-free timestamp formatting, so the component tests can assert the accepted shapes without a rendered tree.
+- `src/client/ZoneDetail.tsx` owns the per-zone subdomain ledger (create, verify, delete) and the DNS resolution ledger (sync from the cloud account, create, pause/resume, delete). Verification instructions render the TXT record name and proof exactly as the API returned them. Its header and every subdomain row open the zone's verification-file drawer.
+- `src/client/VerificationFiles.tsx` is that drawer: a platform picker plus a file picker whose picked file fills the name and content fields (both stay editable for pasting), the registered-file table with per-file self-check and delete, and the client-side mirror of the server's name/content rules so a rejection lands next to the picker.
+- `src/client/dnsView.ts` holds the pure hostname/DNS validation (ASCII and IDN apexes, zone-relative names with one leftmost wildcard, record owners including `@`, TTL and priority parsing), the verification-file name/content rules and platform set, and the locale-free timestamp formatting, so the component tests can assert the accepted shapes without a rendered tree.
 - Internationalization follows `sdkwork-specs` (`I18N_SPEC.md`): every user-visible string lives in `src/client/locales.ts` (zh is the key-set source of truth, en is checked complete), and dark/light adaptation uses only `--dsw-alias-*` tokens that flip with the host theme.
 
 <a id="build"></a>
@@ -56,5 +57,6 @@ None; this package neither assembles nor sends a provider request.
 
 - The ledger reads one page of 100 rows per list (zones, subdomains, records). A tenant above that size needs cursor pagination, which is not exposed yet.
 - Cloud-account creation is not part of this surface: the zone form offers the accounts the provider account center already holds, and an account without a credential is refused by the service. Registering or rotating the credential itself stays in that center.
-- DNS records support create, delete, and pause/resume; the replace-in-place request (`PATCH`) and the WeChat MP verification-file workflow are not exposed yet.
+- DNS records support create, delete, and pause/resume; the replace-in-place request (`PATCH`) is not exposed yet.
+- A zone may publish at most 32 verification files; the service refuses the 33rd with a conflict and the drawer surfaces that message rather than pre-counting.
 - Deleting a zone is limited to an empty zone by the service; the modal surfaces the service refusal rather than pre-checking hostname counts.

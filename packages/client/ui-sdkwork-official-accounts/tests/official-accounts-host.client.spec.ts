@@ -232,32 +232,51 @@ describe('managed zone matching', () => {
 })
 
 describe('DomainVerificationPort', () => {
-  /** A Deploy client double covering the zone list and the verification calls. */
+  /** A Deploy client double covering the zone list and the verification-file calls. */
   function verificationClient(zones: readonly { id: string; apexHostname: string }[]) {
     const list = vi.fn(async () => ({
       items: zones.map(zone => ({ ...zone })),
       pageInfo: { mode: 'offset' as const, page: 1, pageSize: 200, totalItems: String(zones.length) },
     }))
-    const retrieve = vi.fn(async (zoneId: string) => ({
-      zoneId,
-      fileName: 'MP_verify_a.txt',
-      content: 'token',
-      updatedAt: '2026-01-01T00:00:00Z',
+    const filesList = vi.fn(async (zoneId: string) => ({
+      items: [
+        {
+          id: 'file-1',
+          zoneId,
+          platform: 'WECHAT_OFFICIAL_ACCOUNT',
+          fileName: 'MP_verify_a.txt',
+          content: 'token',
+          createdAt: '2026-01-01T00:00:00Z',
+          updatedAt: '2026-01-01T00:00:00Z',
+        },
+      ],
+      pageInfo: { mode: 'offset' as const, page: 1, pageSize: 1, totalItems: '1' },
     }))
-    const upsert = vi.fn(
-      async (zoneId: string, file: { fileName: string; content: string }) => ({
+    const create = vi.fn(
+      async (
+        zoneId: string,
+        body: { platform: string; fileName: string; content: string },
+        params: { idempotencyKey: string },
+      ) => ({
+        id: 'file-2',
         zoneId,
-        fileName: file.fileName,
-        content: file.content,
+        platform: body.platform,
+        fileName: body.fileName,
+        content: body.content,
+        createdAt: '2026-01-02T00:00:00Z',
+        updatedAt: '2026-01-02T00:00:00Z',
+        idempotencyKey: params.idempotencyKey,
       }),
     )
     return {
       client: {
-        domain: { domainZones: { list, wechatVerification: { retrieve, upsert } } },
+        domain: {
+          domainZones: { list, verificationFiles: { list: filesList, create } },
+        },
       },
       list,
-      retrieve,
-      upsert,
+      filesList,
+      create,
     }
   }
 
@@ -271,15 +290,24 @@ describe('DomainVerificationPort', () => {
       fileName: 'MP_verify_a.txt',
       updatedAt: '2026-01-01T00:00:00Z',
     })
-    expect(fake.retrieve).toHaveBeenCalledWith('zone-apex')
+    expect(fake.filesList).toHaveBeenCalledWith('zone-apex')
     expect(await port.upload('api.example.com', {
       fileName: 'MP_verify_b.txt',
       content: 'token-b',
-    })).toEqual({ managed: true, fileName: 'MP_verify_b.txt' })
-    expect(fake.upsert).toHaveBeenCalledWith('zone-apex', {
+    })).toEqual({
+      managed: true,
       fileName: 'MP_verify_b.txt',
-      content: 'token-b',
+      updatedAt: '2026-01-02T00:00:00Z',
     })
+    expect(fake.create).toHaveBeenCalledWith(
+      'zone-apex',
+      {
+        platform: 'WECHAT_OFFICIAL_ACCOUNT',
+        fileName: 'MP_verify_b.txt',
+        content: 'token-b',
+      },
+      { idempotencyKey: expect.stringMatching(/^[0-9a-f-]{36}$/u) },
+    )
     // The zone list is resolved once per port, not per domain read.
     expect(fake.list).toHaveBeenCalledTimes(1)
   })
@@ -290,11 +318,51 @@ describe('DomainVerificationPort', () => {
       fake.client as unknown as ConstructorParameters<typeof DomainVerificationPort>[0],
     )
     expect(await port.read('api.other.test')).toEqual({ managed: false })
-    expect(fake.retrieve).not.toHaveBeenCalled()
+    expect(fake.filesList).not.toHaveBeenCalled()
     await expect(port.upload('api.other.test', {
       fileName: 'MP_verify_b.txt',
       content: 'token-b',
     })).rejects.toThrow('is not managed by this deployment')
-    expect(fake.upsert).not.toHaveBeenCalled()
+    expect(fake.create).not.toHaveBeenCalled()
+  })
+
+  it('reads the newest WeChat file when a reissued one sits beside the old', async () => {
+    const file = (id: string, fileName: string, updatedAt: string, platform = 'WECHAT_OFFICIAL_ACCOUNT') => ({
+      id,
+      zoneId: 'zone-apex',
+      platform,
+      fileName,
+      content: 'token',
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt,
+    })
+    const client = {
+      domain: {
+        domainZones: {
+          list: async () => ({
+            items: [{ id: 'zone-apex', apexHostname: 'example.com' }],
+            pageInfo: { mode: 'offset' as const, page: 1, pageSize: 200, totalItems: '1' },
+          }),
+          verificationFiles: {
+            list: async () => ({
+              items: [
+                file('old', 'MP_verify_old.txt', '2026-01-01T00:00:00Z'),
+                file('google', 'google123.html', '2026-06-01T00:00:00Z', 'GOOGLE'),
+                file('new', 'MP_verify_new.txt', '2026-03-01T00:00:00Z'),
+              ],
+              pageInfo: { mode: 'offset' as const, page: 1, pageSize: 3, totalItems: '3' },
+            }),
+          },
+        },
+      },
+    }
+    const port = new DomainVerificationPort(
+      client as unknown as ConstructorParameters<typeof DomainVerificationPort>[0],
+    )
+    expect(await port.read('example.com')).toEqual({
+      managed: true,
+      fileName: 'MP_verify_new.txt',
+      updatedAt: '2026-03-01T00:00:00Z',
+    })
   })
 })

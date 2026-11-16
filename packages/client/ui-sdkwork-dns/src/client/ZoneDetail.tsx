@@ -2,9 +2,11 @@
  * One root domain's management surface inside the domain dialog: the zone
  * header (status, counts, back), the subdomain tab (ownership verification and
  * row deletion), and the DNS resolution tab (synced records plus the
- * create/pause/resume/delete operations). The component owns viewing state and
- * calls the generated deployments client handed down by `DnsWorkspace`; it
- * never constructs a client or reads the environment.
+ * create/pause/resume/delete operations). The header and every subdomain row
+ * open the zone's verification-file drawer (owned by `DnsWorkspace`, because the
+ * zone list opens the same surface). The component owns viewing state and calls
+ * the generated deployments client handed down by `DnsWorkspace`; it never
+ * constructs a client or reads the environment.
  */
 import { useCallback, useEffect, useState, type SyntheticEvent, type ReactNode } from 'react'
 import clsx from 'clsx'
@@ -68,6 +70,12 @@ export interface ZoneDetailProps {
   onBack: () => void
   /** The zone header changed (status toggle) — the caller updates its selection. */
   onZoneChanged: (zone: DomainZoneResponse) => void
+  /**
+   * Open the zone's verification-file surface. The file is published under the
+   * zone apex for every hostname in it, so the zone header and every subdomain
+   * row open the same ledger.
+   */
+  onOpenVerification: () => void
 }
 
 /**
@@ -75,7 +83,7 @@ export interface ZoneDetailProps {
  * @param props - the client, the zone, the locale seat, and the navigation callbacks.
  * @returns the zone detail element tree.
  */
-export function ZoneDetail({ client, zone, t, onBack, onZoneChanged }: ZoneDetailProps): ReactNode {
+export function ZoneDetail({ client, zone, t, onBack, onZoneChanged, onOpenVerification }: ZoneDetailProps): ReactNode {
   const [tab, setTab] = useState<'hostnames' | 'records'>('hostnames')
   const [hostnames, setHostnames] = useState<readonly DomainHostnameResponse[] | undefined>(undefined)
   const [records, setRecords] = useState<readonly DomainDnsRecordResponse[] | undefined>(undefined)
@@ -305,6 +313,9 @@ export function ZoneDetail({ client, zone, t, onBack, onZoneChanged }: ZoneDetai
           </span>
         </div>
         <div className={css.detailSpacer} />
+        <Button size="sm" disabled={busy} onClick={onOpenVerification}>
+          {t('verification.open')}
+        </Button>
         <Button size="sm" disabled={busy} onClick={() => { void toggleZoneStatus() }}>
           {zone.status === 'ACTIVE' ? t('zone.pause') : t('zone.resume')}
         </Button>
@@ -423,6 +434,9 @@ export function ZoneDetail({ client, zone, t, onBack, onZoneChanged }: ZoneDetai
                             </td>
                             <td>
                               <div className={css.rowActions}>
+                                <Button size="sm" disabled={busy} onClick={onOpenVerification}>
+                                  {t('verification.open')}
+                                </Button>
                                 {hostname.verificationStatus !== 'VERIFIED' && (
                                   <Button size="sm" disabled={busy} onClick={() => { void verifyHostname(hostname) }}>
                                     {t('hostname.verify')}

@@ -2,8 +2,10 @@
  * Root-domain list inside the domain dialog: the list of zones the signed-in
  * account owns (`scope: USER` — the tenant-level `app.<suffix>` zones are the
  * platform's, not "my root domains"), the create form, and the doorway into one
- * zone's `ZoneDetail`. It owns the list and form state and calls the generated
- * deployments client handed down by the dialog.
+ * zone's `ZoneDetail`. It also owns the zone-scoped verification-file drawer,
+ * because the zone row, the zone header and every subdomain row open that one
+ * surface. It owns the list and form state and calls the generated deployments
+ * client handed down by the dialog.
  */
 import { useCallback, useEffect, useState, type SyntheticEvent, type ReactNode } from 'react'
 import clsx from 'clsx'
@@ -14,6 +16,7 @@ import type {
 } from '@sdkwork/deployments-app-sdk'
 import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 import { ZoneDetail, readFailure, type Failure } from './ZoneDetail.tsx'
+import { VerificationFilesDrawer } from './VerificationFiles.tsx'
 import { formatTimestamp, normalizeApex } from './dnsView.ts'
 import type { DnsKey } from './locales.ts'
 import css from './DnsModal.module.css'
@@ -41,6 +44,7 @@ export function DnsWorkspace({ client, t }: DnsWorkspaceProps): ReactNode {
   const [error, setError] = useState<Failure | undefined>(undefined)
   const [busy, setBusy] = useState(false)
   const [selected, setSelected] = useState<DomainZoneResponse | undefined>(undefined)
+  const [verificationZone, setVerificationZone] = useState<DomainZoneResponse | undefined>(undefined)
   const [confirmId, setConfirmId] = useState<string | undefined>(undefined)
   const [formOpen, setFormOpen] = useState(false)
   const [formError, setFormError] = useState<DnsKey | undefined>(undefined)
@@ -151,15 +155,34 @@ export function DnsWorkspace({ client, t }: DnsWorkspaceProps): ReactNode {
     }
   }
 
+  // One drawer instance serves both entry points (the zone row and the zone
+  // detail's header/subdomain rows); the keyed mount resets its ledger when the
+  // operator switches zones.
+  const verificationDrawer = verificationZone === undefined
+    ? undefined
+    : (
+      <VerificationFilesDrawer
+        key={verificationZone.id}
+        client={client}
+        zone={verificationZone}
+        t={t}
+        onClose={() => { setVerificationZone(undefined) }}
+      />
+    )
+
   if (selected !== undefined) {
     return (
-      <ZoneDetail
-        client={client}
-        zone={selected}
-        t={t}
-        onBack={() => { setSelected(undefined); void loadZones() }}
-        onZoneChanged={(zone) => { setSelected(zone); void loadZones() }}
-      />
+      <>
+        <ZoneDetail
+          client={client}
+          zone={selected}
+          t={t}
+          onBack={() => { setSelected(undefined); void loadZones() }}
+          onZoneChanged={(zone) => { setSelected(zone); void loadZones() }}
+          onOpenVerification={() => { setVerificationZone(selected) }}
+        />
+        {verificationDrawer}
+      </>
     )
   }
 
@@ -283,6 +306,9 @@ export function DnsWorkspace({ client, t }: DnsWorkspaceProps): ReactNode {
                         <td>
                           <div className={css.rowActions}>
                             <Button size="sm" onClick={() => { setSelected(zone) }}>{t('zone.manage')}</Button>
+                            <Button size="sm" disabled={busy} onClick={() => { setVerificationZone(zone) }}>
+                              {t('verification.open')}
+                            </Button>
                             <Button size="sm" disabled={busy} onClick={() => { void toggleZone(zone) }}>
                               {zone.status === 'ACTIVE' ? t('zone.pause') : t('zone.resume')}
                             </Button>
@@ -307,6 +333,7 @@ export function DnsWorkspace({ client, t }: DnsWorkspaceProps): ReactNode {
               </table>
             </div>
           )}
+      {verificationDrawer}
     </div>
   )
 }

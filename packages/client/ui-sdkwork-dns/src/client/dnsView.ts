@@ -137,6 +137,80 @@ export function recordTypeHasPriority(type: string): boolean {
 }
 
 /**
+ * Platforms that issue a domain-ownership verification file.
+ *
+ * The wire codes are the server's closed set (`deploy_dns_zone_verification_file`
+ * CHECK, the app-api contract enum and the service validator). Labels live in
+ * the locale dictionary so a new code fails the `Record<…, DnsKey>` map rather
+ * than rendering an empty option.
+ */
+export const VERIFICATION_PLATFORMS = [
+  'WECHAT_OFFICIAL_ACCOUNT',
+  'WECHAT_MINI_PROGRAM',
+  'ALIPAY',
+  'BYTEDANCE',
+  'APPLE',
+  'GOOGLE',
+  'CUSTOM',
+] as const
+
+/** One platform wire code. */
+export type VerificationPlatform = (typeof VERIFICATION_PLATFORMS)[number]
+
+/** File extensions a platform-issued verification file may carry. */
+const VERIFICATION_EXTENSIONS = ['txt', 'html', 'xml'] as const
+
+/** The server's content ceiling, in UTF-8 bytes. */
+export const VERIFICATION_CONTENT_LIMIT = 4096
+
+/**
+ * Read a string's UTF-8 byte length, the unit the server bounds content by.
+ * @param value - the text.
+ * @returns the number of encoded bytes.
+ */
+export function utf8ByteLength(value: string): number {
+  return new TextEncoder().encode(value).length
+}
+
+/**
+ * Validate a platform-issued verification file name.
+ *
+ * Mirrors the server rule: one ASCII segment, starting with a letter or digit,
+ * made of letters, digits, dots, hyphens and underscores, ending in
+ * `.txt`/`.html`/`.xml` in lower case. The browser rejecting a name the server
+ * would reject keeps the failure next to the picker instead of in a toast.
+ * @param raw - user input or a picked file's name.
+ * @returns the trimmed name, or a failure.
+ */
+export function normalizeVerificationFileName(raw: string): ValidatedValue {
+  const value = raw.trim()
+  if (value === '' || utf8ByteLength(value) > 128) return { ok: false }
+  const dot = value.lastIndexOf('.')
+  if (dot <= 0) return { ok: false }
+  const extension = value.slice(dot + 1)
+  if (!VERIFICATION_EXTENSIONS.some(allowed => allowed === extension)) return { ok: false }
+  if (!/^[A-Za-z0-9]/u.test(value)) return { ok: false }
+  if (!/^[A-Za-z0-9._-]+$/u.test(value)) return { ok: false }
+  return { ok: true, value }
+}
+
+/**
+ * Validate a verification file's content.
+ *
+ * Content is published byte for byte, so the only accepted normalization is
+ * refusing what cannot be published: an empty body, more than
+ * {@link VERIFICATION_CONTENT_LIMIT} UTF-8 bytes, or a control character other
+ * than newline, carriage return, or tab.
+ * @param raw - the file's text.
+ * @returns the content unchanged, or a failure.
+ */
+export function normalizeVerificationContent(raw: string): ValidatedValue {
+  if (raw === '' || utf8ByteLength(raw) > VERIFICATION_CONTENT_LIMIT) return { ok: false }
+  if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(raw)) return { ok: false }
+  return { ok: true, value: raw }
+}
+
+/**
  * Render an API timestamp in a stable, locale-free minute form so a snapshot
  * does not depend on the viewer's time zone or locale.
  * @param value - the wire timestamp.

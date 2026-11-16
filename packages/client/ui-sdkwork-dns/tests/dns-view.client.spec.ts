@@ -6,7 +6,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   errorText, formatTimestamp, normalizeApex, normalizeRecordHost, normalizeRelativeName,
-  parsePriority, parseTtl, recordTypeHasPriority, toAsciiHostname,
+  normalizeVerificationContent, normalizeVerificationFileName, parsePriority, parseTtl,
+  recordTypeHasPriority, toAsciiHostname, utf8ByteLength, VERIFICATION_PLATFORMS,
 } from '../src/client/dnsView.ts'
 
 describe('dnsView hostname handling', () => {
@@ -90,5 +91,59 @@ describe('dnsView numeric and formatting helpers', () => {
     expect(formatTimestamp('')).toBe('')
     expect(formatTimestamp(undefined)).toBe('')
     expect(formatTimestamp('not-a-date')).toBe('')
+  })
+})
+
+describe('dnsView verification-file handling', () => {
+  it('carries the server platform set in the order the picker renders it', () => {
+    expect([...VERIFICATION_PLATFORMS]).toEqual([
+      'WECHAT_OFFICIAL_ACCOUNT',
+      'WECHAT_MINI_PROGRAM',
+      'ALIPAY',
+      'BYTEDANCE',
+      'APPLE',
+      'GOOGLE',
+      'CUSTOM',
+    ])
+  })
+
+  it('accepts the shipped platform file shapes and rejects the rest', () => {
+    expect(normalizeVerificationFileName(' MP_verify_aB123.txt ')).toEqual({
+      ok: true,
+      value: 'MP_verify_aB123.txt',
+    })
+    expect(normalizeVerificationFileName('google1a2b3c.html')).toEqual({
+      ok: true,
+      value: 'google1a2b3c.html',
+    })
+    expect(normalizeVerificationFileName('BingSiteAuth.xml').ok).toBe(true)
+    for (const bad of [
+      '',
+      'no-extension',
+      '.txt',
+      'a.TXT',
+      'a.txt.exe',
+      'spaces in name.txt',
+      '中文.txt',
+      'a/b.txt',
+      '-leading.txt',
+      `${'a'.repeat(126)}.txt`,
+    ]) {
+      expect(normalizeVerificationFileName(bad).ok, bad).toBe(false)
+    }
+  })
+
+  it('bounds content by UTF-8 bytes and keeps the bytes verbatim', () => {
+    expect(normalizeVerificationContent('token\n')).toEqual({ ok: true, value: 'token\n' })
+    expect(normalizeVerificationContent('x'.repeat(4096)).ok).toBe(true)
+    expect(normalizeVerificationContent('x'.repeat(4097)).ok).toBe(false)
+    expect(normalizeVerificationContent('').ok).toBe(false)
+    expect(normalizeVerificationContent('ok\u0000bad').ok).toBe(false)
+    expect(normalizeVerificationContent('ok\u007Fbad').ok).toBe(false)
+    expect(normalizeVerificationContent('ok\t\ntab and newline').ok).toBe(true)
+    // 2049 four-byte characters exceed the byte ceiling though not the char count.
+    expect(normalizeVerificationContent('𠀀'.repeat(1025)).ok).toBe(false)
+    expect(utf8ByteLength('a')).toBe(1)
+    expect(utf8ByteLength('测')).toBe(3)
   })
 })

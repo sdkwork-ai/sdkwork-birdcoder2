@@ -5,10 +5,11 @@
  * The modal is a host frame plus one workspace. It decides three things —
  * whether the deployment has a gateway origin, whether an IAM session exists,
  * and which generated client the workspace calls — and then hands the client to
- * `DnsWorkspace`. Root zones, subdomain ownership verification, and DNS
- * resolution records are all operations of the SDKWork deployments app API
- * (the same authority the sdkwork-webserver console reads), so no second
- * backend contract is introduced here.
+ * `DnsWorkspace`. Root zones, subdomain ownership verification, the
+ * domain-ownership verification files a zone publishes, and DNS resolution
+ * records are all operations of the SDKWork deployments app API (the same
+ * authority the sdkwork-webserver console reads), so no second backend contract
+ * is introduced here.
  *
  * The shared `WideModal` owns the overlay layer, the header, and every
  * dismissal path (close control, mask click, Escape); row create/edit forms are
