@@ -51,6 +51,9 @@ catalogs:
     '@types/react-dom':
       specifier: 19.2.5
       version: 19.2.5
+    '@vitejs/plugin-react':
+      specifier: ^6.0.5
+      version: 6.3.0
     clsx:
       specifier: ^2.1.1
       version: 2.1.1
@@ -102,6 +105,9 @@ catalogs:
     typescript:
       specifier: ^6.0.2
       version: 6.0.3
+    vite:
+      specifier: ^8.0.3
+      version: 8.3.8
     vite-plugin-dts:
       specifier: ^5.0.3
       version: 5.1.2
@@ -1853,7 +1859,7 @@ importers:
         version: 5.1.2(@microsoft/api-extractor@7.60.1(@types/node@22.20.5))(esbuild@0.28.2)(rolldown@1.2.7)(rollup@4.62.4)(supports-color@9.4.0)(typescript@6.0.3)(vite@8.1.5(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
       vitest:
         specifier: ^4.1.12
-        version: 4.1.12(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.1.5(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+        version: 4.1.12(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@4.1.11(vitest@4.1.11))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.1.5(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
 
   ../sdkwork-course/apps/sdkwork-course-pc/packages/sdkwork-course-pc-auth:
     dependencies:
@@ -4064,7 +4070,7 @@ importers:
         version: 1.6.4(@algolia/client-search@5.55.2)(@types/node@25.9.9)(@types/react@19.2.18)(axios@1.21.1(debug@4.4.3(supports-color@9.4.0))(supports-color@9.4.0))(lightningcss@1.33.0)(postcss@8.5.32)(qrcode@1.5.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(search-insights@2.17.3)(typescript@6.0.2)
       vitest:
         specifier: ^4.1.12
-        version: 4.1.12(@opentelemetry/api@1.9.1)(@types/node@25.9.9)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.1.5(@types/node@25.9.9)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+        version: 4.1.12(@opentelemetry/api@1.9.1)(@types/node@25.9.9)(@vitest/coverage-v8@4.1.11(vitest@4.1.11))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.1.5(@types/node@25.9.9)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
       vue:
         specifier: ^3.5.44
         version: 3.5.45(typescript@6.0.2)
@@ -4996,19 +5002,19 @@ importers:
     devDependencies:
       '@tailwindcss/vite':
         specifier: 'catalog:'
-        version: 4.3.5(vite@8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+        version: 4.3.5(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
       '@vitejs/plugin-react':
         specifier: 'catalog:'
-        version: 6.3.0(vite@8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+        version: 6.3.0(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
       vite:
         specifier: 'catalog:'
-        version: 8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
+        version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
       vitest:
         specifier: 'catalog:'
-        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
 
   apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-admin-core:
     devDependencies:
@@ -5239,7 +5245,7 @@ importers:
         version: link:../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@tailwindcss/vite':
         specifier: 'catalog:'
-        version: 4.3.5(vite@8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+        version: 4.3.5(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
       react:
         specifier: 'catalog:'
         version: 19.2.8
@@ -5252,16 +5258,16 @@ importers:
     devDependencies:
       '@vitejs/plugin-react':
         specifier: 'catalog:'
-        version: 6.3.0(vite@8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+        version: 6.3.0(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
       vite:
         specifier: 'catalog:'
-        version: 8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
+        version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
       vitest:
         specifier: 'catalog:'
-        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
 
   apps/sdkwork-birdcoder2-pad/packages/sdkwork-birdcoder2-pad-admin-core:
     dependencies:
@@ -27856,6 +27862,16 @@ importers:
 
   plugins/dsh-better-sidebar:
     dependencies:
+      '@deepseek-ai/schemastery':
+        specifier: link:../../vendor/schemastery
+        version: link:../../vendor/schemastery
+      ws:
+        specifier: ^8.18.0
+        version: 8.21.3
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
+    devDependencies:
       '@codemirror/commands':
         specifier: ^6.10.4
         version: 6.11.1
@@ -27919,43 +27935,6 @@ importers:
       '@codemirror/view':
         specifier: ^6.43.8
         version: 6.43.15
-      '@deepseek-ai/schemastery':
-        specifier: link:../../vendor/schemastery
-        version: link:../../vendor/schemastery
-      '@formkit/auto-animate':
-        specifier: ^0.10.0
-        version: 0.10.2
-      '@lezer/highlight':
-        specifier: ^1.2.3
-        version: 1.2.5
-      '@xterm/addon-fit':
-        specifier: ^0.11.0
-        version: 0.11.0
-      '@xterm/xterm':
-        specifier: ^6.0.0
-        version: 6.0.0
-      clsx:
-        specifier: ^2.1.1
-        version: 2.1.1
-      dompurify:
-        specifier: ^3.4.14
-        version: 3.4.16
-      mermaid:
-        specifier: ^11.16.1
-        version: 11.17.2
-      react-icons:
-        specifier: 5.7.0
-        version: 5.7.0(react@19.2.8)
-      rxjs:
-        specifier: ^7.8.2
-        version: 7.8.2
-      ws:
-        specifier: ^8.18.0
-        version: 8.21.3
-      yaml:
-        specifier: ^2.9.1
-        version: 2.9.1
-    devDependencies:
       '@cordisjs/plugin-loader':
         specifier: ^1.0.0-rc.5
         version: 1.0.0-rc.9(cordis@4.0.0-rc.12)(node-addon-require-builtin@0.1.9)
@@ -28061,9 +28040,15 @@ importers:
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.14.0(jiti@2.7.0)(supports-color@9.4.0))
+      '@formkit/auto-animate':
+        specifier: ^0.10.0
+        version: 0.10.2
       '@huanlin/dsh-plugin-better-locale':
         specifier: ^0.1.0
         version: 0.1.0(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-locale@0.2.2-rc.2(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-client-ui-primitives@0.2.2-rc.2(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-client-ui-settings@0.2.2-rc.2(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-client-ui-slots@0.2.2-rc.2(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@vendor+cordis))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@lezer/highlight':
+        specifier: ^1.2.3
+        version: 1.2.5
       '@playwright/test':
         specifier: ^1.62.1
         version: 1.65.0
@@ -28085,15 +28070,27 @@ importers:
       '@types/ws':
         specifier: ^8.5.10
         version: 8.18.1
+      '@xterm/addon-fit':
+        specifier: ^0.11.0
+        version: 0.11.0
+      '@xterm/xterm':
+        specifier: ^6.0.0
+        version: 6.0.0
       anser:
         specifier: ^2.3.5
         version: 2.3.5
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
       cordis:
         specifier: ^4.0.0-rc.8
         version: 4.0.0-rc.12(@cordisjs/plugin-loader@1.0.0-rc.9)
       diff:
         specifier: ^9.0.0
         version: 9.0.0
+      dompurify:
+        specifier: ^3.4.14
+        version: 3.4.16
       eslint:
         specifier: ^10.9.1
         version: 10.14.0(jiti@2.7.0)(supports-color@9.4.0)
@@ -28124,6 +28121,9 @@ importers:
       mdast-util-math:
         specifier: ^3.0.0
         version: 3.0.0(supports-color@9.4.0)
+      mermaid:
+        specifier: ^11.16.1
+        version: 11.17.2
       micromark-core-commonmark:
         specifier: ^2.0.3
         version: 2.0.3
@@ -28157,9 +28157,15 @@ importers:
       react-dom:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
+      react-icons:
+        specifier: 5.7.0
+        version: 5.7.0(react@19.2.8)
       rolldown:
         specifier: 1.2.7
         version: 1.2.7
+      rxjs:
+        specifier: ^7.8.2
+        version: 7.8.2
       shiki:
         specifier: ^4.3.1
         version: 4.4.3
@@ -50344,12 +50350,12 @@ snapshots:
       tailwindcss: 4.3.5
       vite: 6.4.3(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.13)(yaml@2.9.0)
 
-  '@tailwindcss/vite@4.3.5(vite@8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))':
+  '@tailwindcss/vite@4.3.5(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))':
     dependencies:
       '@tailwindcss/node': 4.3.5
       '@tailwindcss/oxide': 4.3.5
       tailwindcss: 4.3.5
-      vite: 8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
+      vite: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
 
   '@tanstack/charts@1.1.0(preact@10.29.7)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vue@3.5.45(typescript@6.0.3))':
     dependencies:
@@ -50765,7 +50771,7 @@ snapshots:
       lightningcss: 1.33.0
       postcss-load-config: 6.0.1(jiti@2.7.0)(postcss@8.5.32)(tsx@4.23.13)(yaml@2.9.1)
       rolldown: 1.2.7
-      tsdown: 0.22.2(@tsdown/css@0.22.2)(oxc-resolver@11.20.0)(publint@0.3.24)(tsx@4.23.13)(typescript@5.9.3)(unrun@0.2.39)
+      tsdown: 0.22.2(@tsdown/css@0.22.2)(oxc-resolver@11.20.0)(publint@0.3.24)(tsx@4.23.13)(typescript@6.0.3)(unrun@0.3.1)
     optionalDependencies:
       postcss: 8.5.32
     transitivePeerDependencies:
@@ -51504,20 +51510,20 @@ snapshots:
       '@rolldown/pluginutils': 1.0.0-rc.7
       vite: 8.1.5(@types/node@25.9.9)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
 
-  '@vitejs/plugin-react@6.3.0(vite@8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))':
+  '@vitejs/plugin-react@6.3.0(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))':
     dependencies:
       '@rolldown/pluginutils': 1.0.1
-      vite: 8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
+      vite: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
 
   '@vitejs/plugin-vue@5.2.4(vite@5.4.21(@types/node@22.20.1)(lightningcss@1.33.0))(vue@3.5.42(typescript@6.0.3))':
     dependencies:
       vite: 5.4.21(@types/node@22.20.1)(lightningcss@1.33.0)
       vue: 3.5.42(typescript@6.0.3)
 
-  '@vitejs/plugin-vue@5.2.4(vite@5.4.21(@types/node@25.9.9)(lightningcss@1.33.0))(vue@3.5.45(typescript@6.0.2))':
+  '@vitejs/plugin-vue@5.2.4(vite@5.4.21(@types/node@25.9.9)(lightningcss@1.33.0))(vue@3.5.42(typescript@6.0.2))':
     dependencies:
       vite: 5.4.21(@types/node@25.9.9)(lightningcss@1.33.0)
-      vue: 3.5.45(typescript@6.0.2)
+      vue: 3.5.42(typescript@6.0.2)
 
   '@vitest/coverage-v8@4.1.11(vitest@4.1.11)':
     dependencies:
@@ -51531,7 +51537,7 @@ snapshots:
       obug: 2.1.3
       std-env: 4.1.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+      vitest: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
 
   '@vitest/expect@3.2.7':
     dependencies:
@@ -51606,6 +51612,14 @@ snapshots:
       magic-string: 0.30.21
     optionalDependencies:
       vite: 8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
+
+  '@vitest/mocker@4.1.11(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))':
+    dependencies:
+      '@vitest/spy': 4.1.11
+      estree-walker: 3.0.3
+      magic-string: 0.30.21
+    optionalDependencies:
+      vite: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
 
   '@vitest/mocker@4.1.12(vite@8.1.5(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))':
     dependencies:
@@ -51952,7 +51966,7 @@ snapshots:
       '@types/web-bluetooth': 0.0.21
       '@vueuse/metadata': 12.8.2
       '@vueuse/shared': 12.8.2(typescript@6.0.2)
-      vue: 3.5.45(typescript@6.0.2)
+      vue: 3.5.42(typescript@6.0.2)
     transitivePeerDependencies:
       - typescript
 
@@ -51969,7 +51983,7 @@ snapshots:
     dependencies:
       '@vueuse/core': 12.8.2(typescript@6.0.2)
       '@vueuse/shared': 12.8.2(typescript@6.0.2)
-      vue: 3.5.45(typescript@6.0.2)
+      vue: 3.5.42(typescript@6.0.2)
     optionalDependencies:
       axios: 1.21.1(debug@4.4.3(supports-color@9.4.0))(supports-color@9.4.0)
       focus-trap: 7.8.0
@@ -51993,7 +52007,7 @@ snapshots:
 
   '@vueuse/shared@12.8.2(typescript@6.0.2)':
     dependencies:
-      vue: 3.5.45(typescript@6.0.2)
+      vue: 3.5.42(typescript@6.0.2)
     transitivePeerDependencies:
       - typescript
 
@@ -59502,6 +59516,21 @@ snapshots:
       tsx: 4.23.13
       yaml: 2.9.1
 
+  vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1):
+    dependencies:
+      lightningcss: 1.33.0
+      picomatch: 4.0.7
+      postcss: 8.5.32
+      rolldown: 1.2.7
+      tinyglobby: 0.2.17
+    optionalDependencies:
+      '@types/node': 22.20.5
+      esbuild: 0.28.2
+      fsevents: 2.3.3
+      jiti: 2.7.0
+      tsx: 4.23.13
+      yaml: 2.9.1
+
   vite@8.3.8(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1):
     dependencies:
       lightningcss: 1.33.0
@@ -59583,7 +59612,7 @@ snapshots:
       '@shikijs/transformers': 2.5.0
       '@shikijs/types': 2.5.0
       '@types/markdown-it': 14.1.2
-      '@vitejs/plugin-vue': 5.2.4(vite@5.4.21(@types/node@25.9.9)(lightningcss@1.33.0))(vue@3.5.45(typescript@6.0.2))
+      '@vitejs/plugin-vue': 5.2.4(vite@5.4.21(@types/node@25.9.9)(lightningcss@1.33.0))(vue@3.5.42(typescript@6.0.2))
       '@vue/devtools-api': 7.7.10
       '@vue/shared': 3.5.39
       '@vueuse/core': 12.8.2(typescript@6.0.2)
@@ -59593,7 +59622,7 @@ snapshots:
       minisearch: 7.2.0
       shiki: 2.5.0
       vite: 5.4.21(@types/node@25.9.9)(lightningcss@1.33.0)
-      vue: 3.5.45(typescript@6.0.2)
+      vue: 3.5.42(typescript@6.0.2)
     optionalDependencies:
       postcss: 8.5.32
     transitivePeerDependencies:
@@ -59885,6 +59914,37 @@ snapshots:
     transitivePeerDependencies:
       - msw
 
+  vitest@4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)):
+    dependencies:
+      '@vitest/expect': 4.1.11
+      '@vitest/mocker': 4.1.11(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+      '@vitest/pretty-format': 4.1.11
+      '@vitest/runner': 4.1.11
+      '@vitest/snapshot': 4.1.11
+      '@vitest/spy': 4.1.11
+      '@vitest/utils': 4.1.11
+      es-module-lexer: 2.1.0
+      expect-type: 1.3.0
+      magic-string: 0.30.21
+      obug: 2.1.3
+      pathe: 2.0.3
+      picomatch: 4.0.7
+      std-env: 4.1.0
+      tinybench: 2.9.0
+      tinyexec: 1.2.4
+      tinyglobby: 0.2.17
+      tinyrainbow: 3.1.0
+      vite: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.1
+      '@types/node': 22.20.5
+      '@vitest/coverage-v8': 4.1.11(vitest@4.1.11)
+      happy-dom: 20.11.6
+      jsdom: 29.1.1(@noble/hashes@2.4.0)
+    transitivePeerDependencies:
+      - msw
+
   vitest@4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)):
     dependencies:
       '@vitest/expect': 4.1.11
@@ -59916,7 +59976,7 @@ snapshots:
     transitivePeerDependencies:
       - msw
 
-  vitest@4.1.12(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.1.5(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)):
+  vitest@4.1.12(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@4.1.11(vitest@4.1.11))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.1.5(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)):
     dependencies:
       '@vitest/expect': 4.1.12
       '@vitest/mocker': 4.1.12(vite@8.1.5(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
@@ -59947,7 +60007,7 @@ snapshots:
     transitivePeerDependencies:
       - msw
 
-  vitest@4.1.12(@opentelemetry/api@1.9.1)(@types/node@25.9.9)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.1.5(@types/node@25.9.9)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)):
+  vitest@4.1.12(@opentelemetry/api@1.9.1)(@types/node@25.9.9)(@vitest/coverage-v8@4.1.11(vitest@4.1.11))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.1.5(@types/node@25.9.9)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)):
     dependencies:
       '@vitest/expect': 4.1.12
       '@vitest/mocker': 4.1.12(vite@8.1.5(@types/node@25.9.9)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
@@ -60017,6 +60077,16 @@ snapshots:
   vscode-languageserver-types@3.18.0: {}
 
   vscode-uri@3.2.0: {}
+
+  vue@3.5.42(typescript@6.0.2):
+    dependencies:
+      '@vue/compiler-dom': 3.5.42
+      '@vue/compiler-sfc': 3.5.42
+      '@vue/runtime-dom': 3.5.42
+      '@vue/server-renderer': 3.5.42
+      '@vue/shared': 3.5.42
+    optionalDependencies:
+      typescript: 6.0.2
 
   vue@3.5.42(typescript@6.0.3):
     dependencies:
