@@ -64,6 +64,7 @@
 * **拒绝附着到陈旧车道 Host 的 dev 启动**（`fix(desktop): refuse a dev launch that would attach to a stale lane Host`）：开发车道启动前检测已存在的 Host，命中陈旧实例时直接拒绝，不再静默附着到别的车道。
 * **桌面打包冒烟的 Office 渲染预算**：`mac-x64` 车道连续两次在 `prepare:dsh` 的 `LibreOffice image rendering timed out` 处失败（`office-kit` 单次操作上限 180s），而同一镜像的 `mac-arm64` 跑完 DOCX/XLSX/PPTX 的转换、渲染与重算只要 17s —— 打包进应用的引擎两边逐字一致，量到的是 runner 而不是产物。`apps/desktop/scripts/smoke-runtime.ts` 的渲染请求因此从 4 页 / 16.7MP / 8192px 降到 2 页 / 4.2MP / 4096px：断言仍然只校验 PNG 签名与转换产物头，但最慢的发布机器也留在预算内。
 * **office-kit 单次操作上限提到 600s**：降预算后渲染确实过了（65s），同一台 Intel runner 接着在 `LibreOffice conversion timed out` 上用满 180s —— 而冒烟夹具只是一行单元格的 xlsx、一句话的 docx 和一张文本框的 pptx，arm64 全套 17s。这是 runner 的 LibreOffice 病态变慢，不是负载问题，`packages/bundle/{sdk-app,web-app}/cordis.patch.yml` 的 `timeoutMs` 因此第三次上调（60s → 180s → 600s）。上限只界定「引擎卡死多久算失败」，取消仍跟随调用方 signal；同一 runner 两天前跑同一套操作只要 51–65s。
+* **冒烟客户端的 Office 预算与引擎上限对齐**：上限提到 600s 后，`mac-x64` 改为在冒烟自己的 240s HTTP 预算上失败（`TimeoutError: The operation was aborted due to timeout`）——客户端先于引擎放弃，等于把引擎给的诊断盖掉。`apps/desktop/scripts/smoke-runtime.ts` 提取 `OFFICE_CALL_TIMEOUT_MS = 900_000`，转换与操作两个请求都改用它，客户端只负责比引擎多等一步，失败答案仍由引擎给出。
 
 #### 桌面、账号与订阅
 

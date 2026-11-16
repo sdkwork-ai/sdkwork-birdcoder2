@@ -15,6 +15,19 @@ import type { DesktopRuntimeDescriptor } from '../src/runtime-tree.ts'
 const OFFICE_SKILLS = ['office', 'office-docx', 'office-pptx', 'office-xlsx']
 
 /**
+ * Client budget for one Office call in the packaging smoke.
+ *
+ * It has to sit above the profile's per-operation LibreOffice ceiling
+ * (`timeoutMs: 600000` in `packages/bundle/sdk-app/cordis.patch.yml` and its
+ * web-app twin): at 240 s this side aborted a conversion the engine was still
+ * allowed to finish, so the Intel macOS lane failed with a bare
+ * `TimeoutError: The operation was aborted due to timeout` after the ceiling
+ * had already been raised. The engine owns the failure answer; the client only
+ * has to outwait it.
+ */
+const OFFICE_CALL_TIMEOUT_MS = 900_000
+
+/**
  * Require each bundled Office skill to be listed and loaded with a nonempty body.
  * @param results - Host probe results; `bytes` is the loaded body length, 0 when unlisted or not loaded.
  * @throws Error listing every result when a bundled Office skill is missing or empty.
@@ -214,7 +227,7 @@ export function apply(ctx) {
     console.log('desktop runtime: packaged Office skills listed and loaded')
     for (const { extension } of inputs) {
       const converted = await fetch(new URL(`/desktop-smoke-office/${extension}`, ready.url), {
-        headers: { cookie }, signal: AbortSignal.timeout(120_000),
+        headers: { cookie }, signal: AbortSignal.timeout(OFFICE_CALL_TIMEOUT_MS),
       })
       if (!converted.ok) throw new Error(`desktop runtime: ${extension} conversion failed: ${await converted.text()}`)
       const pdf = Buffer.from(await converted.arrayBuffer())
@@ -225,7 +238,7 @@ export function apply(ctx) {
     }
     for (const { extension } of inputs) {
       const operations = await fetch(new URL(`/desktop-smoke-office-operations/${extension}`, ready.url), {
-        headers: { cookie }, signal: AbortSignal.timeout(240_000),
+        headers: { cookie }, signal: AbortSignal.timeout(OFFICE_CALL_TIMEOUT_MS),
       })
       if (!operations.ok) throw new Error(`desktop runtime: ${extension} Office operations failed: ${await operations.text()}`)
       const result = await operations.json() as { images: string[]; converted: string; recalculated: string | null }
