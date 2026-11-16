@@ -2,7 +2,7 @@
 
 本文件只记录**当前版本**——`##` 标题就是本次发布打的 tag，不累积历史版本条目；往期条目随各自版本的提交保留在 git 历史里（`git log -p CHANGELOG.md`）。「上游变更」逐字摘自上游该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；上游尚未发布 Release notes 时，按该 tag 内的实际提交归纳并注明来源。「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
-## 0.2.2-rc.3（fork 发布 2026-11-13）
+## 0.2.2-rc.3（fork 发布 2026-11-16）
 
 本版本把 `deepseek-ai/deepseek-harness` 的 `0.2.2-rc.3` 完整合入 fork。上游 `master` 停在 `39163dd30f7`（`Merge release/dsh-0.2.2-rc.3 to master`），相对上一合并基底 `e8f7b93a34`（tag `dsh-v0.2.2-rc.2`）新增 **448 个提交、3262 个文件变更**（+93416 / −34804，其中新增 517、修改 2652、删除 45、重命名 48）。合并保留真实双亲 merge commit，上游提交记录、commit message 与代码注释逐字保留；版本线前移到 **0.2.2-rc.3**，tag `birdcoder-v0.2.2-rc.3` 与之同名。
 
@@ -47,11 +47,21 @@
 * **模型选择器只列现行通用 LLM（2026-11-14）**：`birdcoder` / `sdkwork` 中转种子此前会列出目录仍标为 `active` 的旧代模型（GPT-5.6 Sol/Terra/Luna、GPT-6 Sol/Luna、Grok 4.3/4.5/4.6、GLM-5/5.1/5.2/5-Turbo、Qwen3.7 Max/Flash、Kimi K2.6/K3、Claude Mythos 5、Gemini 3.6 Flash、Gemini 3 Flash Preview、Gemini 3.1 Pro Preview、Step 3.5 Flash、Doubao/Seed 2.0、Tencent Hy3/Hy4 Preview），以及混在对话能力里的专用端点（GLM-OCR、Hy-MT2、Hy-Role、Doubao Seed Character/Translation、Gemini Live/Robotics、MiniMax H3 Context-IR）。现在在 sdkwork-models 目录（已推进到 2026.11.14.6）里给被新代取代的行补上 `replacementModel` + `lifecycle/releaseStage: deprecated`、`shelfState: hidden`、`routingState: catalog_only`（显式调用仍可用），并让种子生成器在解析替换链之后按 `codingVisible` 只保留通用 LLM：`scripts/generate-sdkwork-relay-models.mjs` 产出 40 个现行模型 / 14 家厂商，目录自带选择器生成器（`tools/generate-mainstream-agent-model-catalog.mjs`）套用同一套「偏好区域判定 → 替换链去重 → `codingVisible`」规则，两端选择器现在给出完全相同的模型集合。
 * 更新面同步：`packages/llm/llm-pi-ai` 的模块注释、README（中英）与 `docs/user/guide/providers*` 说明新口径，`tests/catalog.spec.ts` 增加「专用端点不进入种子」用例并更新旧代缺席断言；改完目录后跑 `node scripts/generate-sdkwork-relay-models.mjs` 即可刷新种子（`--check` 校验一致性）。
 
-#### 版本与依赖
+#### 官方账号与小程序
 
-* 全部 **449 个 dsh 家族清单统一到 0.2.2-rc.3**：上游推进了 371 个，fork 自有的 **80 个**清单（含根 `package.json`、`packages/client/runtime`、`native/system/packages/landlock-launcher`、SDKWork 组件包与五个 `apps/sdkwork-birdcoder2-*` 应用）此前仍在 rc.2，本版本一并推进。
-* 根依赖里残留的旧名 `@deepseek-ai/dsh-experimental-cua-macos` 删除——上游已把该包改名为 `@deepseek-ai/dsh-cua-macos`（`devDependencies` 中的新名由合并带入）。
-* `pnpm install --lockfile-only` 重新生成 `pnpm-lock.yaml`，补回 fork 包的 importer 块与全部 workspace 链接；`pnpm-workspace.yaml` 的 `@michengai/dsh-agency-agents>@deepseek-ai/dsh` override 同步改指 `0.2.2-rc.3`。
+* **官方账号组件共用**（`feat(official-accounts): consume the shared @sdkwork/iam-pc-official-accounts component`）：`ui-sdkwork-official-accounts` 改为挂载 SDKWork 共用的 `@sdkwork/iam-pc-official-accounts` 面板，自身只保留 host 侧的装配与样式差异，账号页不再有第二套实现。
+* **域名校验与 host 环境投影**（`feat(ui): add official-account domain verification flow and host env projection`）：新增官方账号域名校验流程，host 侧把校验所需的配置投影进客户端环境；`ui-sdkwork-env` 的 testing profile fixture 同步补上 `officialAccountServerIps`，避免该字段在测试 profile 下缺失。
+* **服务端 IP 白名单、菜单刷新与发布/回滚**（`feat(official-accounts): show the admin-maintained server IP allowlist` / `feat(official-accounts): enable menu refresh, publish and rollback in the host dialog`）：官方账号页展示后台维护的服务器 IP 白名单，host 弹窗内可直接刷新菜单、发布与回滚。
+* **小程序面板共用**（`feat(mini-programs): mount the shared @sdkwork/iam-pc-mini-program panel in the settings dialog`）：设置弹窗内的小程序页改为挂载共用面板，host 弹窗的单测为 SDKWork 面板边界补上桩。
+
+#### 账号计费与模型目录
+
+* **Token 计划账号页与商务覆盖**（`feat(token-plan): add token plan account view and commerce coverage`）：`ui-sdkwork-token-plan` 新增账号视图，并补上商务侧覆盖。
+* **模型目录同步存储**（`feat(llm): add model catalog sync store`）：LLM 侧新增模型目录同步存储，目录刷新与选择器数据源分离。
+
+#### 桌面与开发车道
+
+* **拒绝附着到陈旧车道 Host 的 dev 启动**（`fix(desktop): refuse a dev launch that would attach to a stale lane Host`）：开发车道启动前检测已存在的 Host，命中陈旧实例时直接拒绝，不再静默附着到别的车道。
 
 #### 桌面、账号与订阅
 
@@ -62,11 +72,19 @@
 #### 部署与发布
 
 * 发布流程（`feat(deploy): add project app source picker and standalone publish entry`）新增项目应用来源选择器与独立发布入口：发布构建产物时可直接挑选项目内的应用目录，且无需先创建会话即可进入发布弹窗。
-* 版本号为 **0.2.2-rc.3**，tag `birdcoder-v0.2.2-rc.3` 指向本次构建的提交，由 `container-release.yml` 一次打包六个桌面目标、两套容器镜像与部署包，发布一个包含 31 个精确资产的 GitHub Release（`assemble-github-release.ts` 拒绝缺失或多余资产）。
-* **发布打包修复（2026-11-14）**：按 `sdkwork-specs` 的双轨依赖规范重新对齐本地与 release —— 本地继续以 `../sdkwork-*` 相对路径作为 pnpm workspace 成员（`workspace:*`），发布链路仍由 `setup-sdkwork-siblings` 按 `scripts/sdkwork-sources.manifest.json` 的 git pin 克隆、不改写 `package.json`。把 21 个已推送 `origin/main` 的 sibling pin 推到最新，并同步 `agent.workflow.json` 双记录，消除 CI 冻结安装与本地锁文件的偏差。
+* **容器车道打包修复（2026-11-14）**：六条桌面车道全部成功，两套容器镜像都在 `release:pack --family dsh` 处失败：`client artifacts differ from .dsh-build/client-build-environment.json`。原因是镜像的 pack 阶段 `pnpm run` 会先校验并补装「看起来过期」的依赖树，而 `node_modules` 是从 runner 复制进来的，在镜像里永远判定过期；那次补装会跑本仓库的 `postinstall`，用镜像继承的公共环境重建助理客户端产物（不是 runner 构建的官方 artifact profile），pack 于是拒绝这份产物。`Dockerfile` 现在给 pack 阶段的每次 `pnpm` 调用加 `--config.verify-deps-before-run=false`（pnpm 11 只从命令行读这个键，`.npmrc` 无效），直接用 runner 已构建的树打包。
+* 版本号为 **0.2.2-rc.3**，tag `birdcoder-v0.2.2-rc.3` 指向本次构建的提交，由 `container-release.yml` 一次打包六个桌面目标、两套容器镜像与部署包，发布一个包含 31 个精确资产的 GitHub Release（`assemble-github-release.ts` 拒绝缺失或多余资产）。本轮把 tag 移到含容器修复的 `main` 头部重新发布：`release` 作业删掉该 tag 的既有 release 再重建资产集，GitHub Latest 由 `select-github-latest.ts` 按 tag 高低决定，因此 Latest 跟随本次发布。
+
+#### 版本与依赖
+
+* 全部 **449 个 dsh 家族清单统一到 0.2.2-rc.3**：上游推进了 371 个，fork 自有的 **80 个**清单（含根 `package.json`、`packages/client/runtime`、`native/system/packages/landlock-launcher`、SDKWork 组件包与五个 `apps/sdkwork-birdcoder2-*` 应用）此前仍在 rc.2，本版本一并推进。
+* 根依赖里残留的旧名 `@deepseek-ai/dsh-experimental-cua-macos` 删除——上游已把该包改名为 `@deepseek-ai/dsh-cua-macos`（`devDependencies` 中的新名由合并带入）。
+* `pnpm install --lockfile-only` 重新生成 `pnpm-lock.yaml`，补回 fork 包的 importer 块与全部 workspace 链接；`pnpm-workspace.yaml` 的 `@michengai/dsh-agency-agents>@deepseek-ai/dsh` override 同步改指 `0.2.2-rc.3`。
+* **双轨依赖规范（2026-11-14）**：按 `sdkwork-specs` 重新对齐本地与 release —— 本地继续以 `../sdkwork-*` 相对路径作为 pnpm workspace 成员（`workspace:*`），发布链路仍由 `setup-sdkwork-siblings` 按 `scripts/sdkwork-sources.manifest.json` 的 git pin 克隆、不改写 `package.json`。这一轮把 21 个已推送 `origin/main` 的 sibling pin 推到最新，并同步 `agent.workflow.json` 双记录，消除 CI 冻结安装与本地锁文件的偏差。
 * **新增 AIoT 依赖闭包**：`sdkwork-cloudrouter` 新 pin 的硬件控制台引入 `@sdkwork/aiot-app-sdk` / `@sdkwork/aiot-backend-sdk` / `@sdkwork/cloudrouter-pc-console-hardware/contribution` / `@sdkwork/documents-pc-public-documents` 四个导入。新增 `sdkwork-aiot` git pin（`da972b099`）、`Dockerfile` 与 `Dockerfile.debug` 的 sibling `COPY` 行，并用 `analyze-sdkwork-closure.mjs --rewrite` 补齐源映射与最小 workspace 成员；`pnpm-lock.yaml` 重新生成后 `pnpm install --frozen-lockfile`、`verify-sdkwork-dependencies`、`verify:container`、`release:verify --family dsh` 全部通过。
-* **sdkwork-iam pin 对齐（2026-11-14）**：`sdkwork-iam-pc-oauth` 在本轮新增了 `@sdkwork/drive-upload-image-core` / `sdkwork-drive-pc-upload-image` 两个 workspace 依赖，`pnpm-lock.yaml` 已按该状态生成，但 `scripts/sdkwork-sources.manifest.json` 仍钉在旧提交 `5e8738751b`，六条桌面车道与容器车道全部在同一处冻结安装失败（`ERR_PNPM_OUTDATED_LOCKFILE`，2 个依赖「被移除」）。把 `sdkwork-iam` 双记录（manifest + `agent.workflow.json` 的 `ref`）推进到 `19dec51b1d`（已推送 `origin/main`，与该 pin 之间只改了这一个 `package.json`），本地 `pnpm install --frozen-lockfile` 复验通过。
-* **submodule 更新**：`dsh-better-sidebar` 抬到 `v0.32.1-8-g2811573c`（含上游 code-slimming 合并，`lib/` 由 `scripts/build-better-sidebar.mjs` 现场重建），`dsh-mcp-connector` 抬到 `v0.2.106`（含同提交构建的 `lib/` 产物）；其余 5 个 submodule 已处于各自跟踪分支的最新提交。
+* **sdkwork-iam pin 对齐（2026-11-14）**：`sdkwork-iam-pc-oauth` 新增了 `@sdkwork/drive-upload-image-core` / `sdkwork-drive-pc-upload-image` 两个 workspace 依赖，`pnpm-lock.yaml` 已按该状态生成，但 manifest 仍钉在旧提交 `5e8738751b`，六条桌面车道与容器车道全部在同一处冻结安装失败（`ERR_PNPM_OUTDATED_LOCKFILE`）。把双记录推进到 `19dec51b1d` 后复验通过。
+* **sibling pin 再次全量对齐（2026-11-16）**：`sdkwork-utils`、`sdkwork-iam`、`sdkwork-appstore`、`sdkwork-membership`、`sdkwork-cloudrouter`、`sdkwork-models`、`sdkwork-order`、`sdkwork-promotion`、`sdkwork-knowledgebase`、`sdkwork-drive`、`sdkwork-mcp`、`sdkwork-plugins`、`sdkwork-skills`、`sdkwork-memory`、`sdkwork-agents`、`sdkwork-payment`、`sdkwork-catalog`、`sdkwork-documents`、`sdkwork-aiot`、`sdkwork-web-framework` 共 20 条 pin 仍停在旧提交，而本地 `../sdkwork-*` 工作树都已推到各自 `origin/main` 顶部。按双轨规范把 manifest 的 `commit` 与 `agent.workflow.json` 的 `ref` 一起推进到本地 HEAD（两者逐条相等），使本地相对路径与 release 的 git 克隆解析同一份源码。新 `sdkwork-agents` 源码经目录级导入 `@sdkwork/agents-pc-agents/services`，`analyze-sdkwork-closure.mjs --rewrite` 因此补出 `@sdkwork/agents-pc-agents/*` 源映射（fork 自有的 `@sdkwork/agents-pc-agents/create` 精确键仍覆盖通配，`tsdown.client.ts` 跳过通配键，不劫持该别名）；`pnpm install` 依新 pin 重新生成锁文件后 `pnpm install --frozen-lockfile` 与 `verify-sdkwork-dependencies` 均通过。
+* **submodule 更新（2026-11-16）**：`dsh-better-sidebar` 抬到 `v0.32.1-21-g2647fbac2`（含 sidechat 原生页模式、Git 仓库切换器、聊天 Markdown 路径认领，以及「只安装运行时依赖」的依赖分类调整 —— codemirror / mermaid / xterm 等改到 `devDependencies`，`lib/` 仍由 `scripts/build-better-sidebar.mjs` 现场重建），`dsh-mcp-connector` 抬到 `v0.2.109-2-g377bfe9`（`lib/` 产物随上游提交，本轮只有文档与版本号变化）；其余 5 个 submodule 已处于各自跟踪分支的最新提交。
 * **安装即构建 sidecar 产物**：`postinstall` 与 `build:artifacts` 都调用 `scripts/build-better-sidebar.mjs`，并把 sidecar 装配的激活纳入 gate；`lib/` 被上游 gitignore 时，新检出不再以「插件 import 失败」的状态启动。
 * **expert-market 插件依赖收敛**：`pnpm-workspace.yaml` 给 `@michengai/dsh-agency-agents` 的 `@deepseek-ai/*` 边加 scoped override —— `cordis` / `schemastery` 指向 `link:vendor/*`，其余钉到 `0.2.2-rc.3`，`typert-protocol` / `typert-registry` 同此，插件不再解析 0.2.2-rc.1 的 tarball（其 `TypertRegistryContract` 再导出让 `ctx.typert.register` 丢成员），也不再带第二份 Typert/cordis 实例；插件自身的 `lib/` 重建于新类型面之上。
 * 本文件只保留当前版本一节；往期条目随各自版本的提交留在 git 历史里（`git log -p CHANGELOG.md`）。Release notes 就是本节内容。
