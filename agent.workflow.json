@@ -151,7 +151,7 @@
     {
       "id": "sdkwork-agents",
       "repository": "sdkwork-ai/sdkwork-agents",
-      "ref": "9001a75bf5152bac8aa9746233ff987f7aa4ecf3",
+      "ref": "f7520c291dadb6de45f1bec56ffcb83fbbe77e5b",
       "refInput": "SDKWORK_AGENTS_REF",
       "tokenSecret": "SDKWORK_RELEASE_TOKEN"
     },
