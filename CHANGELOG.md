@@ -62,6 +62,7 @@
 #### 桌面与开发车道
 
 * **拒绝附着到陈旧车道 Host 的 dev 启动**（`fix(desktop): refuse a dev launch that would attach to a stale lane Host`）：开发车道启动前检测已存在的 Host，命中陈旧实例时直接拒绝，不再静默附着到别的车道。
+* **桌面打包冒烟的 Office 渲染预算**：`mac-x64` 车道连续两次在 `prepare:dsh` 的 `LibreOffice image rendering timed out` 处失败（`office-kit` 单次操作上限 180s），而同一镜像的 `mac-arm64` 跑完 DOCX/XLSX/PPTX 的转换、渲染与重算只要 17s —— 打包进应用的引擎两边逐字一致，量到的是 runner 而不是产物。`apps/desktop/scripts/smoke-runtime.ts` 的渲染请求因此从 4 页 / 16.7MP / 8192px 降到 2 页 / 4.2MP / 4096px：断言仍然只校验 PNG 签名与转换产物头，但最慢的发布机器也留在预算内。
 
 #### 桌面、账号与订阅
 
