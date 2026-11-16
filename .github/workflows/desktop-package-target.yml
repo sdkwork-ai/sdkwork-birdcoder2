@@ -52,6 +52,11 @@ on:
         description: Version that this Desktop package must carry
         required: true
         type: string
+      timeout-minutes:
+        description: Job ceiling for this target; the caller raises it for a lane whose hardware is slower than the default
+        required: false
+        type: number
+        default: 90
     secrets:
       # This lane clones the pinned SDKWork siblings before packaging. A
       # reusable workflow receives no secrets unless the caller names them, so
@@ -92,7 +97,13 @@ jobs:
   package:
     name: Package ${{ inputs.target }}
     runs-on: ${{ inputs.runner }}
-    timeout-minutes: 90
+    # The ceiling is a per-target input because the same work costs very
+    # different wall-clock time per runner: on 2026-11-16 the Intel macOS lane
+    # spent 9m installing, 51m to the Office smoke and 20m more inside
+    # electron-builder, so the 90m default cancelled it while the DMG was still
+    # building, while linux-x64 finished the identical tree in 25m and arm64 in
+    # 35m. The container lanes raised their own ceiling for the same reason.
+    timeout-minutes: ${{ inputs.timeout-minutes }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:

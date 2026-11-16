@@ -74,6 +74,7 @@
 
 * 发布流程（`feat(deploy): add project app source picker and standalone publish entry`）新增项目应用来源选择器与独立发布入口：发布构建产物时可直接挑选项目内的应用目录，且无需先创建会话即可进入发布弹窗。
 * **容器车道打包修复（2026-11-14）**：六条桌面车道全部成功，两套容器镜像都在 `release:pack --family dsh` 处失败：`client artifacts differ from .dsh-build/client-build-environment.json`。原因是镜像的 pack 阶段 `pnpm run` 会先校验并补装「看起来过期」的依赖树，而 `node_modules` 是从 runner 复制进来的，在镜像里永远判定过期；那次补装会跑本仓库的 `postinstall`，用镜像继承的公共环境重建助理客户端产物（不是 runner 构建的官方 artifact profile），pack 于是拒绝这份产物。`Dockerfile` 现在给 pack 阶段的每次 `pnpm` 调用加 `--config.verify-deps-before-run=false`（pnpm 11 只从命令行读这个键，`.npmrc` 无效），直接用 runner 已构建的树打包。
+* **Intel macOS 车道的时间预算**：同一棵树在 linux-x64 用 25m、mac-arm64 用 35m，`macos-15-intel` 却要 9m 安装 + 51m 才到 Office 冒烟 + 20m 以上 electron-builder，`43819231550` 因此在 DMG 还在构建时被 90 分钟的 job 上限取消（`desktop-package-target.yml` 的 `Package` 步骤 `cancelled`）。车道上限改为可传入的 `timeout-minutes` 输入（默认仍是 90），只有 `mac-x64` 传 150；判定依据与容器车道此前抬高上限一致。
 * 版本号为 **0.2.2-rc.3**，tag `birdcoder-v0.2.2-rc.3` 指向本次构建的提交，由 `container-release.yml` 一次打包六个桌面目标、两套容器镜像与部署包，发布一个包含 31 个精确资产的 GitHub Release（`assemble-github-release.ts` 拒绝缺失或多余资产）。本轮把 tag 移到含容器修复的 `main` 头部重新发布：`release` 作业删掉该 tag 的既有 release 再重建资产集，GitHub Latest 由 `select-github-latest.ts` 按 tag 高低决定，因此 Latest 跟随本次发布。
 
 #### 版本与依赖

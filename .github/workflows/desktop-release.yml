@@ -151,6 +151,13 @@ jobs:
       artifacts-dir: apps/desktop/.desktop-build/targets/mac-x64/unsigned-artifacts
       env-file: packaging/macos.env
       version: ${{ needs.resolve.outputs.version }}
+      # The Intel macOS runner is the slowest lane by more than 2x: the same
+      # tree packages in 25m on linux-x64 and 35m on mac-arm64, while this one
+      # needed 9m to install, 51m to reach the Office smoke and 20m more inside
+      # electron-builder (run 43819231550 was cancelled at the 90m default while
+      # the DMG was still building). Keep the headroom here instead of raising
+      # the default for every lane.
+      timeout-minutes: 150
     secrets: inherit
     permissions:
       contents: read
