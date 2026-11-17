@@ -105,6 +105,27 @@ For agents, follow [AGENTS.md](AGENTS.md).
 
 Third-party dependencies and their licenses are disclosed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
+## Deploy application identity
+
+The public application access token the Web build bakes into the page must carry this
+installation's deploy application id (`app_id`/`aud`), not a repository-owned runtime id: IAM
+suppresses a token that names the retired runtime id. A repository cannot know an installation's
+id, so the root `.env.<deployment-profile>.<environment>` documents carry the
+`__SDKWORK_DEPLOY_APPLICATION_ID__` placeholder and `apps/web/vite.config.ts` substitutes the anchor
+at build time.
+
+Export the anchor on the build host (it is not a secret) before any Web build:
+
+```sh
+export SDKWORK_DEPLOY_APPLICATION_ID=app_...
+pnpm build
+```
+
+The build fails, naming `SDKWORK_DEPLOY_APPLICATION_ID`, while the placeholder is still in place and
+no anchor is supplied. A local, untracked `.env.local` carrying real `SDKWORK_APP_ID` /
+`SDKWORK_ACCESS_TOKEN` values is the accepted alternative for development. Never commit a live
+token or a real app id; `.env.example` documents the same contract.
+
 ## Application Roots
 
 - [apps directory index](apps/README.md)

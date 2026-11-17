@@ -229,6 +229,67 @@ const SURFACE_ORIGIN_KEYS = [
 /** A loopback origin, which a non-development build must never bake. */
 const LOOPBACK_ORIGIN = /^https?:\/\/(?:127\.0\.0\.1|localhost|\[::1\])(?::\d+)?(?:\/|$)/iu
 
+/** Placeholder the committed root profiles carry until a build supplies the anchor. */
+const PENDING_DEPLOY_APPLICATION_ID = '__SDKWORK_DEPLOY_APPLICATION_ID__'
+
+/** Build-environment variable carrying this installation's deploy application id. */
+const DEPLOY_APPLICATION_ID_ENV = 'SDKWORK_DEPLOY_APPLICATION_ID'
+
+/**
+ * Re-anchor one committed public application access token on the deploy
+ * application id a build injects.
+ *
+ * The public token is deterministic material: `app_id`/`aud` (and the
+ * `session_id` derived from them) are its only installation-scoped claims, so
+ * replacing them reproduces exactly the token the SDKWork materializer writes for
+ * that anchor. The committed profiles carry the placeholder instead, because a
+ * repository cannot know a deployment's id (APP_ACCESS_TOKEN_SPEC.md section
+ * 3.1.1).
+ * @param token - committed token, anchored on the placeholder or a real id.
+ * @param appId - deploy application id the build injects.
+ * @returns the token bound to `appId`.
+ */
+function withDeployApplicationId(token: string, appId: string): string {
+  const parts = token.split('.')
+  if (parts.length !== 3) {
+    throw new Error(`apps/web: SDKWORK_ACCESS_TOKEN must be a three-part public application token; got ${parts.length} segment(s)`)
+  }
+  const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')) as Record<string, unknown>
+  const previous = String(payload.app_id ?? '')
+  payload.app_id = appId
+  payload.aud = appId
+  if (typeof payload.session_id === 'string' && previous !== '') {
+    payload.session_id = payload.session_id.split(previous).join(appId)
+  }
+  return `${parts[0]}.${Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url')}.${parts[2]}`
+}
+
+/**
+ * Bind the deployment identity into the values this build bakes into the page.
+ *
+ * @param loaded - values read from the selected `.env.<profile>` document.
+ * @param anchor - `SDKWORK_DEPLOY_APPLICATION_ID` from the build environment.
+ * @throws When the committed profile still carries the placeholder and the build
+ *   environment supplies no anchor: the page would ship a credential IAM
+ *   suppresses, so the build fails and names the variable instead.
+ */
+function materializeDeployIdentity(loaded: Record<string, string>, anchor: string): void {
+  const declared = (loaded.SDKWORK_APP_ID ?? '').trim()
+  if (anchor === '' && (declared === '' || declared === PENDING_DEPLOY_APPLICATION_ID)) {
+    throw new Error(
+      `${DEPLOY_APPLICATION_ID_ENV} is required to build apps/web: the committed profile carries `
+      + `SDKWORK_APP_ID=${declared === '' ? '(empty)' : declared}, so this build must inject the installation's `
+      + 'deploy application id. Export it (it is not a secret), or run the SDKWork materializer for this profile '
+      + 'with it set.',
+    )
+  }
+  const appId = anchor === '' ? declared : anchor
+  loaded.SDKWORK_APP_ID = appId
+  const token = (loaded.SDKWORK_ACCESS_TOKEN ?? '').trim()
+  // An empty token defers to interactive IAM login and stays empty.
+  if (token !== '') loaded.SDKWORK_ACCESS_TOKEN = withDeployApplicationId(token, appId)
+}
+
 /**
  * Publish the SDKWork deployment this build targets into the page.
  *
@@ -255,6 +316,8 @@ const LOOPBACK_ORIGIN = /^https?:\/\/(?:127\.0\.0\.1|localhost|\[::1\])(?::\d+)?
  * @returns the plugin that injects the page global.
  */
 function sdkworkEnvInjection(deploymentProfile: DeploymentProfile, environment: SdkworkLaunchProfile): Plugin {
+  // The anchor is a build input, so it is read before the SDKWORK_* scrub below.
+  const deployAnchor = process.env[DEPLOY_APPLICATION_ID_ENV]?.trim() ?? ''
   // The launching shell is not a configuration source: a packaged Desktop
   // application exports its own deployment into every child process, and that
   // must not decide what a build bakes. Saved and restored so the rest of the
@@ -285,6 +348,9 @@ function sdkworkEnvInjection(deploymentProfile: DeploymentProfile, environment: 
     if (!name.startsWith('DSH_WEB_SDKWORK_') || value === undefined || value.trim() === '') continue
     loaded[name.slice('DSH_WEB_'.length)] = value
   }
+  // The committed profiles carry the placeholder; a build must inject the anchor
+  // (or a real local token) before the page can rely on this deployment identity.
+  materializeDeployIdentity(loaded, deployAnchor)
   if (environment !== 'development') {
     for (const key of SURFACE_ORIGIN_KEYS) {
       const value = loaded[key]
