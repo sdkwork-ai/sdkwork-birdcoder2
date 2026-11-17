@@ -56,6 +56,10 @@ function failureMessage(
   if (code === 'ACCOUNT_SIGNED_OUT') return t('message.failure.accountSignedOut')
   if (code === 'INTERRUPTED') return t('message.failure.interrupted')
   if (code === 'ACCOUNT_SIGN_IN_REQUIRED') return t('message.failure.accountSignInRequired')
+  // The adapter's own message names an internal credential reference. The
+  // product fixes are a sign-in (whose token the relay consumes) and a key on
+  // the Models page, so the row names both instead.
+  if (code === 'MISSING_CREDENTIAL') return t('message.failure.missingCredential')
   if (code === 'QUOTA' || code === 'ACCOUNT_QUOTA') return t('message.failure.quota')
   return code === 'AUTH' ? t('message.failure.auth') : message
 }

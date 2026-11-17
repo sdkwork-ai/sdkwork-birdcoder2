@@ -46,6 +46,9 @@
       "path": "../../../vendor/cordis"
     },
     {
+      "path": "../../api/remotes/tsconfig.client.json"
+    },
+    {
       "path": "../ui-slots"
     },
     {
@@ -62,6 +65,9 @@
     },
     {
       "path": "../ui-settings/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-settings-models"
     },
     {
       "path": "../ui-sdkwork-app-modes"

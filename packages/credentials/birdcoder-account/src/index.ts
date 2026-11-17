@@ -27,11 +27,13 @@ import { credentialRef, type CredentialRef } from '@deepseek-ai/dsh-credentials'
 import { ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import { dirname, join, resolve } from 'node:path'
 import z from '@deepseek-ai/schemastery'
-import { BIRDCODER_CREDENTIAL_REF, BirdcoderAccountProvisioner } from './account.ts'
+import { BIRDCODER_CREDENTIAL_REF, BIRDCODER_SESSION_CREDENTIAL_REF, BirdcoderAccountProvisioner } from './account.ts'
 import type { DefaultModelPort } from './account.ts'
 import { RELAY_SESSION_FILENAME } from './session.ts'
 
-export { BIRDCODER_CREDENTIAL_REF, BIRDCODER_PROVIDER } from './account.ts'
+export {
+  BIRDCODER_CREDENTIAL_REF, BIRDCODER_PROVIDER, BIRDCODER_SESSION_CREDENTIAL_REF,
+} from './account.ts'
 
 export interface Config {
   /** Absolute mirrored-session path; defaults to `<DSH_HOME>/iam/session.json`. */
@@ -42,6 +44,12 @@ export interface Config {
   stateFile?: string
   /** Credential reference the relay token is stored under. */
   credentialRef?: string
+  /**
+   * Credential reference a browser client mirrors the signed-in `authToken`
+   * under. It is a session source, never the relay's own key, so a key the user
+   * stores at {@link credentialRef} still wins.
+   */
+  sessionCredentialRef?: string
   /** Settings namespace owning the relay profile. */
   settingsNs?: string
   /** Session poll interval in milliseconds; `0` disables polling. */
@@ -54,6 +62,7 @@ export const Config = z.object({
   relaySessionFile: z.string(),
   stateFile: z.string(),
   credentialRef: z.string().pattern(/^[A-Za-z_][A-Za-z0-9_]*$/u).default(BIRDCODER_CREDENTIAL_REF),
+  sessionCredentialRef: z.string().pattern(/^[A-Za-z_][A-Za-z0-9_]*$/u).default(BIRDCODER_SESSION_CREDENTIAL_REF),
   settingsNs: z.string().default('llm-pi-ai'),
   pollIntervalMs: z.natural().default(2000),
 })
@@ -88,6 +97,7 @@ export function apply(ctx: Context, config: Config): void {
   // Validate the reference before any operation: an invalid name cannot be
   // stored, and failing at mount names the configuration field immediately.
   const ref: CredentialRef = credentialRef(config.credentialRef ?? BIRDCODER_CREDENTIAL_REF)
+  const sessionCredentialRef = credentialRef(config.sessionCredentialRef ?? BIRDCODER_SESSION_CREDENTIAL_REF)
   const sessionFile = resolve(config.sessionFile ?? join(resolveDshHome(), 'iam', 'session.json'))
   const relaySessionFile = resolve(config.relaySessionFile ?? join(dirname(sessionFile), RELAY_SESSION_FILENAME))
   const stateFile = resolve(config.stateFile ?? join(dirname(sessionFile), 'birdcoder-account.json'))
@@ -120,11 +130,20 @@ export function apply(ctx: Context, config: Config): void {
     relaySessionFile,
     stateFile,
     credentialRef: ref,
+    sessionCredentialRef,
     settingsNs: config.settingsNs ?? 'llm-pi-ai',
     pollIntervalMs: config.pollIntervalMs ?? 2000,
   })
   ctx.effect(() => {
     provisioner.start()
-    return () => { provisioner.dispose() }
+    // The client writes its mirrored session through the credential plane, so a
+    // committed write there is the moment a browser sign-in becomes usable: a
+    // poll-only Host would leave the first request after login without a key.
+    // The relay key this controller mirrors back is a different reference, so
+    // its own write does not re-enter this handler.
+    const off = ctx.on('credentials/reference-updated', (updated) => {
+      if (updated === sessionCredentialRef) void provisioner.refresh()
+    })
+    return () => { off(); provisioner.dispose() }
   }, 'birdcoder-account: IAM session reconciliation')
 }

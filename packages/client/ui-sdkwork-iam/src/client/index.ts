@@ -28,11 +28,15 @@ import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
 // Type-only: pulls ctx.theme into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import { readOemShowApiKeyEntry } from '@deepseek-ai/dsh-client-ui-primitives'
+// Type-only: pulls ctx.remote and the credentials namespace into this program.
+import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import { UI_IAM_NAMESPACE, type UiIamSettings } from '../iam-settings.ts'
 import { createIamAccountSource } from './account-source.ts'
 import { createIamUiStore } from './iam-ui-store.ts'
 import { createIamSignOutStore } from './iam-sign-out-store.ts'
 import { IamService, type IamProfileSnapshot } from './iam-service.ts'
+import { startRelayCredentialMirror } from './relay-credential.ts'
+import { RelayProviderHint, type RelayProviderHintInjected } from './RelayProviderHint.tsx'
 import { AccountModePage, toSdkworkLocale, type AccountModePageInjected } from './AccountModePage.tsx'
 import { readDesktopSignInPage } from './desktop-sign-in-page.ts'
 import { SignInOverlay, type SignInOverlayInjected } from './SignInOverlay.tsx'
@@ -99,6 +103,18 @@ export function apply(ctx: ClientContext): void {
   // reloaded plugin must release them instead of leaving a second listener
   // that answers the same callback.
   ctx.effect(() => () => { service.dispose() }, 'ui-sdkwork-iam: service teardown')
+  // A launch with no desktop shell writes no `<DSH_HOME>/iam` session file, so
+  // the signed-in token has to reach the Host through the credential plane for
+  // the relay to authenticate. Scoped inject: the welcome window and any
+  // composition without the Remote service keep their login surface and simply
+  // skip the mirror.
+  ctx.inject(['remote', 'remote.credentials'], (connected) => {
+    connected.effect(() => startRelayCredentialMirror({
+      authToken: () => service.authToken(),
+      subscribe: listener => service.onAuthToken(listener),
+      credentials: connected.remote.credentials,
+    }), 'ui-sdkwork-iam: relay session credential mirror')
+  })
   account.setSource(createIamAccountSource(service))
 
   // Restore a stored session once the environment reports a base URL. Retries
@@ -252,4 +268,20 @@ export function apply(ctx: ClientContext): void {
       }
     },
   }, SignOutConfirmDialog))
+
+  // The BirdCoder provider card's sign-in notice: the relay's credential is the
+  // signed-in Auth Token, so an unconfigured card is waiting on a login rather
+  // than on a key stored elsewhere. Registered for the llm-pi-ai family and
+  // inert on every other route; the card's own API-key field remains the
+  // override path. A composition with no Models section simply never declares
+  // this slot, and `slots.inject` waits.
+  ctx.slots.inject('settings.models.provider-card', () => ctx.slots.register({
+    name: 'settings.models.provider-card',
+    key: 'llm-pi-ai',
+    locale: NS,
+    inject: (): RelayProviderHintInjected => ({
+      requestSignIn: () => service.requestSignIn(),
+      signedIn: () => service.isSignedIn(),
+    }),
+  }, RelayProviderHint))
 }

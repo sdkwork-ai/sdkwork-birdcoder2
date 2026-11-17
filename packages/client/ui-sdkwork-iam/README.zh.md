@@ -23,7 +23,7 @@ SDKWork IAM 集成插件：通过 sdkwork-iam 认证栈提供登录/注册（全
 
 ## 表面
 
-插件贡献三块 UI 表面与一个服务缝：
+插件贡献以下表面与 `ctx.iam` 服务缝：
 
 - **账号模式**（`mode.page` keyed `account`）。未登录时模式页挂载 sdkwork 全页认证表面（`SdkworkAuthPage`：密码、手机验证码、邮箱验证码登录与扫码，以及邮箱/手机注册 + 找回密码，跟随 `ui-sdkwork-iam` 设置的开关）；登录后显示账号摘要（显示名、用户名、用户 ID、邮箱）与退出按钮。未配置时页面以配置提示响亮失败。该模式从设置菜单的登录手势进入，不在模式栏中。
 - **Modal 登录宿主**（`shell.overlay` 条目 `iam-sign-in`）：当 `presentation` 设置为 `modal` 时，设置菜单账号缝的登录手势打开的是产品登录入口——桌面欢迎窗与 Web 账号弹窗共用的 `LoginPanel`（品牌图标与文字标志、欢迎语、标语、“登录”、“添加 API Key”）。该入口自己的“登录”执行 `signInMethod` 配置的登录手势：出厂 `browser` 在系统浏览器中打开托管授权页，并显示等待深链回调的交接卡片（可重试）；`modal` 则在不离开应用的情况下唤起 `SdkworkSessionAuthLoginModal`，即账号登录方式表单（密码、手机验证码、邮箱验证码、扫码）。当“登录”走浏览器交接时，入口把该表单保留为操作列下方的安静链接“内置弹窗登录”，因此交接前的老登录方式对尚未完成 relying party 注册的租户仍只差一次点击；当“登录”本身就会唤起该表单时（配置为 `modal`，或页面没有桌面深链桥），链接不显示，入口不会重复自己。没有桌面深链桥的页面始终使用页面内表单。若调用方自己的界面已经展示过入口（桌面欢迎页，或其中以 `login` 结束的 API Key 页），同样执行配置的手势，入口不会连续出现两次。“添加 API Key”打开桌面壳的登录页，由其中的密钥表单写入凭据；纯浏览器页面没有该页面，且只有 OEM profile 设置 `brand.showApiKeyEntry: true` 时入口才显示这一选项。未配置 baseUrl 时打开的是配置提示，而不是认证表面。登录表面只由显式手势打开——该菜单行，或受门控模式页未登录提示（`AuthenticatedModeShell`）上的登录按钮。任何模式切换、提交或页面挂载都不会打开它：受门控页面就地说明自己的要求。宿主把对话框传送到文档 body 上、置于页面层叠的最顶层（z-index 1200，高于页面模态、commerce 弹窗、菜单与 toast），并恢复 Radix 对话框从同级节点夺走的输入与无障碍状态——body 上的 `pointer-events: none` 以及其它 body 子节点上的 `aria-hidden`——因此从自身模态内部发起登录的调用方能得到一个可操作的登录卡片，而不是被自己的模态盖住。
@@ -32,6 +32,8 @@ SDKWork IAM 集成插件：通过 sdkwork-iam 认证栈提供登录/注册（全
 - **退出登录确认宿主**（`shell.overlay` 条目 `iam-sign-out`）：所有退出登录手势共用的确认问题——设置菜单底栏行、账号模式的退出按钮，以及「个人主页」分区（`ui-sdkwork-profile`）。确认后先在系统浏览器打开 CloudRouter 托管的退出登录页（`<cloudRouterUrl>/auth/sign-out`，由 `@sdkwork/auth-pc-react` 实现；桌面端经 shell 桥，纯网页开新标签页），再清空本地会话；未配置 CloudRouter origin 的部署跳过浏览器环节，只结束本地会话。该弹窗是独立的 `shell.overlay` 条目（store `iam-sign-out`），避免结束会话继承登录 store 的步骤；它同样传送到 body，原因与登录宿主一致。
 - **`ctx.iam` 的 profile 快照**：`profileSnapshot()` 以单一记忆化值发布已登录账号（昵称、邮箱、用户名、账号 ID、组织/租户 ID、个人或企业、环境、app id、管理中心 origin、退出登录 URL），供「个人主页」分区渲染。缓存以控制器状态加环境事实为键，因此分区的钩子在事实变化前观察到稳定引用。
 - **`ctx.iam`**：IAM 服务面——基于生成的 `@sdkwork/iam-app-sdk` 客户端的 sdkwork 认证控制器、`ui-sdkwork-iam` 设置镜像、登录形态分发（Modal 或页面），账号画像的读写（`retrievePersona`、`updatePersona`）以及可选字典（`retrievePersonaCatalog`）；persona 选择弹窗复用同一个客户端、同一个 base URL 与同一个 TokenManager。
+- **中转会话凭据镜像**：插件经 `remote.credentials` 把已登录的 `authToken` 写入 Host 凭据面的 `BIRDCODER_AUTH_TOKEN`，并在退出登录时移除。BirdCoder 中转接受该令牌作为 API Key，而浏览器启动没有桌面外壳在 `<DSH_HOME>/iam` 写的会话文件；缺了这次写入，浏览器里的登录会让每个中转请求都没有凭据。该引用只是会话来源，不是中转自己的 Key——Host 的 `birdcoder-account` 插件只在 `BIRDCODER_API_KEY` 上没有用户 Key 时才复制它，因此「模型」页填写的 API Key 始终优先。镜像挂在 `remote`/`remote.credentials` 服务上：没有这些服务的页面（欢迎窗口、无头组合）保留登录表面，只是跳过这次写入。
+- **BirdCoder 提供方卡片提示**（`settings.models.provider-card`，keyed `llm-pi-ai`）：配置缺失的 BirdCoder 卡片上说明中转使用登录账号的 Auth Token，并提供登录手势，打开与设置菜单相同的登录表面。已登录或凭据关联（credential join）报告 Key 已配置时不渲染；它位于行上而不是编辑器内部，其他 pi-ai 路由完全不受影响。卡片自己的 API Key 输入框仍是覆盖路径，在没有「模型」分区的组合里也是唯一路径（该插槽不会被声明）。
 
 ## 配置
 
@@ -59,13 +61,14 @@ IAM baseUrl 与租户应用 id 来自共享的 [ui-sdkwork-env](../ui-sdkwork-en
 ## 实现说明
 
 - 运行时适配器（`iam-runtime.ts`）把 `SdkworkIamRuntimeAuthRuntimeLike` 表面映射到生成的 app 客户端（双 token 认证模式），并让客户端凭据状态与 localStorage token 存储保持同步。
+- 中转会话镜像（`relay-credential.ts`）串行化写入并对每个令牌只写一次；被拒绝的写入会记录，并在下一次凭据变化时重试。未登录挂载时会清掉上一个页面遗留的引用，因此在页面关闭期间结束的会话无法继续用旧令牌认证中转请求。
 - `@deepseek-ai/dsh-client-ui-sdkwork-iam/src/sdkwork-global-token-manager.ts` 持有浏览器全局 `AuthTokenManager`，供每个 SDKWork 客户端插件共享。IAM 登录会把合并后的 IAM 与环境凭证写入该 manager；Drive、Knowledge、Token Plan、Feedback 与 Agents 表面读取同一传输层，而不是各自创建隔离 manager。
 - 认证表面是 sdkwork 组件；其 Tailwind 工具类来自 `apps/web` 的 Tailwind 管线（`@source` 指向 sdkwork 包，`primary-*` 别名到 harness 的 deepseek 品牌色阶）。浅色表单控件叠加 `--dsw-alias-bg-overlay` 与 `--dsw-alias-border-l2`，而不是浅色下塌成同一白色的 `bg-layer-*`；深色控件使用 `bg-layer-1` 对照 elevated shell。二维码列使用与 shell 相同的填充；白色画布外的框是透明的。叠加 CSS 以 CSS Module（`sdkwork-auth.module.css`）随客户端 bundle 注入。
 - 本包的 tsc 发射把 `@sdkwork/*` 解析到本地声明门面（`sdkwork-types/`）——sdkwork 源码无法可移植地发射进 `lib/types`；针对真实包的完整类型检查在 `tsconfig.tests.json`（接入 `typecheck:contracts-ready`）中运行，是门面的漂移守卫。tsdown 客户端 bundle 换用无 paths 的 tsconfig 以内联私有认证与 i18n 源码包，把 qrcode 钉到浏览器入口（其 node 渲染器会把 `fs` 拖进浏览器 bundle），并清空 sdkwork 闭包中唯一一个普通样式表（一个本 harness 从不挂载的组件错误页 css）。发布包只声明公共的 `@sdkwork/iam-app-sdk@0.1.1` 可选依赖；npm 消费者不会解析私有源码包。
 
 ## 模型体验
 
-无，因为本包是浏览器侧 SDKWork 登录与账号表面，其业务 HTTP 请求与 Harness 模型请求相互独立。
+中转会话镜像只改变模型请求的认证方式，不改变请求内容：它把已登录令牌写入 BirdCoder 路由读取的 Host 凭据面，并在退出登录时移除。它不新增提示词分区、工具或会话内容。
 
 #### KV Cache effect
 

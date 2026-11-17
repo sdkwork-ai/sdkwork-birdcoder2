@@ -8,6 +8,7 @@ import { usePinnedBrowserLanguages } from '@deepseek-ai/dsh-client-test-runtime'
 import { apply, inject } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import { IamService } from '../src/client/iam-service.ts'
 import { AccountModePage } from '../src/client/AccountModePage.tsx'
+import { RelayProviderHint } from '../src/client/RelayProviderHint.tsx'
 import { SignInOverlay } from '../src/client/SignInOverlay.tsx'
 import { DEFAULT_UI_IAM_SETTINGS, type UiIamSettings } from '../src/iam-settings.ts'
 
@@ -45,6 +46,7 @@ function declare(slots: SlotRegistry): () => void {
         'mode.rail': { kind: 'single', scope: 'root' },
         'mode.page': { kind: 'keyed', scope: 'root' },
         'shell.overlay': { kind: 'list', scope: 'root' },
+        'settings.models.provider-card': { kind: 'keyed', scope: 'root' },
       },
     } as never,
     () => null,
@@ -181,10 +183,20 @@ describe('ui-sdkwork-iam client plugin', () => {
     expect(bootstrap).toHaveBeenCalledTimes(1)
   })
 
+  it('registers the BirdCoder sign-in notice on the pi-ai provider-card seat', async () => {
+    const { slots } = await bench()
+    const entries = slots.entries('settings.models.provider-card')
+    expect(entries).toHaveLength(1)
+    expect(entries[0].options.key).toBe('llm-pi-ai')
+    expect(entries[0].component).toBe(RelayProviderHint)
+  })
+
   it('disposes every registration on teardown', async () => {
     const { slots, fiber } = await bench()
     expect(slots.entries('mode.page').length).toBeGreaterThan(0)
+    expect(slots.entries('settings.models.provider-card').length).toBe(1)
     await fiber.dispose()
     expect(slots.entries('mode.page').length).toBe(0)
+    expect(slots.entries('settings.models.provider-card').length).toBe(0)
   })
 })

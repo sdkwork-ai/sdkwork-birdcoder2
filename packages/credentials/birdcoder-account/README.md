@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`dsh-birdcoder-account` turns the desktop shell's mirrored SDKWork IAM session into a ready-to-use BirdCoder relay. BirdCoder accepts the IAM `authToken` as its API key on its OpenAI-compatible `/v1` face, so a signed-in user needs no separate credential. The plugin reads that token from the Host-readable projection the shell writes beside its encrypted durable session, stores it under `BIRDCODER_API_KEY`, and declares the `birdcoder` profile over `openai-completions` when settings have none. The Models page then shows a configured provider and its models, model discovery and dispatch authenticate with the token, and a user-stored key always wins. Sign-out removes only the writes this plugin made and restores the previous default model.
+`dsh-birdcoder-account` turns a signed-in SDKWork IAM session into a ready-to-use BirdCoder relay. BirdCoder accepts the IAM `authToken` as its API key on its OpenAI-compatible `/v1` face, so a signed-in user needs no separate credential. The plugin reads that token from the credentials the session reaches the Host through — the desktop shell's plaintext projection beside its encrypted durable session, or the `BIRDCODER_AUTH_TOKEN` reference a browser client writes through the Host credential plane — stores it under `BIRDCODER_API_KEY`, and declares the `birdcoder` profile over `openai-completions` when settings have none. The Models page then shows a configured provider and its models, model discovery and dispatch authenticate with the token, and a user-stored key always wins. Sign-out removes only the writes this plugin made and restores the previous default model.
 
 ## Table of Contents
 
@@ -21,7 +21,7 @@ English | [中文](README.zh.md)
 <a id="use-this-package"></a>
 ## Use this package
 
-The plugin needs the `credentials` service and the `settings` service; it uses `llm` and `agentDefaultModel` when the composition mounts them. It is a no-op when no mirrored session exists, which is the browser-only posture.
+The plugin needs the `credentials` service and the `settings` service; it uses `llm` and `agentDefaultModel` when the composition mounts them. It is a no-op when no session source exists, which is the signed-out posture. A browser-only launch has no session file, so the client mirrors the signed-in token into the `sessionCredentialRef` reference instead; the desktop shell's files remain the source for a launch with no client.
 
 The Web/Desktop bundle ships the same `birdcoder` profile and sets `agent-default-model` to `birdcoder` / `deepseek/deepseek-v4-pro` (the DeepSeek entry the relay catalog leads with), so BirdCoder is the picker's first provider group and a fresh session's default before sign-in. The plugin then supplies the signed-in credential. Its own profile declaration and default-model switch remain for compositions that do not ship those rows.
 
@@ -34,15 +34,16 @@ The Web/Desktop bundle ships the same `birdcoder` profile and sets `agent-defaul
     relaySessionFile: /home/user/.birdcoder/iam/relay-session.json
     stateFile: /home/user/.birdcoder/iam/birdcoder-account.json
     credentialRef: BIRDCODER_API_KEY
+    sessionCredentialRef: BIRDCODER_AUTH_TOKEN
     settingsNs: llm-pi-ai
     pollIntervalMs: 2000
 ```
 
-`sessionFile` defaults to `<DSH_HOME>/iam/session.json`, `relaySessionFile` to `relay-session.json` beside it, `stateFile` to `birdcoder-account.json` beside it, `credentialRef` to `BIRDCODER_API_KEY`, and `settingsNs` to the bundled `llm-pi-ai` entry. `pollIntervalMs: 0` disables polling and leaves only the mount-time reconciliation.
+`sessionFile` defaults to `<DSH_HOME>/iam/session.json`, `relaySessionFile` to `relay-session.json` beside it, `stateFile` to `birdcoder-account.json` beside it, `credentialRef` to `BIRDCODER_API_KEY`, `sessionCredentialRef` to `BIRDCODER_AUTH_TOKEN`, and `settingsNs` to the bundled `llm-pi-ai` entry. `pollIntervalMs: 0` disables polling and leaves the mount-time reconciliation plus the credential-event reconciliation.
 
 ### Signed-in behavior
 
-On each reconciliation the plugin reads the Host-readable relay projection, falling back to the durable session file when a writer left it in plaintext, and:
+On each reconciliation the plugin reads both session sources — the Host-readable relay projection (falling back to the durable session file when a writer left it in plaintext) and the `sessionCredentialRef` reference a browser client writes — and uses the client reference when both carry a token, because the client is the renderer session the user is actually holding. It then:
 
 - **Mirrors the token** into `credentialRef` when the reference is unconfigured, or when the value there is the token this plugin wrote for the previous session. A different value is a user's API key and is left untouched.
 - **Declares the profile** `{ providers: { birdcoder: { api: 'openai-completions', apiKeyEnv } } }` in `settingsNs` when that section has no BirdCoder profile. The OpenAI-compatible face is the one that resolves a non-`sk-` bearer value as an IAM auth token; BirdCoder's Anthropic face accepts API keys only. A profile that already exists — including the one the bundle ships — is never edited or removed.
@@ -55,11 +56,13 @@ The marker beside the session records which writes belong to this plugin. When t
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
-The plugin owns no Cordis service. It creates one controller in `apply`, which reconciles the session files on mount and on the poll interval, serializes overlapping reconciliations, and stops on fiber disposal. The controller receives the credential and settings seams as narrow ports, so its regression suite drives it without a Loader. The session and marker readers live in `src/session.ts`; the token is hashed with SHA-256 before the marker records it, so the marker never contains the secret.
+The plugin owns no Cordis service. It creates one controller in `apply`, which reconciles the session sources on mount, on the poll interval, and immediately when the client writes the `sessionCredentialRef` reference; overlapping reconciliations are serialized, and it stops on fiber disposal. The controller receives the credential and settings seams as narrow ports, so its regression suite drives it without a Loader. The session and marker readers live in `src/session.ts`; the token is hashed with SHA-256 before the marker records it, so the marker never contains the secret.
 
 The desktop shell encrypts `<DSH_HOME>/iam/session.json` with the operating system's secret store where one exists, and a Host child process cannot decrypt that. The shell therefore also writes `<DSH_HOME>/iam/relay-session.json`, a plaintext projection carrying only the `authToken` the relay consumes; the access and refresh tokens stay in the encrypted durable file. The projection is written and removed with the durable session and refreshed at shell startup, so a session restored from an older build also reaches the Host. A headless writer that leaves the full session in plaintext needs no projection, and the reader accepts it.
 
-Polling is deliberate: the desktop shell writes the session atomically, and a small `stat`-free re-read per interval is cheaper to own than a cross-platform watcher whose teardown must be exact. The interval bounds how long after login the relay becomes available and how long after sign-out it goes away.
+A launch with no desktop shell — the browser product, or a deployment that ships the web app without the Electron shell — has neither file. There the mounted client keeps `BIRDCODER_AUTH_TOKEN` in step with the session it holds: it writes the `authToken` on a committed sign-in and unsets it on sign-out. The reference is a session source, not the relay key, so the user's own key at `BIRDCODER_API_KEY` always wins and this plugin only ever removes the key it mirrored itself.
+
+Polling is deliberate: the desktop shell writes the session atomically, and a small `stat`-free re-read per interval is cheaper to own than a cross-platform watcher whose teardown must be exact. The interval bounds how long after a shell-written login the relay becomes available and how long after sign-out it goes away; the client reference path is event-driven and needs no poll.
 
 <a id="model-experience"></a>
 ## Model Experience
@@ -74,10 +77,10 @@ No prompt bytes change. When the plugin selects the BirdCoder default, the next 
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **Desktop-only login source** — the plugin reads the session files the desktop shell writes under `<DSH_HOME>/iam`. A browser-only sign-in leaves no host file, so the relay is configured there by storing its API key.
+- **Clearing the mirrored key does not opt out** — while the session is live, a reconciliation that finds the relay reference empty mirrors the token again. Store a different API key to override it; signing out is what removes this plugin's mirrored value.
 - **The declared profile uses OpenAI Chat Completions** — the login token authenticates on BirdCoder's `/v1` face. A user who wants the Anthropic face stores a relay API key and edits the profile's protocol; the login token does not authenticate there.
 - **Model discovery depends on the deployment** — the relay route's `GET /v1/models` (the OpenAI-compatible Cloud Router open API) authenticates the login token as well as a gateway API key, so a signed-in user can fetch the endpoint's current list from the Models page. A deployment whose gateway accepts API keys only leaves the shipped relay seed in place until a key is stored or models are added by hand.
-- **Polling latency** — a login or sign-out reaches the Host on the next interval (two seconds by default), not instantly.
+- **Shell-written sessions reach the Host on the poll** — a login or sign-out whose only source is the desktop file mirror arrives on the next interval (two seconds by default); the client-mirrored reference path reconciles on the write itself.
 - **Credential detection is reference-based** — the default-model switch checks each configured provider profile's `apiKeyEnv`; a provider that authenticates through provider-native ambient discovery without naming a reference is not detected as authenticated.
 - **Without the shipped profile, the declaration is a user-settings write** — a deployment that does not ship the bundle profile and makes the settings document read-only keeps the mirrored credential but gets no provider profile.
 

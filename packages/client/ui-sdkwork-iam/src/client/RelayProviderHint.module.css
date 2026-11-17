@@ -1,0 +1,28 @@
+/* The relay provider card's sign-in notice: one line of guidance plus the
+   sign-in gesture, sized like the Models section's own credential hints. */
+
+.hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-warn-label);
+}
+
+.action {
+  flex: none;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--dsw-alias-label-primary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.action:hover {
+  color: var(--dsw-alias-label-secondary);
+}

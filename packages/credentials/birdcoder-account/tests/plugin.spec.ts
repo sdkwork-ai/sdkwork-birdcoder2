@@ -59,6 +59,7 @@ describe('birdcoder-account plugin', () => {
       sessionFile,
       stateFile,
       credentialRef: 'BIRDCODER_API_KEY',
+      sessionCredentialRef: 'BIRDCODER_AUTH_TOKEN',
       settingsNs: 'llm-pi-ai',
       pollIntervalMs: 0,
     })
@@ -67,6 +68,57 @@ describe('birdcoder-account plugin', () => {
     expect(updates).toEqual([{
       providers: { birdcoder: { api: 'openai-completions', apiKeyEnv: 'BIRDCODER_API_KEY' } },
     }])
+    await fiber.dispose()
+  })
+
+  it('provisions a browser sign-in the moment its credential reference is written', async () => {
+    // A launch with no desktop shell has no session file; the client writes the
+    // signed-in token through the credential plane and that committed write is
+    // what makes the relay usable without waiting for the next poll.
+    const dir = await mkdtemp(join(tmpdir(), 'dsh-birdcoder-plugin-'))
+    onTestFinished(() => rm(dir, { recursive: true, force: true }))
+    const sessionSecret = 'header.payload.signature'
+    const stored = new Map<string, string>()
+    const ctx = new Context()
+    ctx.provide('credentials', {
+      describe: async (ref: string) => ({ configured: stored.has(ref), writable: true }),
+      resolve: async (ref: string) => {
+        const value = stored.get(ref)
+        return value === undefined ? undefined : { value, source: 'file' }
+      },
+      set: async (ref: string, value: string) => { stored.set(ref, value) },
+      unset: async (ref: string) => { stored.delete(ref) },
+    } as never)
+    ctx.provide('settings', {
+      describe: () => [{
+        ns: 'llm-pi-ai',
+        autoGenerate: false,
+        schema: {},
+        revision: 0,
+        applies: 'live',
+        value: {},
+        user: {},
+      }],
+      update: async () => {},
+      mutate: async () => {},
+    } as never)
+    const fiber = ctx.plugin(plugin, {
+      sessionFile: join(dir, 'iam', 'session.json'),
+      stateFile: join(dir, 'iam', 'marker.json'),
+      credentialRef: 'BIRDCODER_API_KEY',
+      sessionCredentialRef: 'BIRDCODER_AUTH_TOKEN',
+      settingsNs: 'llm-pi-ai',
+      pollIntervalMs: 0,
+    })
+    await fiber
+
+    stored.set('BIRDCODER_AUTH_TOKEN', sessionSecret)
+    ctx.emit('credentials/reference-updated', 'BIRDCODER_AUTH_TOKEN' as never)
+    await vi.waitFor(() => { expect(stored.get('BIRDCODER_API_KEY')).toBe(sessionSecret) })
+
+    stored.delete('BIRDCODER_AUTH_TOKEN')
+    ctx.emit('credentials/reference-updated', 'BIRDCODER_AUTH_TOKEN' as never)
+    await vi.waitFor(() => { expect(stored.has('BIRDCODER_API_KEY')).toBe(false) })
     await fiber.dispose()
   })
 })

@@ -44,6 +44,7 @@ describe('BirdcoderAccountProvisioner settings integration', () => {
       relaySessionFile: join(dir, 'relay-session.json'),
       stateFile,
       credentialRef: 'BIRDCODER_API_KEY',
+      sessionCredentialRef: 'BIRDCODER_AUTH_TOKEN',
       settingsNs: 'first',
       pollIntervalMs: 0,
     })

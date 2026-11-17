@@ -2,8 +2,10 @@
  * Provisioning of the BirdCoder relay from the signed-in SDKWork IAM session.
  *
  * BirdCoder accepts the IAM `authToken` as its API key, so a signed-in user
- * needs no separate relay credential. This controller reads the session the
- * desktop shell mirrors under the Harness home and:
+ * needs no separate relay credential. This controller reads the session from
+ * either place a surface can publish it — the file the desktop shell mirrors
+ * under the Harness home, or the credential reference the browser client writes
+ * through the Host credential plane (a launch with no shell has no files) — and:
  *
  * 1. stores `authToken` under the relay's credential reference, unless the
  *    user already stored a key there;
@@ -64,6 +66,13 @@ export interface BirdcoderAccountOptions {
   stateFile: string
   /** Credential reference the relay token is stored under. */
   credentialRef: string
+  /**
+   * Credential reference the browser client mirrors the signed-in `authToken`
+   * under. A launch without the desktop shell has no session file, so this is
+   * the only way a browser sign-in reaches the relay; it is never the relay's
+   * own key, so a user key at {@link credentialRef} still wins.
+   */
+  sessionCredentialRef: string
   /** Settings namespace owning the `llm-pi-ai` provider profiles. */
   settingsNs: string
   /** Poll interval in milliseconds; `0` disables the timer and leaves manual refreshes only. */
@@ -75,6 +84,14 @@ export const BIRDCODER_PROVIDER = 'birdcoder'
 
 /** The credential reference a shipped BirdCoder relay profile names. */
 export const BIRDCODER_CREDENTIAL_REF = 'BIRDCODER_API_KEY'
+
+/**
+ * The credential reference a browser client mirrors the signed-in IAM
+ * `authToken` under. The Host reads it as a session source in addition to the
+ * desktop file mirror, so a sign-in reaches the relay in a launch with no
+ * shell as well.
+ */
+export const BIRDCODER_SESSION_CREDENTIAL_REF = 'BIRDCODER_AUTH_TOKEN'
 
 /** The official DeepSeek route whose unauthenticated default this controller replaces. */
 const OFFICIAL_PROVIDER = 'deepseek-official'
@@ -89,6 +106,16 @@ const RELAY_API = 'openai-completions'
 
 /** Model id fragment preferred when choosing the relay default. */
 const PREFERRED_MODEL = 'deepseek'
+
+/**
+ * One read of the credential a browser client mirrors its session into.
+ * `unreadable` is kept apart from `absent` so a transient credential-store
+ * failure is not mistaken for a sign-out.
+ */
+type ClientSessionRead =
+  | { readonly kind: 'absent' }
+  | { readonly kind: 'token'; readonly token: string }
+  | { readonly kind: 'unreadable' }
 
 /**
  * Read one member of a narrowed JSON object without an `any` cast.
@@ -175,22 +202,49 @@ export class BirdcoderAccountProvisioner {
     }
   }
 
-  /** One reconciliation pass over the session files. */
+  /** One reconciliation pass over the session sources. */
   private async reconcile(): Promise<void> {
     if (this.disposed) return
-    const session = readMirroredSession(this.options.relaySessionFile, this.options.sessionFile)
-    if (session.kind === 'invalid') {
-      // A malformed record is not a sign-out: the desktop shell writes its
-      // files atomically, so this is a foreign or transient read. Keeping the
-      // last state avoids dropping a live credential on one bad parse.
-      this.warnOnce('invalid-session', 'birdcoder-account: ignored an unreadable IAM session file')
-      return
-    }
-    if (session.kind === 'absent') {
+    const mirrored = readMirroredSession(this.options.relaySessionFile, this.options.sessionFile)
+    const client = await this.readClientSessionToken()
+    if (this.stopped()) return
+    // The client-mirrored reference wins when both carry a token: it is written
+    // by the same renderer session the user sees, while the shell's file can
+    // lag one commit behind on a token rotation.
+    const token = client.kind === 'token' ? client.token
+      : mirrored.kind === 'token' ? mirrored.token
+        : undefined
+    if (token === undefined) {
+      if (mirrored.kind === 'invalid' || client.kind === 'unreadable') {
+        // A source that cannot be read is not a sign-out: the desktop shell
+        // writes its files atomically and the client writes the reference
+        // through a committed credential operation, so this is a foreign or
+        // transient read. Keeping the last state avoids dropping a live
+        // credential on one bad parse.
+        this.warnOnce('invalid-session', 'birdcoder-account: ignored an unreadable IAM session source')
+        return
+      }
       await this.signOut()
       return
     }
-    await this.signIn(session.token)
+    await this.signIn(token)
+  }
+
+  /**
+   * Read the token a browser client mirrored into the credential plane.
+   * A read failure is kept apart from an absent reference so a transient
+   * credential-store failure cannot be mistaken for a sign-out.
+   * @returns the mirrored token, an absent reference, or an unreadable source.
+   */
+  private async readClientSessionToken(): Promise<ClientSessionRead> {
+    try {
+      const value = (await this.ports.credentials.resolve(credentialRef(this.options.sessionCredentialRef)))?.value
+      if (value === undefined || value.trim() === '') return { kind: 'absent' }
+      return { kind: 'token', token: value }
+    } catch (error: unknown) {
+      this.warnOnce('session-credential', 'birdcoder-account: could not read the client session credential', error)
+      return { kind: 'unreadable' }
+    }
   }
 
   /** Mirror one token and its provider configuration. */

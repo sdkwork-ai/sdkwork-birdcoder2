@@ -89,12 +89,13 @@
 
     # BirdCoder relay account: the desktop shell mirrors the signed-in SDKWork
     # IAM session to `<DSH_HOME>/iam/session.json`, and this Host row turns that
-    # session into the relay credential and provider profile. A signed-in user
-    # therefore gets BirdCoder models without configuring the provider, while a
-    # key the user stored on the Models page always wins and is never
-    # overwritten. Sign-out removes only the writes this row made. The row is a
-    # no-op in a browser-only launch, where no mirrored session file exists; a
-    # user who signs in there still configures the relay by storing its key.
+    # session into the relay credential and provider profile. A browser launch
+    # has no shell file, so the client also writes the session token to
+    # `BIRDCODER_AUTH_TOKEN` through the credential plane and this row reads
+    # that reference as a second source. A signed-in user therefore gets
+    # BirdCoder models without configuring the provider, while a key the user
+    # stored on the Models page always wins and is never overwritten. Sign-out
+    # removes only the writes this row made.
     - id: birdcoder-account
       name: '@deepseek-ai/dsh-birdcoder-account'
 

@@ -372,6 +372,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   private desktopFailed = false
   private desktopFailure: IamBrowserLoginFailure | undefined
   private readonly desktopListeners = new Set<() => void>()
+  private readonly authTokenListeners = new Set<() => void>()
 
   constructor(scope: ConfigForm<UiIamSettings>, env: EnvService, layout: ILayout) {
     this.scope = scope
@@ -711,6 +712,31 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
       registerMethods: ['email', 'phone'],
       recoveryMethods: ['email', 'phone'],
     }
+  }
+
+  /**
+   * The signed-in login token the BirdCoder relay accepts as its API key.
+   *
+   * Same authority {@link publishTokens} hands the shared transport: the last
+   * session the durable store reported, falling back to the controller's
+   * session before the first report.
+   * @returns the current `authToken`, or undefined while signed out.
+   */
+  authToken(): string | undefined {
+    return (this.observedTokens ?? this.controller.getState().session)?.authToken
+  }
+
+  /**
+   * Observe the credentials themselves rather than the rendered state: a
+   * rotated token does not necessarily re-render a surface, while a credential
+   * mirror has to follow it. Listeners fire from {@link publishTokens}, so they
+   * see every store report, controller change, and environment move.
+   * @param listener - the credential-change listener.
+   * @returns the disposer removing this listener.
+   */
+  onAuthToken(listener: () => void): () => void {
+    this.authTokenListeners.add(listener)
+    return () => { this.authTokenListeners.delete(listener) }
   }
 
   /**
@@ -1439,5 +1465,14 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
       this.observedTokens ?? this.controller.getState().session,
       this.env.accessToken(),
     )
+    for (const listener of this.authTokenListeners) {
+      try {
+        listener()
+      } catch (error) {
+        // A listener must not break the credential publication every SDK
+        // client depends on.
+        console.error('ui-sdkwork-iam: auth-token listener failed', error)
+      }
+    }
   }
 }

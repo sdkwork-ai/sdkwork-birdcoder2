@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { CredentialRef } from '@deepseek-ai/dsh-credentials'
 import type { SettingsDescriptor } from '@deepseek-ai/dsh-settings'
-import { BirdcoderAccountProvisioner, BIRDCODER_CREDENTIAL_REF } from '../src/account.ts'
+import { BirdcoderAccountProvisioner, BIRDCODER_CREDENTIAL_REF, BIRDCODER_SESSION_CREDENTIAL_REF } from '../src/account.ts'
 import { RELAY_SESSION_FILENAME, digestSecret, readMarkerFile, readMirroredSession, readSessionFile } from '../src/session.ts'
 import type { AccountMarker } from '../src/session.ts'
 
@@ -42,6 +42,8 @@ interface Harness {
   readonly selection: { current: Selection }
   readonly saved: Selection[]
   readonly logs: string[]
+  /** Set to make every credential read reject, as an offline store would. */
+  readonly failReads: { value: boolean }
   writeSession(value: unknown): Promise<void>
   writeRelaySession(value: unknown): Promise<void>
   removeSession(): Promise<void>
@@ -93,16 +95,21 @@ async function harness(options: {
   const selection = { current: options.selection ?? { provider: 'deepseek-official', model: 'deepseek-flash' } }
   const saved: Selection[] = []
   const logs: string[] = []
+  const failReads = { value: false }
   const sessionFile = join(dir, 'iam', 'session.json')
   const relaySessionFile = join(dir, 'iam', RELAY_SESSION_FILENAME)
   const stateFile = join(dir, 'iam', 'birdcoder-account.json')
   const controller = new BirdcoderAccountProvisioner({
     credentials: {
-      describe: async (ref: CredentialRef) => ({
-        configured: credentials.values.has(ref),
-        writable: true,
-      }),
+      describe: async (ref: CredentialRef) => {
+        if (failReads.value) throw new Error('credential store offline')
+        return {
+          configured: credentials.values.has(ref),
+          writable: true,
+        }
+      },
       resolve: async (ref: CredentialRef) => {
+        if (failReads.value) throw new Error('credential store offline')
         const value = credentials.values.get(ref)
         return value === undefined ? undefined : { value, source: 'file' }
       },
@@ -149,6 +156,7 @@ async function harness(options: {
     relaySessionFile,
     stateFile,
     credentialRef: BIRDCODER_CREDENTIAL_REF,
+    sessionCredentialRef: BIRDCODER_SESSION_CREDENTIAL_REF,
     settingsNs: 'llm-pi-ai',
     pollIntervalMs: 0,
   })
@@ -161,6 +169,7 @@ async function harness(options: {
     selection,
     saved,
     logs,
+    failReads,
     writeSession: async (value) => {
       await (await import('node:fs/promises')).mkdir(join(dir, 'iam'), { recursive: true })
       await writeFile(sessionFile, JSON.stringify(value), 'utf8')
@@ -390,6 +399,75 @@ describe('BirdcoderAccountProvisioner', () => {
     await h.controller.refresh()
     expect(h.settings.unsets).toEqual([])
     expect(h.credentials.values.has(BIRDCODER_CREDENTIAL_REF)).toBe(false)
+  })
+
+  it('provisions the relay from a client-mirrored session with no shell files', async () => {
+    // A browser launch has no desktop shell writing `<DSH_HOME>/iam/*`, so the
+    // credential reference the client writes is the only session source.
+    const h = await harness({ credentials: { [BIRDCODER_SESSION_CREDENTIAL_REF]: TOKEN } })
+    await h.controller.refresh()
+
+    expect(h.credentials.values.get(BIRDCODER_CREDENTIAL_REF)).toBe(TOKEN)
+    expect(h.credentials.values.get(BIRDCODER_SESSION_CREDENTIAL_REF)).toBe(TOKEN)
+    expect(h.marker().tokenHash).toBe(digestSecret(TOKEN))
+  })
+
+  it('lets a user relay key win over the client-mirrored session', async () => {
+    const h = await harness({
+      credentials: {
+        [BIRDCODER_SESSION_CREDENTIAL_REF]: TOKEN,
+        [BIRDCODER_CREDENTIAL_REF]: 'sk-user-key',
+      },
+    })
+    await h.controller.refresh()
+
+    expect(h.credentials.values.get(BIRDCODER_CREDENTIAL_REF)).toBe('sk-user-key')
+    expect(h.credentials.sets).toEqual([])
+    expect(h.marker().tokenHash).toBeUndefined()
+  })
+
+  it('prefers the client session over a lagging file mirror', async () => {
+    const h = await harness({ credentials: { [BIRDCODER_SESSION_CREDENTIAL_REF]: `${TOKEN}-client` } })
+    await h.writeSession({ authToken: TOKEN, accessToken: 'access' })
+    await h.controller.refresh()
+
+    expect(h.credentials.values.get(BIRDCODER_CREDENTIAL_REF)).toBe(`${TOKEN}-client`)
+  })
+
+  it('clears its mirrored key when the client session ends without files', async () => {
+    const h = await harness({ credentials: { [BIRDCODER_SESSION_CREDENTIAL_REF]: TOKEN } })
+    await h.controller.refresh()
+    expect(h.credentials.values.get(BIRDCODER_CREDENTIAL_REF)).toBe(TOKEN)
+
+    h.credentials.values.delete(BIRDCODER_SESSION_CREDENTIAL_REF)
+    await h.controller.refresh()
+
+    expect(h.credentials.values.has(BIRDCODER_CREDENTIAL_REF)).toBe(false)
+    expect(h.credentials.unsets).toEqual([BIRDCODER_CREDENTIAL_REF])
+  })
+
+  it('keeps a user key after the client session ends', async () => {
+    const h = await harness({ credentials: { [BIRDCODER_SESSION_CREDENTIAL_REF]: TOKEN } })
+    await h.controller.refresh()
+    h.credentials.values.set(BIRDCODER_CREDENTIAL_REF, 'sk-user-key')
+    h.credentials.values.delete(BIRDCODER_SESSION_CREDENTIAL_REF)
+    await h.controller.refresh()
+
+    expect(h.credentials.values.get(BIRDCODER_CREDENTIAL_REF)).toBe('sk-user-key')
+    expect(h.credentials.unsets).toEqual([])
+  })
+
+  it('keeps the last state when the session credential read fails', async () => {
+    const h = await harness({ credentials: { [BIRDCODER_SESSION_CREDENTIAL_REF]: TOKEN } })
+    await h.controller.refresh()
+    expect(h.credentials.values.get(BIRDCODER_CREDENTIAL_REF)).toBe(TOKEN)
+
+    // An unreadable credential plane is not a sign-out.
+    h.failReads.value = true
+    await h.controller.refresh()
+
+    expect(h.credentials.values.get(BIRDCODER_CREDENTIAL_REF)).toBe(TOKEN)
+    expect(h.credentials.unsets).toEqual([])
   })
 
   it('is idempotent across repeated polls', async () => {
