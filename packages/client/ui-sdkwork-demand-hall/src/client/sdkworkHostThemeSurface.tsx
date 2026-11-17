@@ -8,7 +8,7 @@
  * forbids cross-plugin value imports from ui-theme.
  */
 /* jscpd:ignore-start -- the deliberate per-package copy shared with
-   ui-sdkwork-markets, ui-sdkwork-template-library, and ui-sdkwork-appstore. */
+   ui-sdkwork-markets and ui-sdkwork-appstore. */
 import { useEffect, useLayoutEffect, useRef, useSyncExternalStore, type ReactNode } from 'react'
 import clsx from 'clsx'
 

@@ -50,8 +50,8 @@ describe('webApp (the real web profile)', () => {
     // - `ui-sdkwork-sidebar` (the fork's left-column host) and the fork surfaces
     //   that register into its seats — `ui-brand-official`, `ui-cordis`,
     //   `ui-workspace`, `ui-sdkwork-appstore`, `ui-sdkwork-new-chat`,
-    //   `ui-sdkwork-automation`, `ui-sdkwork-markets`, `ui-sdkwork-template-library`
-    //   and `ui-sdkwork-demand-hall` — declare their edge against
+    //   `ui-sdkwork-automation`, `ui-sdkwork-markets` and
+    //   `ui-sdkwork-demand-hall` — declare their edge against
     //   `@deepseek-ai/dsh-client-ui-sidebar`, whose SEAT CONTRACT they import and
     //   whose row this composition repoints to the fork host. The contract owner
     //   keeps its edges but loses its row, the same shape as the settings shell
@@ -64,7 +64,6 @@ describe('webApp (the real web profile)', () => {
       '@deepseek-ai/dsh-client-ui-sdkwork-automation -> @deepseek-ai/dsh-client-ui-sidebar',
       '@deepseek-ai/dsh-client-ui-sdkwork-automation -> @deepseek-ai/dsh-schedule',
       '@deepseek-ai/dsh-client-ui-sdkwork-markets -> @deepseek-ai/dsh-client-ui-sidebar',
-      '@deepseek-ai/dsh-client-ui-sdkwork-template-library -> @deepseek-ai/dsh-client-ui-sidebar',
       '@deepseek-ai/dsh-client-ui-sdkwork-demand-hall -> @deepseek-ai/dsh-client-runtime',
       '@deepseek-ai/dsh-client-ui-sdkwork-demand-hall -> @deepseek-ai/dsh-client-ui-sidebar',
       '@deepseek-ai/dsh-client-ui-sdkwork-sidebar -> @deepseek-ai/dsh-client-ui-sidebar',

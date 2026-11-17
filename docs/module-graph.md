@@ -251,7 +251,6 @@ flowchart TD
     pkg_client_ui_sdkwork_share["client-ui-sdkwork-share"]
     pkg_client_ui_sdkwork_sidebar["client-ui-sdkwork-sidebar"]
     pkg_client_ui_sdkwork_skills["client-ui-sdkwork-skills"]
-    pkg_client_ui_sdkwork_template_library["client-ui-sdkwork-template-library"]
     pkg_client_ui_sdkwork_token_plan["client-ui-sdkwork-token-plan"]
     pkg_client_ui_sdkwork_updater["client-ui-sdkwork-updater"]
     pkg_client_ui_sdkwork_video_models["client-ui-sdkwork-video-models"]
@@ -1807,7 +1806,6 @@ flowchart TD
 | [`client-ui-sdkwork-share`](../packages/client/ui-sdkwork-share) | `client` | — |
 | [`client-ui-sdkwork-sidebar`](../packages/client/ui-sdkwork-sidebar) | `client` | — |
 | [`client-ui-sdkwork-skills`](../packages/client/ui-sdkwork-skills) | `client` | — |
-| [`client-ui-sdkwork-template-library`](../packages/client/ui-sdkwork-template-library) | `client` | — |
 | [`client-ui-sdkwork-token-plan`](../packages/client/ui-sdkwork-token-plan) | `client` | — |
 | [`client-ui-sdkwork-updater`](../packages/client/ui-sdkwork-updater) | `client` | — |
 | [`client-ui-sdkwork-video-models`](../packages/client/ui-sdkwork-video-models) | `client` | — |

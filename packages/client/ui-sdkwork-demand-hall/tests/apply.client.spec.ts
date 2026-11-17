@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /** ui-sdkwork-demand-hall apply wiring: the sidebar quick entry registered into
- * the `sidebar.actions` seat (ordered below the template-library entry) and the
+ * the `sidebar.actions` seat (ordered below the market entry) and the
  * page keyed by the `demand-hall` mode id, registered once their seat
  * declarations are on the ledger; teardown cascades. The host adapter's own
  * face is covered by the host spec. */
@@ -87,12 +87,12 @@ describe('ui-sdkwork-demand-hall apply', () => {
     expect(() => { hostApply() }).not.toThrow()
   })
 
-  it('registers one sidebar quick entry below the template-library entry', async () => {
+  it('registers one sidebar quick entry below the market entry', async () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const [action] = b.slots.entries(ACTIONS)
     expect(action?.options.id).toBe('sdkwork-demand-hall')
-    // Below the template-library entry (order 50), last in the quick-entry stack.
+    // Below the market entry (order 40), last in the quick-entry stack.
     expect(action?.options.order).toBe(51)
     expect(action?.component).toBe(DemandHallAction)
     expect(action?.locale).toBe('demand-hall')

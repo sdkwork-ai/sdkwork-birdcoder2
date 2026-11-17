@@ -3,14 +3,16 @@
  * sidebar shell's `sidebar.actions` list seat (declared by ui-sidebar) and its
  * market page into the keyed `mode.page` seat (declared by ui-layout's frame),
  * both keyed by the `markets` mode id. The page's header hosts the market
- * categories (Plugins, Experts, Skills, Connectors). Every category's cloud
- * catalog renders the SDKWork App Store page for that category through the host
- * adapter configured from the shared environment, IAM, and locale services, and
- * it is the category's landing view — the first chip of that category's
- * sub-tab row. Behind that first chip the page draws the third-party panels
- * described at the end of this comment: the expert market on the Experts tab,
- * the SkillHub market on the Skills tab, the Plugin Market on the Plugins tab,
- * and the MCP connector on the Connectors tab. The add affordances (create
+ * categories (Plugins, Experts, Skills, Connectors). The Experts, Skills, and
+ * Connectors cloud catalogs render the SDKWork App Store page for that category
+ * through the host adapter configured from the shared environment, IAM, and
+ * locale services, and the catalog is the category's landing view — the first
+ * chip of that category's sub-tab row. Behind that first chip the page draws the
+ * third-party panels described at the end of this comment: the expert market on
+ * the Experts tab, the SkillHub market on the Skills tab, the Plugin Market on
+ * the Plugins tab, and the MCP connector on the Connectors tab. Plugins has no
+ * App Store catalog: its market was retired with the template shelf, so that tab
+ * is this application's own plugin surface. The add affordances (create
  * plugin / add plugin market) dispatch a composed prompt into a fresh
  * conversation through the sessions/workspaces services.
  *
@@ -446,7 +448,7 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('sidebar.actions', () => ctx.slots.register({
     name: 'sidebar.actions',
     id: 'sdkwork-markets',
-    // Behind Automation; the template-library entry (order 50) sits below.
+    // Behind Automation; the demand-hall entry (order 51) sits below.
     order: 40,
     // The Sidebar settings page lists this entry by this label; the row's own
     // copy comes from the component.

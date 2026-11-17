@@ -7,7 +7,7 @@
  * **The host document.** A standalone app's `src/index.css` is the *page*
  * sheet: `body { color: … }`, `html.dark body { … }`, `html, body, #root { … }`
  * assume the app owns the document. The hosts that embed one
- * (ui-sdkwork-appstore, -markets, -template-library, -demand-hall, -course,
+ * (ui-sdkwork-appstore, -markets, -demand-hall, -course,
  * -drive, -knowledge, -generations-*) inline that sheet into the harness
  * document, where it used to cascade over the shell defaults in
  * `packages/client/web/src/base.css` purely on document order. A cascade layer
@@ -52,7 +52,7 @@ export const EMBEDDED_APP_CSS_LAYER = 'dsh-sdkwork-embedded-app'
 
 /**
  * Late layer owned by the App Store sheet family's utility rules (appstore,
- * markets, template-library, demand-hall).
+ * markets, demand-hall).
  *
  * These hosts all inline the same App Store application sheet, so they agree
  * with each other; the families that only carry their own application's

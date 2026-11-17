@@ -56,7 +56,6 @@ export const SEARCH_CATALOG: readonly SearchCatalogEntry[] = [
   { mode: 'assets', titleKey: 'catalog.assets', descriptionKey: 'catalog.assets.description', group: 'creation' },
   { mode: 'appstore', titleKey: 'catalog.appstore', descriptionKey: 'catalog.appstore.description', group: 'platform' },
   { mode: 'markets', titleKey: 'catalog.markets', descriptionKey: 'catalog.markets.description', group: 'platform' },
-  { mode: 'template-library', titleKey: 'catalog.templateLibrary', descriptionKey: 'catalog.templateLibrary.description', group: 'platform' },
   { mode: 'demand-hall', titleKey: 'catalog.demandHall', descriptionKey: 'catalog.demandHall.description', group: 'platform' },
   { mode: 'automation', titleKey: 'catalog.automation', descriptionKey: 'catalog.automation.description', group: 'platform' },
   { mode: 'token-plan', titleKey: 'catalog.tokenPlan', descriptionKey: 'catalog.tokenPlan.description', group: 'platform' },

@@ -29,7 +29,7 @@ interface DemandHallSurfaceBoundaryState {
  * @returns the surface tree, or the themed crash face with retry.
  */
 /* jscpd:ignore-start -- the deliberate per-package copy shared with
-   ui-sdkwork-markets and ui-sdkwork-template-library. */
+   ui-sdkwork-markets. */
 export class DemandHallSurfaceBoundary extends Component<
   DemandHallSurfaceBoundaryProps,
   DemandHallSurfaceBoundaryState

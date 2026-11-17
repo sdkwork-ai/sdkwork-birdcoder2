@@ -718,16 +718,10 @@
             name: '@deepseek-ai/dsh-plugin-market/tools'
             disabled: true
 
-    # Template Library: the sidebar quick entry below the market entry and its
-    # keyed page hosting the SDKWork App Store templates catalog, opened as a
-    # code-surface overlay like the market page.
-    - id: ui-sdkwork-template-library
-      name: '@deepseek-ai/dsh-client-ui-sdkwork-template-library'
-
-    # Demand Hall: the sidebar quick entry below the template-library entry and
-    # its keyed page hosting the SDKWork App Store demand hall (publish and
-    # claim development demands), opened as a code-surface overlay like the
-    # template-library page.
+    # Demand Hall: the sidebar quick entry below the market entry and its keyed
+    # page hosting the SDKWork App Store demand hall (publish and claim
+    # development demands), opened as a code-surface overlay like the market
+    # page.
     - id: ui-sdkwork-demand-hall
       name: '@deepseek-ai/dsh-client-ui-sdkwork-demand-hall'
 

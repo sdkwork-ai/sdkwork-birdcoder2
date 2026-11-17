@@ -114,7 +114,7 @@ describe('app-mode rail state', () => {
     const store = createLayoutStore()
     const state = store.create()
     for (const panelId of ['panel-a' as MainPanelId, null]) {
-      state.actions.setPanelMode('template-library')
+      state.actions.setPanelMode('markets')
       state.actions.selectPanel(panelId)
       expect(state.getSnapshot().layoutInfo.panelMode).toBeUndefined()
       expect(state.getSnapshot().panelInfo.activePanelId).toBe(panelId)

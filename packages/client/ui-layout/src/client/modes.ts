@@ -16,7 +16,6 @@ export type AppModeId =
   | 'pull-request'
   | 'automation'
   | 'markets'
-  | 'template-library'
   | 'demand-hall'
   | 'im'
   | 'video'

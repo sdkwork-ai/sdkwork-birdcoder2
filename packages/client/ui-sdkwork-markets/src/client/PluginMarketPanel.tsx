@@ -1,6 +1,6 @@
 /**
  * The Plugin Market panel: the `dshmarket` plugin's own market page, rendered
- * inside the Plugins tab ahead of this application's cloud catalog.
+ * as the landing view of this application's Plugins tab.
  *
  * Three faces, decided by the two facts the page already holds — whether the
  * market published its `market` control, and what the plugin store read says
@@ -10,8 +10,7 @@
  *   search, categories, install dialog, updates, and diagnostics). This page
  *   draws no chrome around it and duplicates none of it;
  * - the bundle is not installed: an install affordance that runs the same
- *   installation pipeline the local plugin views use, plus the way back to the
- *   cloud catalog;
+ *   installation pipeline the local plugin views use;
  * - the bundle is installed but its client half has not loaded (a page load
  *   predates the install): a reload prompt, because only the next page load
  *   asks the host for the plugin's browser bundle.
@@ -45,8 +44,6 @@ export interface PluginMarketPanelInjected {
   install: InstallSession | undefined
   /** Reload the page so a just-installed client half loads. */
   reload: () => void
-  /** Switch the Plugins tab to this application's own cloud catalog. */
-  onOpenCloud: () => void
   /** Switch the Plugins tab to the installed roster (where a bundle is switched on). */
   onOpenInstalled: () => void
 }
@@ -89,7 +86,7 @@ function startMarketInstall(store: PluginStore): void {
  * @returns the panel element tree.
  */
 export function PluginMarketPanel({
-  t, control, store, read, install, reload, onOpenCloud, onOpenInstalled,
+  t, control, store, read, install, reload, onOpenInstalled,
 }: PluginMarketPanelProps) {
   // The market's own page owns everything below the tab: no shared chrome is
   // drawn around it, so its header and this page's sub-tabs never compete.
@@ -183,14 +180,6 @@ export function PluginMarketPanel({
           onClick={() => { startMarketInstall(store) }}
         >
           {installing ? t('market.missing.installing') : t('market.missing.action')}
-        </button>
-        <button
-          type="button"
-          className={css.emptySecondary}
-          data-plugin-market-cloud
-          onClick={onOpenCloud}
-        >
-          {t('market.missing.cloud')}
         </button>
       </div>
     </div>

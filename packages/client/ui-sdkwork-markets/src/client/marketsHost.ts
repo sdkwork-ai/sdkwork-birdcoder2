@@ -5,14 +5,12 @@
  * the embeddable `AppstoreMarketsSurface` inputs. Environment changes remount
  * the App Store runtime; IAM and locale changes propagate through host props.
  *
- * Every cloud catalog reads the SDKWork app-api. The template shelf the
- * catalogs list (`catalog/templates`) admits an application-scoped anonymous
- * read, but an app-api call still needs the application Access-Token the
- * environment provides — the generated app SDK cannot dispatch without one.
- * The adapter therefore owns the sign-in face both ends of that edge need: the
- * snapshot says whether the surface holds credentials ({@link
- * MarketsHostRenderSnapshot.authenticated}), and the runtime hands the
- * surface's sign-in gesture back to this application's own login entry
+ * Every cloud catalog reads the SDKWork app-api, and an app-api call needs the
+ * application Access-Token the environment provides — the generated app SDK
+ * cannot dispatch without one. The adapter therefore owns the sign-in face both
+ * ends of that edge need: the snapshot says whether the surface holds
+ * credentials ({@link MarketsHostRenderSnapshot.authenticated}), and the runtime
+ * hands the surface's sign-in gesture back to this application's own login entry
  * ({@link MarketsHostRuntime.requestSignIn}).
  */
 import { createElement, useSyncExternalStore, type FC, type ReactNode } from 'react'
@@ -388,33 +386,8 @@ export interface MarketsAppProps {
    * storefront page renders no local search input of its own.
    */
   searchQuery?: string
-  /**
-   * Install one cloud-catalog plugin from the source the catalog publishes.
-   * The plugins page hands its cards' install action to this port; a catalog
-   * entry without a source (or a deployment without a plugin manager) keeps
-   * the storefront's own enable state instead.
-   */
-  onInstallPlugin?: (plugin: CloudPluginEntry) => void | Promise<void>
   /** Markets namespace translate seat for the no-data surface. */
   t: TranslateNS<'markets'>
-}
-
-/**
- * The fields this application reads from one cloud-catalog plugin entry. The
- * embedded catalog's own record carries more display data; the install flow
- * needs the entry's identity and the source standard's three forms.
- */
-export interface CloudPluginEntry {
-  readonly id: string
-  readonly name: string
-  readonly source?: {
-    readonly type: 'git' | 'archive' | 'drive'
-    readonly url: string
-    readonly ref?: string
-    readonly directory?: string
-    readonly sha256?: string
-    readonly nodeId?: string
-  }
 }
 
 /**
@@ -429,7 +402,7 @@ export interface CloudPluginEntry {
  * @returns the market page element tree.
  */
 export function MarketsApp(props: MarketsAppProps): ReactNode {
-  const { page, searchQuery, onInstallPlugin, t } = props
+  const { page, searchQuery, t } = props
   const adapter = activeAdapter
   if (adapter === undefined) {
     throw new Error('ui-sdkwork-markets: SDKWork host runtime is not configured')
@@ -469,10 +442,6 @@ export function MarketsApp(props: MarketsAppProps): ReactNode {
       subscribeHostColorScheme: (listener: (scheme: 'light' | 'dark') => void) => {
         return adapter.readThemeBridge().subscribe(() => { listener(adapter.readThemeBridge().getColorScheme()) })
       },
-      // The catalog's install action becomes a real install when this
-      // deployment manages a profile; the cards fall back to the storefront's
-      // enable state otherwise.
-      ...(onInstallPlugin === undefined ? {} : { pluginsHost: { install: onInstallPlugin } }),
     }),
   )
 }

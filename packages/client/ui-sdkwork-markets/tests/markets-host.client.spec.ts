@@ -248,26 +248,18 @@ describe('MarketsApp', () => {
 
   it('keeps the unconfigured face ahead of the sign-in face', () => {
     const adapter = configureMarketsHost(harness({ baseUrl: '' }))
-    const view = render(createElement(MarketsApp, { page: 'plugins', t }))
+    const view = render(createElement(MarketsApp, { page: 'experts', t }))
     expect(view.container.querySelector('[data-markets-empty="unconfigured"]')).not.toBeNull()
     expect(view.container.querySelector('[data-markets-auth-required]')).toBeNull()
     adapter.dispose()
   })
 
-  it('hands the plugins catalog an install port only when the host offers one', () => {
+  it('hands the catalog no plugin install port: the App Store plugin shelf is retired', () => {
     const h = harness({ baseUrl: 'https://gw.example', session: { accessToken: 'iam-token' } })
     const adapter = configureMarketsHost(h)
-    const install = vi.fn()
-    render(createElement(MarketsApp, { page: 'plugins', t, onInstallPlugin: install }))
-    const props = embed.props as { pluginsHost?: { install: (plugin: unknown) => void } } | undefined
-    const plugin = { id: 'cloud-1', name: 'Cloud plugin' }
-    props?.pluginsHost?.install(plugin)
-    expect(install).toHaveBeenCalledWith(plugin)
-
-    // A catalog page without a handler keeps the storefront's own action.
-    embed.props = undefined
-    render(createElement(MarketsApp, { page: 'plugins', t }))
-    expect((embed.props as { pluginsHost?: unknown }).pluginsHost).toBeUndefined()
+    render(createElement(MarketsApp, { page: 'experts', t }))
+    const props = embed.props as { pluginsHost?: unknown } | undefined
+    expect(props?.pluginsHost).toBeUndefined()
     adapter.dispose()
   })
 })

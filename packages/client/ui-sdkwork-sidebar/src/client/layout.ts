@@ -28,16 +28,15 @@ const SIDEBAR_LAYOUT_VERSION = 1
 
 /**
  * Quick entries the shipped column leaves out of the New Session stack: the
- * three SDKWork storefront surfaces are opt-in, so their rows start hidden and
+ * two SDKWork storefront surfaces are opt-in, so their rows start hidden and
  * the Sidebar settings page is how a user switches one on. The ids are the
- * `sidebar.actions` registration ids of ui-sdkwork-appstore,
- * ui-sdkwork-template-library and ui-sdkwork-demand-hall. They live here
- * because the preference is created before any entry registers and a feature
- * plugin may not import another plugin's values.
+ * `sidebar.actions` registration ids of ui-sdkwork-appstore and
+ * ui-sdkwork-demand-hall. They live here because the preference is created
+ * before any entry registers and a feature plugin may not import another
+ * plugin's values.
  */
 export const SHIPPED_HIDDEN_ENTRY_IDS: readonly string[] = [
   'sdkwork-appstore',
-  'sdkwork-template-library',
   'sdkwork-demand-hall',
 ]
 

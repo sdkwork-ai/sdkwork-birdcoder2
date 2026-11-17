@@ -1,7 +1,7 @@
 /**
  * Demand Hall plugin, browser half: registers its quick entry into the sidebar
  * shell's `sidebar.actions` list seat (declared by ui-sidebar) below the
- * template-library entry, and its page into the keyed `mode.page` seat
+ * market entry, and its page into the keyed `mode.page` seat
  * (declared by ui-layout's frame), both keyed by the `demand-hall` mode id. The
  * entry opens the page as an overlay inside the code surface, the same channel
  * the other quick entries drive. The page hosts the SDKWork App Store 需求大厅
@@ -113,7 +113,7 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('sidebar.actions', () => ctx.slots.register({
     name: 'sidebar.actions',
     id: 'sdkwork-demand-hall',
-    // Below the template-library entry (order 50), last in the quick-entry stack.
+    // Below the market entry (order 40), last in the quick-entry stack.
     order: 51,
     // The Sidebar settings page lists this entry by this label; the row's own
     // copy comes from the component.

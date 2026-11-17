@@ -388,8 +388,6 @@
       "@deepseek-ai/dsh-client-ui-sdkwork-drive/client": ["./packages/client/ui-sdkwork-drive/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-markets": ["./packages/client/ui-sdkwork-markets/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-markets/client": ["./packages/client/ui-sdkwork-markets/src/client"],
-      "@deepseek-ai/dsh-client-ui-sdkwork-template-library": ["./packages/client/ui-sdkwork-template-library/src"],
-      "@deepseek-ai/dsh-client-ui-sdkwork-template-library/client": ["./packages/client/ui-sdkwork-template-library/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-demand-hall": ["./packages/client/ui-sdkwork-demand-hall/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-demand-hall/client": ["./packages/client/ui-sdkwork-demand-hall/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-im-connector": ["./packages/client/ui-sdkwork-im-connector/src"],

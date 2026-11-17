@@ -8,26 +8,24 @@
  * the find-skills, import, and skill-creator flows). The Experts tab's
  * my-catalog affordance opens the full-page My-experts view ({@link
  * MineExpertsPage}), which the view's back control leaves.
- * Each category's cloud catalog renders its SDKWork App Store market page
- * (plugins, experts, skills, MCP) through this plugin's host adapter, with a
+ * The Experts, Skills, and Connectors tabs render their SDKWork App Store
+ * market page (experts, skills, MCP) through this plugin's host adapter, with a
  * crash boundary so the panel never collapses blank. Those catalogs read the
- * SDKWork app-api: the template shelf admits an application-scoped anonymous
- * read, while every call still needs the application Access-Token the host
- * environment provides. The adapter draws the sign-in face when the host holds
- * no credential at all and hands the gesture to this application's own login
+ * SDKWork app-api and need the application Access-Token the host environment
+ * provides. The adapter draws the sign-in face when the host holds no
+ * credential at all and hands the gesture to this application's own login
  * entry; the catalog loads once a session lands.
  * The page stays the single owner of market navigation chrome, so the
  * embedded surfaces render inside the panel without their own headers.
  *
- * Every category leads with its **cloud catalog** — the SDKWork App Store page
- * for that category — and every category lands on it. The other three open a
- * sub-tab row whose first chip it is (Plugins, Skills, Connectors), and the
- * Experts tab opens a row too: its cloud catalog leads and the **expert
- * market** — the `@michengai/dsh-agency-agents` plugin's own roster panel,
- * linked in as the `plugins/sdkwork-dsh-agents` submodule — follows it. The
- * cloud catalog is the product's shelf; the community markets, the expert
- * market and this deployment's own views sit behind it, and they keep their own
- * chips so a person can still reach them.
+ * Those three categories lead with their **cloud catalog** — the SDKWork App
+ * Store page for that category — and land on it. Each opens a sub-tab row whose
+ * first chip it is, and the Experts tab opens a row too: its cloud catalog
+ * leads and the **expert market** — the `@michengai/dsh-agency-agents` plugin's
+ * own roster panel, linked in as the `plugins/sdkwork-dsh-agents` submodule —
+ * follows it. The cloud catalog is the product's shelf; the community markets,
+ * the expert market and this deployment's own views sit behind it, and they
+ * keep their own chips so a person can still reach them.
  *
  * The Experts tab's market chip embeds the expert-market plugin's `main` panel
  * exactly as the Skills tab embeds the SkillHub market ({@link
@@ -46,13 +44,15 @@
  * (the Workspace scope, and the conversation an example Prompt opens) travel
  * through {@link McpConnectorBridge}.
  *
- * The Plugins tab is itself a sub-root. Its leading chip is the cloud catalog;
- * then the Plugin Market — the `dshmarket` profile plugin's own catalog,
- * rendered from the `market` control service that plugin publishes (see
- * {@link PluginMarketPanel}). When that plugin is absent the chip stays and
- * shows an install affordance, so the market is discoverable before it is
- * installed instead of appearing only after. The application's own official
- * and installed views sit below the divider.
+ * The Plugins tab is this application's own plugin surface — it replaces
+ * upstream's Plugins page. It has no cloud catalog: the App Store's plugin
+ * market was retired with its template shelf, so the tab leads with the Plugin
+ * Market — the `dshmarket` profile plugin's own catalog, rendered from the
+ * `market` control service that plugin publishes (see
+ * {@link PluginMarketPanel}). When that plugin is absent the chip shows an
+ * install affordance, so the market is discoverable before it is installed
+ * instead of appearing only after. The application's own official and installed
+ * views sit below the divider.
  *
  * The Skills tab is a sub-root too, and its leading chip is the cloud catalog;
  * the SkillHub market follows it. That market is the independent
@@ -107,7 +107,7 @@ import type { McpConnectorPanel } from './mcpConnectorPanel.ts'
 import type { McpConnectorBridge } from './connectorBridge.ts'
 import { ImportSkillDialog } from './ImportSkillDialog.tsx'
 import { skillSearchPrompt } from './skillPrompts.ts'
-import { MarketsApp, type CloudPluginEntry, type MarketsAppProps } from './marketsHost.ts'
+import { MarketsApp, type MarketsAppProps } from './marketsHost.ts'
 import { SurfaceBoundary } from './SurfaceBoundary.tsx'
 import { MineExpertsPage } from './MineExpertsPage.tsx'
 import { PluginMarketInstallDialog, PluginMarketPanel } from './PluginMarketPanel.tsx'
@@ -116,23 +116,26 @@ import {
   type PluginRow,
 } from './OfficialPluginsPanel.tsx'
 import type { MarketsPluginSlots } from './PluginDetail.tsx'
-import { parsePluginSource, pluginSourceSpec } from '@deepseek-ai/dsh-plugin-manager/source'
 import css from './MarketsPage.module.css'
 
 /**
  * One market category tab id. The four top-level tabs are the market
- * categories; every one of them is a sub-root whose panels switch between the
- * category's cloud catalog and its other views through the sub-tab strip below
- * the main bar. Experts keeps the short row: the cloud catalog leads and the
- * expert market follows it.
+ * categories; the three storefront categories are sub-roots whose panels switch
+ * between the category's cloud catalog and its other views through the sub-tab
+ * strip below the main bar. Plugins is the fourth: it is this application's own
+ * plugin surface and has no cloud catalog.
  */
 export type MarketsTab = 'plugins' | 'experts' | 'skills' | 'connectors'
 
-/** The Plugins tab's sub-views. */
-export type PluginsSubTab = 'cloud' | 'market' | 'official' | 'installed'
+/**
+ * The Plugins tab's sub-views. There is no cloud catalog: the App Store's
+ * plugin market is retired, so the community Plugin Market leads and the
+ * application's own two views follow it.
+ */
+export type PluginsSubTab = 'market' | 'official' | 'installed'
 
 /**
- * The Experts tab's sub-views. Experts is a sub-root like Plugins: the cloud
+ * The Experts tab's sub-views. Experts is a sub-root like Skills: the cloud
  * catalog (the SDKWork App Store's expert catalog) is the product's shelf and
  * leads, and the expert market — the `plugins/sdkwork-dsh-agents` plugin's own
  * roster panel — follows it. Both answer "which expert do I use", from
@@ -157,22 +160,22 @@ export type SkillsSubTab = 'cloud' | 'market'
 export type ConnectorsSubTab = 'cloud' | 'connector'
 
 /**
- * The tabs that render an embedded App Store market page. Every category has
- * one: its cloud catalog is the category's leading view.
+ * The tabs that render an embedded App Store market page. Plugins is the one
+ * category without one: its shelves are the community market and this
+ * application's own plugin tree.
  */
-type CloudMarketsTab = MarketsTab
+type CloudMarketsTab = Exclude<MarketsTab, 'plugins'>
 
 /** The cloud categories that also offer a personal my-catalog entry. */
-type MineMarketsTab = Exclude<MarketsTab, 'connectors'>
+type MineMarketsTab = Exclude<MarketsTab, 'connectors' | 'plugins'>
 
 /**
- * The Plugins tab's sub-tabs, in chip order. The cloud catalog leads and is
- * the landing view (the product's shelf); the community plugin market follows,
- * and a divider separates the two market views from the two "this app" views
+ * The Plugins tab's sub-tabs, in chip order. The Plugin Market leads and is the
+ * landing view; a divider separates it from the two "this app" views
  * (official + installed), so the chip row reads as
- * [cloud catalog · plugin market] | [this app's plugins].
+ * [plugin market] | [this app's plugins].
  */
-const PLUGIN_SUB_TABS: readonly PluginsSubTab[] = ['cloud', 'market', 'official', 'installed']
+const PLUGIN_SUB_TABS: readonly PluginsSubTab[] = ['market', 'official', 'installed']
 
 /** The Skills tab's sub-tabs, in chip order: the cloud catalog, then the SkillHub market. */
 const SKILL_SUB_TABS: readonly SkillsSubTab[] = ['cloud', 'market']
@@ -223,9 +226,8 @@ const CONNECTOR_SUB_TAB_ICONS: Record<ConnectorsSubTab, ComponentType<ModeIconPr
 }
 
 /**
- * The chips a divider precedes. Only the boundary between the two market
- * views and the two local views is a group break; the cloud catalog and the
- * plugin market are siblings under one market heading.
+ * The chips a divider precedes. Only the boundary between the market view and
+ * the two local views is a group break.
  */
 const PLUGIN_SUB_TAB_DIVIDERS: ReadonlySet<PluginsSubTab> = new Set<PluginsSubTab>(['official'])
 
@@ -248,34 +250,32 @@ const TAB_ICONS: Record<MarketsTab, ComponentType<ModeIconProps>> = {
   connectors: ConnectorsIcon,
 }
 
-/** Each category's search placeholder key, in {@link TAB_IDS} order. */
+/** Each storefront category's search placeholder key, in {@link TAB_IDS} order.
+ * Plugins has none: its panels carry their own search. */
 const SEARCH_KEYS = {
-  plugins: 'search.plugins',
   experts: 'search.experts',
   skills: 'search.skills',
   connectors: 'search.connectors',
-} as const satisfies Record<MarketsTab, MarketsKey>
+} as const satisfies Record<CloudMarketsTab, MarketsKey>
 
 /** The Plugins sub-tab's per-scope search placeholder, narrowed from
  * the global search when the panel switches to a sub-view. */
 const PLUGIN_SUB_TAB_SEARCH_KEYS = {
-  cloud: 'search.plugins',
   market: 'search.market',
   official: 'search.official',
   installed: 'search.installed',
 } as const satisfies Record<PluginsSubTab, MarketsKey>
 
 /** Each cloud category's my-catalog label key, in {@link TAB_IDS} order.
- * Connectors has none: the connector panel carries its own installed view. */
+ * Connectors and Plugins have none: the connector panel carries its own
+ * installed view, and the Plugins tab is this application's own roster. */
 const MINE_KEYS = {
-  plugins: 'mine.plugins',
   experts: 'mine.experts',
   skills: 'mine.skills',
 } as const satisfies Record<MineMarketsTab, MarketsKey>
 
 /** The Plugins sub-tab's per-scope chip label, in {@link PLUGIN_SUB_TABS} order. */
 const PLUGIN_SUB_TAB_KEYS = {
-  cloud: 'subtab.cloud',
   market: 'subtab.market',
   official: 'subtab.official',
   installed: 'subtab.installed',
@@ -283,19 +283,17 @@ const PLUGIN_SUB_TAB_KEYS = {
 
 /** Each Plugins sub-tab's leading glyph, in {@link PLUGIN_SUB_TABS} order. */
 const PLUGIN_SUB_TAB_ICONS: Record<PluginsSubTab, ComponentType<ModeIconProps>> = {
-  cloud: MarketsIcon,
   market: PluginsIcon,
   official: OfficialIcon,
   installed: InstalledIcon,
 }
 
 /**
- * The SDKWork App Store market page each category's cloud catalog renders.
- * Connectors' cloud catalog is the App Store's MCP catalog, the one page of
- * that surface this product had not yet given a home.
+ * The SDKWork App Store market page each storefront category's cloud catalog
+ * renders. Connectors' cloud catalog is the App Store's MCP catalog, the one
+ * page of that surface this product had not yet given a home.
  */
 const TAB_MARKET_PAGES = {
-  plugins: 'plugins',
   experts: 'experts',
   skills: 'skills',
   connectors: 'mcp',
@@ -461,11 +459,10 @@ export function MarketsPage({
     activation: (owner, name) => renderSlot('plugins.bundle.activation', owner, { entryKey: name }),
   }
   const [tab, setTab] = useState<MarketsTab>('plugins')
-  // Each sub-root lands on its cloud catalog: the chip row below the main bar
-  // opens on the SDKWork shelf, and every re-entry (a category switch, the
-  // My-experts view's back control) returns there instead of to whatever was
-  // browsed last time.
-  const [pluginSubTab, setPluginSubTab] = useState<PluginsSubTab>('cloud')
+  // The Plugins tab lands on the community Plugin Market: the App Store's
+  // plugin shelf is retired, so the market is the tab's leading view, and every
+  // re-entry returns there instead of to whatever was browsed last time.
+  const [pluginSubTab, setPluginSubTab] = useState<PluginsSubTab>('market')
   // The Experts tab's cloud catalog chip leads; the expert market follows.
   const [expertSubTab, setExpertSubTab] = useState<ExpertsSubTab>('cloud')
   // The Skills tab's cloud catalog chip leads; the SkillHub market follows.
@@ -492,7 +489,7 @@ export function MarketsPage({
   useEffect(() => {
     if (requestedBundle === undefined) return
     setTab('plugins')
-    setPluginSubTab(current => current === 'market' || current === 'cloud' ? 'official' : current)
+    setPluginSubTab(current => current === 'market' ? 'official' : current)
   }, [requestedBundle])
 
   // The dshmarket plugin's own panel, when its client half is loaded. A
@@ -522,8 +519,9 @@ export function MarketsPage({
   useEffect(() => {
     // The gate owns the read that answers whether the bundle is installed.
     // The store collapses concurrent reads. It runs only while the gate is the
-    // open surface: the cloud catalog leads the chip row, so entering Plugins
-    // spends no community-catalog read until the market chip is opened.
+    // open surface: the community market leads the chip row, so the read starts
+    // when a person enters the Plugins tab and stops meaning anything once the
+    // local roster views take the column.
     if (tab !== 'plugins' || pluginSubTab !== 'market') return
     if (storeState.read.status !== 'loading') return
     void store.refresh().catch(() => {})
@@ -554,39 +552,10 @@ export function MarketsPage({
   // their search, so the field collapses for them.
   const embeddedPanelSubTab = marketSubTab || skillMarketSubTab || connectorPanelSubTab || expertMarketSubTab
   const searchKey = tab === 'plugins' ? PLUGIN_SUB_TAB_SEARCH_KEYS[pluginSubTab] : SEARCH_KEYS[tab]
-  // The cloud catalog's install action: the entry publishes where its package
-  // comes from, and installation keeps the one pipeline every other plugin
-  // install uses. A source the standard refuses opens the form instead of
-  // failing with no explanation.
-  const installCloudPlugin = async (plugin: CloudPluginEntry): Promise<void> => {
-    const source = plugin.source
-    if (source === undefined) {
-      setSourceMode('install')
-      return
-    }
-    let spec: string
-    try {
-      spec = pluginSourceSpec(parsePluginSource({
-        kind: source.type,
-        url: source.url,
-        ...(source.ref === undefined ? {} : { ref: source.ref }),
-        ...(source.directory === undefined ? {} : { directory: source.directory }),
-        ...(source.sha256 === undefined ? {} : { sha256: source.sha256 }),
-        ...(source.nodeId === undefined ? {} : { nodeId: source.nodeId }),
-      }))
-    } catch {
-      // A catalog entry whose source the standard refuses still has a form the
-      // person can complete: open it rather than failing silently.
-      setSourceMode('install')
-      return
-    }
-    setPluginSubTab('cloud')
-    store.openInstall(spec)
-    await store.runInstall()
-    // The card's own action reports the run's outcome, so a failed install
-    // must not read as installed there.
-    if (store.getSnapshot().install?.phase !== 'done') throw new Error('the plugin installation did not finish')
-  }
+  // The storefront categories' embedded catalog page, or undefined on the
+  // Plugins tab, which renders its own two local views and the community
+  // market instead of an App Store page.
+  const cloudPage: MarketsAppProps['page'] | undefined = tab === 'plugins' ? undefined : TAB_MARKET_PAGES[tab]
   return (
     <div
       className={css.page}
@@ -608,7 +577,7 @@ export function MarketsPage({
                 onClick={() => {
                   setTab(id)
                   setQuery('')
-                  setPluginSubTab('cloud')
+                  setPluginSubTab('market')
                   setExpertSubTab('cloud')
                   setSkillSubTab('cloud')
                   setConnectorSubTab('cloud')
@@ -623,8 +592,8 @@ export function MarketsPage({
         {/* The embedded panels hand the column to their own page, which
             carries its own search and filters — so this header keeps only the
             category's own tools there, and draws no second, dead search field
-            beside the panel's own. The cloud catalog and the local plugin
-            views are the surfaces the header search serves. */}
+            beside the panel's own. The storefront cloud catalogs and the local
+            plugin views are the surfaces the header search serves. */}
         <div className={css.tools}>
           {!embeddedPanelSubTab && (
             <div className={css.search}>
@@ -689,10 +658,10 @@ export function MarketsPage({
         </div>
       </div>
       {/* The Plugins tab is a sub-root: the chip row below the main bar
-          lets the user pick between the cloud catalog, the community plugin
-          market, and the two views over this deployment's own plugin tree.
-          The cloud catalog leads (the landing view), a hairline divider
-          separates the two market views from the "this app" pair
+          lets the user pick between the community plugin market and the two
+          views over this deployment's own plugin tree.
+          The market leads (the landing view), a hairline divider
+          separates the market from the "this app" pair
           (official + installed), and the row collapses out of the DOM for the
           other main categories. */}
       {tab === 'plugins' && (
@@ -843,7 +812,6 @@ export function MarketsPage({
                       read={storeState.read}
                       install={storeState.install}
                       reload={reload}
-                      onOpenCloud={() => { setPluginSubTab('cloud') }}
                       onOpenInstalled={() => { setPluginSubTab('installed') }}
                     />
                   )
@@ -862,25 +830,22 @@ export function MarketsPage({
                         onOpenRequestHandled={onBundleRequestHandled}
                       />
                     )
-                    : (
-                      <div className={css.marketScroll}>
-                        {/* The header's search field is the one search: its query
-                            drives the embedded catalog's controlled filter. */}
-                        <MarketsApp
-                          page={TAB_MARKET_PAGES[tab]}
-                          t={t}
-                          searchQuery={query}
-                          {...(tab === 'plugins' ? { onInstallPlugin: installCloudPlugin } : {})}
-                        />
-                      </div>
-                    )}
+                    : cloudPage === undefined
+                      ? null
+                      : (
+                        <div className={css.marketScroll}>
+                          {/* The header's search field is the one search: its query
+                              drives the embedded catalog's controlled filter. */}
+                          <MarketsApp page={cloudPage} t={t} searchQuery={query} />
+                        </div>
+                      )}
         </MarketsSurfaceBoundary>
       </div>
       {/* The install dialog follows whichever plugin view started the run: the
-          Plugin Market's gate, a source install started from the add menu, or a
-          bundle chosen on the cloud catalog. The local official/installed
-          panels mount their own copy inside the roster, so this page-level one
-          stays off those views to keep a single overlay. */}
+          Plugin Market's gate or a source install started from the add menu.
+          The local official/installed panels mount their own copy inside the
+          roster, so this page-level one stays off those views to keep a single
+          overlay. */}
       {!showLocalPanel && (
         <PluginMarketInstallDialog t={t} store={store} install={storeState.install} />
       )}
@@ -894,8 +859,8 @@ export function MarketsPage({
           onSubmit={(submission) => {
             setSourceMode(undefined)
             if (sourceMode === 'install') {
-              // Progress belongs to the catalog surface the plugins came from.
-              setPluginSubTab('cloud')
+              // Progress belongs to the market surface the install started from.
+              setPluginSubTab('market')
               store.openInstall(submission.spec)
               void store.runInstall()
               return

@@ -22,7 +22,6 @@ export const zh = {
   'subtabs.skills.label': '技能视图',
   'subtabs.experts.label': '专家视图',
   'subtabs.connectors.label': '连接器视图',
-  'search.plugins': '搜索插件名称或描述',
   'search.market': '搜索社区插件',
   // ── 插件市场（dshmarket）承载页：加载中、失败、已安装未加载、未安装 ──
   'market.loading': '正在加载插件市场…',
@@ -40,13 +39,11 @@ export const zh = {
   'market.missing.unmanaged': '当前部署不管理插件，无法从这里安装。',
   'market.missing.action': '安装插件市场',
   'market.missing.installing': '正在安装…',
-  'market.missing.cloud': '打开云端目录',
   'search.experts': '搜索专家名称或描述',
   'search.skills': '搜索技能名称或描述',
   'search.connectors': '搜索连接器名称或描述',
   'search.official': '搜索官方插件名称或模块',
   'search.installed': '搜索已安装插件名称或模块',
-  'mine.plugins': '我的插件',
   'mine.experts': '我的专家',
   'mine.skills': '我的技能',
   // ── 我的专家页面（专家 tab 的「我的专家」入口进入的整页视图） ──
@@ -404,7 +401,6 @@ export const en = {
   'subtabs.skills.label': 'Skill views',
   'subtabs.experts.label': 'Expert views',
   'subtabs.connectors.label': 'Connector views',
-  'search.plugins': 'Search plugins by name or description',
   'search.market': 'Search community plugins',
   // See the zh block: the Plugin Market (dshmarket) host page's four states.
   'market.loading': 'Loading the plugin market…',
@@ -422,13 +418,11 @@ export const en = {
   'market.missing.unmanaged': 'This deployment does not manage plugins, so it cannot be installed here.',
   'market.missing.action': 'Install plugin market',
   'market.missing.installing': 'Installing…',
-  'market.missing.cloud': 'Open cloud catalog',
   'search.experts': 'Search experts by name or description',
   'search.skills': 'Search skills by name or description',
   'search.connectors': 'Search connectors by name or description',
   'search.official': 'Search official plugins by name or module',
   'search.installed': 'Search installed plugins by name or module',
-  'mine.plugins': 'My plugins',
   'mine.experts': 'My experts',
   'mine.skills': 'My skills',
   // See the zh block: the full-page My-experts view the Experts tab's

@@ -19,7 +19,7 @@ export interface DemandHallEmptySurfaceProps {
  * @returns the themed unconfigured face.
  */
 /* jscpd:ignore-start -- the deliberate per-package copy shared with
-   ui-sdkwork-markets and ui-sdkwork-template-library. */
+   ui-sdkwork-markets. */
 export function DemandHallEmptySurface({ t }: DemandHallEmptySurfaceProps) {
   return (
     <div className={css.empty} data-demand-hall-empty="unconfigured">

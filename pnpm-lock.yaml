@@ -7905,9 +7905,6 @@ importers:
       '@deepseek-ai/dsh-client-ui-sdkwork-skills':
         specifier: workspace:*
         version: link:../../client/ui-sdkwork-skills
-      '@deepseek-ai/dsh-client-ui-sdkwork-template-library':
-        specifier: workspace:*
-        version: link:../../client/ui-sdkwork-template-library
       '@deepseek-ai/dsh-client-ui-sdkwork-token-plan':
         specifier: workspace:*
         version: link:../../client/ui-sdkwork-token-plan
@@ -13331,72 +13328,6 @@ importers:
       react:
         specifier: 19.2.8
         version: 19.2.8
-
-  packages/client/ui-sdkwork-template-library:
-    devDependencies:
-      '@deepseek-ai/cordis':
-        specifier: workspace:~
-        version: link:../../../vendor/cordis
-      '@deepseek-ai/dsh-client-locale':
-        specifier: workspace:*
-        version: link:../locale
-      '@deepseek-ai/dsh-client-runtime':
-        specifier: workspace:*
-        version: link:../runtime
-      '@deepseek-ai/dsh-client-ui-layout':
-        specifier: workspace:*
-        version: link:../ui-layout
-      '@deepseek-ai/dsh-client-ui-sdkwork-app-modes':
-        specifier: workspace:*
-        version: link:../ui-sdkwork-app-modes
-      '@deepseek-ai/dsh-client-ui-sdkwork-env':
-        specifier: workspace:*
-        version: link:../ui-sdkwork-env
-      '@deepseek-ai/dsh-client-ui-sdkwork-iam':
-        specifier: workspace:*
-        version: link:../ui-sdkwork-iam
-      '@deepseek-ai/dsh-client-ui-sidebar':
-        specifier: workspace:*
-        version: link:../ui-sidebar
-      '@deepseek-ai/dsh-client-ui-slots':
-        specifier: workspace:*
-        version: link:../ui-slots
-      '@deepseek-ai/dsh-client-ui-theme':
-        specifier: workspace:*
-        version: link:../ui-theme
-      '@sdkwork/appstore-pc-embed':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-embed
-      '@sdkwork/appstore-pc-runtime':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-runtime
-      '@sdkwork/sdk-common':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
-      '@tailwindcss/node':
-        specifier: 'catalog:'
-        version: 4.3.5
-      '@tailwindcss/oxide':
-        specifier: 'catalog:'
-        version: 4.3.5
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
-      react:
-        specifier: 19.2.8
-        version: 19.2.8
-      react-dom:
-        specifier: 19.2.8
-        version: 19.2.8(react@19.2.8)
-      react-router-dom:
-        specifier: 'catalog:'
-        version: 7.18.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.5
-      tailwindcss-animate:
-        specifier: 'catalog:'
-        version: 1.0.7(tailwindcss@4.3.5)
 
   packages/client/ui-sdkwork-token-plan:
     devDependencies:

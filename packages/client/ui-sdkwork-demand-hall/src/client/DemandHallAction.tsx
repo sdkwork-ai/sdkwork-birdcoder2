@@ -1,7 +1,7 @@
 /**
  * The Demand Hall sidebar entry: the quick entry in the New Session button
  * area (the `sidebar.actions` list seat declared by the sidebar shell),
- * ordered below the template-library entry. Clicking opens the demand hall
+ * ordered below the market entry. Clicking opens the demand hall
  * page as an overlay inside the code surface through the layout service — the
  * rail selection stays `code`, so the code rail entry keeps its highlight.
  * Wide renders the icon + label row; the collapsed rail renders the icon

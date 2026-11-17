@@ -342,7 +342,7 @@ describe('AppFrame', () => {
 
   it('keeps the sidebar mounted beside a sidebar-launched overlay', () => {
     const { frame, instance, getByTestId } = mountFrame()
-    for (const overlay of ['markets', 'template-library', 'demand-hall'] as const) {
+    for (const overlay of ['markets', 'demand-hall'] as const) {
       act(() => { instance.actions.setPanelMode(overlay) })
       expect(instance.getSnapshot().layoutInfo.mode).toBe('code')
       expect(getByTestId('sidebar-content')).toBeTruthy()
@@ -356,8 +356,8 @@ describe('AppFrame', () => {
   it('returns the center column to the Conversation when a module overlay is left', () => {
     selectedSessionTitle = 'Session title'
     const { instance, queryByTestId, getByTestId } = mountFrame()
-    act(() => { instance.actions.setPanelMode('template-library') })
-    expect(getByTestId('mode.page-content').getAttribute('data-entry-key')).toBe('template-library')
+    act(() => { instance.actions.setPanelMode('demand-hall') })
+    expect(getByTestId('mode.page-content').getAttribute('data-entry-key')).toBe('demand-hall')
     expect(queryByTestId('main-content')).toBeNull()
     expect(document.title).toBe('DSH Local Build')
 

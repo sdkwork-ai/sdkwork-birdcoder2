@@ -72,7 +72,7 @@ describe('createSidebarLayoutPreference', () => {
   it('starts with the shipped hidden rows and keeps one snapshot reference until it changes', () => {
     const preference = createSidebarLayoutPreference()
     const first = preference.get()
-    expect(first).toEqual(['sdkwork-appstore', 'sdkwork-template-library', 'sdkwork-demand-hall'])
+    expect(first).toEqual(['sdkwork-appstore', 'sdkwork-demand-hall'])
     expect(preference.get()).toBe(first)
   })
 

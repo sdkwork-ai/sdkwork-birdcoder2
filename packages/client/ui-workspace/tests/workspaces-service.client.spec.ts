@@ -828,9 +828,9 @@ describe('UiWorkspaceService', () => {
     const b = bench({ workspaces: workspaceState([workspace('a')]) })
     const opening = vi.spyOn(b.uiWorkspace, 'openWorkspace')
     // The surface that owned the center column before the request — a rail
-    // mode page or a code-surface overlay (template library, markets) — must
+    // mode page or a code-surface overlay (markets, demand hall) — must
     // not outlive the reveal, or the new Session never becomes visible.
-    b.layout.setMode('template-library')
+    b.layout.setMode('markets')
     b.setMode.mockClear()
     b.selectPanel.mockClear()
 
