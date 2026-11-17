@@ -278,7 +278,8 @@
     "check:client-env": "node ../sdkwork-specs/tools/materialize-client-env.mjs --root . --check",
     "purge:latest": "pnpm --filter @deepseek-ai/dsh-desktop run purge:latest",
     "verify-plugin-entry-exports": "tsx scripts/verify-plugin-entry-exports.ts",
-    "release:publish": "tsx scripts/release/publish.ts"
+    "release:publish": "tsx scripts/release/publish.ts",
+    "check:release-access-token:require-anchor": "node ../sdkwork-specs/tools/check-release-access-token-env.mjs --root . --require-anchor"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-action-cards": "workspace:*",

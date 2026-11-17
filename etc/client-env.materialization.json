@@ -61,7 +61,7 @@
         "VITE_SDKWORK_RUNTIME_TARGET"
       ],
       "accessToken": {
-        "appId": "sdkwork-birdcoder2-pc",
+        "appIdEnv": "SDKWORK_DEPLOY_APPLICATION_ID",
         "tenantId": "100001",
         "organizationId": "0",
         "permissionScope": [
@@ -99,7 +99,7 @@
         "VITE_SDKWORK_RUNTIME_TARGET"
       ],
       "accessToken": {
-        "appId": "sdkwork-birdcoder2-h5",
+        "appIdEnv": "SDKWORK_DEPLOY_APPLICATION_ID",
         "tenantId": "100001",
         "organizationId": "0",
         "permissionScope": [
@@ -137,7 +137,7 @@
         "VITE_SDKWORK_RUNTIME_TARGET"
       ],
       "accessToken": {
-        "appId": "sdkwork-birdcoder2-pad",
+        "appIdEnv": "SDKWORK_DEPLOY_APPLICATION_ID",
         "tenantId": "100001",
         "organizationId": "0",
         "permissionScope": [
@@ -178,7 +178,7 @@
         "SDKWORK_RUNTIME_TARGET"
       ],
       "accessToken": {
-        "appId": "sdkwork-birdcoder2-flutter-mobile",
+        "appIdEnv": "SDKWORK_DEPLOY_APPLICATION_ID",
         "tenantId": "100001",
         "organizationId": "0",
         "permissionScope": [
@@ -219,7 +219,7 @@
         "SDKWORK_RUNTIME_TARGET"
       ],
       "accessToken": {
-        "appId": "sdkwork-birdcoder2-mini-program",
+        "appIdEnv": "SDKWORK_DEPLOY_APPLICATION_ID",
         "tenantId": "100001",
         "organizationId": "0",
         "permissionScope": [
