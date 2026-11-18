@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-dns",
   "description": "SDKWork domain management plugin: the settings-menu row below 公众号账号 and its wide dialog over the deployments app API — root domains (zones), subdomain ownership verification, and DNS resolution records, with host-constructed clients bound to the shared environment and IAM session",
-  "version": "0.2.2-rc.4",
+  "version": "0.2.2-rc.5",
   "publishConfig": {
     "access": "public"
   },

@@ -1,6 +1,6 @@
 {
   "name": "@sdkwork/birdcoder2-pad",
-  "version": "0.2.2-rc.4",
+  "version": "0.2.2-rc.5",
   "private": true,
   "type": "module",
   "description": "BirdCoder2 tablet-first application root for iPadOS and Android tablets.",
