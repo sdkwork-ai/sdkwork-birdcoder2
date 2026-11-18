@@ -239,6 +239,10 @@ jobs:
         # select that profile. `pnpm run build` resolves to the fork's product
         # build, which records whatever public values it inherited — on a
         # runner, none — so the record carried no profile and no title.
+        env:
+          # The committed root profiles carry the placeholder anchor; the build
+          # re-anchors the public token from this deploy application id.
+          SDKWORK_DEPLOY_APPLICATION_ID: app_01a18b4f-6f61-7ff1-b86c-75b54995883f
         run: pnpm run build:official
 
       - name: Prepare prebuilt context

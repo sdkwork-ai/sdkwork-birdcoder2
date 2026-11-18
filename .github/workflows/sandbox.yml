@@ -125,6 +125,8 @@ jobs:
       # together so registry state cannot mask source/package drift.
       - name: Build packages for the pack rehearsal
         if: matrix.runner == 'landlock'
+        env:
+          SDKWORK_DEPLOY_APPLICATION_ID: app_01a18b4f-6f61-7ff1-b86c-75b54995883f
         run: pnpm run build:official
 
       - name: Packed-distribution e2e (pack → install → confine)

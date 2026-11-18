@@ -163,6 +163,10 @@ jobs:
         run: pnpm run release:verify --family dsh
 
       - name: Build
+        env:
+          # The committed root profiles carry the placeholder anchor; the build
+          # re-anchors the public token from this deploy application id.
+          SDKWORK_DEPLOY_APPLICATION_ID: app_01a18b4f-6f61-7ff1-b86c-75b54995883f
         run: ${{ github.event_name == 'pull_request' && 'pnpm run build:artifacts --profile official' || 'pnpm run build:official' }}
 
       # Concurrency here is rehearsal-only: the credentialed publish workflows

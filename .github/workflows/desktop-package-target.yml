@@ -84,6 +84,9 @@ env:
   # build default; stating it keeps a future default change from silently
   # switching the release to another deployment.
   DSH_WEB_DEPLOYMENT_PROFILE: cloud
+  # The committed root profiles carry the placeholder anchor; the build
+  # re-anchors the public token from this deploy application id.
+  SDKWORK_DEPLOY_APPLICATION_ID: app_01a18b4f-6f61-7ff1-b86c-75b54995883f
   # This lane builds the Web frontend with Vite's `production` mode, so
   # `apps/web/vite.config.ts` reads the committed `.env.cloud.production` and
   # bakes the SDKWork cloud edge (`https://api.sdkwork.com`) and

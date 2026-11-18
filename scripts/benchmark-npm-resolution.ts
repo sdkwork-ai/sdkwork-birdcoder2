@@ -430,6 +430,10 @@ function close(server: Server): Promise<void> {
 }
 
 function npmExecutable(): string {
+  // TEMP DEBUG (revert): allow pointing the gate at a specific npm (CI-version
+  // reproduction on a host with several Node installs).
+  const override = process.env.DSH_NPM_EXECUTABLE
+  if (override !== undefined && override !== '') return override
   return process.platform === 'win32' ? 'npm.cmd' : 'npm'
 }
 
@@ -567,7 +571,17 @@ async function runNpm(
   })
   if (result.timedOut) return result
   if (result.status !== 0) {
-    throw new Error(`npm install exited ${String(result.status)} after ${result.durationMs.toFixed(0)} ms\n${result.output.trim()}`)
+    // TEMP DEBUG (revert): append the npm debug-log tail so a clean-tempered
+    // failure still names its cause.
+    let logTail = ''
+    try {
+      const { readdirSync } = await import('node:fs')
+      const logDir = join(cwd, '.npm-cache', '_logs')
+      for (const file of readdirSync(logDir)) {
+        logTail += `\n=== ${file} (tail) ===\n${readFileSync(join(logDir, file), 'utf8').slice(-200000)}`
+      }
+    } catch { /* no log dir */ }
+    throw new Error(`npm install exited ${String(result.status)} after ${result.durationMs.toFixed(0)} ms\n${result.output.trim()}${logTail}`)
   }
   return result
 }
