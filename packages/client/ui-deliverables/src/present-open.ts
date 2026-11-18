@@ -112,14 +112,13 @@ async function handlePresentOpen(ctx: Context, request: Request): Promise<Respon
   try {
     const read = await readTarget(ctx, request, id, seq)
     if (read instanceof Response) return read
-    const { target, session } = read
+    const { target } = read
     const file = target.type === 'deliverables/presented' && isPresentedData(target.data) ? target.data.files[index] : undefined
     if (!isPresentedFile(file)) return new Response('Presented file not found in this Session result.', { status: 404 })
     request.signal.throwIfAborted()
-    const { absolutePath: path } = await ctx.workspaceFiles.stat({
-      sessionId: id as SessionId,
-      workspaceRoot: session.cwd ?? ctx.sandboxPolicy.workspaceRoot,
-    }, file.path, request.signal)
+    const scope = await ctx.workspaceFiles.scopeOf(id as SessionId, request.signal)
+    if (scope === undefined) return new Response('Presented file Session not found.', { status: 404 })
+    const { absolutePath: path } = await ctx.workspaceFiles.stat(scope, file.path, request.signal)
     return await openVerified(ctx, request, path, action)
   } catch (error: unknown) {
     request.signal.throwIfAborted()
@@ -128,7 +127,8 @@ async function handlePresentOpen(ctx: Context, request: Request): Promise<Respon
 }
 
 /**
- * The summary one `workspace/changes` event announced, without the Host working directory.
+ * The summary one `workspace/changes` event announced, without its snapshot ids; it carries
+ * the turn's working directory so the client resolves changed-file paths against it.
  * Answers `204` with no body once the Host no longer serves it: an older turn of a
  * conversation reopened after a Host restart is an ordinary absence, not a failed request,
  * so the card stays out of the browser's failed-request log.
@@ -140,8 +140,8 @@ function handleChangesSummary(ctx: Context, request: Request): Response {
   if (!id || seq === undefined) return new Response('Invalid change summary coordinates.', { status: 400 })
   const summary = ctx.workspaceChanges.summary(id as SessionId, seq)
   if (summary === undefined) return new Response(null, { status: 204, headers: { 'cache-control': 'no-store' } })
-  const { turn, files, total, added, deleted } = summary
-  return Response.json({ turn, files, total, added, deleted } satisfies ChangesSummary, { headers: { 'cache-control': 'no-store' } })
+  const { turn, cwd, files, total, added, deleted } = summary
+  return Response.json({ turn, cwd, files, total, added, deleted } satisfies ChangesSummary, { headers: { 'cache-control': 'no-store' } })
 }
 
 /** A changed file's coordinates from a route query, or the 400 to answer with. */

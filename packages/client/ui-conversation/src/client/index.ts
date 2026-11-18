@@ -89,7 +89,7 @@ export type {
   ConversationHeaderSurfaceSlotProps,
   ConversationHeaderActionOwnerProps, ConversationHeaderCornerOwnerProps, ConversationHeaderLineageOwnerProps,
   ConversationContentInputProps, ConversationContentProps,
-  ConversationInjected, ConversationSessionHeaderInjected, ConversationSessionHeaderSlotProps,
+  ConversationInjected, ConversationSessionHeaderInjected, ConversationSessionHeaderSlotProps, ConversationShellInjected,
   ConversationSessionInjected, ConversationSessionSlotProps, ConversationSlotProps,
   ConversationViewActionEntry, ConversationViewActionsOwnerProps, ConversationViewsProps,
   ConversationWidthControlsInputProps, ConversationWidthControlsProps,
@@ -97,6 +97,7 @@ export type {
   HeroAgentPresetOwnerProps, HeroBrandMarkOwnerProps, HeroFrameOwnerProps, InputControlOwnerProps, InputZone,
   MessageImageLabels, MessageImageLoader, MessageImageSource, MessageImagesContentInput, MessageImagesOwnerProps, UseConversation,
   UserTextInput, UserTextInjected, UserTextNodeOwnerProps, UserTextNodeProps,
+  WorkspaceSelectedHandler, WorkspaceSessionAdopter,
   UseConversationViews,
 } from './contract/slots.ts'
 export type {

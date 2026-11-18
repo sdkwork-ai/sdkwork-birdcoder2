@@ -20,6 +20,8 @@ import type { DesktopBridge } from './desktop-bridge.ts'
 import { IpcApiClient } from './ipc-api-client.ts'
 import { createIpcConnectionRpc } from './ipc-rpc.ts'
 import { resolveConnectionConfig } from '../recovery-config.ts'
+import type { SyncedConfig } from '@deepseek-ai/dsh-client-config/types'
+import type { ConnectionConfig } from '../types.ts'
 import type { ConnectionInteractions } from '../connect-protocol.ts'
 import { openConnectionWebSocket, type ConnectionWebSocket, type ConnectionWebSocketFactory } from './socket.ts'
 
@@ -137,7 +139,6 @@ export interface ClientTransportHooks {
 /** Page global carrying {@link ClientTransportHooks}; absent in the served web app. */
 interface ClientTransportGlobal {
   __DSH_TRANSPORT__?: ClientTransportHooks
-  __DSH_CONNECTION_RECOVERY__?: unknown
 }
 
 /** Browser location fields used to classify loopback authority. */
@@ -375,14 +376,15 @@ export function installConnection(ctx: Context, options: ConnectionInstallOption
 /**
  * Client plugin body: read the page composition and install its Connection service.
  * @param ctx - client Cordis context.
+ * @param config - Host-synced recovery timing, read once here; an absent value uses the recovery defaults.
  */
-export function apply(ctx: Context): void {
+export function apply(ctx: Context, config: SyncedConfig<ConnectionConfig>): void {
   const globals = globalThis as ClientTransportGlobal
   const pageLocation = typeof location === 'undefined' ? undefined : location
   const transport = globals.__DSH_TRANSPORT__
   installConnection(ctx, {
     ...(transport === undefined ? {} : { transport }),
-    recovery: resolveConnectionConfig(globals.__DSH_CONNECTION_RECOVERY__),
+    recovery: resolveConnectionConfig(config.recovery.get()),
     ...(pageLocation === undefined ? {} : { location: pageLocation }),
   })
 }

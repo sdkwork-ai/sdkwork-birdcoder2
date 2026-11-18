@@ -2,86 +2,77 @@
 
 本文件只记录**当前版本**——`##` 标题就是本次发布打的 tag，不累积历史版本条目；往期条目随各自版本的提交保留在 git 历史里（`git log -p CHANGELOG.md`）。「上游变更」按该 tag 内的实际提交归纳并注明来源（上游尚未发布该版 Release notes 时如此处理）；「BirdCoder 本次更新」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
-## 0.2.2-rc.4（fork 同步 2026-11-18）
+## 0.2.2-rc.5（fork 同步 2026-11-18）
 
-本版本把 `deepseek-ai/deepseek-harness` 的 `0.2.2-rc.4` 完整合入 fork。上游 `master` 从上一合并基底 `39163dd30f7`（rc.3 合并点）推进到 `ca33fd6843b`（`Merge pull request #8667 from deepseek-harness/worktree-sync-release-dsh-0.2.2-0.2.2-rc.4-to-master`），对应上游 tag `dsh-v0.2.2-rc.4`。相对基底新增 **807 个提交、3104 个文件变更**（+88070 / −31776，其中新增 590、删除 95、修改 2374、重命名 41）。合并保留真实双亲 merge commit，上游 807 个提交记录、commit message 与代码注释逐字随合并进入仓库；版本线前移到 **0.2.2-rc.4**，tag `birdcoder-v0.2.2-rc.4` 与之同名。
+本版本把 `deepseek-ai/deepseek-harness` 的 `0.2.2-rc.5` 完整合入 fork。上游 `master` 从上一合并基底 `ca33fd6843b`（rc.4 合并点）推进到 `2e39e70496a`（`Merge pull request #8728 from deepseek-harness/worktree-release-dsh-0.2.2-rc.5`），对应上游 tag `dsh-v0.2.2-rc.5`。相对基底新增 **238 个提交（其中 139 个非 merge 功能/修复提交）、960 个文件变更**（+22274 / −2710）。合并保留真实双亲 merge commit，上游 238 个提交记录、commit message 与代码注释逐字随合并进入仓库；版本线前移到 **0.2.2-rc.5**。
 
-### 上游变更（deepseek-harness 0.2.2-rc.4）
+### 上游变更（deepseek-harness 0.2.2-rc.5）
 
-上游尚未发布该版官方 Release notes（GitHub API 未返回 `dsh-v0.2.2-rc.4` 的 Release 正文），以下按该 tag 区间内的实际提交主题归纳，来源为 `git log 39163dd30f7..ca33fd6843b`（807 个提交，其中非 merge 的功能/修复提交为主题主体）。
+上游尚未以 Release 正文形式发布该版说明，以下按 `git log ca33fd6843b..2e39e70496a` 的实际提交主题归纳。
 
-#### 会话与持久化
+#### 会话、SQLite 与持久化
 
-* Session 存储切换到 **SQLite**，打开时自动导入旧 JSONL（`feat(session)!: use SQLite and import legacy JSONL on open`），并把 frame size 做成插件设置（`feat(session): make the SQLite frame size a plugin setting`）；配套性能改进：按配置选择 frame 压缩、并发解码、事件以压缩 frame 存储（`perf(session): select SQLite frame compression by config and decode frames concurrently` / `store SQLite events as compressed frames`）。
-* Session controller 的缓冲窗口修正：窗口缓冲期间先消费已到达的较旧页（`fix(session-controller): consume an arrived older page before buffering the window`），并正确处理经符号链接目录请求的具名 Session（`fix(session-controller): adopt a named Session requested through a symlinked directory`）。
-* 客户端会话保留策略重做：未渲染时不折叠会话、保留最近访问会话（`#8502`、`feat(client): keep drafts with a connectionless Session hold and fold only the last page on return`）；UI 侧从 Host Config 同步 recent-view 上限（`feat(ui-workspace): sync the recent-view limit from the Host Config`）。断连、缺口修复与最近访问计数在 Session 缓冲时保持一致（`fix(client): keep gap repair, disconnect, and recent-view counting correct while Sessions are buffered`）。
-* 等父前缀持久化后创建共享 fork（`feat(session): 等父前缀持久化后创建共享 fork (#8392)`）；SQLite WAL 初始化争用重试（`fix(session): retry contended SQLite WAL initialization`）。
+* 并发 SQLite 提交合并为单组事务（`perf(session): commit concurrent SQLite batches as one group`），每次提交后让出事件循环（`fix(session): yield the event loop after each SQLite commit`），并补齐分组提交与失败隔离的测试（`test(session): cover SQLite group commits and failure isolation`）。
+* Session 存储保持 SQLite 主线，连接恢复时序改为通过 synced Config 字段下发，页面注入路径随之调整（见「客户端与连接」）。
 
-#### 账号、鉴权与凭据
+#### Forge、代码审阅与 Worktree
 
-* 新增 DeepSeek 请求鉴权（`feat(deepseek-auth): add DeepSeek request authentication`），deepseek-auth 随发行元数据进入 Python runtime 闭包（`feat(deepseek-auth): ship display metadata and join the Python runtime closure`）。
-* 凭据层接管 API Key 的合法性检查（`feat(credentials): own the API key well-formedness check`）；account 包独立承载 DeepSeek 账号登录与仅限 Host 的请求凭据。
-* 移除路由失败时的 sdk-server 回退鉴权（`fix(sdk-server): remove the fallback authentication when its route fails`），mcp-client 在路由准入前先应答 OAuth 回调（`fix(mcp-client): answer the OAuth callback before route admission`）。
-* 连接鉴权注册表在未被遮蔽的名字下读取（`fix(connection): read the authentication registry under a non-shadowed name`，fork 侧同步修正）。
+* 新增**代码审阅页面**（`feat(forge): add the code review page`）：列出当前登录用户的 change request、读取描述、审阅列表支持搜索、状态以块（blocks）呈现、读取期间以骨架行占位（`feat(forge): draw the review lists as skeleton rows while they are read`、`show the review summary's status as blocks`、`search the review lists under the client search rule`）。页面客户端文件独立成目录（`refactor(forge): keep the code review page's client files in a folder of their own`）。配套文档、主题门禁修复、共享代码与测试落地。
+* 审阅列表以紧凑视图呈现，审阅评论可引用进聊天输入（`feat(forge): add a compact review list view and quote review comments into the chat`）；变更视图移除已保存的评论卡片（`fix(forge): remove saved comment cards from the changes view`），页面停止展示时释放审阅会话（`fix(forge): release the review conversation when the page stops showing it`）。
+* 仓库菜单始终列出全部仓库（`fix(forge): keep offering every repository in the review page's repository menu`），状态折叠箭头方向修正（`fix(forge): point the status fold's chevron up when it folds`），审阅 tab 顺序与事件图/插件清单随配置刷新（`fix(forge): name the review tab order outside the copy rule and regenerate event graphs and the plugin package list`）。
+* worktree 的 Git 目录不再被沙箱策略按布局推断，改由配置与 `registerWritableRoot` 授予（`refactor(sandbox-policy): read no Git layout; grants come from configuration and registerWritableRoot`）；worktree 维护以源 checkout 为界（`fix(sandbox-policy): bound worktree maintenance by the source checkout`），forge worktree 阻断项计入 sandbox grant（`fix(deliverables): … count sandbox grants in the forge worktree blocker`）。
 
-#### Forge、Worktree 与插件
+#### 客户端、连接与会话面板
 
-* Forge 变更请求在 Session 面板里以紧凑卡片呈现（`feat(forge): draw change requests as compact cards in the Session panel`），文件树中被浏览过的文件以弱化样式显示；命名 worktree 分支、从远端分支创建并显示正在读取的变更（`#8536`）。
-* worktree 工具合并：`feat(worktree)!: merge create_worktree into enter_worktree`，并为资源池里已存在的 worktree 增加 `enter_worktree`；首个消息才创建被请求的 worktree（`fix(forge): create a requested worktree for the first message only`）。
-* Forge 读取、审阅并绑定 GitLab merge request（`#8317`）；插件管理器以变更结果的 application 状态作为是否需要重启的权威依据（`fix(plugin-manager): make the change result's application status authoritative for restarts`）。
-* plugin-manager 的 `invalid-spec` / `already-installed` 文案更新，`list_plugins` / `set_plugin` 支持原地重载提示；tool-cordis 向插件作者暴露运行中的 DSH 版本（`feat(tool-cordis): expose the running DSH version to plugin authors`）。
+* Host 配置改为通过 synced plugin Config 以 page-global 方式下发（`refactor(client): deliver page-global Host configuration through synced plugin Config`），Remote 链使用连接 synced Config（`fix(client): pass the connection synced Config in the built Remote chain …`）；等待注入的插件配置表达式在注入完成前不发布 synced 值（`fix(client-modules): publish no synced values while a pending plugin's config expression awaits an injection`）。账户联系人表单固定在本页全局（`fix(client): keep the account contact form on its page global …`）。
+* 每个内容实例独立处理 Workspace 选择（`refactor(ui-conversation): let each content occurrence handle a Workspace pick`），embedded Workspace pick 以单一受检步骤交接（`fix(conversation): hand an embedded Workspace pick over in one checked step`）。
+* 侧栏面板行新增行尾内容（trailing content）：按标题之后排布、悬停/聚焦时让位给取消固定操作、窄栏显示在图标右上、不可含交互元素（`feat(sidebar): show trailing content on panel rows`、`fix(ui-sidebar): rest panel trailing content at the row's end and swap it for the unpin action on hover`、`fix(sidebar): lay panel trailing content out after the title like a Session row`）。fork 的 IM 面板快捷入口过滤行为保留。
+* 新增 shared title marquee 与 embedded hero 选项（`feat(client): add panel row trailing content, embedded hero options, and a shared title marquee`）；HeroShell 新增 `headline` 覆盖文案（fork 侧仍渲染静态 BirdCoder 鸟标，见「BirdCoder 本次更新」）。
+* 连接恢复时序由页面注入改为 synced 字段声明：配置声明浏览器恢复时序、不再向页面注入（`test` 中明确 `injects nothing into served pages`），NaN 恢复系数的校验理由写入文档。fork 侧仍保留自身页面注入与 API 网关 fallback（见冲突处理）。
 
-#### Skills、Subagent、LLM 与工具
+#### 交付物、工作区与沙箱
 
-* 新增 upstream-skills 连接插件与运行时下载（`upstream-skills` 首次下载时才加载 node-tar：`fix(upstream-skills): load node-tar at the first download`）。
-* Subagent 每次调用读取模型选择设置（`feat(subagent): read model-selection setting at each call`），运行中的 subagent 置顶并折叠超过五行的列表；模型选择设置失败被隔离（`fix(subagent): isolate model selection setting failures`），误用抑制与模块图恢复（`fix(subagent): restore misused-promises suppression and module graph`）。
-* llm-deepseek 新增 `safetyCheck` 开关、默认请求内容安全检查，并处理拒答而不触发安全复核（`feat(llm-deepseek): add safetyCheck switch` / `always request the content safety check` / `handle refusals without requesting safety review`）。
-* 新增 tool-session-list（`feat(tool-session-list): show complete call arguments on tool cards`，`list_workspace` 保持同步执行）；action-cards 从回答中的 action-card 块提供卡片而非工具（`feat(action-cards): offer cards from action-card blocks in answers instead of a tool`）。
-* CUA 增加 `toggleMouse` 及 Windows 初始支持（`#8425`）；liveshare 在 Host 的 Electron Node 模式下启动 tunnel worker（`#8634`），并开放一份分享可服务的 viewer 能力（`#8304`）。
-* PTC 在工具结果被抑制时加保护、用渲染文本检查工具结果、限制 `String.raw` 并以引用行数组写入文件内容。
+* 变更文件路径改为相对该轮开始所在目录解析（`fix(deliverables): resolve changed-file paths against the turn's directory`）：summary 携带 `cwd`，客户端据此解析完整路径与 review tab 的 Sidebar 文件地址。
+* workspace-root 校验 LSP root、丢弃未读取的原目录并修复 CI 输入（`fix(workspace-root): validate the LSP root, drop the unread original directory, and repair CI inputs`）；workspace-write 边界指南与 Git 目录 grant 在 Windows 进程中的限制写入 upgrade guide。
+* ui-sidebar-files 对持有查询的窗格移动到新 checkout 的搜索修正（`fix(ui-sidebar-files): search the checkout a held query's pane moves to`）。
 
-#### UI、调度与桌面
+#### 桌面、CUA 与安装器
 
-* 侧栏/导航：统一 sidebar action 图标与 14px 间距，列表拖到边缘时滚动，指针离开 500ms 后滚动条淡出；新会话间距收紧到六像素（再减两像素），字体大小控件右对齐、文件打开器边框与面板图标对齐、导航分组留白平衡。
-* 模型选择：navigation chevrons 与关联的模型/推理强度值共享前景色；ui-model-selection 通用文案更新（fork 侧保留 BirdCoder 排第一的品牌排序）。
-* 调度/任务：每周回顾限定为用户自己的日程并推荐任务（`feat(ui-schedule): scope the weekly review to the user's own work` / `recommend a weekly review task`）；jobs 每个分组超过五行折叠、活跃任务优先；agent-team 共享任务按状态排序并折叠。
-* 会话面板为长列表提供折叠控件；插件设置出现在 Plugins 页；客户端新增从上下文菜单添加文件引用。
-* app-boot 修正：按请求平台的路径规则处理 include 文件名、把盘符 include 路径按 Include 的规则解析、审计被 Loader 拒绝的 entry options 并隔离配置 dump 快照。
-* liveshare 相关模块与 working-directory 存储变更事件被忽略（`feat(working-directory): ignore stored working-directory/change events`）。
+* 开发态 Harness 状态移出 `.desktop-build`，改到 `.desktop-dev`，启动时迁移缺失目录并在运行中的 Harness Dev 占用时拒绝迁移（`fix(desktop): keep development Harness state out of .desktop-build`、`refuse to move state that a running Harness Dev owns`）；操作历史按精确文件身份去重、保留被 predecessor 读取会丢弃的段并上报已读段（`deduplicate history segments by exact file identity`、`keep operation history the predecessor read would drop`、`report read segments …`）。
+* 安装完成提示在原生拖动/系统菜单期间延迟显示（`fix(desktop): show installer completion during native dragging`、`defer installer completion through system menus / until native move returns`）。追加的 predecessor 被跳过而非收集写入文档。
+* CUA：Windows 实现窗口级鼠标按键切换、macOS 支持已批准的鼠标按键按住与独立按键事件（`feat(cua-windows): implement window-level mouse button toggles`、`feat(cua-macos): support approved system mouse button holds / send individual mouse button events to a window`）；修复窗口几何校验与按键接收者检查顺序、光标采样时机、turn 结束鼠标清理等待原生完成与撤销场景（`fix(cua-macos): sample the cursor after validating window geometry`、`check the press recipient before reading AX geometry`、`fix(cua): wait for native cleanup before the next request`）。
+* Web：恢复持久化终端插件控制并注册快照（`feat(web): restore persistent terminal plugin controls`、`test(web): register the persistent terminal snapshot`）。
 
-#### CI 与工程
+#### MCP、连接器、LLM 与工具
 
-* CI 增加两位审阅者的两点批准权重、关闭停滞 21 天的 PR、提醒陈旧 PR（`feat(ci): give two more reviewers the two-point approval weight` / `close pull requests after 21 days without activity` / `remind authors of stale pull requests`）。
-* 新增 `ci-python.yml` 等上游工作流；发布工作流的 pack/publish 拆分与上游保持同步（fork 侧仍以 `container-release.yml` 为发布路径）。
-* 拒绝新的 Cordis root 读取（`feat(infra): reject new Cordis root reads`），preset 在标准模式暴露 Cordis 检查能力。
+* `ctx.mcpManager` 重命名贯穿客户端/Host 与快照（`refactor: follow the ctx.mcpManager rename`），MCP client host 纳入快照组合，OAuth world 与 manager profile 由 `dsh-mcp-testkit` 提供。
+* Linear / Notion 连接器：将 `src/copy.ts` 重命名为 `src/locales.ts`，账号通过共享 connector account registry 展示并在 Host 注册（`refactor(linear/notion): rename …`、`show the account through the connector account registry`、`register the account on the Host`）；快照与版本随 master 提示/工具文本刷新。
+* Web 搜索默认模型切到 DeepSeek（`Merge PR #8707 … feat/web-search-deepseek-model-default`）。工具可达性与首次披露提议写入 agent-notes。
+* 重复提醒排除嵌套调用（`fix(guard): exclude nested calls from repeat reminders`）。
+
+#### 工程、版本与文档
+
+* 根版本与 master-only 包对齐到 `0.2.2-rc.5`（`chore(release): align master-only packages to 0.2.2-rc.5`），发布提交 `release(dsh): 0.2.2-rc.5`；bundle 的 English 标题改为句首大写、Plugins 页增加 feature preview。
+* 大量 snapshot/文档/upgrade guide 刷新（mcp-tool-loading、linear、notion、终端、liveshare 等），module graph 随 sandbox-policy 与 workspace-changes 边重生成，README 字数上限按栈同步后复位。
 
 ### BirdCoder 本次更新
 
 #### 同步与冲突处理
 
-* 合并基底 `39163dd30f7` → `ca33fd6843b`（807 个上游提交、3104 个文件变更）。**54 个文件**存在文本冲突，按 fork-first 规则逐个解决：SDKWork 自有组件（`ui-sdkwork-*`、`sdkwork-*` Host/Bundle、官方账号、小程序、Token Plan、终端面板、Profile Lease、gateway fallback 等）与品牌表面（`BirdLogo` / `BirdWordmark` / `LoginPanel` / favicon / 图标 / 标语）保留 fork 版本；上游对其余文件的改动完整采纳。
-* 采用上游整体重构、fork 仅作微小调整的文件以 upstream 为准：例如 `packages/client/ui-subagent/tests/conversation-ui.client.spec.tsx` 上游重写 1000+ 行、fork 仅一行调整，取 upstream 版本。
-* 关键代码冲突逐项并集：账号协议导入合并 fork 的 `applicationOrigin` 与上游的 `ACCOUNT_TOKEN_HEADER`；app-boot 的 Loader 导入合并 fork 的 chokidar 监视与上游的 `EntryTree`/`EntryValidationError`/`validateOptions` 等入口校验 API；plugin-manager 文案合并 fork 的 sdkwork-drive / plugin-archive 来源与上游的原地重载提示；`ui-workspace` 构造参数把 fork 的 `ctx.layout` 与上游的 `config.recentViewLimit` 一并传给 `UiWorkspaceService`；`tsdown.client.ts` 的 `INLINE_SAFE` 并入上游新增的 `dsh-plugin-market-index/source`。所有并集后重复导入/重复键均清理为单一声明，`package.json` 与各 `tsconfig` 通过 JSON 解析校验。
-* 上游整体删除的 `packages/credentials/deepseek-account/`、`packages/session/tool-working-directory/`、`packages/client/ui-settings-plugins/` 与 `packages/client/ui-settings-plugin-inventory/` 等包及配套快照按上游删除接受；fork 已删除的 `ci-windows.yml`、`release-publish.yml`、`release-vendor-publish.yml`、`scripts/release/publish.ts` 与上游品牌 SVG（`favicon.svg`、`wordmark.svg`、`welcome-brand.svg`、`icon*.svg`）维持删除——fork 的 Windows 车道在 `ci.yml` 内，发布走 `container-release.yml`，品牌栅格来自 `apps/web/public/favicon.png`。
-* 合并后全仓扫描无冲突标记残留；品牌契约复核通过：`FishLogo` 仅出现在 `ui-primitives` 及其测试，`BirdLogo` 覆盖侧栏/官方品牌/空态等全部 fork 表面，三处登录入口（`WelcomePage` / `SignInDialog` / `SignInOverlay`）均渲染 `LoginPanel`，官方名称槽仍渲染 `BirdWordmark`，启动页仍渲染 `createBootBrand()`，56 个 `ui-sdkwork-*` 组件、9 个 `sdkwork-*` Host/Bundle 包完好，品牌栅格（favicon / icon）未被上游 SVG 覆盖。
-* **同步完整性复核**：`upstream/master` 已推进到 `ca33fd6843b`，`git merge-base` 为 `39163dd30f7`，807 个上游提交随真实双亲 merge commit 全部合入；上游新增包（`upstream-skills`、`cli-account`、`account/deepseek-account`、`hmr/plugin-events.ts` 等）均落盘；被删除的文件经核对全部是上游自身移除的包或 fork 历史已有的品牌/CI 删除，无 fork 自定文件误删。
-
-#### fork 侧本版本功能（合并保留）
-
-* **官方账号与小程序**：`ui-sdkwork-official-accounts` 改用共用的 `@sdkwork/iam-pc-official-accounts` 面板；新增域名校验流程与 host 环境投影，展示后台维护的服务器 IP 白名单，host 弹窗支持刷新菜单、发布与回滚，设置弹窗内的小程序页挂载共用的 `@sdkwork/iam-pc-mini-program` 面板。
-* **账号计费与模型目录**：`ui-sdkwork-token-plan` 新增账号视图与商务覆盖、团队订阅端口与联合结算；LLM 新增模型目录同步存储；模型选择器按 `codingVisible` 只列现行通用 LLM，sdkwork-models 目录与选择器生成规则一致。
-* **桌面与发布**：拒绝附着到陈旧车道 Host 的 dev 启动；打包冒烟的 Office 渲染预算与引擎上限按最慢 runner 调整；容器车道跳过陈旧依赖补装，Intel macOS 车道按硬件放宽时间预算。DNS workspace 支持验证文件与公众号校验；移除 appstore 模板货架与插件云目录，部署锚点不再随根 profile 提交。
+* 合并基底 `ca33fd6843b` → `2e39e70496a`（238 个上游提交、960 个文件变更）。**30 个文件**存在文本冲突，按 fork-first 规则逐项解决：SDKWork 自有组件（`ui-sdkwork-*`、`sdkwork-*` Host/Bundle、`ui-sdkwork-iam` 登录步骤等）与品牌表面（`BirdLogo` / `BirdWordmark` / `LoginPanel` / favicon / 图标 / 标语）保留 fork 版本。
+* 关键冲突逐项并集：
+  * 根 `package.json` 与 `apps/desktop-host/package.json` 保留 fork 已重排的依赖清单与 `@sdkwork/*` 可选依赖，并入上游新增的 `dsh-mcp-manager` / `dsh-linear` / `dsh-notion` 与 `dsh-api-workspace-files`；`connection` 清单并入上游 `dsh-client-config` 与 fork 的 `dsh-host-apiproxy` / `dsh-tools`。
+  * `connection` 的 `types.ts` 拆分采纳上游 `ConnectionConfig` 位置与 volatile `Config`，同时保留 fork 的 `sdkwork-gateway-slot` 激活、`ConnectionFetchHandler`、SDKWork API 网关 fallback 与 `__DSH_CONNECTION_RECOVERY__` 页面注入（上游已移除该注入，fork 侧 5 个文件仍依赖）；client/host tsconfig 同时列出 fork 的 `rpc-schema.ts` / `sdkwork-gateway-slot.ts` 与上游 `types.ts`。
+  * `tsdown.client.ts` 保留 fork 的 embedded-app-styles 导出与自有 `INLINE_SAFE` 超集，并入上游新增的 `dsh-api-session-controller/client/directories` 模式；`client-bundle-purity.spec.ts` 同时保留 fork 的 `plugin-manager/source` 断言与上游两条新断言。
+  * `ui-deliverables` 采纳上游 `ChangesSummary.cwd` 字段（类型、路由与测试同步），同时保留 fork 的 `204` 空响应「普通缺失而非失败请求」行为；`EmptyHero.tsx` 采纳上游 `headline` 覆盖文案，但保留 fork 的静态 `BirdLogo`，不引入上游已移除的 fish hover-morph 死状态。
+  * 上游整体重构的 `client-ui-forge/ChangesTab.tsx`（拆分为 `ChangesTab` 包装 + `ChangesView`，`ReviewPage.tsx` 已按上游导入 `ChangesView`）按上游为准；fork 对该文件的微小文案/图标调整让位于上游结构。
+  * README 与 i18n 配对文件按 fork 品牌与 SDKWork 文档为准，prose 冲突并集双方段落（侧栏 trailing content 与 IM 快捷入口过滤、交付物 cwd 与普通缺失说明）。
+* 合并后全仓扫描无冲突标记残留；品牌契约复核通过：`FishLogo` 仅出现在 `ui-primitives` 源码与测试，三处登录入口（`WelcomePage` / `SignInDialog` / `SignInOverlay`）均渲染 `LoginPanel`，官方名称槽渲染 `BirdWordmark`，启动页渲染 `createBootBrand()`，56 个 `ui-sdkwork-*` 组件、15 个 `sdkwork-*` Host/Bundle 包完好，canonical 栅格 `apps/web/public/favicon.png` 未被覆盖。
+* **同步完整性复核**：`upstream/master` 已推进到 `2e39e70496a`，`git merge-base` 为 `ca33fd6843b`，238 个上游提交随真实双亲 merge commit 全部合入；4 个删除文件（各 `*config.ts`）与 1 个重命名（`working-directory/tests/admission.spec.ts` → `sandbox/sandbox-policy/tests/admission.spec.ts`）经核对均为上游自身改动，无 fork 自定文件误删。
 
 #### 版本与依赖
 
-* 根版本前移 **0.2.2-rc.4**（上游 tag `dsh-v0.2.2-rc.4`），dsh 家族清单随上游推进；fork 自有清单与发布 tag `birdcoder-v0.2.2-rc.4` 对齐。
-* `pnpm-lock.yaml` 保留 fork 的 workspace 链接与 SDKWork sibling importer 块（本地开发走 `pnpm-workspace.yaml` 的 `../sdkwork-*` 相对路径 + `workspace:*`，CI/release 走 `agent.workflow.json` 声明、`scripts/sdkwork-sources.manifest.json` pin 的 git 仓库依赖 checkout，两者同源；frozen-lockfile 校验通过）。SDKWork sibling pin 双记录沿用上一版本已验证可达的提交，避免让 release runner clone 到未推送的 gitlink。
-* **修复 rc.4 版本前移遗漏**：`pnpm-workspace.yaml` 中 expert-market 插件对 `@deepseek-ai/dsh-*` 的 27 处 scoped override 仍钉在 `0.2.2-rc.3`，与工作区 `0.2.2-rc.4` 失配，导致 pnpm 绕过 workspace link 改拉 registry tarball、拖入被安装白名单拒绝的 `dsh-subprocess-local` 构建脚本，使 CI 的 `Dependency layout` / `Pack npm tarballs` 以 `ERR_PNPM_IGNORED_BUILDS` 失败。全部前移到 `0.2.2-rc.4` 并重生成锁文件（消除重复的第二份 registry 依赖闭包）。
-* **修复 fork 自有清单的版本前移遗漏**：79 个 fork 清单（SDKWork Host/Bundle/UI、凭据与 apps）仍钉在 `0.2.2-rc.3`，使 `release:verify --family dsh` 报 `dsh release members must share one version` 并阻断 `Pack npm tarballs`。全部前移到 `0.2.2-rc.4` 后，dsh 家族 464 个成员同版本，pack order 可解析。
-* **补齐 hmr 客户端依赖声明**：恢复的 `packages/client/hmr/src/events.ts` 让浏览器 SSE 消费端引入 `eventsource-parser/stream`，但该包未在 hmr 清单声明，触发 `verify-package-dependencies` 的 `must be devDependencies-only` 违规。在 `devDependencies` 声明 `^3.1.0` 并同步 lockfile importer（复用锁文件中已有的 3.1.0 条目），frozen lockfile 校验通过。
-* **修复 rc.4 上游合并遗留**：`packages/client/tsdown.client.ts` 的两处 `INLINE_SAFE` 声明合并为单一正则（保留 fork 的 `dsh-plugin-market-index/source` 与上游的 `dsh-client-sdkwork-office`、`host-apiproxy` 等模式）；`packages/experimental/webworker-runtime/tsdown.config.ts` 移除与新 `deps.alwaysBundle` 冲突的旧 `noExternal` 及重复 `plugins` 键；恢复 fork 自有的 `packages/client/hmr/src/events.ts` 及其 client 编译 include（上游把 wire 协议拆到 `types.ts`，但 fork 的浏览器 SSE 消费端仍依赖该文件）；删除上游已移除包 `ui-settings-plugin-inventory` 的三处悬空引用/映射，以及合并残留的孤儿文件 `client-ui-forge/ForgeTab.tsx`。
-* **修复 rc.4 类型面前移暴露的 fork 消费者滞后**（fork 包普遍 `noCheck`，上游配置接管后由 `tsc -b tsconfig.client.tests.json` 全量暴露）：`hmr` 的增量 tsbuildinfo 与产物脱节导致 `lib/types/index.js` 缺失（清除缓存重建）；`ui-workspace` 通过 `WorkspaceBrowserInjected.requestWorkspaceAction` 恢复 fork 行菜单 rename/delete 到上游对话框流的接线、合并 merge 双边重复的 `SessionNode.cwd` 声明、补 `ShortcutCatalogEntry` 导入、`tsconfig.client.tests.json` 与 `ui-sdkwork-automation` 改引 `ui-workspace/tsconfig.client.json`（上游 solution-style 后目录引用触发 TS6306）；`ui-settings-account` 恢复 launcher 注入的 `settings.launcher.notifications` children 声明；`client-ui-forge` 跟上上游 gap 展开新 API（`open` 由 `Set` 改 `Map<number, GapReveal>`、`revealGap`、`readContext`、`LensControl need`、`SubmitReview events` 替代 fork 的 `own` 判断）与 React 19 的 `RefObject<T | null>`、`inert` boolean 类型；配套测试补 `AppResponse` 新必填字段（`deployApplicationId` / `ownershipScope` / `organizationId`）、`UiWorkspaceService` 的 fork `layout` 参数与两处 `WorkspaceBrowserProps` mock。
-* **修复 npm 安装布局门禁对 rc.4 合并后依赖图的适配**（`Dependency layout` job 静默失败的根因）：rc.4 上游合并把 `plugins/sdkwork-deepseekbot`（BotHarness 镜像 git submodule）带入仓库，其 `@deepseek-ai/dsh-web-app` 在发布字段声明对 `@botharness/core` / `@botharness/ui` / `deepseekbot` 的 `workspace:*` 依赖，而合成 registry 的成员清单收集 glob 缺 `plugins/*/packages/*`（以及 `benchmarks` / `website` / `examples` / `python/sdk-runtime` 四个成员根），这些成员的 manifest 不进 `workspaceVersions`，未改写的协议范围逃进合成 registry——npm 在 `build-ideal-tree` 的 `promise-call-limit` worker 里抛 `EUNSUPPORTEDPROTOCOL` 被吞掉，进程无任何错误输出即 exit 1。修复三处：成员 glob 补齐对齐 `pnpm-workspace.yaml`；`copyPublishedManifest` 丢弃 `link:` / `file:` 文件系统边（registry packument 无法表达，且目标是永不发布的私有兄弟目录）；双 release 替换时把非 DSH 胶水包指向当前 release 的精确依赖改写到根合成版本（否则 404）。同时修正门禁自身两处：解析预算随 rc.4 后 DSH 家族扩容（新增 `dsh-client-ui-*` 大批表面）从 1,382,850 上调到 2,450,000，派生 hang guard 同步放大；npm 子进程改为直接 spawn `node npm-cli.js`（绕过 `npm.cmd` → cmd.exe 壳），修复超时守护 `taskkill /T` 杀不掉孙进程导致的孤儿 npm。
-* **修复 packed-install 验证被嵌套的 registry 旧版 dsh 击穿**（`Pack npm tarballs` job 自 rc.3 起长期红的根因）：consumer 安装后 `verify-packed-install` 的产品隔离 walker 报 `default product includes an experimental package: @deepseek-ai/dsh -> dsh-web-app -> @michengai/dsh-agency-agents -> @deepseek-ai/dsh -> dsh-experimental-agent-team-profile`。取证链：`@botharness/core@0.0.0` / `@kenz1117/dsh-ui-usage-billing@1.8.4-sdkwork.3` 不在 npmjs 曾被怀疑为 install 必败，实际由 `release:pack:assistant` 打进 `dist/npm`、被 consumer 根部同名同版本的 `file:` 依赖去重，install 一直成功；真正问题在 npm 的 peer 解析——社区插件对 `@deepseek-ai/dsh` 的 peer 范围（如 `>=0.2.0-rc.1 <0.3.0-0`）受 semver 预发布元组规则约束，其元组 (0,2,0)/(0,3,0) 永远无法匹配预发布版本 `0.2.2-rc.4`，npm 无法去重到打包树里的根实例，转而嵌套安装 registry 上的旧版 `@deepseek-ai/dsh`（如 `0.1.7-rc.1`，其依赖表首个 experimental 项恰为已退役的 `agent-team-profile`），walker 沿插件 peer 边下降到该嵌套拷贝即触发拒绝。修复：consumer `package.json` 增加 `overrides`，把整个 `@deepseek-ai/*` 命名空间钉到与根依赖声明完全相同的打包 tarball spec（npm 要求覆盖直接依赖时必须重复其精确 spec）——默认 peer 自动安装保持开启（第三方 peer 如 `react-markdown` 的 `@types/react` 照常安装），而 registry 上不再出现任何 `@deepseek-ai/*` 包。首轮 `--legacy-peer-deps` 方案被否决：它同时关掉了合法 peer 的自动安装，walker 在 `react-markdown -> @types/react` 报 `dependency is missing`。
-* Git submodule 更新：`plugins/dsh-better-sidebar` → `aa2a058`、`plugins/dsh-mcp-connector` → `05ab3fe`（v0.2.111），其余插件 submodule 已在远端最新。两个插件的新版 lib 通过语法与导入自检。
-* 本文件只保留当前版本一节；往期条目随各自版本的提交留在 git 历史里（`git log -p CHANGELOG.md`）。Release notes 就是本节内容。
+* 根版本前移 **0.2.2-rc.5**（上游 tag `dsh-v0.2.2-rc.5`），随上游发布线推进。
+* `pnpm-lock.yaml` 保留 fork 的 workspace 链接与 SDKWork sibling importer 块（本地开发走 `pnpm-workspace.yaml` 的 `../sdkwork-*` 相对路径 + `workspace:*`，CI/release 走 `agent.workflow.json` 声明、`scripts/sdkwork-sources.manifest.json` pin 的 git 仓库依赖 checkout，两者同源）。
+
+本文件只保留当前版本一节；往期条目随各自版本的提交留在 git 历史里（`git log -p CHANGELOG.md`）。Release notes 就是本节内容。

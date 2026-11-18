@@ -20,9 +20,13 @@
     "src/loopback-hostname.ts",
     "src/recovery-config.ts",
     "src/rpc.ts",
-    "src/rpc-schema.ts"
+    "src/rpc-schema.ts",
+    "src/types.ts"
   ],
   "references": [
+    {
+      "path": "../config"
+    },
     {
       "path": "../../../vendor/cordis"
     },

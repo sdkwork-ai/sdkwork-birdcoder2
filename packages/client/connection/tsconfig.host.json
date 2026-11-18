@@ -20,7 +20,8 @@
     "src/rpc-host.ts",
     "src/rpc-schema.ts",
     "src/rpc.ts",
-    "src/sdkwork-gateway-slot.ts"
+    "src/sdkwork-gateway-slot.ts",
+    "src/types.ts"
   ],
   "references": [
     {
