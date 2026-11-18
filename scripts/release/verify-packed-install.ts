@@ -109,7 +109,15 @@ function main(): void {
     // rather than a failure — which is what optional means here. Their entry
     // package is a plain dependency of dsh-sandbox-local, so its tarball is
     // supplied through --from.
-    capture('npm', ['install', '--cache', join(consumerRoot, '.npm-cache'), '--no-audit', '--no-fund', '--package-lock=false'],
+    // Peer auto-install must stay off: the vendored community plugins declare
+    // dsh peer ranges (`>=0.2.0-rc.1 <0.3.0-0`) whose semver prerelease tuples
+    // can never match a prerelease release version like `0.2.2-rc.4`, so npm's
+    // peer resolution cannot dedupe against the packed tree and instead nests
+    // registry copies of old `@deepseek-ai/dsh` releases — versions that still
+    // ship the experimental bundles this verification refuses. Every peer lives
+    // in the packed closure anyway, so the installed tree resolves them through
+    // ancestor lookup without any registry copy.
+    capture('npm', ['install', '--legacy-peer-deps', '--cache', join(consumerRoot, '.npm-cache'), '--no-audit', '--no-fund', '--package-lock=false'],
       { cwd: consumerRoot, env: environment })
 
     const installedEntry = join(consumerRoot, 'node_modules', entry.packageName)
