@@ -8,6 +8,7 @@ import {
   type NpmLockPackage,
   type NpmPackageLock,
   type RegistryIndex,
+  type RegistryVersion,
 } from './benchmark-npm-resolution.ts'
 
 const DSH_PACKAGE = '@deepseek-ai/dsh'

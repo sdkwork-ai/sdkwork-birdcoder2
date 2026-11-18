@@ -77,7 +77,7 @@ interface PackageManifest {
   readonly bin?: unknown
 }
 
-interface RegistryVersion extends PackageManifest {
+export interface RegistryVersion extends PackageManifest {
   readonly name: string
   readonly version: string
 }
