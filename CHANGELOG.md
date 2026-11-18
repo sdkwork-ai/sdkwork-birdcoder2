@@ -75,5 +75,8 @@
 #### 版本与依赖
 
 * 根版本前移 **0.2.2-rc.4**（上游 tag `dsh-v0.2.2-rc.4`），dsh 家族清单随上游推进；fork 自有清单与发布 tag `birdcoder-v0.2.2-rc.4` 对齐。
-* `pnpm-lock.yaml` 保留 fork 的 workspace 链接与 SDKWork sibling importer 块（本次合并取 fork 侧锁文件，以避免上游版本覆盖本地生态装配）；SDKWork sibling pin（`scripts/sdkwork-sources.manifest.json` 与 `agent.workflow.json` 双记录）沿用本版本既有推进结果。
+* `pnpm-lock.yaml` 保留 fork 的 workspace 链接与 SDKWork sibling importer 块（本地开发走 `pnpm-workspace.yaml` 的 `../sdkwork-*` 相对路径 + `workspace:*`，CI/release 走 `agent.workflow.json` 声明、`scripts/sdkwork-sources.manifest.json` pin 的 git 仓库依赖 checkout，两者同源；frozen-lockfile 校验通过）。SDKWork sibling pin 双记录沿用上一版本已验证可达的提交，避免让 release runner clone 到未推送的 gitlink。
+* **修复 rc.4 版本前移遗漏**：`pnpm-workspace.yaml` 中 expert-market 插件对 `@deepseek-ai/dsh-*` 的 27 处 scoped override 仍钉在 `0.2.2-rc.3`，与工作区 `0.2.2-rc.4` 失配，导致 pnpm 绕过 workspace link 改拉 registry tarball、拖入被安装白名单拒绝的 `dsh-subprocess-local` 构建脚本，使 CI 的 `Dependency layout` / `Pack npm tarballs` 以 `ERR_PNPM_IGNORED_BUILDS` 失败。全部前移到 `0.2.2-rc.4` 并重生成锁文件（消除重复的第二份 registry 依赖闭包）。
+* **修复 rc.4 上游合并遗留**：`packages/client/tsdown.client.ts` 的两处 `INLINE_SAFE` 声明合并为单一正则（保留 fork 的 `dsh-plugin-market-index/source` 与上游的 `dsh-client-sdkwork-office`、`host-apiproxy` 等模式）；`packages/experimental/webworker-runtime/tsdown.config.ts` 移除与新 `deps.alwaysBundle` 冲突的旧 `noExternal` 及重复 `plugins` 键；恢复 fork 自有的 `packages/client/hmr/src/events.ts` 及其 client 编译 include（上游把 wire 协议拆到 `types.ts`，但 fork 的浏览器 SSE 消费端仍依赖该文件）；删除上游已移除包 `ui-settings-plugin-inventory` 的三处悬空引用/映射，以及合并残留的孤儿文件 `client-ui-forge/ForgeTab.tsx`。
+* Git submodule 更新：`plugins/dsh-better-sidebar` → `aa2a058`、`plugins/dsh-mcp-connector` → `05ab3fe`（v0.2.111），其余插件 submodule 已在远端最新。两个插件的新版 lib 通过语法与导入自检。
 * 本文件只保留当前版本一节；往期条目随各自版本的提交留在 git 历史里（`git log -p CHANGELOG.md`）。Release notes 就是本节内容。

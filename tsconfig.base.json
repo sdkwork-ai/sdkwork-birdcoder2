@@ -516,7 +516,6 @@
       "@deepseek-ai/dsh-client-ui-sdkwork-settings-menu/sdkwork-icons": ["./packages/client/ui-sdkwork-settings-menu/src/client/sdkwork-icons.tsx"],
       "@deepseek-ai/dsh-client-ui-plugin-manager": ["./packages/client/ui-plugin-manager/src"],
       "@deepseek-ai/dsh-client-ui-plugin-market": ["./packages/client/ui-plugin-market/src"],
-      "@deepseek-ai/dsh-client-ui-settings-plugin-inventory": ["./packages/client/ui-settings-plugin-inventory/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-updater": ["./packages/client/ui-sdkwork-updater/src"],
       "@deepseek-ai/dsh-client-locale": ["./packages/client/locale/src"],
       "@deepseek-ai/dsh-client-web/injections": ["./packages/client/web/src/apply-injections.ts"],

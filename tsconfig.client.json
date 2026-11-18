@@ -200,7 +200,6 @@
     { "path": "./packages/client/ui-sdkwork-settings-menu" },
     { "path": "./packages/client/ui-plugin-manager/tsconfig.client.json" },
     { "path": "./packages/client/ui-plugin-market" },
-    { "path": "./packages/client/ui-settings-plugin-inventory" },
     { "path": "./packages/client/ui-sdkwork-iam" },
     { "path": "./packages/client/ui-sdkwork-profile" },
     { "path": "./packages/client/ui-sdkwork-env/tsconfig.client.json" },

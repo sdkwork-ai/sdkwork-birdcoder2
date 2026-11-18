@@ -96,8 +96,6 @@ export default defineConfig([{
   deps: {
     alwaysBundle: [/.*/],
   },
-  plugins: [moduleProxyPlugin, shellParserOnlyPlugin],
-  noExternal: [/.*/],
   plugins: [moduleProxyPlugin, shellParserOnlyPlugin, bufferPackagePlugin],
   outputOptions: { inlineDynamicImports: true },
 }, {
