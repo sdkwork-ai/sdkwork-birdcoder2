@@ -38,12 +38,15 @@ function app(over: {
 } = {}): AppResponse {
   return {
     id: over.id ?? over.name ?? 'app-1',
+    deployApplicationId: '101',
     name: over.name ?? 'Store',
     slug: over.slug ?? 'store',
     appKind: over.appKind ?? 'SPA_WEB',
     appStatus: over.appStatus ?? 'ACTIVE',
     defaultEnvironment: 'production',
     ownerType: 'USER',
+    ownershipScope: 'USER',
+    organizationId: '0',
     tenantId: 'tenant-1',
     nginxConfigOverridden: false,
     createdAt: '2026-01-01T00:00:00Z',

@@ -266,6 +266,10 @@ type SessionTreeProps = Pick<
   | 'sidebar.session.row.hover'
 > & {
   shortcuts: readonly import('@deepseek-ai/dsh-client-shortcuts/client').ShortcutCatalogEntry[]
+  /** Open the Workspace rename dialog from the fork row-menu action. */
+  onRenameRequest: (workspaceId: WorkspaceId, displayTitle: string) => void
+  /** Open the Workspace delete dialog from the fork row-menu action. */
+  onDeleteRequest: (workspaceId: WorkspaceId, displayTitle: string) => void
   /** Always-mounted Session list snapshot. */
   list: SessionListState
   /** Host account home for POSIX hover-path abbreviation. */
@@ -967,6 +971,7 @@ export function WorkspaceBrowser({
   requestSessionRename,
   notifyArchivedNotOpenable,
   renameWorkspace, useWorkspaceActionRequest, settleWorkspaceAction,
+  requestWorkspaceAction,
   deleteWorkspace,
   insertWorkspaceBefore,
   forkSession,
@@ -1495,6 +1500,8 @@ export function WorkspaceBrowser({
                 list={list}
                 useSessionStatus={useSessionStatus}
                 shortcuts={shortcuts}
+                onRenameRequest={(workspaceId, displayTitle) => requestWorkspaceAction(workspaceId, displayTitle, 'rename')}
+                onDeleteRequest={(workspaceId, displayTitle) => requestWorkspaceAction(workspaceId, displayTitle, 'delete')}
                 onSessionRenameRequest={requestSessionRename}
                 onSessionArchive={onSessionArchive}
                 forkSession={forkSession}

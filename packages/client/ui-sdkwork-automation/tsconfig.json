@@ -43,7 +43,7 @@
       "path": "../ui-slots"
     },
     {
-      "path": "../ui-workspace"
+      "path": "../ui-workspace/tsconfig.client.json"
     },
     {
       "path": "../../../vendor/cordis"

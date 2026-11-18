@@ -44,7 +44,10 @@ function mainSessionId(list: SessionListState): SessionId | undefined {
 /** One top-level session row in a group or the flat list. */
 export interface SessionNode {
   id: SessionId
-  /** Session's current working directory (session-scoped, distinct from its workspace group). */
+  /**
+   * Session's current working directory (session-scoped, distinct from its workspace group);
+   * absent when the Host reports none or an empty path.
+   */
   cwd?: string
   /** Stored title, or empty; the renderer localizes blank and unnamed row labels. */
   title: string
@@ -64,8 +67,6 @@ export interface SessionNode {
   /** In the registry-global archive set: shown grayed in place and not openable. */
   archived: boolean
   updatedAt: number
-  /** Session working directory; absent when the Host reports none or an empty path. */
-  cwd?: string
 }
 
 /** Session order selected by the Workspace browser. */

@@ -154,7 +154,7 @@ export function LensControl({ lens, counts, hideTests, choose, t, need }: LensPr
   }, [key])
   return <div ref={root} className={css.lensFit}>
     <SegmentedChoice label={t('lens.aria')} value={lens} choose={choose} segments={segments} sizing="content" counted={counted} />
-    <div className={css.measures} aria-hidden="true" {...{ inert: '' }}>
+    <div className={css.measures} aria-hidden="true" inert={true}>
       <div ref={withCounts}><SegmentedChoice label="" value={lens} choose={choose} segments={segments} sizing="content" /></div>
       <div ref={labelsOnly}><SegmentedChoice label="" value={lens} choose={choose} segments={segments} sizing="content" counted={false} /></div>
     </div>

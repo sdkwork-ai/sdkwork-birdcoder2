@@ -53,7 +53,7 @@ import { SectionReach } from './section-reach.ts'
 import { FileTreePane, type FileTreePosition } from './FileTreePane.tsx'
 import { changedFileTree, filesInTreeOrder } from './file-tree.ts'
 import { ChangedFilesMenu, type ChangedFilesProps, type ChangedFilesState } from './ChangedFiles.tsx'
-import { drawnLines, matchesHunks, textLines } from './diff-rows.ts'
+import { drawnLines, matchesHunks, revealGap, textLines, type GapExpansion, type GapReveal } from './diff-rows.ts'
 import { ChangeRequestGlyph } from './glyphs.tsx'
 import type { ForgePanelKey, NS } from './locales.ts'
 import { RefreshGlyph } from './RefreshGlyph.tsx'
@@ -199,7 +199,7 @@ interface WriteRefusal {
 interface Expansion {
   readonly source: string | Extract<ChangesData, { kind: 'local' }> | null
   readonly texts: Readonly<Record<string, readonly string[] | 'loading'>>
-  readonly open: Readonly<Record<string, ReadonlySet<number>>>
+  readonly open: Readonly<Record<string, ReadonlyMap<number, GapReveal>>>
 }
 
 /** Files whose hunks draw more lines show the large-file notice until revealed. */
@@ -208,7 +208,7 @@ const LARGE_FILE_LINES = 1000
 /** Lines the files above may change before a file starts collapsed. */
 const OPEN_LINES = 5000
 
-const NO_GAPS: ReadonlySet<number> = new Set()
+const NO_GAPS: ReadonlyMap<number, GapReveal> = new Map()
 
 const NO_FOLDS: ReadonlyMap<string, { readonly hunks: ReadonlySet<number>; readonly lens: string }> = new Map()
 
@@ -805,6 +805,8 @@ export function ChangesTab({
   const current = expansion.source === expansionSource ? expansion : { source: expansionSource, texts: {}, open: {} }
   const latest = useRef(expansionSource)
   useLayoutEffect(() => { latest.current = expansionSource }, [expansionSource])
+  // Files whose new side was read ahead for highlighting in this comparison, each read at most once.
+  const contextReads = useRef<{ readonly source: typeof expansionSource; readonly paths: Set<string> }>({ source: null, paths: new Set() })
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set())
   // The line budget counts the files not marked viewed when the diff loads, so later marks leave it unchanged. A file stays
   // collapsed while it is marked viewed unless the reader expands it; a file whose change differs from its mark expands
@@ -875,9 +877,9 @@ export function ChangesTab({
       return change(previous.source === expansionSource ? previous : { source: expansionSource, texts: {}, open: {} })
     })
   }
-  const expand = (owner: ChangesData, file: ForgeDiffFile, index: number): void => {
+  const expand = (owner: ChangesData, file: ForgeDiffFile, index: number, expansion: GapExpansion): void => {
     const path = file.path
-    update(value => ({ ...value, open: { ...value.open, [path]: new Set([...value.open[path] ?? [], index]) } }))
+    update(value => ({ ...value, open: { ...value.open, [path]: revealGap(value.open[path], index, expansion) } }))
     if (current.texts[path] !== undefined) return
     update(value => ({ ...value, texts: { ...value.texts, [path]: 'loading' } }))
     const reading = owner.kind === 'local' ? localText(owner.scope, path) : changeRequestText(owner.url, owner.headSha, path)
@@ -894,6 +896,23 @@ export function ChangesTab({
         const { [path]: _open, ...open } = value.open
         return { ...value, texts, open }
       })
+    })
+  }
+  /**
+   * Read a local file's new side ahead of any expansion, once per comparison, so its rows can be highlighted with the
+   * lines before them. A change request's files are not read for this, since each read costs a request to the code host.
+   */
+  const readContext = (owner: ChangesData, file: ForgeDiffFile): void => {
+    const path = file.path
+    if (owner.kind !== 'local') return
+    if (contextReads.current.source !== expansionSource) contextReads.current = { source: expansionSource, paths: new Set() }
+    if (contextReads.current.paths.has(path)) return
+    contextReads.current.paths.add(path)
+    void localText(owner.scope, path).then((result) => {
+      const lines = result.ok ? textLines(result.value) : undefined
+      // A read that fails or no longer matches leaves the file as it is, and an expansion reads it again and says why.
+      if (lines === undefined || !matchesHunks(lines, file.hunks)) return
+      update(value => value.texts[path] !== undefined ? value : { ...value, texts: { ...value.texts, [path]: lines } })
     })
   }
   const fileActions = (owner: ChangesData, file: ForgeDiffFile): DiffFileAction[] => {
@@ -914,8 +933,6 @@ export function ChangesTab({
   // the code host is submitted or discarded there; without one, the summary and any comment drafts kept in the browser
   // are published as one review.
   const pendingReview = review?.pendingReview ?? null
-  // Logins compare without case, as GitHub's do.
-  const ownChangeRequest = review?.viewer != null && prAuthor !== null && review.viewer.toLowerCase() === prAuthor.toLowerCase()
   const finishWrite = async (send: () => Promise<string | undefined>, done: ForgePanelKey): Promise<void> => {
     if (reviewRunning.current) return
     reviewRunning.current = true
@@ -935,7 +952,8 @@ export function ChangesTab({
     }
   }
   const reviewForm = tab.visible && data !== null && reviewOpen && data.kind === 'change' && data.commits === null && <SubmitReview queue={queue}
-    url={data.url} headSha={data.headSha} pending={pendingReview} own={ownChangeRequest} busy={reviewBusy} error={reviewError}
+    url={data.url} headSha={data.headSha} pending={pendingReview}
+    events={review?.reviewEvents ?? null} busy={reviewBusy} error={reviewError}
     close={() => { setReviewOpen(false) }}
     check={() => { openLink(data.url) }} reconcile={() => { queue.finish(false); setReviewError(null) }}
     submit={() => {
@@ -1112,8 +1130,8 @@ export function ChangesTab({
   // an effect would hand them the previous diff's links. A render React discards leaves values derived from the same
   // props and state, which the retried render assigns again.
   const callbacks = {
-    data, expandedByDefault, expand, markViewed, fileActions, publishReview, writeReview, addPending, report, nextThread, lensTitle,
-    renderSlot, kept, t,
+    data, expandedByDefault, expand, readContext, markViewed, fileActions, publishReview, writeReview, addPending, report, nextThread,
+    lensTitle, renderSlot, kept, t,
   }
   const live = useRef(callbacks)
   live.current = callbacks
@@ -1123,10 +1141,15 @@ export function ChangesTab({
       setChosen(value => ({ ...value, [file.path]: !(value[file.path] ?? byDefault) }))
     },
     reveal: (path) => { setRevealed(value => new Set([...value, path])) },
-    expand: (file, index) => {
+    expand: (file, index, expansion) => {
       const { data: owner, expand: open } = live.current
       /* v8 ignore next -- sections render only while changes are loaded */
-      if (owner !== null) open(owner, file, index)
+      if (owner !== null) open(owner, file, index, expansion)
+    },
+    readContext: (file) => {
+      const { data: owner, readContext: read } = live.current
+      /* v8 ignore next -- sections render only while changes are loaded */
+      if (owner !== null) read(owner, file)
     },
     view: (file, viewed) => {
       const { data: owner, markViewed: mark } = live.current
@@ -1264,6 +1287,8 @@ export function ChangesTab({
   const toggleWrap = (): void => { actions.toggledWrap(tab.id) }
   const toggleTests = (): void => { actions.toggledTests(tab.id) }
   const treeAction = t(treePosition === 'left' ? 'diff.moveFileTreeRight' : treePosition === 'right' ? 'diff.hideFileTree' : 'diff.showFileTreeLeft')
+  // The lens's labels set the least width of the tree they sit above.
+  const [lensWidth, setLensWidth] = useState(0)
   let additions = 0
   let deletions = 0
   for (const file of files) {
@@ -1297,7 +1322,7 @@ export function ChangesTab({
       {!reviewOpen && reviewError !== null && reviewState.uncertain === null && <Notice>{reviewError}</Notice>}
       <div className={css.toolbar} data-tree={treeShown ? treePosition : 'hidden'} style={toolbarStyle}>
         {/* Above the file tree, the lens spans the tree's width; elsewhere a menu in the toolbar takes its place. */}
-        {treeShown && <div className={css.lensCell}><LensControl {...lensProps} /></div>}
+        {treeShown && <div className={css.lensCell}><LensControl {...lensProps} need={setLensWidth} /></div>}
         <div ref={toolbarRow} className={css.toolbarMain}>
           {tab.visible && source.kind === 'local' && <ScopeMenu scope={scope} choose={(next) => { actions.scoped(tab.id, next) }} t={t} />}
           {tab.visible && <span className={css.filesSlot}><ChangedFilesMenu {...navigator} visible /></span>}
@@ -1405,7 +1430,9 @@ export function ChangesTab({
       {reviewForm}
       <div className={css.body}>
         {body}
-        {allFiles.length > 0 && <FileTreePane {...navigator} id={treeId} position={treePosition} onWidth={setTreeWidth} />}
+        {allFiles.length > 0 && (
+          <FileTreePane {...navigator} id={treeId} position={treePosition} least={lensWidth} onWidth={setTreeWidth} />
+        )}
         {review !== null && data?.kind === 'change' && threadList.open && (
           <ThreadList entries={placed.entries} files={allFiles} truncated={review.truncated} url={data.url}
             filter={threadList.filter} choose={(filter) => { setThreadList(value => ({ ...value, filter })) }}

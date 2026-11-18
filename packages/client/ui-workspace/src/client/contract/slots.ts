@@ -307,6 +307,12 @@ export type DirectoryPickingHooks = PropsHooks<DirectoryPickingInjected['hooks']
 export type WorkspaceBrowserInjected = {
   /** Dismiss the settled Workspace dialog. */
   settleWorkspaceAction: () => void
+  /**
+   * Open the existing Workspace rename or delete dialog. The fork's plugin
+   * row-menu seam dispatches the same actions the shared context menu's
+   * `workspace.rename` / `workspace.delete` contributions dispatch.
+   */
+  requestWorkspaceAction: (workspaceId: WorkspaceId, displayTitle: string, action: 'rename' | 'delete') => void
   hooks: DirectoryPickingInjected['hooks'] & {
     workspaceActionRequest: HostObservable<WorkspaceActionRequest | null>
     contextMenuTarget: HostObservable<ContextMenuTarget | null>

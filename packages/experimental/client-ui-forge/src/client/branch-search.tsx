@@ -25,7 +25,7 @@ export interface BranchSearch<T> {
   /** Clear the search text, as when the menu closes. */
   readonly reset: () => void
   /** The search field, which takes the keyboard once the menu shows unless the pointer is coarse. */
-  readonly field: RefObject<HTMLInputElement>
+  readonly field: RefObject<HTMLInputElement | null>
 }
 
 /**

@@ -228,7 +228,7 @@
     { "path": "./packages/client/ui-deliverables/tsconfig.client.json" },
     { "path": "./packages/client/ui-sdkwork-skills/tsconfig.client.json" },
     { "path": "./packages/client/ui-workflow-run" },
-    { "path": "./packages/client/ui-workspace" },
+    { "path": "./packages/client/ui-workspace/tsconfig.client.json" },
     { "path": "./packages/client/ui-sdkwork-workspace-row-menus" },
     { "path": "./packages/client/ui-input-trigger" },
     { "path": "./packages/client/ui-commands" },

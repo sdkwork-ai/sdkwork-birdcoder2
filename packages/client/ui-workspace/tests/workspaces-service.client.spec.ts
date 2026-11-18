@@ -507,7 +507,7 @@ describe('UiWorkspaceService', () => {
     const owner = runtime.ctx.isolate('uiWorkspace').isolate('uiSession')
     owner.provide('uiSession', { sessionStatus: b.status } as never)
     const uiWorkspace = new UiWorkspaceService(
-      owner, b.directoryPicker.remote, b.workspaces, sessions, b.view.actions, b.notify,
+      owner, b.directoryPicker.remote, b.layout, b.workspaces, sessions, b.view.actions, b.notify,
       createSnapshotStore<number | undefined>(10),
     )
     uiWorkspace.openSession(sid('a'))

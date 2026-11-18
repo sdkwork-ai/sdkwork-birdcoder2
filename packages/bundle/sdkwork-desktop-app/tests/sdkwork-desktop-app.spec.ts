@@ -98,7 +98,7 @@ async function bootDesktop(): Promise<{ ctx: Awaited<ReturnType<typeof boot>>; b
     installAnchor: INSTALL_ANCHOR,
     startedBundles: profile.layers.map(layer => layer.packageName),
     cwd: process.cwd(), home: workdir ?? '',
-    overlays: [], telemetryDisabledEnv: process.env.DSH_TELEMETRY_DISABLED,
+    overlayPaths: [], telemetryDisabledEnv: process.env.DSH_TELEMETRY_DISABLED,
   }
   // The launcher `ready` signal is deliberately absent: Profile HMR fails fast
   // without it (the desktop shell's client-plugin HMR is a later milestone —

@@ -143,6 +143,7 @@ function mountWithPluginMenus({ pinned = false }: { pinned?: boolean } = {}) {
     useWorkspaceActionRequest: hook(null as WorkspaceActionRequest | null),
     useContextMenuTarget: hook(null as ContextMenuTarget | null),
     settleWorkspaceAction: vi.fn(),
+    requestWorkspaceAction: vi.fn(),
     // The plugin renderer replaces the shared `contextMenu.button` factory, so
     // the factory itself never renders in this composition.
     renderFactorySlot: vi.fn(() => null),
