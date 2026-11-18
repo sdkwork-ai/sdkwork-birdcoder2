@@ -102,6 +102,66 @@ function cloneForVersion(manifest: object, version: string): MutableRegistryMani
 }
 
 /**
+ * Rewrite DSH edges of non-DSH packages that pin the working release.
+ * @param versions - Published versions of one non-DSH package name.
+ * @param sourceVersion - Workspace version the dual substitution replaces.
+ * @returns The same map when no version pins the source release; otherwise a rewritten copy.
+ */
+function rewriteGlueDshEdges(
+  versions: ReadonlyMap<string, RegistryVersion>,
+  sourceVersion: string,
+): ReadonlyMap<string, RegistryVersion> {
+  const rootVersion = SYNTHETIC_DSH_VERSIONS[1]
+  let rewritten: Map<string, RegistryVersion> | undefined
+  for (const [version, manifest] of versions) {
+    let changed = false
+    const next: Record<string, unknown> = { ...manifest }
+    for (const field of DEPENDENCY_FIELDS) {
+      const dependencies = manifest[field]
+      if (dependencies === undefined) continue
+      let dependenciesNext: Record<string, string> | undefined
+      for (const [dependency, range] of Object.entries(dependencies)) {
+        if (!isDshPackage(dependency)) continue
+        const synthetic = glueRangeForSourceRelease(range, sourceVersion, rootVersion)
+        if (synthetic === undefined) continue
+        dependenciesNext ??= { ...dependencies }
+        dependenciesNext[dependency] = synthetic
+        changed = true
+      }
+      if (dependenciesNext !== undefined) next[field] = dependenciesNext
+    }
+    if (changed) {
+      rewritten ??= new Map(versions)
+      rewritten.set(version, next as unknown as RegistryVersion)
+    }
+  }
+  return rewritten ?? versions
+}
+
+/**
+ * Rewrite one non-DSH ("glue") dependency range that pins the working release.
+ *
+ * Glue packages — workspace members outside the DSH namespace, such as the
+ * BotHarness packages `@deepseek-ai/dsh-web-app` publishes against — declare
+ * `workspace:*` on DSH packages, which the pack simulation rewrites to the
+ * exact workspace version. The dual-release substitution removes that version
+ * from the registry, so an exact pin would 404. Point the range at the root
+ * synthetic release instead: the glue package is shared between the releases,
+ * and npm resolves its dependency against the hoisted root installation.
+ * @param range - Already-published range on a non-DSH manifest.
+ * @param sourceVersion - Workspace version the dual substitution replaces.
+ * @param rootVersion - The root synthetic release version.
+ * @returns The synthetic range, or the input when it does not pin the source release.
+ */
+function glueRangeForSourceRelease(range: string, sourceVersion: string, rootVersion: string): string | undefined {
+  if (range === sourceVersion || range === `=${sourceVersion}` || range === `^${sourceVersion}`) {
+    return `^${rootVersion}`
+  }
+  if (range === `~${sourceVersion}`) return `~${rootVersion}`
+  return undefined
+}
+
+/**
  * Replace the working release with two incompatible, internally consistent DSH releases.
  * @param index - Registry metadata containing the working release.
  * @param sourceVersion - Workspace version copied into each synthetic release.
@@ -112,7 +172,7 @@ export function buildDualDshRegistry(index: RegistryIndex, sourceVersion: string
   let dshPackages = 0
   for (const [name, versions] of index) {
     if (!isDshPackage(name)) {
-      output.set(name, versions)
+      output.set(name, rewriteGlueDshEdges(versions, sourceVersion))
       continue
     }
     const source = versions.get(sourceVersion)

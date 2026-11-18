@@ -18,9 +18,24 @@ const WORKSPACE_MANIFEST_GLOBS = [
   'packages/*/*/package.json',
   'sdks/*/*/package.json',
   'plugins/*/package.json',
+  // FORK DIVERGENCE (upstream's plugins are flat): the sdkwork-deepseekbot
+  // plugin (a git submodule mounted as workspace members) ships runtime
+  // packages under `plugins/*/packages/*`, and `@deepseek-ai/dsh-web-app`
+  // declares `workspace:*` dependencies on them in its published
+  // `dependencies` field. Missing these members leaves those ranges
+  // unrewritten and npm dies with `Unsupported URL Type "workspace:"`.
+  'plugins/*/packages/*/package.json',
   'vendor/*/package.json',
   'native/system/package.json',
   'native/system/packages/*/package.json',
+  // Remaining pnpm-workspace.yaml members. Their manifests rarely join the
+  // resolved graph, but any of them can be a `workspace:*` target, and a
+  // member missing from `workspaceVersions` lets an unrewritten protocol
+  // range escape into the synthetic registry.
+  'benchmarks/package.json',
+  'website/package.json',
+  'examples/package.json',
+  'python/sdk-runtime/package.json',
 ]
 
 /**
@@ -311,6 +326,14 @@ function publishDependencyRange(
   return applyOverride(name, published, workspace.overrides)
 }
 
+// A registry packument cannot express a filesystem link, and npm aborts the
+// whole resolution with `Unsupported URL Type "link:"` when one escapes into a
+// served manifest. The sdkwork-deepseekbot plugin's private packages declare
+// `link:../sibling` dependencies on directories that are not workspace members
+// and never reach a registry, so the synthetic registry drops those edges
+// instead of serving them.
+const FILESYSTEM_RANGE = /^(?:link|file):/u
+
 function copyPublishedManifest(
   source: PackageManifest,
   workspaceVersions: ReadonlyMap<string, string>,
@@ -322,10 +345,12 @@ function copyPublishedManifest(
     const value = source[field]
     if (value === undefined) continue
     if (field === 'dependencies' || field === 'optionalDependencies' || field === 'peerDependencies') {
-      output[field] = Object.fromEntries(Object.entries(value as Record<string, string>).map(([name, range]) => [
-        name,
-        publishDependencyRange(name, range, workspaceVersions, workspace),
-      ]))
+      output[field] = Object.fromEntries(Object.entries(value as Record<string, string>)
+        .filter(([, range]) => !FILESYSTEM_RANGE.test(range))
+        .map(([name, range]) => [
+          name,
+          publishDependencyRange(name, range, workspaceVersions, workspace),
+        ]))
     } else {
       output[field] = structuredClone(value)
     }
@@ -430,10 +455,6 @@ function close(server: Server): Promise<void> {
 }
 
 function npmExecutable(): string {
-  // TEMP DEBUG (revert): allow pointing the gate at a specific npm (CI-version
-  // reproduction on a host with several Node installs).
-  const override = process.env.DSH_NPM_EXECUTABLE
-  if (override !== undefined && override !== '') return override
   return process.platform === 'win32' ? 'npm.cmd' : 'npm'
 }
 
@@ -571,17 +592,7 @@ async function runNpm(
   })
   if (result.timedOut) return result
   if (result.status !== 0) {
-    // TEMP DEBUG (revert): append the npm debug-log tail so a clean-tempered
-    // failure still names its cause.
-    let logTail = ''
-    try {
-      const { readdirSync } = await import('node:fs')
-      const logDir = join(cwd, '.npm-cache', '_logs')
-      for (const file of readdirSync(logDir)) {
-        logTail += `\n=== ${file} (tail) ===\n${readFileSync(join(logDir, file), 'utf8').slice(-200000)}`
-      }
-    } catch { /* no log dir */ }
-    throw new Error(`npm install exited ${String(result.status)} after ${result.durationMs.toFixed(0)} ms\n${result.output.trim()}${logTail}`)
+    throw new Error(`npm install exited ${String(result.status)} after ${result.durationMs.toFixed(0)} ms\n${result.output.trim()}`)
   }
   return result
 }
@@ -658,7 +669,12 @@ export async function resolveNpmPackageLock(
   } finally {
     server.closeAllConnections()
     await close(server)
-    rmSync(consumer, { recursive: true, force: true })
+    // TEMP DEBUG (revert): keep the failed consumer directory for autopsy.
+    if (process.env.DSH_KEEP_CONSUMER === undefined) {
+      rmSync(consumer, { recursive: true, force: true })
+    } else {
+      console.error(`consumer kept at ${consumer}`)
+    }
   }
 }
 
