@@ -32,7 +32,7 @@ const PARALLEL_PROBE = '@deepseek-ai/dsh-client-test-parallel-probe'
  */
 const SIDEBAR_WORKSPACES = 'sidebar.workspaces' as never
 const BRAND = '@deepseek-ai/dsh-client-ui-brand-official'
-const globals = globalThis as { EventSource?: unknown; ResizeObserver?: unknown; matchMedia?: typeof window.matchMedia }
+const globals = globalThis as { ResizeObserver?: unknown; matchMedia?: typeof window.matchMedia }
 /** The whole roster's first boot pays the cold module transform of every plugin package. */
 const COLD_BOOT_TIMEOUT_MS = 180_000
 
@@ -77,7 +77,6 @@ describe('TestClient (jsdom)', () => {
     const tabs = client.ctx.get('sidebarRightTabs') as unknown as { entries(): readonly { id: string }[] }
     expect(tabs.entries().some(entry => entry.id.startsWith('dsh-better-sidebar:'))).toBe(true)
     expect('__DSH_TRANSPORT__' in globalThis).toBe(false)
-    expect(globals.EventSource).toBeDefined()
     expect(globals.ResizeObserver).toBeDefined()
     const query = globals.matchMedia!('(pointer: coarse)')
     expect(query.media).toBe('(pointer: coarse)')
@@ -90,7 +89,6 @@ describe('TestClient (jsdom)', () => {
     await client.dispose()
     expect(document.body.contains(container)).toBe(false)
     expect('__DSH_TRANSPORT__' in globalThis).toBe(false)
-    expect(globals.EventSource).toBeUndefined()
     expect(globals.ResizeObserver).toBeUndefined()
     expect(globals.matchMedia).toBeUndefined()
     expect(document.fonts).toBeUndefined()
@@ -108,10 +106,10 @@ describe('TestClient (jsdom)', () => {
     })
     const client = await started({ roster: API_ROSTER })
     expect(globals.ResizeObserver).toBe(existing)
-    expect(globals.EventSource).toBeDefined()
+    expect(globals.matchMedia).toBeDefined()
     await client.dispose()
     expect(globals.ResizeObserver).toBe(existing)
-    expect(globals.EventSource).toBeUndefined()
+    expect(globals.matchMedia).toBeUndefined()
     expect(document.fonts).toBe(fonts)
   })
 
@@ -151,11 +149,11 @@ describe('TestClient (jsdom)', () => {
     expect(mockB.log.calls('session/rename')).toHaveLength(1)
     await a.dispose()
     expect('__DSH_TRANSPORT__' in globalThis).toBe(false)
-    expect(globals.EventSource).toBeDefined()
+    expect(globals.matchMedia).toBeDefined()
     expect(document.fonts).toBeInstanceOf(EventTarget)
     await b.dispose()
     expect('__DSH_TRANSPORT__' in globalThis).toBe(false)
-    expect(globals.EventSource).toBeUndefined()
+    expect(globals.matchMedia).toBeUndefined()
     expect(document.fonts).toBeUndefined()
   })
 
@@ -311,6 +309,6 @@ describe('TestClient (jsdom)', () => {
     const mock = RemoteMock.create().stream('$events', openStream([]))
     await expect(TestClient.start({ roster }, mock, { connectTimeoutMs: 300 }))
       .rejects.toThrow(/connection state is \S+ after 300ms; unmatched: \[unary workspace\/follow\]; streams: \[.*\$events \(open\).*\]/)
-    expect(globals.EventSource).toBeUndefined()
+    expect(globals.matchMedia).toBeUndefined()
   })
 })

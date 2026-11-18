@@ -15,6 +15,9 @@
   ],
   "references": [
     {
+      "path": "../config"
+    },
+    {
       "path": "../../../vendor/schemastery"
     },
     {

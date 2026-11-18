@@ -12,6 +12,7 @@
   },
   "files": [
     "src/submission-settings.ts",
+    "src/types.ts",
     "src/index.ts"
   ],
   "references": [
