@@ -46,8 +46,19 @@ const DEPENDENCY_FIELDS = ['dependencies', 'optionalDependencies', 'peerDependen
  * earlier graph took 307 s of npm time on ubuntu-24.04, so the derived hang
  * guard below (1,438 s) keeps its four-times margin and stays inside the job's
  * default timeout.
+ *
+ * The rc.4 upstream merge grew the DSH family again (new `dsh-client-ui-*`
+ * surfaces plus the BotHarness glue packages `@deepseek-ai/dsh-web-app`
+ * publishes against). The glue edges are not counted by the formula — glue
+ * packages are not DSH packages — but npm still re-checks them against every
+ * peer target's incoming edges, so per-unit resolution cost rose as well: the
+ * 1,382,850 budget could no longer finish within its own derived hang guard.
+ * Raised to ceil(1,900,000 estimated units x 1.25 / 350) x 350 = 2,450,000
+ * pending a completed dual-release measurement; the gate's success line prints
+ * the exact counts, and a completed run on the reference host must replace the
+ * estimate above.
  */
-export const MAX_RESOLUTION_WORK_UNITS = 1_382_850
+export const MAX_RESOLUTION_WORK_UNITS = 2_450_000
 
 /**
  * Measured npm seconds per resolution work unit on the reference host: 180.66 s

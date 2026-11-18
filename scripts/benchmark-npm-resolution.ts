@@ -4,7 +4,7 @@ import { execFileSync, spawn, spawnSync, type ChildProcess } from 'node:child_pr
 import { existsSync, globSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { performance } from 'node:perf_hooks'
 import { parseArgs } from 'node:util'
 
@@ -454,8 +454,27 @@ function close(server: Server): Promise<void> {
   })
 }
 
-function npmExecutable(): string {
-  return process.platform === 'win32' ? 'npm.cmd' : 'npm'
+/**
+ * Spawn the npm CLI as a direct `node` child when its `npm-cli.js` can be
+ * located next to the running Node installation. Going through the platform
+ * shell (`npm.cmd` → cmd.exe → node) makes the hang guard's tree termination
+ * unreliable: killing the shell's process tree can leave the node grandchild
+ * orphaned and the guard fails with `timed-out process tree did not exit`.
+ * A direct child is one killable process. When `npm-cli.js` cannot be found,
+ * fall back to the platform wrapper.
+ * @returns Command and argument prefix that runs the npm CLI.
+ */
+function npmCommand(): { command: string; args: readonly string[]; shell: boolean } {
+  const cliCandidates = process.platform === 'win32'
+    ? [join(dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js')]
+    : [
+      join(dirname(dirname(process.execPath)), 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js'),
+      join(dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js'),
+    ]
+  for (const candidate of cliCandidates) {
+    if (existsSync(candidate)) return { command: process.execPath, args: [candidate], shell: false }
+  }
+  return { command: process.platform === 'win32' ? 'npm.cmd' : 'npm', args: [], shell: process.platform === 'win32' }
 }
 
 function delay(ms: number): Promise<void> {
@@ -499,14 +518,16 @@ export async function runCommandWithTimeout(
     readonly env: NodeJS.ProcessEnv
     readonly timeoutMs: number
     readonly terminationGraceMs?: number
+    readonly shell?: boolean
   },
 ): Promise<{ status: number | null; signal: NodeJS.Signals | null; durationMs: number; output: string; timedOut: boolean }> {
   const started = performance.now()
+  const useShell = options.shell ?? process.platform === 'win32'
   const child = spawn(command, [...args], {
     cwd: options.cwd,
     detached: process.platform !== 'win32',
     env: options.env,
-    shell: process.platform === 'win32',
+    shell: useShell,
     stdio: ['ignore', 'pipe', 'pipe'],
   })
   let output = ''
@@ -568,7 +589,9 @@ async function runNpm(
   writeFileSync(globalNpmrc, '')
   const inheritedEnvironment = Object.fromEntries(Object.entries(process.env)
     .filter(([name]) => !name.toLowerCase().startsWith('npm_config_')))
-  const result = await runCommandWithTimeout(npmExecutable(), [
+  const npm = npmCommand()
+  const result = await runCommandWithTimeout(npm.command, [
+    ...npm.args,
     'install',
     '--package-lock-only',
     '--ignore-scripts',
@@ -589,6 +612,7 @@ async function runNpm(
       npm_config_update_notifier: 'false',
     },
     timeoutMs,
+    shell: npm.shell,
   })
   if (result.timedOut) return result
   if (result.status !== 0) {
@@ -669,12 +693,7 @@ export async function resolveNpmPackageLock(
   } finally {
     server.closeAllConnections()
     await close(server)
-    // TEMP DEBUG (revert): keep the failed consumer directory for autopsy.
-    if (process.env.DSH_KEEP_CONSUMER === undefined) {
-      rmSync(consumer, { recursive: true, force: true })
-    } else {
-      console.error(`consumer kept at ${consumer}`)
-    }
+    rmSync(consumer, { recursive: true, force: true })
   }
 }
 
@@ -707,7 +726,8 @@ async function main(): Promise<void> {
   const targetVersions = index.get(TARGET_PACKAGE)
   if (targetVersions === undefined) throw new Error(`local registry contains no ${TARGET_PACKAGE}`)
   const targetVersion = latestVersion(targetVersions)
-  const npmVersion = execFileSync(npmExecutable(), ['--version'], { encoding: 'utf8' }).trim()
+  const npm = npmCommand()
+  const npmVersion = execFileSync(npm.command, [...npm.args, '--version'], { encoding: 'utf8' }).trim()
   console.log(
     `benchmark-npm-resolution: npm ${npmVersion}, ${options.ref === undefined ? 'working tree' : options.ref}, `
     + `${String(index.size)} package name(s), setup ${(performance.now() - started).toFixed(0)} ms.`,
