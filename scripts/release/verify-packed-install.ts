@@ -89,6 +89,20 @@ function main(): void {
 
   const consumerRoot = mkdtempSync(join(tmpdir(), `dsh-packed-${family.id}-`))
   try {
+    // Every `@deepseek-ai/*` edge — regular or peer — must resolve to the packed
+    // tarballs. The vendored community plugins declare dsh peer ranges
+    // (`>=0.2.0-rc.1 <0.3.0-0`) whose semver prerelease tuples can never match a
+    // prerelease release version like `0.2.2-rc.4`, so npm's peer resolution
+    // cannot dedupe against the packed root instances and instead installs
+    // registry copies of old `@deepseek-ai/*` releases — versions that still
+    // ship the experimental bundles this verification refuses. The overrides
+    // pin the whole namespace to the same specs the root declares (npm requires
+    // an override for a direct dependency to repeat its exact spec), so peer
+    // auto-install keeps working for third-party peers like `@types/react`
+    // while the registry serves no `@deepseek-ai/*` package at all.
+    const overrides = Object.fromEntries([...packed]
+      .filter(([name]) => name.startsWith('@deepseek-ai/'))
+      .map(([name, entryPacked]) => [name, entryPacked.url]))
     writeFileSync(join(consumerRoot, 'package.json'), `${JSON.stringify({
       name: `dsh-packed-install-${family.id}`,
       version: '0.0.0',
@@ -98,6 +112,7 @@ function main(): void {
       // Keep foreign-platform metadata local without turning those tarballs into required installations.
       optionalDependencies: Object.fromEntries([...packed].filter(([, entryPacked]) => !entryPacked.compatible)
         .map(([name, entryPacked]) => [name, entryPacked.url])),
+      overrides,
     }, null, 2)}\n`)
 
     const environment = consumerEnvironment(consumerRoot)
@@ -109,15 +124,7 @@ function main(): void {
     // rather than a failure — which is what optional means here. Their entry
     // package is a plain dependency of dsh-sandbox-local, so its tarball is
     // supplied through --from.
-    // Peer auto-install must stay off: the vendored community plugins declare
-    // dsh peer ranges (`>=0.2.0-rc.1 <0.3.0-0`) whose semver prerelease tuples
-    // can never match a prerelease release version like `0.2.2-rc.4`, so npm's
-    // peer resolution cannot dedupe against the packed tree and instead nests
-    // registry copies of old `@deepseek-ai/dsh` releases — versions that still
-    // ship the experimental bundles this verification refuses. Every peer lives
-    // in the packed closure anyway, so the installed tree resolves them through
-    // ancestor lookup without any registry copy.
-    capture('npm', ['install', '--legacy-peer-deps', '--cache', join(consumerRoot, '.npm-cache'), '--no-audit', '--no-fund', '--package-lock=false'],
+    capture('npm', ['install', '--cache', join(consumerRoot, '.npm-cache'), '--no-audit', '--no-fund', '--package-lock=false'],
       { cwd: consumerRoot, env: environment })
 
     const installedEntry = join(consumerRoot, 'node_modules', entry.packageName)
