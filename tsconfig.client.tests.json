@@ -217,6 +217,7 @@
     { "path": "./packages/client/ui-sdkwork-mobile-simulator" },
     { "path": "./packages/client/ui-sdkwork-share" },
     { "path": "./packages/client/ui-sdkwork-conversation-header" },
+    { "path": "./packages/client/ui-sdkwork-input-history" },
     { "path": "./packages/client/ui-sdkwork-git" },
     { "path": "./packages/client/ui-sidebar" },
     { "path": "./packages/client/ui-sdkwork-sidebar" },

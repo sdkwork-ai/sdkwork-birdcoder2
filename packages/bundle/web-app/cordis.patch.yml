@@ -975,6 +975,12 @@
     - id: ui-conversation
       name: '@deepseek-ai/dsh-client-ui-conversation'
 
+    # Composer input history: records accepted messages in browser storage and
+    # recalls them with ↑/↓ across the session, the project, or every session,
+    # configured on the Input history settings page.
+    - id: ui-sdkwork-input-history
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-input-history'
+
     - id: ui-approval
       name: '@deepseek-ai/dsh-client-ui-approval'
 

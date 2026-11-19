@@ -79,3 +79,9 @@ SDKWork 自定义插件统一以 **`sdkwork`** 标识，一眼可辨：
 - 已排除：12 个 `packages/typert/generator/tests/.typert-*` 测试夹具（非插件）。
 - `extensions / goal / jobs / mcp / sandbox / schedule / session-query / spill / storage / workspace` 等在 rc.8 已属上游，不计入自定义。
 - 兄弟仓库（`../sdkwork-iam`、`../sdkwork-utils` 等）无外部引用本批包名，`pnpm install` 不受影响。
+
+## 六、后续新增（2026-11-19）
+
+| 包路径 | npm 包名 | 作用 |
+|--------|----------|------|
+| `packages/client/ui-sdkwork-input-history` | `@deepseek-ai/dsh-client-ui-sdkwork-input-history` | 输入框历史输入缓存：记录 Host 接受的普通消息到浏览器本地，↑/↓ 按 session / 项目 / 全局作用域切换历史输入；设置弹窗新增「输入历史」页（开关、范围、缓存时长默认 30 天并自动过期清理）。 |

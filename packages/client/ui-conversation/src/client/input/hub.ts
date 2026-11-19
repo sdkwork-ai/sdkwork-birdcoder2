@@ -175,6 +175,18 @@ export class InputHub implements SessionInputResolver {
         })
       },
       messageSubmitted: (submission) => { reportMessageSubmission(this.rootCtx, submission) },
+      // UI-only observers (input history, recent-input lists) hear the accepted
+      // message on the shared event bus; the composer itself stays the only
+      // sender, and a blank draft never belongs in an input history.
+      messageAccepted: (attempt) => {
+        const text = attempt.draftSnapshot
+        if (text.trim() === '') return
+        this.rootCtx.emit('conversation/input-accepted', {
+          sessionId: session.sessionId,
+          text,
+          submittedAt: Date.now(),
+        })
+      },
       inputTriggers: () => this.controller(actx),
       popup: () => this.popup(actx),
       inbox: session.projections.faceOf('inbox') as ObservableSnapshot<InboxState | undefined>,

@@ -49,6 +49,8 @@ export interface SessionInputDeps {
   submissionState?: () => MessageSubmissionState
   /** Notify one ordinary message attempt before reference serialization. */
   messageSubmitted?: (submission: MessageSubmission) => void
+  /** Observe one ordinary message after the Host accepted it (identical for every settled path). */
+  messageAccepted?: (attempt: SubmitAttempt) => void
   /** Enter adjudication face resolver; absent/undefined answer = every '/' line falls to the default sink. */
   inputTriggers?: (() => InputTriggerController | undefined) | undefined
   /** PopupSelect shell face resolver (dismissal on submit lock / escape). */
@@ -809,6 +811,9 @@ export class SessionInputShell implements SessionInput {
       this.attachmentIds = this.attachmentIds.filter(id => !sent.has(id))
     }
     this.dispatchRun(({ type: 'sink-settled', attempt, ok: accepted, outcome }))
+    if (!accepted) return
+    // Observers are notified after the composer settled, and can never interrupt it.
+    try { this.deps.messageAccepted?.(attempt) } catch (_error) { /* Notification consumers cannot interrupt settlement. */ }
   }
 
   /** Settle a send that ended without a Host outcome; the draft stays for correction. */

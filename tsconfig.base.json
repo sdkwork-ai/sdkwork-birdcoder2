@@ -442,6 +442,8 @@
       "@deepseek-ai/dsh-client-ui-sdkwork-share/client": ["./packages/client/ui-sdkwork-share/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-conversation-header": ["./packages/client/ui-sdkwork-conversation-header/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-conversation-header/client": ["./packages/client/ui-sdkwork-conversation-header/src/client"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-input-history": ["./packages/client/ui-sdkwork-input-history/src"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-input-history/client": ["./packages/client/ui-sdkwork-input-history/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-git": ["./packages/client/ui-sdkwork-git/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-git/client": ["./packages/client/ui-sdkwork-git/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-image-models": ["./packages/client/ui-sdkwork-image-models/src"],

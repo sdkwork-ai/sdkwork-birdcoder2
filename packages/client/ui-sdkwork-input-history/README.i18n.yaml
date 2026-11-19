@@ -1,0 +1,40 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-input-history/README.md
+/:
+  en: 220c1a658cfba7bf
+  zh: 0384f6635999c0dc
+/deepseek-ai-dsh-client-ui-sdkwork-input-history:
+  en: 2a8c0b2e41d87d5e
+  zh: 13bf059de8750623
+/deepseek-ai-dsh-client-ui-sdkwork-input-history/summary:
+  en: 11df2dcf7136a57a
+  zh: e953e60587de68b4
+/deepseek-ai-dsh-client-ui-sdkwork-input-history/table-of-contents:
+  en: ca5dc537b0599b2a
+  zh: 2d06aa7b69a556c3
+/deepseek-ai-dsh-client-ui-sdkwork-input-history/use-this-package:
+  en: 27bc73adbbfd636f
+  zh: 1fccb45ae3d9dcbb
+/deepseek-ai-dsh-client-ui-sdkwork-input-history/understand-the-implementation:
+  en: aaf5c3ab57239ba4
+  zh: 1ff7205908125dd1
+/deepseek-ai-dsh-client-ui-sdkwork-input-history/understand-the-implementation/scope-and-retention:
+  en: b96644d2937d1c68
+  zh: 9501aa47f391535b
+/deepseek-ai-dsh-client-ui-sdkwork-input-history/dev-note:
+  en: 17ba2a250d168d3a
+  zh: 869d016963dc8f72
+/deepseek-ai-dsh-client-ui-sdkwork-input-history/runtime-invariants:
+  en: fbb16aec8a019603
+  zh: a341ac2efe8d512d
+/deepseek-ai-dsh-client-ui-sdkwork-input-history/model-experience:
+  en: 54f791f59fa90156
+  zh: 1a9358b036bd8135
+/deepseek-ai-dsh-client-ui-sdkwork-input-history/model-experience/kv-cache-effect:
+  en: fcdd38bb52b9dc6a
+  zh: d7e75d44f5c1b274
+/deepseek-ai-dsh-client-ui-sdkwork-input-history/known-limitations-and-deferred-work:
+  en: d190c770318cd633
+  zh: 2ee0fea3a971998c

@@ -8,6 +8,7 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type { SessionBinding } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { InboxState } from '@deepseek-ai/dsh-agent/types'
 import type { ObservableSnapshot, SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { Branded } from '@deepseek-ai/dsh-brand'
@@ -137,8 +138,26 @@ export interface InputTriggerController {
   toggleSource(source: string, hit: InputTriggerHit): void
 }
 
+/** One ordinary composer message the Host accepted. */
+export interface AcceptedComposerInput {
+  /** Session that sent the message. */
+  readonly sessionId: SessionId
+  /** Message text as the user sent it (the composer's clipboard projection). */
+  readonly text: string
+  /** Browser clock at acceptance, in epoch milliseconds. */
+  readonly submittedAt: number
+}
+
 declare module '@deepseek-ai/cordis' {
   interface Events {
+    /**
+     * An ordinary composer message was accepted by the Host, after settlement.
+     * UI-only observers (input history, recent-input lists) read it here; it
+     * never carries command submissions and never changes the sent message.
+     * @param input - accepted Session, exact text, and acceptance time.
+     * @mode emit
+     */
+    'conversation/input-accepted'(input: AcceptedComposerInput): void
     /**
      * Claim a command token for the scoped input machine.
      * @param request - command claim and span.

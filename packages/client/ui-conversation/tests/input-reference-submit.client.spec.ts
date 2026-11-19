@@ -5,7 +5,7 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 import type { Context } from '@deepseek-ai/cordis'
-import type { InputTriggerController, SubmitOutcome, PickOutcome } from '../src/client/contract/input.ts'
+import type { InputTriggerController, SubmitOutcome, PickOutcome, SubmitAttempt } from '../src/client/contract/input.ts'
 import { SessionInputShell } from '../src/client/input/facade.ts'
 import type { DraftAttachmentId } from '../src/client/contract/input.ts'
 
@@ -209,6 +209,44 @@ describe('reference submission', () => {
 })
 
 describe('submit transaction hardening', () => {
+  it('reports exactly the accepted ordinary message to acceptance observers', async () => {
+    const accepted = vi.fn<(attempt: SubmitAttempt) => void>()
+    const shell = new SessionInputShell({
+      actx: {} as Context,
+      defaultSink: () => Promise.resolve<SubmitOutcome>({ kind: 'success' }),
+      commandAttachments,
+      messageAccepted: accepted,
+    })
+    shell.setDraft('remember this')
+    shell.submit()
+    await vi.waitFor(() => { expect(accepted).toHaveBeenCalledOnce() })
+    expect(accepted.mock.calls[0]?.[0].draftSnapshot).toBe('remember this')
+
+    const rejected = vi.fn<(attempt: SubmitAttempt) => void>()
+    const failing = new SessionInputShell({
+      actx: {} as Context,
+      defaultSink: () => Promise.resolve<SubmitOutcome>({ kind: 'error' }),
+      commandAttachments,
+      messageAccepted: rejected,
+    })
+    failing.setDraft('keep this')
+    failing.submit()
+    await vi.waitFor(() => { expect(failing.snapshot.phase).toBe('plain') })
+    expect(rejected).not.toHaveBeenCalled()
+  })
+
+  it('contains an acceptance observer failure inside settlement', async () => {
+    const shell = new SessionInputShell({
+      actx: {} as Context,
+      defaultSink: () => Promise.resolve<SubmitOutcome>({ kind: 'success' }),
+      commandAttachments,
+      messageAccepted: () => { throw new Error('observer failed') },
+    })
+    shell.setDraft('still sends')
+    shell.submit()
+    await vi.waitFor(() => { expect(shell.snapshot.draft).toBe('') })
+  })
+
   it('sends one image-only prompt per settlement, ignoring Enter during the round-trip', async () => {
     const submitted = vi.fn()
     let settle!: (outcome: SubmitOutcome) => void

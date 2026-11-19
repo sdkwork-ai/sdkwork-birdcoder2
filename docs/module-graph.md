@@ -241,6 +241,7 @@ flowchart TD
     pkg_client_ui_sdkwork_im_conversations["client-ui-sdkwork-im-conversations"]
     pkg_client_ui_sdkwork_image_models["client-ui-sdkwork-image-models"]
     pkg_client_ui_sdkwork_image_preview["client-ui-sdkwork-image-preview"]
+    pkg_client_ui_sdkwork_input_history["client-ui-sdkwork-input-history"]
     pkg_client_ui_sdkwork_knowledge["client-ui-sdkwork-knowledge"]
     pkg_client_ui_sdkwork_markets["client-ui-sdkwork-markets"]
     pkg_client_ui_sdkwork_mini_program_accounts["client-ui-sdkwork-mini-program-accounts"]
@@ -1826,6 +1827,7 @@ flowchart TD
 | [`client-ui-sdkwork-im-conversations`](../packages/client/ui-sdkwork-im-conversations) | `client` | — |
 | [`client-ui-sdkwork-image-models`](../packages/client/ui-sdkwork-image-models) | `client` | — |
 | [`client-ui-sdkwork-image-preview`](../packages/client/ui-sdkwork-image-preview) | `client` | — |
+| [`client-ui-sdkwork-input-history`](../packages/client/ui-sdkwork-input-history) | `client` | — |
 | [`client-ui-sdkwork-knowledge`](../packages/client/ui-sdkwork-knowledge) | `client` | — |
 | [`client-ui-sdkwork-markets`](../packages/client/ui-sdkwork-markets) | `client` | — |
 | [`client-ui-sdkwork-mini-program-accounts`](../packages/client/ui-sdkwork-mini-program-accounts) | `client` | — |

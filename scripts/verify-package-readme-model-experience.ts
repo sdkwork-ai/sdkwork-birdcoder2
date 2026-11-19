@@ -55,6 +55,7 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/client/script-realm': { kind: 'none', reason: 'Optional browser execution-provider registration contributes no model input.' },
   'packages/client/script-realm-iframe': { kind: 'none', reason: 'Same-origin browser script environments contribute no model input.' },
   'packages/client/ui-sdkwork-persona': { kind: 'none', reason: 'Browser-side persona picker and its durable settings section; registers no tool, prompt section, or session event, and the chosen role and interests never enter a model request.' },
+  'packages/client/ui-sdkwork-input-history': { kind: 'none', reason: 'Browser-side composer recall over a local input ledger; the settings page and the recorded text never enter a prompt, a tool result, or the session log, and recording happens only after the Host accepted the message.' },
   'packages/client/ui-sdkwork-assistant': { kind: 'none', reason: 'The rail cell only selects the linked persona-bot main panel in the browser; it registers no tool, prompt section, or session event.' },
   'packages/client/ui-context-menu': { kind: 'none', reason: 'Client menu presentation and contributed callbacks add no model input.' },
   'packages/client/ui-file-actions': { kind: 'none', reason: 'Explicit user file saves and clipboard operations add no model input.' },
