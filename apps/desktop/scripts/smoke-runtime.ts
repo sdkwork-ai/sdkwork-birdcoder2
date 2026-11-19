@@ -1,6 +1,7 @@
 /** Boot the materialized target runtime without access to a user's Harness profile. */
 
 import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { request as httpRequest } from 'node:http'
 import { rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -36,6 +37,37 @@ export function assertOfficeSkillsLoadable(results: ReadonlyArray<{ readonly nam
   if (!OFFICE_SKILLS.every(name => results.some(skill => skill.name === name && skill.bytes > 0))) {
     throw new Error(`desktop runtime: packaged Office skills are not loadable: ${JSON.stringify(results)}`)
   }
+}
+
+/**
+ * Issue one Office smoke request without `fetch`'s 300 s response-header ceiling.
+ *
+ * `fetch` cannot carry these two routes: undici fails a request whose response
+ * headers have not arrived within 300 s and reports it as a bare
+ * `TypeError: fetch failed`, so `OFFICE_CALL_TIMEOUT_MS` never gets to decide
+ * and the engine's own ceiling (`timeoutMs: 600000`) never gets to answer — the
+ * Intel macOS lane failed exactly that way while the engine was still
+ * converting. `node:http` has no default timeout, so this client budget is the
+ * only bound and a slow runner reports what actually happened.
+ * @param url - Smoke route on the Host's loopback origin.
+ * @param cookie - Host authentication cookie returned with the readiness URL.
+ * @param timeoutMs - Client budget for the whole request, body included.
+ * @returns The response status and its complete body.
+ */
+function requestOfficeRoute(url: URL, cookie: string, timeoutMs: number): Promise<{ readonly status: number; readonly body: Buffer }> {
+  return new Promise((resolve, reject) => {
+    const request = httpRequest(url, { headers: { cookie }, timeout: timeoutMs }, (response) => {
+      const chunks: Buffer[] = []
+      response.on('data', (chunk: Buffer) => chunks.push(chunk))
+      response.on('end', () => resolve({ status: response.statusCode ?? 0, body: Buffer.concat(chunks) }))
+      response.on('error', reject)
+    })
+    request.on('timeout', () => {
+      request.destroy(new Error(`desktop runtime: ${url.pathname} exceeded the ${timeoutMs} ms client budget`))
+    })
+    request.on('error', reject)
+    request.end()
+  })
 }
 
 /**
@@ -226,22 +258,18 @@ export function apply(ctx) {
     assertOfficeSkillsLoadable(loadedSkills)
     console.log('desktop runtime: packaged Office skills listed and loaded')
     for (const { extension } of inputs) {
-      const converted = await fetch(new URL(`/desktop-smoke-office/${extension}`, ready.url), {
-        headers: { cookie }, signal: AbortSignal.timeout(OFFICE_CALL_TIMEOUT_MS),
-      })
-      if (!converted.ok) throw new Error(`desktop runtime: ${extension} conversion failed: ${await converted.text()}`)
-      const pdf = Buffer.from(await converted.arrayBuffer())
+      const converted = await requestOfficeRoute(new URL(`/desktop-smoke-office/${extension}`, ready.url), cookie, OFFICE_CALL_TIMEOUT_MS)
+      if (converted.status !== 200) throw new Error(`desktop runtime: ${extension} conversion failed: ${converted.body.toString()}`)
+      const pdf = converted.body
       if (!/^%PDF-\d\.\d/u.test(pdf.subarray(0, 8).toString())
         || !pdf.subarray(-1024).toString().trimEnd().endsWith('%%EOF')) {
         throw new Error(`desktop runtime: invalid ${extension} PDF output`)
       }
     }
     for (const { extension } of inputs) {
-      const operations = await fetch(new URL(`/desktop-smoke-office-operations/${extension}`, ready.url), {
-        headers: { cookie }, signal: AbortSignal.timeout(OFFICE_CALL_TIMEOUT_MS),
-      })
-      if (!operations.ok) throw new Error(`desktop runtime: ${extension} Office operations failed: ${await operations.text()}`)
-      const result = await operations.json() as { images: string[]; converted: string; recalculated: string | null }
+      const operations = await requestOfficeRoute(new URL(`/desktop-smoke-office-operations/${extension}`, ready.url), cookie, OFFICE_CALL_TIMEOUT_MS)
+      if (operations.status !== 200) throw new Error(`desktop runtime: ${extension} Office operations failed: ${operations.body.toString()}`)
+      const result = JSON.parse(operations.body.toString('utf8')) as { images: string[]; converted: string; recalculated: string | null }
       // PNG images, then ZIP containers for OpenDocument and XLSX outputs.
       if (result.images.length === 0 || result.images.some(signature => signature !== '89504e470d0a1a0a')
         || result.converted !== '504b0304' || (extension === 'xlsx' ? result.recalculated !== '504b0304' : result.recalculated !== null)) {
