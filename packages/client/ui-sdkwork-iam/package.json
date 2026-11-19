@@ -34,6 +34,7 @@
       "immediately": true,
       "inject": [
         "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-chat",
         "@deepseek-ai/dsh-client-ui-slots",
         "@deepseek-ai/dsh-client-ui-sdkwork-env",
         "@deepseek-ai/dsh-client-ui-theme",
@@ -64,6 +65,7 @@
     "@deepseek-ai/dsh-client-runtime": "workspace:*",
     "@deepseek-ai/dsh-client-store": "workspace:*",
     "@deepseek-ai/dsh-client-test-runtime": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-chat": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-app-modes": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-env": "workspace:*",
     "@deepseek-ai/dsh-client-ui-layout": "workspace:*",

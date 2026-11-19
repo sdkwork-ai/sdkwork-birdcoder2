@@ -315,7 +315,7 @@ function cardSeatCalls(
     ])
 }
 
-async function mountFace(scripted: ReturnType<typeof scriptedFace>) {
+async function mountFace(scripted: ReturnType<typeof scriptedFace>, focusProvider?: string) {
   const { face, update, mutate, set, unset } = scripted
   const ctx = ctxWith(face)
   const mirror = new SettingsDescribeMirror(ctx)
@@ -329,6 +329,7 @@ async function mountFace(scripted: ReturnType<typeof scriptedFace>) {
     schema: settingsSchema,
     t,
     renderSlot: renderSlot as unknown as ModelsSectionProps['renderSlot'],
+    ...focusProvider === undefined ? {} : { focusProvider },
   }
   const view = render(<ModelsSection {...injected} />)
   return { view, ctx, face, update, mutate, set, unset, controller, mirror, renderSlot }
@@ -372,6 +373,30 @@ describe('ModelsSection', () => {
     const row = within(edit.closest('li')!)
     expect(row.getByText(en.keyFallbackUnchecked)).toBeTruthy()
     expect(row.queryByText(en.keyFallbackMissing.replace('{hint}', 'OPENAI_API_KEY'))).toBeNull()
+  })
+
+  it('reveals the provider card a deep link names and leaves an unknown route alone', async () => {
+    const scrollIntoView = vi.fn()
+    const proto = HTMLElement.prototype as { scrollIntoView?: (options?: unknown) => void }
+    const owned = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollIntoView')
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true, writable: true, value: scrollIntoView,
+    })
+    try {
+      const revealed = await mountFace(scriptedFace(), 'openai')
+      expect(scrollIntoView).toHaveBeenCalledOnce()
+      const card = revealed.view.container.querySelector('li[data-revealed]')
+      expect(card?.textContent).toContain('openai')
+      // An unknown route opens the page but reveals nothing: the shell's
+      // target is a hint, never a page failure.
+      cleanup()
+      const unknown = await mountFace(scriptedFace(), 'missing-route')
+      expect(unknown.view.container.querySelector('li[data-revealed]')).toBeNull()
+      expect(scrollIntoView).toHaveBeenCalledOnce()
+    } finally {
+      if (owned === undefined) delete proto.scrollIntoView
+      else Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', owned)
+    }
   })
 
   it('waits for the current snapshot when a setup surface remounts during refresh', async () => {

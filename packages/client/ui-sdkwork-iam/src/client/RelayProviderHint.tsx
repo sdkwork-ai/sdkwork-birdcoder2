@@ -19,7 +19,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-settings-models/client'
 import css from './RelayProviderHint.module.css'
 
 /** The route whose credential the signed-in session supplies. */
-const RELAY_PROVIDER = 'birdcoder'
+export const RELAY_PROVIDER = 'birdcoder'
 
 /** The actions the notice dispatches through the IAM service. */
 export interface RelayProviderHintInjected {

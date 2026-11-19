@@ -3,9 +3,11 @@
  * service (auth controller over the generated app client + settings mirror
  * + presentation dispatch), binds the settings-menu account seam to the IAM
  * session (`ctx.account.setSource`), registers the account app mode (rail
- * entry + full-page auth page), and hosts the modal sign-in surface on the
- * frame's floating overlay. The `ui-sdkwork-iam` settings scope (base URL, app id,
- * presentation, QR/OAuth toggles) lands from the Host settings document.
+ * entry + full-page auth page), hosts the modal sign-in surface on the
+ * frame's floating overlay, and contributes the credential fixes a Chat
+ * failure row offers (sign in, or open the BirdCoder card on the Models page).
+ * The `ui-sdkwork-iam` settings scope (base URL, app id, presentation, QR/OAuth
+ * toggles) lands from the Host settings document.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
@@ -17,6 +19,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 // Type-only: pulls ctx.account (the settings-menu seam) into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-settings-menu/client'
+// Type-only: pulls the Chat failure row's action seat into this program.
+import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 // Type-only: pulls ctx.locale into this program.
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type { AccountRuntime } from '@deepseek-ai/dsh-client-ui-sdkwork-settings-menu/client'
@@ -36,7 +40,8 @@ import { createIamUiStore } from './iam-ui-store.ts'
 import { createIamSignOutStore } from './iam-sign-out-store.ts'
 import { IamService, type IamProfileSnapshot } from './iam-service.ts'
 import { startRelayCredentialMirror } from './relay-credential.ts'
-import { RelayProviderHint, type RelayProviderHintInjected } from './RelayProviderHint.tsx'
+import { RelayProviderHint, RELAY_PROVIDER, type RelayProviderHintInjected } from './RelayProviderHint.tsx'
+import { MissingCredentialActions, type MissingCredentialActionsInjected } from './MissingCredentialActions.tsx'
 import { AccountModePage, toSdkworkLocale, type AccountModePageInjected } from './AccountModePage.tsx'
 import { readDesktopSignInPage } from './desktop-sign-in-page.ts'
 import { SignInOverlay, type SignInOverlayInjected } from './SignInOverlay.tsx'
@@ -284,4 +289,28 @@ export function apply(ctx: ClientContext): void {
       signedIn: () => service.isSignedIn(),
     }),
   }, RelayProviderHint))
+
+  // The Chat failure row's credential fixes: sign in (the relay then uses the
+  // signed-in Auth Token) or open Settings → Models on the BirdCoder card and
+  // store a key there. This is the same pair of repairs the failure copy names,
+  // so the row states them as gestures instead of instructions. The settings
+  // shell provides the deep-link service; a composition without it keeps the
+  // plain row, since there is no Models page to open either.
+  ctx.slots.inject('conversation.chat.turn-error.actions', () => ctx.slots.register({
+    name: 'conversation.chat.turn-error.actions',
+    id: 'credential-fixes',
+    locale: NS,
+    inject: (): MissingCredentialActionsInjected => ({
+      signIn: () => { service.openSignInOverlay() },
+      configure: () => {
+        ctx.get('settingsMenu')?.openSection('models', { focusProvider: RELAY_PROVIDER })
+      },
+      hooks: {
+        signedIn: {
+          getSnapshot: () => service.isSignedIn(),
+          subscribe: listener => service.subscribe(listener),
+        },
+      },
+    }),
+  }, MissingCredentialActions))
 }

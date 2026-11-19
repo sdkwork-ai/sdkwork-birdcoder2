@@ -289,7 +289,7 @@ type ToolOwner = Pick<ChatNodeOwnerProps, 'openFile' | 'inspectCall'> & {
 const renderCommandSlot: React.ComponentProps<typeof CommandNodeView>['renderSlot'] =
   (_key, _owner, opts) => opts?.fallback ?? null
 const renderTurnTailSlot: React.ComponentProps<typeof TurnTailNodeView>['renderSlot'] = () => null
-const renderTurnErrorSlot: React.ComponentProps<typeof TurnErrorNodeView>['renderSlot'] = () => null
+const renderTurnErrorSlot = (_name: string, _owner: TurnErrorActionsOwnerProps): React.ReactNode => null
 
 function HarnessChatFlow({ standard, owner, hookContext, renderSlot, useConnectionState }: {
   readonly standard: HarnessStandardProps
@@ -328,7 +328,7 @@ function HarnessChatNode({
   readonly fallback: React.ReactNode
   readonly renderAssistantSlot: React.ComponentProps<typeof AssistantNodeView>['renderSlot']
   readonly renderUserChain: PropsRenderSlots<'conversation.chat.user.before'>['renderSlotChain']
-  readonly renderTurnErrorActions?: React.ComponentProps<typeof TurnErrorNodeView>['renderSlot']
+  readonly renderTurnErrorActions?: (name: string, owner: TurnErrorActionsOwnerProps) => React.ReactNode
 }) {
   const hooks = useMemo(() => ({
     useTurnData: CHAT_NODE_INJECT.hooks.turnData(standard, hookContext),
@@ -355,7 +355,7 @@ function HarnessChatNode({
     case 'model-retry':
       return <RetryNodeView {...nodeProps} node={owner.node} />
     case 'turn-error':
-      return <TurnErrorNodeView {...nodeProps} node={owner.node} renderSlot={renderTurnErrorActions} />
+      return <TurnErrorNodeView {...nodeProps} node={owner.node} renderSlot={renderTurnErrorActions as never} />
     case 'turn-max-tokens':
       return <TurnMaxTokensNodeView {...nodeProps} node={owner.node} />
     case 'inherited-history':

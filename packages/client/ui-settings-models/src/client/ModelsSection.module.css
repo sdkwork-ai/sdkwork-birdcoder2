@@ -405,6 +405,14 @@
   list-style: none;
 }
 
+/* The card a deep link asked the page to reveal: the scroll puts it in view,
+   the ring keeps it findable for a moment after the jump. */
+.setupCard[data-revealed],
+.rowCard[data-revealed] {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 2px;
+}
+
 /* Nested in a card that already carries the module chrome. */
 .addCard .editor,
 .setupCard .editor {

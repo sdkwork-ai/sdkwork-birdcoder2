@@ -42,7 +42,7 @@ kind: "package-reference"
 <a id="filling-the-settings-slots"></a>
 ### 填充设置 slot
 
-设置界面会注册进本包声明的 slot 类型。外壳（`sidebar.settings` 占位方、导航、界面框架）位于 ui-settings-general；设置页面（包括插件自己的设置页面）注册 `settings.section` 贡献；由 ui-settings-general 注册的 `settings.section.view` Component Factory 声明该 slot，按调用方传入的 `id` 渲染对应条目，并传入调用方的 `close` 操作，设置与[插件页面](../ui-plugin-manager/README.zh.md#configuration-pages)都经由它渲染；首次使用引导步骤注册 `settings.onboarding`。跨命名空间的表面（schema 内省、已服务命名空间目录、`hasDocument`）通过 `ctx.configForms.describe()` 读同一面镜像。
+设置界面会注册进本包声明的 slot 类型。外壳（`sidebar.settings` 占位方、导航、界面框架）位于 ui-settings-general；设置页面（包括插件自己的设置页面）注册 `settings.section` 贡献；由 ui-settings-general 注册的 `settings.section.view` Component Factory 声明该 slot，按调用方传入的 `id` 渲染对应条目，并传入调用方的 `close` 操作，设置与[插件页面](../ui-plugin-manager/README.zh.md#configuration-pages)都经由它渲染；若打开方要深链到某个提供方页面，还可传入可选的 `focusProvider` 路由，由该分区负责定位，其他分区忽略；首次使用引导步骤注册 `settings.onboarding`。跨命名空间的表面（schema 内省、已服务命名空间目录、`hasDocument`）通过 `ctx.configForms.describe()` 读同一面镜像。
 
 要自定义页面的导航图标，使用 `ctx.slots.inject('settings.section.icon', ...)`，并以与其 `settings.section` 贡献相同的 `id` 注册图标组件。不匹配的 id 不会渲染，图标的 `label` 选项不会显示。组件接收以像素为单位的 `size` 和 `active`；外壳负责按钮、标签和装饰性图标容器。没有匹配的图标注册时，外壳渲染默认图标。释放图标贡献后恢复该默认图标。
 

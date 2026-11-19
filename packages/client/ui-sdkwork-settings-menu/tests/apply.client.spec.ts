@@ -8,6 +8,7 @@ import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { usePinnedBrowserLanguages } from '@deepseek-ai/dsh-client-test-runtime'
 import { apply, inject } from '@deepseek-ai/dsh-client-ui-sdkwork-settings-menu/client'
 import { AccountRuntime } from '../src/client/account.ts'
+import { createSettingsMenuStore } from '../src/client/menu-store.ts'
 import { CloseLabel, HeaderContent, TriggerContent } from '../src/client/chrome.tsx'
 import { GeneralSection } from '../src/client/GeneralSection.tsx'
 import { SettingsDocumentAction } from '../src/client/SettingsDocumentAction.tsx'
@@ -232,10 +233,7 @@ describe('ui-sdkwork-settings-menu apply', () => {
     declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const entry = b.slots.entries('mode.rail.settings')[0]!
-    const shell = entry.store as unknown as { create(): {
-      actions: { close(): void }
-      getSnapshot(): { dialogOpen: boolean; activeId: string | undefined; focusProvider: string | undefined }
-    } }
+    const shell = entry.store as ReturnType<typeof createSettingsMenuStore>
     const instance = shell.create()
     // Registration and the service share one instance: the caller opens the
     // same dialog the shell renders, on the section it asked for.

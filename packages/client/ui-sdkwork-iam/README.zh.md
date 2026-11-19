@@ -34,6 +34,7 @@ SDKWork IAM 集成插件：通过 sdkwork-iam 认证栈提供登录/注册（全
 - **`ctx.iam`**：IAM 服务面——基于生成的 `@sdkwork/iam-app-sdk` 客户端的 sdkwork 认证控制器、`ui-sdkwork-iam` 设置镜像、登录形态分发（Modal 或页面），账号画像的读写（`retrievePersona`、`updatePersona`）以及可选字典（`retrievePersonaCatalog`）；persona 选择弹窗复用同一个客户端、同一个 base URL 与同一个 TokenManager。
 - **中转会话凭据镜像**：插件经 `remote.credentials` 把已登录的 `authToken` 写入 Host 凭据面的 `BIRDCODER_AUTH_TOKEN`，并在退出登录时移除。BirdCoder 中转接受该令牌作为 API Key，而浏览器启动没有桌面外壳在 `<DSH_HOME>/iam` 写的会话文件；缺了这次写入，浏览器里的登录会让每个中转请求都没有凭据。该引用只是会话来源，不是中转自己的 Key——Host 的 `birdcoder-account` 插件只在 `BIRDCODER_API_KEY` 上没有用户 Key 时才复制它，因此「模型」页填写的 API Key 始终优先。镜像挂在 `remote`/`remote.credentials` 服务上：没有这些服务的页面（欢迎窗口、无头组合）保留登录表面，只是跳过这次写入。
 - **BirdCoder 提供方卡片提示**（`settings.models.provider-card`，keyed `llm-pi-ai`）：配置缺失的 BirdCoder 卡片上说明中转使用登录账号的 Auth Token，并提供登录手势，打开与设置菜单相同的登录表面。已登录或凭据关联（credential join）报告 Key 已配置时不渲染；它位于行上而不是编辑器内部，其他 pi-ai 路由完全不受影响。卡片自己的 API Key 输入框仍是覆盖路径，在没有「模型」分区的组合里也是唯一路径（该插槽不会被声明）。
+- **Chat 失败行的凭据修复**（`conversation.chat.turn-error.actions`，条目 `credential-fixes`）：`MISSING_CREDENTIAL` 行提供**登录**（通过 `openSignInOverlay` 直接打开登录入口弹窗；已登录时隐藏）与**配置**（经 `ctx.settingsMenu` 打开 设置 → 模型 并定位到 BirdCoder 提供方卡片、将该行滚入视野）。该条目只响应该错误码，其他失败不渲染任何内容，Chat 包本身不保留提供方专属修复逻辑。
 
 ## 配置
 

@@ -21,10 +21,10 @@
  * post-apply reload.
  */
 
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Button, IconPlusOutlineRegular, Modal, SegmentedControl } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { InjectFace, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
+import type { InjectFace, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { LlmNativeAuth, SettingsNamespaceView } from '@deepseek-ai/dsh-api-remotes/client'
 // Type-only: pulls this package's SlotMap merge (the two Models child slots).
 import type {} from './slot-contract.ts'
@@ -68,11 +68,19 @@ type ModelsRenderSlot = PropsRenderSlots<ModelsChildSlots>['renderSlot']
 /**
  * Props delivered by the slot outlet: the inject face spread flat (the
  * renderer erases the share boundary at the render call) plus the child-slot
- * dispatch seat. The seat is required: the renderer binds it at the render
- * call itself — unlike the inject face it is never absent at runtime — and a
- * direct render that forgets it fails to compile instead of mounting nothing.
+ * dispatch seat and the shell's optional reveal target. The seat is required:
+ * the renderer binds it at the render call itself — unlike the inject face it
+ * is never absent at runtime — and a direct render that forgets it fails to
+ * compile instead of mounting nothing. `focusProvider` is the section owner
+ * share, absent on an ordinary open.
  */
-export type ModelsSectionProps = Partial<InjectFace<ModelsSectionInjected>> & PropsRenderSlots<ModelsChildSlots>
+export type ModelsSectionProps =
+  Partial<InjectFace<ModelsSectionInjected>>
+  & PropsRenderSlots<ModelsChildSlots>
+  & Pick<PropsRuntime<'settings.section'>, 'focusProvider'>
+
+/** How long a revealed provider card stays marked after the scroll. */
+const REVEAL_HIGHLIGHT_MS = 2_000
 
 type ModelsSectionFace = InjectFace<ModelsSectionInjected>
 
@@ -236,15 +244,20 @@ export function providerCopy(template: string, target: ProviderIdentity): string
  * @returns the section, or null while the shell has not injected yet.
  */
 export function ModelsSection(props: ModelsSectionProps): ReactNode {
-  const { controller, useSnapshot, operations, schema, t, renderSlot } = props
+  const { controller, useSnapshot, operations, schema, t, renderSlot, focusProvider } = props
   if (
     controller === undefined || useSnapshot === undefined || operations === undefined
     || schema === undefined || t === undefined
   ) return null
-  return <Loaded injected={{ controller, useSnapshot, operations, schema, t }} renderSlot={renderSlot} />
+  return <Loaded injected={{ controller, useSnapshot, operations, schema, t }} renderSlot={renderSlot} focusProvider={focusProvider} />
 }
 
-function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderSlot: ModelsRenderSlot }): ReactNode {
+function Loaded({ injected, renderSlot, focusProvider }: {
+  injected: ModelsSectionFace
+  renderSlot: ModelsRenderSlot
+  /** Provider route the shell opened the page to reveal. */
+  focusProvider: string | undefined
+}): ReactNode {
   const { controller, operations, schema, t } = injected
   const snapshot = injected.useSnapshot(value => value)
   const state = { ...snapshot, rows: snapshot.rows.map(row => row.entry.provider === 'deepseek-account'
@@ -268,6 +281,35 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
   const [deleteFailure, setDeleteFailure] = useState<string | undefined>(undefined)
   const [savedTarget, setSavedTarget] = useState<ProviderIdentity | undefined>(undefined)
   const [dismissedSetup, setDismissedSetup] = useState<ReadonlySet<string>>(() => new Set())
+
+  // A surface outside the section can open the page on one provider (the Chat
+  // failure row sends it to the provider whose credential is missing). The
+  // shell renders this section only while it is the active page and clears its
+  // target on ordinary navigation, so the reveal runs once per open: scroll the
+  // card into view and mark it briefly so the eye follows the jump. The card
+  // may not exist until the first ready snapshot arrives, which is why the
+  // effect also follows that fact and remembers what it already revealed.
+  const cardNodes = useRef(new Map<string, HTMLLIElement>())
+  const revealedOnce = useRef<string | undefined>(undefined)
+  const [revealedProvider, setRevealedProvider] = useState<string | undefined>(undefined)
+  useEffect(() => {
+    if (focusProvider === undefined) {
+      revealedOnce.current = undefined
+      return
+    }
+    if (revealedOnce.current === focusProvider) return
+    const card = cardNodes.current.get(focusProvider)
+    if (card === undefined) return
+    revealedOnce.current = focusProvider
+    card.scrollIntoView({ block: 'center' })
+    setRevealedProvider(focusProvider)
+    const timer = window.setTimeout(() => { setRevealedProvider(undefined) }, REVEAL_HIGHLIGHT_MS)
+    return () => { window.clearTimeout(timer) }
+  }, [focusProvider, hasReadySnapshot])
+  const cardRef = (provider: string) => (element: HTMLLIElement | null): void => {
+    if (element === null) cardNodes.current.delete(provider)
+    else cardNodes.current.set(provider, element)
+  }
 
   const announceSaved = (target: ProviderIdentity): void => {
     // Announced only once the refreshed directory is in the snapshot the
@@ -437,7 +479,12 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
             // First-run posture: the provider exists but has no key — the
             // setup card IS its presence on the page, until the user closes it.
             return (
-              <li key={row.entry.provider} className={styles['setupCard']}>
+              <li
+                key={row.entry.provider}
+                ref={cardRef(row.entry.provider)}
+                className={styles['setupCard']}
+                data-revealed={revealedProvider === row.entry.provider || undefined}
+              >
                 {error}
                 {renderProviderEditor({
                   target,
@@ -463,7 +510,12 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
             && row.apiKeyEnv !== undefined
             && row.credential?.configured === false
           return (
-            <li key={row.entry.provider} className={styles['rowCard']}>
+            <li
+              key={row.entry.provider}
+              ref={cardRef(row.entry.provider)}
+              className={styles['rowCard']}
+              data-revealed={revealedProvider === row.entry.provider || undefined}
+            >
               <div className={styles['rowHead']}>
                 <span className={styles['rowIdentity']}>
                   <span className={styles['rowName']}>{row.entry.displayName}</span>

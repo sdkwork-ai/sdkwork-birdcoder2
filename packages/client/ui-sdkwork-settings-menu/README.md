@@ -54,3 +54,5 @@ This package re-declares every settings seat (`settings.trigger/header/action/cl
 ## Runtime invariants
 
 No runtime invariant companion is published; the settings surface reads the authoritative settings service sections directly, and each toggle writes through the same service face the owning capability validates; scope agreement is covered directly by this package client behavior specs.
+
+The dialog's visibility, active section, and reveal target live in the `mode.rail.settings` store, so a surface outside the rail opens the very dialog the shell renders: `ctx.settingsMenu.openSection(id, { focusProvider })` shows one registered section and hands it the provider row to reveal, while the shell clears that target on ordinary navigation and on close. The hover popover's own open state stays component-local.

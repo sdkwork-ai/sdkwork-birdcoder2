@@ -68,6 +68,9 @@
       "path": "../ui-settings/tsconfig.client.json"
     },
     {
+      "path": "../ui-chat/tsconfig.client.json"
+    },
+    {
       "path": "../ui-sdkwork-app-modes"
     },
     {
