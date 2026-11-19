@@ -86,6 +86,7 @@ scripts/sync-upstream.sh anchor     # 记录新的上游 tip，随合并一起�
 | 上游核心功能代码 | 采上游版本 |
 | 两边都改过同一表面 | 两边行为都保留，以上游结构为基线 |
 | 上游删除了本 fork 改过的文件 | 逐文件判断，并把结论写进报告 |
+| Host 与 Client 双面包（同时有 `tsconfig.host.json` 与 `tsconfig.client.json`） | 两面取自同一侧；绝不上游 Host 半侧配本 fork Client 半侧 |
 | 依赖清单 | 取并集：上游新增条目与本地条目都留下 |
 | 锁文件 | 取上游，随后重装依赖 |
 | 重命名 | 按语义合并，不留新旧两份重复文件 |
@@ -102,6 +103,14 @@ scripts/sync-upstream.sh anchor     # 记录新的上游 tip，随合并一起�
 3. 相对回滚点消失的路径，上游也已不再提供（没有误删）；
 4. **本 fork 从未改动过的文件，在合并结果里必须与上游逐字节一致**——这一项才抓得住「上游内容被静默吞掉」，逐文件看冲突清单永远看不出来；
 5. 品牌表面、sdkwork 包与锚点里记录的保留/删除清单仍然成立。
+
+第 4 项只覆盖本 fork 从未改动过的路径，看不出本 fork 已改过的文件内部的错误裁决。
+凡是 Host 与 Client 双面都变过的包，推进锚点前要用合并结果重跑该包自己的测试
+（`pnpm exec vitest run packages/client/<name>`）：客户端测试变红就是两面不一致
+最便宜的实证。0.2.2-rc.5 同步就漏在这里——本 fork 的 `client-hmr` 浏览器半侧仍订阅
+上游已删除的 `GET /plugins/events` 路由，却配着上游的 `pluginEvents` Host 半侧，
+于是每个打开的页面每两秒重连一次 404，而该包自己的 `transport.client.spec.ts`
+一直是红的。
 
 它同时报告版本家族（`package.json` == 上游最新 tag == `CHANGELOG.md` 首个标题）。
 只有全部通过，`anchor` 才会推进锚点。

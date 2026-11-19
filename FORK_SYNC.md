@@ -96,6 +96,7 @@ Decide per file, never per tree:
 | Upstream core behavior | take upstream |
 | Both sides changed the same surface | merge both behaviors, upstream structure as the baseline |
 | Upstream deleted a file this fork modified | decide per file, and record the outcome in the report |
+| A package with both faces (`tsconfig.host.json` + `tsconfig.client.json`) | take both faces from one side; never pair upstream's Host half with this fork's Client half |
 | Dependency manifests | union: keep upstream's new entries and the local ones |
 | Lockfile | take upstream, then reinstall |
 | Renames | merge by meaning, never leave old and new copies behind |
@@ -113,6 +114,16 @@ push, never `git clean -fdx`.
 3. every path deleted since the rollback point is gone from upstream too (no accidental deletion);
 4. **every file this fork never touched is byte-identical to upstream** in the merge result — the one check that catches upstream content being silently swallowed, which a per-file conflict review cannot see;
 5. the brand surfaces, the sdkwork packages and the recorded keep/delete lists still hold.
+
+Step 4 only covers paths this fork never touched, so it cannot see a bad
+resolution inside a file the fork had already changed. Rerun a package's own
+specs against the merge result before anchoring whenever its Host and Client
+faces both changed (`pnpm exec vitest run packages/client/<name>`): a red client
+spec there is the cheapest proof that the two faces disagree. The 0.2.2-rc.5
+sync shipped exactly that in `client-hmr` — this fork's browser half still
+subscribed to the `GET /plugins/events` route upstream had removed, beside
+upstream's `pluginEvents` Host half, so every open page reconnected to a 404
+every two seconds while the package's own `transport.client.spec.ts` stayed red.
 
 It also reports the version family (`package.json` == newest upstream tag ==
 first `CHANGELOG.md` heading). Only after it passes does `anchor` advance the
