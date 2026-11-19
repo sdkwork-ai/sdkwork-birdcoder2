@@ -630,6 +630,7 @@
       "@sdkwork/cloudrouter-pc-console-core/sdk": ["../sdkwork-cloudrouter/apps/sdkwork-cloudrouter-pc/packages/sdkwork-cloudrouter-pc-console-core/src/sdk/index.ts"],
       "@sdkwork/cloudrouter-pc-console-hardware/*": ["../sdkwork-cloudrouter/apps/sdkwork-cloudrouter-pc/packages/sdkwork-cloudrouter-pc-console-hardware/src/*"],
       "@sdkwork/cloudrouter-pc-console-shell": ["../sdkwork-cloudrouter/apps/sdkwork-cloudrouter-pc/packages/sdkwork-cloudrouter-pc-console-shell/src/index.ts"],
+      "@sdkwork/cloudrouter-pc-console-vm-instances/*": ["../sdkwork-cloudrouter/apps/sdkwork-cloudrouter-pc/packages/sdkwork-cloudrouter-pc-console-vm-instances/src/*"],
       "@sdkwork/cloudroutes-pc-commons": ["../sdkwork-cloudrouter/apps/sdkwork-cloudrouter-pc/packages/sdkwork-cloudroutes-pc-commons/src/index.ts"],
       "@sdkwork/cloudroutes-pc-commons/*": ["../sdkwork-cloudrouter/apps/sdkwork-cloudrouter-pc/packages/sdkwork-cloudroutes-pc-commons/src/*"],
       "@sdkwork/comments-app-sdk": ["../sdkwork-comments/sdks/sdkwork-comments-app-sdk/sdkwork-comments-app-sdk-typescript/src/index.ts"],

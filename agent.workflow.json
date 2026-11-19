@@ -186,7 +186,7 @@
     {
       "id": "sdkwork-cloudrouter",
       "repository": "sdkwork-ai/sdkwork-cloudrouter",
-      "ref": "10f614e292d4eb2f110d95421bcdd1ab67d025db",
+      "ref": "1c3763e8d7dbcbde09ff598b2f9c9bb982e21ced",
       "refInput": "SDKWORK_CLOUDROUTER_REF",
       "tokenSecret": "SDKWORK_RELEASE_TOKEN"
     },

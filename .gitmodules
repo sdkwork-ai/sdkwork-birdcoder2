@@ -20,7 +20,7 @@
 	url = https://github.com/duhu2000/dsh-mcp-connector.git
 	# Advance the pin with `git submodule update --remote plugins/dsh-mcp-connector`,
 	# which follows this branch; the committed gitlink stays the release pin
-	# (currently the v0.2.94 tag, whose built `lib/` artifacts and `ui/` panel
+	# (currently the v0.2.117 tag, whose built `lib/` artifacts and `ui/` panel
 	# ship as committed).
 	branch = main
 [submodule "plugins/dsh-ui-usage-billing"]
@@ -33,8 +33,8 @@
 	url = git@github.com:sdkwork-ai/sdkwork-dsh-usage-billing.git
 	# Advance the pin with `git submodule update --remote plugins/dsh-ui-usage-billing`,
 	# which follows this branch; the committed gitlink stays the release pin
-	# (currently the fork's own release commit, whose built `lib/` artifacts ship
-	# as committed).
+	# (currently the fork's own `1.8.8-sdkwork.1` release commit, whose built
+	# `lib/` artifacts ship as committed).
 	branch = main
 [submodule "sdkwork-deepseekbot"]
 	path = plugins/sdkwork-deepseekbot
@@ -68,8 +68,13 @@
 	# local fixes land there instead of upstream. Its `client/client.js` ships
 	# committed; its host half `lib/` is gitignored upstream, so this repository
 	# builds that half (`pnpm run build:dsh-market`) instead of rebuilding the
-	# whole plugin. The repository is public, so the gitlink clones over HTTPS
-	# like the upstream-owned entries and CI needs no deploy key.
+	# whole plugin. The plugin's own `prepare` must stay the emit-only `tsc`
+	# (`--noCheck`) that the fork's `b7d62fd` set: a type-checked build resolves
+	# `@deepseek-ai/cordis` and `@deepseek-ai/schemastery` through
+	# `vendor/*/lib/types`, which a fresh clone has not compiled yet, so
+	# `pnpm install` died on TS2307 before any lane could build. The repository
+	# is public, so the gitlink clones over HTTPS like the upstream-owned
+	# entries and CI needs no deploy key.
 	url = https://github.com/sdkwork-ai/sdkwork-dsh-market.git
 	# Advance the pin with `git submodule update --remote plugins/dsh-market`,
 	# which follows this branch; the committed gitlink stays the release pin.
