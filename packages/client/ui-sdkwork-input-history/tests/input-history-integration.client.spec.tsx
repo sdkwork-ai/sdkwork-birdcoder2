@@ -11,8 +11,7 @@ import { createEditor } from 'lexical'
 import { $createParagraphNode, $createTextNode, $getRoot } from 'lexical'
 import { registerPlainText } from '@lexical/plain-text'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
-import type { IConversation, SessionInput } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { SessionInput } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { registerComposerKeymap } from '@deepseek-ai/dsh-client-ui-conversation/src/client/input/editor/keymap.ts'
 import { InputHistoryController } from '../src/client/input-history-controller.ts'
@@ -76,15 +75,18 @@ function harness(arbitrate: () => 'pass' | 'consumed') {
   document.getSelection()?.removeAllRanges()
   document.getSelection()?.addRange(range)
 
-  const state = createSnapshotStore({ draft: 'draft text', draftRev: 1 })
+  const state = createSnapshotStore({ draft: 'draft text', draftRev: 1, phase: 'plain' as const })
   const shells = new Map<SessionId, { state: typeof state; shell: SessionInput }>([[
     sid('s1'),
     {
       state,
       shell: {
         state,
-        setDraft: (next: string) => { state.set({ draft: next, draftRev: state.getSnapshot().draftRev + 1 }) },
-      } as unknown as SessionInput,
+        setDraft: (next: string) => {
+          const current = state.getSnapshot()
+          state.set({ ...current, draft: next, draftRev: current.draftRev + 1 })
+        },
+      } as never,
     },
   ]])
   const store = createInputHistoryStore({ storage: memoryStorage(), now: () => Date.UTC(2026, 10, 19) })
@@ -101,7 +103,7 @@ function harness(arbitrate: () => 'pass' | 'consumed') {
       subscribe: () => () => {},
     },
     scope: (id: SessionId) => ({ session: id }),
-  } as unknown as ISessions
+  } as never
   const conversation = {
     input: {
       for: (scope: { session: SessionId }) => {
@@ -110,7 +112,7 @@ function harness(arbitrate: () => 'pass' | 'consumed') {
         return shell.shell
       },
     },
-  } as unknown as IConversation
+  } as never
   const controller = new InputHistoryController({ store, sessions, conversation })
 
   // The shortcuts adapter shape: observe window-bubbled keydown after the

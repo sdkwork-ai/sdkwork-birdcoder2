@@ -14,9 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
-import type { ShortcutFixedInput, Shortcuts } from '@deepseek-ai/dsh-client-shortcuts/client'
-import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
-import type { IConversation } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { ShortcutFixedInput } from '@deepseek-ai/dsh-client-shortcuts/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { apply, inject } from '../src/client/index.ts'
 import type { InputHistorySettingsInjected } from '../src/client/InputHistorySection.tsx'
@@ -39,7 +37,7 @@ function shortcutsOf() {
         disposers.push(dispose)
         return dispose
       },
-    } as unknown as Shortcuts,
+    } as never,
     listeners,
     disposers,
   }
@@ -62,14 +60,14 @@ async function bench() {
       subscribe: () => () => {},
     },
     scope: (id: SessionId) => ({ session: id }),
-  } as unknown as ISessions
-  ctx.provide('sessions' as never, sessions as never)
+  } as never
+  ctx.provide('sessions' as never, sessions)
   const conversation = {
     input: { for: () => { throw new Error('composer facade unused in this spec') } },
-  } as unknown as IConversation
-  ctx.provide('conversation' as never, conversation as never)
+  } as never
+  ctx.provide('conversation' as never, conversation)
   const shortcuts = shortcutsOf()
-  ctx.provide('shortcuts' as never, shortcuts.service as never)
+  ctx.provide('shortcuts' as never, shortcuts.service)
   const slots = ctx.get('slots') as SlotRegistry
   // The settings shell owns the declaration; this stands in for it so the
   // contribution's own `slots.inject` has something to wait for.
@@ -110,6 +108,9 @@ describe('input history browser half', () => {
       retentionDays: 30,
     })
     expect(injected.hooks.history.getSnapshot().entries).toEqual([])
+    // The count copy is a real interpolated dictionary entry, not a template
+    // the component assembles itself.
+    expect(ctx.locale.bind('inputHistory')('count', { count: 2 })).toContain('2')
     await ctx.fiber.dispose()
   })
 
@@ -191,6 +192,11 @@ describe('input history browser half', () => {
   it('registers one fixed-input observer and removes every contribution on teardown', async () => {
     const { ctx, plugin, injected, slots, shortcuts } = await bench()
     expect(shortcuts.listeners.size).toBe(1)
+
+    // The observer's closure is the wiring under test: it forwards the key to
+    // the controller, which ignores a reset without touching the ledger.
+    const [listener] = [...shortcuts.listeners]
+    listener?.({ type: 'reset' })
 
     ctx.emit('conversation/input-accepted', { sessionId: sid('s1'), text: 'before teardown', submittedAt: 1 })
     expect(injected.hooks.history.getSnapshot().entries).toHaveLength(1)

@@ -108,23 +108,26 @@ Third-party dependencies and their licenses are disclosed in [THIRD_PARTY_NOTICE
 ## Deploy application identity
 
 The public application access token the Web build bakes into the page must carry this
-installation's deploy application id (`app_id`/`aud`), not a repository-owned runtime id: IAM
-suppresses a token that names the retired runtime id. A repository cannot know an installation's
-id, so the root `.env.<deployment-profile>.<environment>` documents carry the
-`__SDKWORK_DEPLOY_APPLICATION_ID__` placeholder and `apps/web/vite.config.ts` substitutes the anchor
-at build time.
+installation's deploy application id (`app_id`/`aud`) — the decimal `deploy_app.id` IAM binds. A
+repository cannot know an installation's id, so the root `.env.<deployment-profile>.<environment>`
+documents carry the `__SDKWORK_DEPLOY_APPLICATION_ID__` placeholder and `apps/web/vite.config.ts`
+substitutes the anchor at build time.
 
-Export the anchor on the build host (it is not a secret) before any Web build:
+The build reads the anchor from its environment first, then from the repository's gitignored `.env`
+layer, which is where the SDKWork app registration records this installation's deploy application
+id (`SDKWORK_DEPLOY_APPLICATION_ID`). Export it on a build host that has neither (it is not a
+secret):
 
 ```sh
-export SDKWORK_DEPLOY_APPLICATION_ID=app_...
+export SDKWORK_DEPLOY_APPLICATION_ID=381158401561858048
 pnpm build
 ```
 
 The build fails, naming `SDKWORK_DEPLOY_APPLICATION_ID`, while the placeholder is still in place and
-no anchor is supplied. A local, untracked `.env.local` carrying real `SDKWORK_APP_ID` /
-`SDKWORK_ACCESS_TOKEN` values is the accepted alternative for development. Never commit a live
-token or a real app id; `.env.example` documents the same contract.
+neither source supplies an anchor. A production profile's committed placeholder `SDKWORK_APP_ID`
+outranks `.env.local`, so a development `.env.local` override cannot satisfy a production build;
+supply the anchor instead. Never commit a live token or a real app id; `.env.example` documents the
+same contract.
 
 ## Application Roots
 

@@ -1,0 +1,34 @@
+# Bilingual-pair consistency record for 2026-11-19-forked-plugin-market.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-19-forked-plugin-market.md
+/agent-note-adopt-the-sdkwork-plugin-market-fork-and-build-its-host-half-here:
+  en: 88cb5913183a19d5
+  zh: cca26b16d3499e9b
+/agent-note-adopt-the-sdkwork-plugin-market-fork-and-build-its-host-half-here/problem:
+  en: 0ec6ffcccdde6f65
+  zh: 846d8afc2c736f8f
+/agent-note-adopt-the-sdkwork-plugin-market-fork-and-build-its-host-half-here/decision:
+  en: a15c7c13f167e5ac
+  zh: 63bcc2ef60c2f344
+/agent-note-adopt-the-sdkwork-plugin-market-fork-and-build-its-host-half-here/decision/the-repository-is-fork-owned:
+  en: 2933bfaf3c35aa21
+  zh: e04b84f8a8de65c7
+/agent-note-adopt-the-sdkwork-plugin-market-fork-and-build-its-host-half-here/decision/the-bundle-links-the-fork-instead-of-fetching-it:
+  en: 2fbf1f1bb695a1e4
+  zh: 471834a9fc801b44
+/agent-note-adopt-the-sdkwork-plugin-market-fork-and-build-its-host-half-here/decision/the-fork-commits-its-browser-half-this-repository-builds-its-host-half:
+  en: 755782fe6f5479dd
+  zh: 76973ae57954d24c
+/agent-note-adopt-the-sdkwork-plugin-market-fork-and-build-its-host-half-here/decision/the-plugin-s-framework-edges-resolve-to-this-checkout:
+  en: 62aa41921af47177
+  zh: 0326ab2ae49ef3a8
+/agent-note-adopt-the-sdkwork-plugin-market-fork-and-build-its-host-half-here/alternatives-considered:
+  en: 8101d2c3d0b0b039
+  zh: 5f5b1ba7893c237b
+/agent-note-adopt-the-sdkwork-plugin-market-fork-and-build-its-host-half-here/consequences:
+  en: e26997036a3a7f6c
+  zh: 7ed8dccbe77b9f48
+/agent-note-adopt-the-sdkwork-plugin-market-fork-and-build-its-host-half-here/verification:
+  en: 9f68aa0d11817ba4
+  zh: f20db966aae80965

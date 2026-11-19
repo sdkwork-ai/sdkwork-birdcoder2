@@ -32,7 +32,7 @@ History is per browser profile, not per account or machine: it does not sync, an
 ## Understand the implementation
 
 - `src/client/index.ts` — registers the dictionaries and the `settings.section` page, then wires the two seams: `ctx.shortcuts.observeFixedInput` for the gesture and `ctx.on('conversation/input-accepted')` for recording. Its `inject` is the only service surface it touches.
-- `src/client/input-history-store.ts` — the durable ledger: localStorage document (`dsh.inputHistory.v1`), schema/entry normalization, de-duplication of a repeated message in one Session, the 500-entry ceiling, scope-addressed reads, and retention pruning on every read/write path plus an hourly sweep.
+- `src/client/input-history-store.ts` — the durable ledger: localStorage document (`dsh.inputHistory.v1`), schema/entry normalization, de-duplication of a repeated message in one Session, the 500-entry and 500,000-character ceilings, scope-addressed reads, and retention pruning on every read/write path plus an hourly sweep.
 - `src/client/input-history-controller.ts` — the gesture: it resolves the composer's Session from the card's `data-composer-session-id`, refuses keys the composer already consumed (`defaultPrevented`), composing keys, modifiers, and caret positions away from the asking edge, then applies the chosen entry through the Session input facade (`setDraft`). While a recalled entry shows, an arrow continues the walk only from a document edge; inside the entry it still moves the caret.
 - `src/client/composer-target.ts` — the DOM contract: the composer contenteditable (`data-composer-input`), its Session card, and the caret-boundary test.
 - `src/client/InputHistorySection.tsx` — the settings page: immediate switch/scope writes, a staged retention field, cached-entry count, and clear.
@@ -63,8 +63,10 @@ None; no provider request is assembled or mutated.
 
 ## Known Limitations and Deferred Work
 
-- History is local to one browser profile; there is no Host-side store, sync, or cross-device recall.
+- History is local to one browser profile; there is no Host-side store, sync, or cross-device recall. Open tabs do not synchronize the ledger — the last writer wins.
+- The ledger is not partitioned by signed-in account and sign-out does not clear it; on a shared browser profile, clear it from the settings page before switching accounts.
 - Recording starts when the plugin is active: messages sent before it was enabled, or before the ledger existed, are not backfilled from the Session transcript.
 - Only ordinary accepted messages are recorded. Command submissions (`/…`), queued-then-edited messages, and content that failed to send are not recall candidates.
+- A prompt longer than 100,000 characters is not cached, and the ledger keeps at most 500 entries / 500,000 characters of text in total; older entries leave first.
 - Recall replaces the complete draft. Inline reference chips and attachments in the interrupted draft are restored only as their clipboard text (attachments stay in the composer because replacing text does not clear them).
 - The walk trusts the composer's caret at gesture time; a custom editor surface that does not render `data-composer-input` / `data-composer-session-id` gets no recall.

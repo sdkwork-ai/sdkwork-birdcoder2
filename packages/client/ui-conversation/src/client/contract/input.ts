@@ -138,6 +138,9 @@ export interface InputTriggerController {
   toggleSource(source: string, hit: InputTriggerHit): void
 }
 
+// FORK DIVERGENCE: the fork's input-history plugin observes accepted ordinary
+// messages through this typed event. Keep the event name, payload, and the
+// post-settlement emission together across upstream merges.
 /** One ordinary composer message the Host accepted. */
 export interface AcceptedComposerInput {
   /** Session that sent the message. */

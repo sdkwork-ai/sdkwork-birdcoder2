@@ -454,7 +454,9 @@ const InputBarBody = memo(function InputBarBody({
           disabled controls swallow clicks otherwise (the CSS state disarms
           their pointer events), so the WHOLE capsule is the pick target.
           pointerdown stops here so the Menu's outside-close cannot race the
-          click's reopen (close-then-open flickers the chip's open echo). */}
+          click's reopen (close-then-open flickers the chip's open echo).
+          FORK DIVERGENCE: the card also carries its Session id for the fork's
+          input-history gesture; keep the attribute on this seat across merges. */}
       <div
         ref={cardRef}
         tabIndex={-1}

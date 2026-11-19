@@ -5,10 +5,10 @@
  * cached-entry count/clear affordance.
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { createElement } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { InputHistorySection } from '../src/client/InputHistorySection.tsx'
-import type { InputHistorySectionProps } from '../src/client/InputHistorySection.tsx'
 import type { InputHistoryState } from '../src/client/input-history-store.ts'
 import { en } from '../src/client/locales.ts'
 import type { InputHistoryKey } from '../src/client/locales.ts'
@@ -31,8 +31,8 @@ function renderSection(state: InputHistoryState) {
     t: translate,
     useHistory: <Selected,>(selector: (value: InputHistoryState) => Selected): Selected => selector(store.getSnapshot()),
     ...writes,
-  } as unknown as InputHistorySectionProps
-  return { ...render(<InputHistorySection {...props} />), writes }
+  } as never
+  return { ...render(createElement(InputHistorySection, props)), writes }
 }
 
 /** A ledger with two cached entries and the shipped preferences. */
@@ -57,7 +57,7 @@ describe('Input history settings page', () => {
     expect(screen.getByRole('tab', { name: 'This session' }).getAttribute('aria-selected')).toBe('true')
     expect(screen.getByText('Browse only messages sent in this session.')).toBeTruthy()
     expect(screen.getByRole('spinbutton', { name: 'Retention in days' })).toHaveProperty('value', '30')
-    expect(screen.getByText('2 entries cached.')).toBeTruthy()
+    expect(screen.getByText('Cached entries: 2')).toBeTruthy()
   })
 
   it('commits toggle, scope, and clear immediately', () => {
@@ -87,13 +87,34 @@ describe('Input history settings page', () => {
     expect(input.value).toBe('1')
   })
 
-  it('commits the retention number on Enter', () => {
+  it('commits the retention number on Enter and leaves other keys alone', () => {
     const { writes } = renderSection(populated())
     const input = screen.getByRole('spinbutton', { name: 'Retention in days' })
 
     fireEvent.change(input, { target: { value: '400' } })
     fireEvent.keyDown(input, { key: 'Enter' })
     expect(writes.setRetentionDays).toHaveBeenCalledWith(365)
+
+    writes.setRetentionDays.mockClear()
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    expect(writes.setRetentionDays).not.toHaveBeenCalled()
+  })
+
+  it('falls back to the stored retention when the field is not a number', () => {
+    const { writes } = renderSection(populated())
+    const input = screen.getByRole('spinbutton', { name: 'Retention in days' }) as HTMLInputElement
+
+    fireEvent.change(input, { target: { value: '' } })
+    fireEvent.blur(input)
+
+    expect(writes.setRetentionDays).toHaveBeenCalledWith(30)
+    expect(input.value).toBe('30')
+  })
+
+  it('shows the hint for the selected scope', () => {
+    renderSection({ settings: { enabled: true, scope: 'project', retentionDays: 30 }, entries: [] })
+
+    expect(screen.getByText('Browse messages from every session in the same project (working directory).')).toBeTruthy()
   })
 
   it('disables the destructive clear when nothing is cached', () => {

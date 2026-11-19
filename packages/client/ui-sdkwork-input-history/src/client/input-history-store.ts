@@ -149,6 +149,21 @@ export const MAX_HISTORY_ENTRIES = 500
 /** Longest message text the ledger stores; longer prompts are not recall candidates. */
 export const MAX_HISTORY_TEXT_LENGTH = 100_000
 
+/**
+ * Total text budget for the whole ledger. The entry ceiling alone is not a
+ * byte bound: 500 messages of the per-entry maximum would overflow browser
+ * storage and make every save pay for megabytes of JSON. The oldest entries
+ * leave first, so recall keeps the most recent phrasing.
+ */
+export const MAX_HISTORY_TOTAL_TEXT_LENGTH = 500_000
+
+/**
+ * Longest stored document the store will parse. The ledger's own budget keeps
+ * it far below this; the guard only protects startup from a corrupted or
+ * foreign document that would otherwise block the main thread in `JSON.parse`.
+ */
+export const MAX_STORED_DOCUMENT_LENGTH = 2_000_000
+
 /** Milliseconds in one retention day. */
 const DAY_MS = 86_400_000
 
@@ -163,10 +178,32 @@ export interface InputHistoryStoreOptions {
 }
 
 /**
+ * Keep the newest entries that fit the per-entry and total text budgets.
+ * @param entries - chronological entries, oldest first.
+ * @returns the surviving suffix, oldest first.
+ */
+function capEntries(entries: readonly InputHistoryEntry[]): InputHistoryEntry[] {
+  let total = 0
+  const kept: InputHistoryEntry[] = []
+  for (let index = entries.length - 1; index >= 0; index -= 1) {
+    const entry = entries[index]
+    if (kept.length >= MAX_HISTORY_ENTRIES) break
+    // Always keep the newest entry, even at the (currently unreachable) point
+    // where its own text exceeds the total budget.
+    if (kept.length > 0 && total + entry.text.length > MAX_HISTORY_TOTAL_TEXT_LENGTH) break
+    total += entry.text.length
+    kept.push(entry)
+  }
+  kept.reverse()
+  return kept
+}
+
+/**
  * Project key one Session's history is grouped under: its working directory
  * with trailing separators removed, lower-cased when the path is a Windows
- * path so one project cannot split across separator case. An absent directory
- * narrows the project scope to the Session itself.
+ * path (drive-letter or backslash) so one project cannot split across
+ * separator or case variants. An absent directory narrows the project scope to
+ * the Session itself.
  * @param cwd - Session working directory, when the Host list reported one.
  * @returns the project key, empty when the directory is unknown.
  */
@@ -174,7 +211,8 @@ export function projectKeyOf(cwd: string | undefined): string {
   const path = cwd?.trim() ?? ''
   if (path === '') return ''
   const trimmed = path.replace(/[\\/]+$/u, '')
-  return trimmed.includes('\\') ? trimmed.toLowerCase() : trimmed
+  const windows = trimmed.includes('\\') || /^[a-z]:[\\/]/iu.test(trimmed)
+  return windows ? trimmed.toLowerCase() : trimmed
 }
 
 /**
@@ -269,6 +307,7 @@ export function createInputHistoryStore(options: InputHistoryStoreOptions = {}):
     try {
       const raw = storage.getItem(key)
       if (raw === null) return { settings: DEFAULT_INPUT_HISTORY_SETTINGS, entries: [] }
+      if (raw.length > MAX_STORED_DOCUMENT_LENGTH) return { settings: DEFAULT_INPUT_HISTORY_SETTINGS, entries: [] }
       parsed = JSON.parse(raw)
     } catch {
       return { settings: DEFAULT_INPUT_HISTORY_SETTINGS, entries: [] }
@@ -283,10 +322,12 @@ export function createInputHistoryStore(options: InputHistoryStoreOptions = {}):
     const cutoff = now() - settings.retentionDays * DAY_MS
     return {
       settings,
-      entries: entries
-        .filter(entry => entry.submittedAt >= cutoff)
-        .sort((left, right) => left.submittedAt - right.submittedAt)
-        .slice(-MAX_HISTORY_ENTRIES),
+      entries: capEntries(
+        entries
+          .filter(entry => entry.submittedAt >= cutoff)
+          .sort((left, right) => left.submittedAt - right.submittedAt)
+          .slice(-MAX_HISTORY_ENTRIES),
+      ),
     }
   }
 
@@ -314,7 +355,7 @@ export function createInputHistoryStore(options: InputHistoryStoreOptions = {}):
 
   const prune = (entries: readonly InputHistoryEntry[], settings: InputHistorySettings, at: number): InputHistoryEntry[] => {
     const cutoff = at - settings.retentionDays * DAY_MS
-    return entries.filter(entry => entry.submittedAt >= cutoff).slice(-MAX_HISTORY_ENTRIES)
+    return capEntries(entries.filter(entry => entry.submittedAt >= cutoff).slice(-MAX_HISTORY_ENTRIES))
   }
 
   const current = (): InputHistoryState => state.getSnapshot()
@@ -326,9 +367,11 @@ export function createInputHistoryStore(options: InputHistoryStoreOptions = {}):
       if (text.trim() === '' || text.length > MAX_HISTORY_TEXT_LENGTH) return
       const submittedAt = input.submittedAt ?? now()
       const ledger = current()
-      const at = now()
-      const retained = prune(ledger.entries, ledger.settings, at)
-        .filter(entry => !(entry.sessionId === input.sessionId && entry.text === text))
+      const cutoff = now() - ledger.settings.retentionDays * DAY_MS
+      // One pass drops expired entries and the previous identical send; the
+      // final cap enforces both the entry ceiling and the text budget.
+      const retained = ledger.entries.filter(entry => entry.submittedAt >= cutoff
+        && !(entry.sessionId === input.sessionId && entry.text === text))
       sequence = (sequence + 1) % Number.MAX_SAFE_INTEGER
       retained.push({
         id: `${input.sessionId}:${submittedAt.toString(36)}:${sequence.toString(36)}`,
@@ -337,7 +380,7 @@ export function createInputHistoryStore(options: InputHistoryStoreOptions = {}):
         projectKey: input.projectKey === '' ? fallbackProjectKey(input.sessionId) : input.projectKey,
         submittedAt,
       })
-      write({ settings: ledger.settings, entries: retained.slice(-MAX_HISTORY_ENTRIES) })
+      write({ settings: ledger.settings, entries: capEntries(retained) })
     },
     updateSettings: (patch) => {
       const ledger = current()
@@ -346,10 +389,14 @@ export function createInputHistoryStore(options: InputHistoryStoreOptions = {}):
         scope: patch.scope ?? ledger.settings.scope,
         retentionDays: patch.retentionDays ?? ledger.settings.retentionDays,
       })
+      if (next.enabled === ledger.settings.enabled
+        && next.scope === ledger.settings.scope
+        && next.retentionDays === ledger.settings.retentionDays) return
       write({ settings: next, entries: prune(ledger.entries, next, now()) })
     },
     clear: () => {
       const ledger = current()
+      if (ledger.entries.length === 0) return
       write({ settings: ledger.settings, entries: [] })
     },
     purgeExpired: (at = now()) => {

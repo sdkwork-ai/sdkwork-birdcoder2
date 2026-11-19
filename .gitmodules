@@ -60,3 +60,18 @@
 	# (`pnpm run update:expert-market` also relinks and runs the acceptance spec),
 	# which follows this branch; the committed gitlink stays the release pin.
 	branch = main
+[submodule "plugins/dsh-market"]
+	path = plugins/dsh-market
+	# SDKWork's fork of `dsh-market/dsh-market` (npm `dshmarket`): the plugin
+	# market the web bundle mounts as the Plugins tab's leading chip. The fork
+	# is the authority for the plugin's source and future product changes, so
+	# local fixes land there instead of upstream. Its `client/client.js` ships
+	# committed; its host half `lib/` is gitignored upstream, so this repository
+	# builds that half (`pnpm run build:dsh-market`) instead of rebuilding the
+	# whole plugin. The repository is public, so the gitlink clones over HTTPS
+	# like the upstream-owned entries and CI needs no deploy key.
+	url = https://github.com/sdkwork-ai/sdkwork-dsh-market.git
+	# Advance the pin with `git submodule update --remote plugins/dsh-market`,
+	# which follows this branch; the committed gitlink stays the release pin.
+	branch = main
+	shallow = true

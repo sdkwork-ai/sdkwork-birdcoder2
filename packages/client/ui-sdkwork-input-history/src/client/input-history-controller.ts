@@ -81,6 +81,9 @@ export class InputHistoryController {
     if (gesture.control || gesture.alt || gesture.meta || gesture.shift) return
     if (gesture.composing || gesture.defaultPrevented) return
     if (context.region !== 'editable') return
+    // A modal owns the keyboard while it is open; the composer behind it is not
+    // a recall target even if a stale focus target says otherwise.
+    if (context.modal !== null) return
     const root = composerInputOf(context.target)
     const sessionId = composerSessionIdOf(context.target)
     if (root === null || sessionId === undefined || !composerEditable(root)) return
@@ -88,7 +91,27 @@ export class InputHistoryController {
     if (!settings.enabled) return
     const shell = this.shellFor(sessionId)
     if (shell === undefined) return
-    const draft = shell.state.getSnapshot().draft
+    const inputState = shell.state.getSnapshot()
+    // A frozen composer (adjudicating/submitting/sending) or a command chip
+    // owns the draft; recall must never rewrite it from under the transaction.
+    if (inputState.phase !== 'plain') return
+    const draft = inputState.draft
+    let browsing = this.browsers.get(sessionId)
+    const continuing = browsing !== undefined
+      && browsing.scope === settings.scope
+      && browsing.appliedText !== null
+      && browsing.appliedText === draft
+    if (!continuing) {
+      // Typed content, a scope change, or a fresh composer ends the previous walk.
+      this.browsers.delete(sessionId)
+      if (!startsAtBoundary(root, direction, draft)) return
+      browsing = { cursor: null, scope: settings.scope, appliedText: null, draftBefore: draft }
+    } else if (!atDocumentEdge(root)) {
+      // While a recalled entry shows, arrows still move the caret inside it:
+      // only an edge press continues the walk.
+      return
+    }
+    // Entry lookup and sorting happen only for a key that can actually act.
     const entries = this.deps.store.entriesFor(settings.scope, {
       sessionId,
       projectKey: this.projectKeyFor(sessionId),
@@ -97,18 +120,9 @@ export class InputHistoryController {
       this.browsers.delete(sessionId)
       return
     }
-    let browsing = this.browsers.get(sessionId)
-    if (browsing === undefined || browsing.scope !== settings.scope
-      || browsing.appliedText === null || browsing.appliedText !== draft) {
-      // Typed content, a scope change, or a fresh composer ends the previous walk.
-      this.browsers.delete(sessionId)
-      if (!startsAtBoundary(root, direction, draft)) return
-      browsing = { cursor: null, scope: settings.scope, appliedText: null, draftBefore: draft }
-    }
+    /* v8 ignore next -- the fresh branch above always assigns a walk */
+    if (browsing === undefined) return
     if (direction === 'previous') {
-      // While a recalled entry shows, arrows still move the caret inside it:
-      // only an edge press continues the walk.
-      if (!atDocumentEdge(root)) return
       const cursor = browsing.cursor === null ? 0 : Math.min(browsing.cursor + 1, entries.length - 1)
       if (browsing.cursor !== null && cursor === browsing.cursor) {
         // Already at the oldest entry: keep the caret still instead of
@@ -120,7 +134,6 @@ export class InputHistoryController {
       return
     }
     if (browsing.cursor === null) return
-    if (!atDocumentEdge(root)) return
     if (browsing.cursor > 0) {
       const cursor = browsing.cursor - 1
       this.apply(shell, input, sessionId, browsing, entries[cursor].text, cursor)

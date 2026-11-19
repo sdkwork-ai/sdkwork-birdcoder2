@@ -235,6 +235,31 @@ describe('submit transaction hardening', () => {
     expect(rejected).not.toHaveBeenCalled()
   })
 
+  it('notifies acceptance once when the Host accepts before the sink promise resolves', async () => {
+    const accepted = vi.fn<(attempt: SubmitAttempt) => void>()
+    let settle!: (outcome: SubmitOutcome) => void
+    const sink = vi.fn((_text: string, _ids: readonly DraftAttachmentId[], _mode: string,
+      _signal: AbortSignal, onAccept: () => void) => {
+      onAccept()
+      return new Promise<SubmitOutcome>((resolve) => { settle = resolve })
+    })
+    const shell = new SessionInputShell({
+      actx: {} as Context,
+      defaultSink: sink,
+      commandAttachments,
+      messageAccepted: accepted,
+    })
+    shell.setDraft('accepted early')
+    shell.submit()
+    await vi.waitFor(() => { expect(accepted).toHaveBeenCalledOnce() })
+
+    settle({ kind: 'success' })
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(accepted).toHaveBeenCalledOnce()
+    expect(accepted.mock.calls[0]?.[0].draftSnapshot).toBe('accepted early')
+  })
+
   it('contains an acceptance observer failure inside settlement', async () => {
     const shell = new SessionInputShell({
       actx: {} as Context,

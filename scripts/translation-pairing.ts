@@ -169,6 +169,32 @@ export function isTranslationScopeFile(file: string): boolean {
     || file.startsWith('python/'))
 }
 
+/**
+ * Parse the `path` entries of a `.gitmodules` file into normalized repository
+ * paths. Submodule working trees are other repositories' content, so a bilingual
+ * document inside one is translated where it lives: a sidecar written in this
+ * checkout would not survive the next `git submodule update` and does not exist
+ * in a fresh one.
+ * @param content - the `.gitmodules` file contents.
+ * @returns each submodule path without a trailing slash, in file order.
+ */
+export function parseGitmodulePaths(content: string): string[] {
+  return [...content.matchAll(/^\s*path\s*=\s*(.+?)\s*$/gmu)]
+    .map(match => match[1].split('\\').join('/').replace(/\/+$/u, ''))
+    .filter(path => path !== '')
+}
+
+/**
+ * Whether a repository-relative path lives inside one of the given submodule
+ * working trees.
+ * @param file - repository-relative path with `/` separators.
+ * @param submodules - paths returned by {@link parseGitmodulePaths}.
+ * @returns true for the submodule root and everything below it.
+ */
+export function isSubmodulePath(file: string, submodules: readonly string[]): boolean {
+  return submodules.some(directory => file === directory || file.startsWith(`${directory}/`))
+}
+
 /** Read the manifest exclusion list or fail before enforcement starts. */
 function excludedField(record: Record<string, unknown>): string[] {
   const value = record.excluded

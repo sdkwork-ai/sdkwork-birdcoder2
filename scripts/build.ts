@@ -123,6 +123,21 @@ export function buildGates(
       needs: [],
       env,
     })
+    // The plugin market's host half is the same case: the fork commits its
+    // browser half and gitignores `lib/`, which the `dsh-market` row imports.
+    // Its `tsc` pass type-checks against the Host compiler's output for
+    // `vendor/cordis` and `vendor/schemastery`, so it follows `host-src`; that
+    // also makes this the checked build that replaces a fresh checkout's
+    // emit-only `lib/` from `postinstall`.
+    gates.push({
+      id: 'dsh-market',
+      label: 'Plugin market build',
+      displayCommand: 'node scripts/build-dsh-market.mjs',
+      command: process.execPath,
+      args: [resolve(root, 'scripts', 'build-dsh-market.mjs')],
+      needs: ['host-src'],
+      env,
+    })
     for (const step of libraryBuildSteps(root, 'all')) {
       gates.push(libraryGate(step, step.id === 'host-src' ? ['native', ...step.needs] : step.needs, env))
     }

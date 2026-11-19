@@ -267,11 +267,13 @@ function withDeployApplicationId(token: string, appId: string): string {
 /**
  * Bind the deployment identity into the values this build bakes into the page.
  *
- * @param loaded - values read from the selected `.env.<profile>` document.
- * @param anchor - `SDKWORK_DEPLOY_APPLICATION_ID` from the build environment.
- * @throws When the committed profile still carries the placeholder and the build
- *   environment supplies no anchor: the page would ship a credential IAM
- *   suppresses, so the build fails and names the variable instead.
+ * @param loaded - values read from the selected `.env.<profile>` document and
+ *   from the repository `.env` layer.
+ * @param anchor - `SDKWORK_DEPLOY_APPLICATION_ID`, exported by the build
+ *   environment or recorded in the repository `.env` layer.
+ * @throws When the profile still carries the placeholder and neither source
+ *   supplies an anchor: the page would ship a credential IAM suppresses, so the
+ *   build fails and names the variable instead.
  */
 function materializeDeployIdentity(loaded: Record<string, string>, anchor: string): void {
   const declared = (loaded.SDKWORK_APP_ID ?? '').trim()
@@ -279,8 +281,8 @@ function materializeDeployIdentity(loaded: Record<string, string>, anchor: strin
     throw new Error(
       `${DEPLOY_APPLICATION_ID_ENV} is required to build apps/web: the committed profile carries `
       + `SDKWORK_APP_ID=${declared === '' ? '(empty)' : declared}, so this build must inject the installation's `
-      + 'deploy application id. Export it (it is not a secret), or run the SDKWork materializer for this profile '
-      + 'with it set.',
+      + 'deploy application id. Export it (it is not a secret), record it in the repository .env, or run the '
+      + 'SDKWork materializer for this profile with it set.',
     )
   }
   const appId = anchor === '' ? declared : anchor
@@ -306,18 +308,24 @@ function materializeDeployIdentity(loaded: Record<string, string>, anchor: strin
  * Nothing is resolved at runtime.
  *
  * The launching shell is not a configuration source: its `SDKWORK_*` values are
- * removed for the duration of the load, and only the explicit
- * `DSH_WEB_SDKWORK_*` channel reaches the file values (the Desktop development
- * lane uses it for `--gateway`). A non-development build also drops any
- * loopback origin, so the packaged application always talks to a deployment
- * domain rather than the packaging host's local server.
+ * removed for the duration of the load, except the deploy application anchor,
+ * which a build host exports as a build input; only the explicit
+ * `DSH_WEB_SDKWORK_*` channel reaches the file values otherwise (the Desktop
+ * development lane uses it for `--gateway`). When no anchor is exported, the
+ * repository `.env` layer supplies it, so a checkout whose app registration
+ * recorded its deployment builds its lanes without extra exports. A
+ * non-development build also drops any loopback origin, so the packaged
+ * application always talks to a deployment domain rather than the packaging
+ * host's local server.
  * @param deploymentProfile - profile whose env file the build reads.
  * @param environment - tier the build mode selected.
  * @returns the plugin that injects the page global.
  */
 function sdkworkEnvInjection(deploymentProfile: DeploymentProfile, environment: SdkworkLaunchProfile): Plugin {
   // The anchor is a build input, so it is read before the SDKWORK_* scrub below.
-  const deployAnchor = process.env[DEPLOY_APPLICATION_ID_ENV]?.trim() ?? ''
+  // The repository `.env` layer, which already supplies the rest of this
+  // deployment, is the fallback; it is read with the files below.
+  const exportedAnchor = process.env[DEPLOY_APPLICATION_ID_ENV]?.trim() ?? ''
   // The launching shell is not a configuration source: a packaged Desktop
   // application exports its own deployment into every child process, and that
   // must not decide what a build bakes. Saved and restored so the rest of the
@@ -350,7 +358,10 @@ function sdkworkEnvInjection(deploymentProfile: DeploymentProfile, environment: 
   }
   // The committed profiles carry the placeholder; a build must inject the anchor
   // (or a real local token) before the page can rely on this deployment identity.
-  materializeDeployIdentity(loaded, deployAnchor)
+  // An exported anchor outranks the explicit `DSH_WEB_SDKWORK_*` channel, which
+  // outranks the repository `.env` layer.
+  const fileAnchor = (loaded[DEPLOY_APPLICATION_ID_ENV] ?? '').trim()
+  materializeDeployIdentity(loaded, exportedAnchor === '' ? fileAnchor : exportedAnchor)
   if (environment !== 'development') {
     for (const key of SURFACE_ORIGIN_KEYS) {
       const value = loaded[key]

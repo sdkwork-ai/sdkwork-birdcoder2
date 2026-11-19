@@ -25,6 +25,8 @@ const APP_ROOT = resolve(import.meta.dirname, '..')
 const REPOSITORY_ROOT = resolve(APP_ROOT, '..', '..')
 const BUILD_ROOT = join(APP_ROOT, '.desktop-build')
 const DEVELOPMENT_ROOT = join(BUILD_ROOT, 'development')
+/** Local application-data subdirectory holding the staged Electron mirror of this checkout. */
+const STAGED_ELECTRON_DIRECTORY = join('dsh-desktop-dev-electron', 'electron-dist')
 /** Home, npm project and browser data of the `--online` debug lane, kept out of the development state. */
 const ONLINE_ROOT = join(BUILD_ROOT, 'online')
 /** Web port the development shell serves; the packaged shell keeps the default, so both run at once. */
@@ -54,13 +56,26 @@ function debugPort(name: string, fallback: number): number {
   return port
 }
 
+/** Child process failure that keeps the numeric exit status the launcher interprets. */
+class ChildExitError extends Error {
+  /** Exit status, or `undefined` when the child ended on a signal. */
+  readonly status: number | undefined
+
+  constructor(message: string, status: number | undefined) {
+    super(message)
+    this.name = 'ChildExitError'
+    this.status = status
+  }
+}
+
 async function run(command: string, args: readonly string[], cwd: string, environment = process.env): Promise<void> {
   await new Promise<void>((resolvePromise, reject) => {
     const child = spawn(command, args, { cwd, env: environment, stdio: 'inherit' })
     child.once('error', reject)
     child.once('exit', (code, signal) => {
       if (code === 0) resolvePromise()
-      else reject(new Error(`desktop development: ${args.join(' ')} exited with ${String(code ?? signal)}`))
+      else reject(new ChildExitError(`desktop development: ${args.join(' ')} exited with ${String(code ?? signal)}`,
+        code ?? undefined))
     })
   })
 }
@@ -77,15 +92,29 @@ async function runPackageScript(script: string, cwd: string, environment: NodeJS
 }
 
 /**
- * Mirror the electron distribution out of node_modules and return the staged
- * executable. Some machine-local security software interferes with Chromium
- * process creation for executables that live under node_modules or the
- * repository root while an identical copy in a nested ordinary directory runs
- * fine, so this opt-in stage gives that software a path it tolerates.
+ * Root of the per-user application data on this machine, where the staged
+ * Electron mirror lives: a build directory inside the checkout is itself a
+ * location some machine-local security software refuses.
+ * @returns absolute local application-data directory.
+ */
+function localApplicationDataDirectory(): string {
+  const configured = process.env.LOCALAPPDATA
+  if (configured !== undefined && configured.trim() !== '') return configured
+  return join(homedir(), 'AppData', 'Local')
+}
+
+/**
+ * Mirror the electron distribution to a per-user directory outside the checkout
+ * and return the staged executable. Machine-local security software hooks
+ * process creation by image path: Electron started from anywhere inside the
+ * checkout dies with STATUS_BREAKPOINT before the main script runs, while a
+ * byte-identical copy under the local application data starts.
+ * @param electron - executable of the installed electron package.
+ * @returns absolute path of the staged executable.
  */
 function stagedElectronExecutable(electron: string): string {
   const source = resolve(electron, '..')
-  const target = join(DEVELOPMENT_ROOT, 'electron-dist')
+  const target = join(localApplicationDataDirectory(), STAGED_ELECTRON_DIRECTORY)
   const sourceBinary = join(source, 'electron.exe')
   const targetBinary = join(target, 'electron.exe')
   const stale = (() => {
@@ -100,6 +129,36 @@ function stagedElectronExecutable(electron: string): string {
     cpSync(source, target, { recursive: true })
   }
   return targetBinary
+}
+
+/** Windows exit status Chromium reports when something kills it before the main script runs. */
+const STATUS_BREAKPOINT = 2_147_483_651
+
+/** Meaning and remedies of {@link STATUS_BREAKPOINT}, whose number alone names no cause. */
+const BREAKPOINT_HINT = 'desktop development: STATUS_BREAKPOINT means the operating system or a local security filter '
+  + 'refused this Electron before the main script ran; allow the checkout and '
+  + `${join(localApplicationDataDirectory(), STAGED_ELECTRON_DIRECTORY)} in that filter, or relaunch with `
+  + 'DSH_DESKTOP_DEV_NO_SANDBOX=1 to relax the Chromium sandbox'
+
+/**
+ * Run the Electron child, reporting {@link STATUS_BREAKPOINT} with its remedies.
+ * @param executable - Electron binary to launch.
+ * @param args - command line switches followed by the application directory.
+ * @param cwd - working directory of the child.
+ * @param environment - composed launch environment.
+ */
+async function runElectron(
+  executable: string,
+  args: readonly string[],
+  cwd: string,
+  environment: NodeJS.ProcessEnv,
+): Promise<void> {
+  try {
+    await run(executable, args, cwd, environment)
+  } catch (error) {
+    if (!(error instanceof ChildExitError) || error.status !== STATUS_BREAKPOINT) throw error
+    throw new ChildExitError(`${error.message}\n${BREAKPOINT_HINT}`, error.status)
+  }
 }
 
 /**
@@ -159,15 +218,14 @@ async function launchElectron(
   if (process.platform === 'darwin') {
     const executable = prepareDevelopmentApp({ electron, appRoot: APP_ROOT, directory: stateRoot, home, userData,
       mainPort, rendererPort, hostPort, openDevtools: launchEnvironment.DSH_DESKTOP_OPEN_DEVTOOLS! })
-    await run(executable, [], APP_ROOT, launchEnvironment)
+    await runElectron(executable, [], APP_ROOT, launchEnvironment)
     return
   }
   let executable = electron
-  // Windows development launches from the staged mirror by default: some machine-local
-  // security software kills the Chromium tree when the executable lives under
-  // node_modules or the repository root, while a byte-identical copy in the nested
-  // ordinary .desktop-build directory runs fine. Set DSH_DESKTOP_DEV_STAGED_ELECTRON=0
-  // to launch from node_modules directly.
+  // Windows development launches from the per-user staged mirror below by default:
+  // machine-local security software kills an Electron image that lives anywhere
+  // inside the checkout, whatever directory the copy keeps there. Set
+  // DSH_DESKTOP_DEV_STAGED_ELECTRON=0 to launch from node_modules directly.
   if (process.platform === 'win32' && process.env.DSH_DESKTOP_DEV_STAGED_ELECTRON !== '0') {
     executable = stagedElectronExecutable(electron)
     console.log(`desktop development: electron staged to ${executable}`)
@@ -187,7 +245,7 @@ async function launchElectron(
     console.log('desktop development: chromium sandbox disabled (DSH_DESKTOP_DEV_NO_SANDBOX=1)')
   }
   arguments_.push(APP_ROOT)
-  await run(executable, arguments_, APP_ROOT, launchEnvironment)
+  await runElectron(executable, arguments_, APP_ROOT, launchEnvironment)
 }
 
 async function main(): Promise<void> {

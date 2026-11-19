@@ -13,7 +13,7 @@ The composer discards a message's text as soon as the Host accepts it, so recall
 - A fork-owned client plugin, `packages/client/ui-sdkwork-input-history`, owns the whole feature: the browser-local ledger, the gesture controller, and one `settings.section` page for scope, retention, and clearing.
 - The conversation package publishes one typed event, `conversation/input-accepted`, after an ordinary message settles as accepted, and marks its composer card with `data-composer-session-id`. Both are UI-only extension points; command submissions never fire the event.
 - The gesture rides `ctx.shortcuts.observeFixedInput` after every local composer handler, so a key the `/` or `@` menu consumed never reaches history. A fresh walk starts only with an empty draft or the caret at the asking edge; once an entry shows, only a press from a document edge continues the walk, while presses inside it move the caret. ↓ past the newest entry restores the draft that recall interrupted.
-- Entries carry the sending Session and the project key produced by that Session's working directory. Scope is resolved at read time, so switching scope is lossless. Retention (default 30 days, 1–365) is enforced on every read and write, at boot, and by an hourly sweep. Storage is `localStorage` (`dsh.inputHistory.v1`), capped at 500 entries.
+- Entries carry the sending Session and the project key produced by that Session's working directory. Scope is resolved at read time, so switching scope is lossless. Retention (default 30 days, 1–365) is enforced on every read and write, at boot, and by an hourly sweep. Storage is `localStorage` (`dsh.inputHistory.v1`), capped at 500 entries and 500,000 characters of text so the whole document stays well inside browser quota.
 
 ## Alternatives considered
 
@@ -25,7 +25,7 @@ The composer discards a message's text as soon as the Host accepts it, so recall
 
 ## Consequences
 
-- The feature is per browser profile: no sync, no cross-device recall, and clearing site data clears it.
+- The feature is per browser profile: no sync, no cross-device recall, and clearing site data clears it. Open tabs do not synchronize the ledger; the last writer wins. The ledger is not partitioned by signed-in account and sign-out does not clear it, so a shared profile must clear it manually before switching accounts.
 - Recording starts when the plugin is active; messages sent earlier are not backfilled from the transcript.
 - The event must stay after Host acceptance and must never carry command submissions; observation failures are contained so settlement cannot be interrupted.
 - The `ui-conversation` seam is a fork divergence maintained across upstream merges: the event declaration, the hub emission, and the composer attribute must move together.

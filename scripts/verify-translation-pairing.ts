@@ -26,6 +26,8 @@ import {
   parseTranslationPairingCliArgs,
   parseTranslationPairingManifest,
   generatedRegions,
+  isSubmodulePath,
+  parseGitmodulePaths,
   requiresSourceLanguageSwitcher,
   isTranslationPairingManifestExcluded,
   isTranslationScopeFile,
@@ -97,6 +99,16 @@ function isExcluded(file: string): boolean {
   return isTranslationPairingManifestExcluded(file, manifest)
 }
 
+/**
+ * Submodule working trees are other repositories' content. Their docs are
+ * translated in the repository that owns them: a sidecar written under
+ * `plugins/<name>/` could not survive the next `git submodule update` and does
+ * not exist in a fresh checkout, so gating them here would fail on content this
+ * repository cannot maintain. (The fork-owned plugin market ships a bilingual
+ * `README` pair that would otherwise be read as an incomplete pair.)
+ */
+const submodules = parseGitmodulePaths(readRepositoryFile('.gitmodules')?.toString('utf8') ?? '')
+
 const recordContext = { repoRoot: root, isTranslationPairSource, repositoryFileExists }
 
 // Enumerate the scope once: the whole corpus, or exactly the named pairs'
@@ -118,6 +130,7 @@ if (request.scope === 'pairs') {
   // One call shares a single directory walk across every pattern.
   for (const match of globSync(SCOPE_PATTERNS, { cwd: root, exclude: TRANSLATION_SCOPE_GLOB_EXCLUDES })) {
     const normalized = match.split(sep).join('/')
+    if (isSubmodulePath(normalized, submodules)) continue
     if (isTranslationScopeFile(normalized)) files.add(normalized)
   }
 }
@@ -126,7 +139,8 @@ const metas = [...files].filter(f => f.endsWith('.i18n.yaml')).sort()
 const sources = [...files].filter(f => f.endsWith('.md') && !f.endsWith('.zh.md')).sort()
 
 if (request.scope === 'pairs') {
-  const rejected = request.anchors.filter(anchor => !isTranslationScopeFile(anchor) || isExcluded(anchor))
+  const rejected = request.anchors.filter(anchor =>
+    !isTranslationScopeFile(anchor) || isExcluded(anchor) || isSubmodulePath(anchor, submodules))
   const absent = request.anchors.filter((anchor) => {
     const { source, zh, meta } = translationPairPaths(anchor)
     return ![source, zh, meta].some(repositoryFileExists)

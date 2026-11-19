@@ -32,6 +32,11 @@ describe('webApp (the real web profile)', () => {
     // of the market page embeds. Losing the row or the checkout must fail here
     // and in the bundle's own acceptance spec.
     expect(names).toContain('@michengai/dsh-agency-agents')
+    // FORK: the plugin market is the fourth shipped browser row from a submodule
+    // (`plugins/dsh-market`, the SDKWork fork of `dsh-market/dsh-market`); its
+    // `market` control is what the Plugins tab renders. Losing the row or the
+    // checkout must fail here and in the bundle's own acceptance spec.
+    expect(names).toContain('dshmarket')
     const known = new Set([...names, ...getStaticModules().map(manifest => manifest.id)])
     const dangling = webApp.rows.flatMap(row => row.inject.filter(target => !known.has(target)).map(target => `${row.name} -> ${target}`))
     // FORK DIVERGENCE: upstream's list is empty. The fork asserts exactly its

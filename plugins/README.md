@@ -19,18 +19,22 @@ pin bump; the [naming contract](../AGENTS.md#sdkwork-fork-naming-contract)
 applies to fork-authored packages, and these keep their upstream names on
 purpose so `git submodule update` stays a fast-forward.
 
-**Fork-owned exception.** `dsh-ui-usage-billing`, `sdkwork-deepseekbot` and
-`sdkwork-dsh-agents` are the entries whose `url` points at an SDKWork-owned
-repository. That repository *is* the plugin's upstream: its source is edited
-there, built there, and pinned here, so the frozen-read-only rule and the "fix
-it upstream" workflow above describe the remaining entries, not these
-([usage billing](../.agents/notes/implemented/architecture/2026-11-08-forked-usage-billing-settings-card.md), [assistant](../.agents/notes/implemented/architecture/2026-11-08-deepseekbot-assistant-surface.md)).
+**Fork-owned exception.** `dsh-market`, `dsh-ui-usage-billing`,
+`sdkwork-deepseekbot` and `sdkwork-dsh-agents` are the entries whose `url`
+points at an SDKWork-owned repository. That repository *is* the plugin's
+upstream: its source is edited there, built there, and pinned here, so the
+frozen-read-only rule and the "fix it upstream" workflow above describe the
+remaining entries, not these
+([usage billing](../.agents/notes/implemented/architecture/2026-11-08-forked-usage-billing-settings-card.md),
+[assistant](../.agents/notes/implemented/architecture/2026-11-08-deepseekbot-assistant-surface.md),
+[plugin market](../.agents/notes/implemented/architecture/2026-11-19-forked-plugin-market.md)).
 
 `plugins/*` is outside tsdown's build globs (`vendor/*`, `packages/*/*`): each
 plugin ships its own build, and its artifacts are committed upstream instead of
-being produced by this repository's build — except `sdkwork-deepseekbot`, whose
-upstream gitignores its artifacts and which this repository builds on install
-(see the assistant section below).
+being produced by this repository's build — except `sdkwork-deepseekbot` and
+`dsh-better-sidebar`, whose upstreams gitignore their artifacts and which this
+repository builds on install, and `dsh-market`, whose browser half is committed
+upstream while its host half `lib/` is built here (see each section below).
 
 ## dsh-im — IM channels
 
@@ -350,6 +354,113 @@ on disk under `$DSH_HOME`, and the `mcp`-prefixed loader entries the row created
 disappear with the row's composition. The plugin's own `showSidebarEntry`
 config is unrelated to this page: the tab embeds the panel and suppresses the
 row, so the row's stand-alone page is not a second entry either way.
+
+## dsh-market — the plugin market (插件市场)
+
+[`dsh-market`](https://github.com/sdkwork-ai/sdkwork-dsh-market) is the SDKWork
+fork of `dsh-market/dsh-market` (npm `dshmarket`), the community catalog the
+Plugins tab opens on. It is **mounted by default** as the `dsh-market` row in
+`packages/bundle/web-app/cordis.patch.yml`, so a shipped build — and the desktop
+layer patched over it — browses, searches, installs, updates, backs up and
+diagnoses community plugins with no installer step.
+
+One row carries both halves. The host half serves `/dsh-market/*` on
+`ctx.webServer`, drives the profile's own pnpm, and keeps the installed-plugin
+state, snapshots and diagnostics; the browser half publishes the `market`
+control (contract version 1, with `render`) that
+`packages/client/ui-sdkwork-markets` renders in place as the leading chip of the
+Plugins tab, and registers the market's Settings section and its own
+plugin-configuration card. The package's own `dsh.bundle.patch` is deliberately
+**not** added to the profile's bundle list: this row is the single mount, and a
+profile that selected the `dshmarket` bundle as well would mount the market
+twice (it has no double-mount guard).
+
+**Fork-owned.** The repository above is a fork of `dsh-market/dsh-market` and is
+the authority for the plugin's source and future product changes; the gitlink
+pins the fork's own release commit. Local fixes belong there, not in this
+checkout, and upstream releases are fork merges rather than pin bumps.
+
+**Pin.** The gitlink is `e8dc352`, the fork's `main` tip at pin time (plugin
+version 1.73.22). The browser half (`client/client.js`) ships committed in the
+fork and this repository never regenerates it. The host half (`lib/`) is
+gitignored there, so this repository builds it.
+
+**Build.** `pnpm run build:dsh-market` compiles `lib/` from the fork's `src/`
+with its own `tsconfig.json` and the TypeScript version the fork pins, and
+records a content-addressed stamp in `.dsh-build/dsh-market-build.json`, so a
+rebuild happens only when the sources, the artifacts, or the build mode change.
+Two modes are stamped:
+
+- **checked** — the Host compiler has emitted the `vendor/cordis` and
+  `vendor/schemastery` declarations, so the compile type-checks against the
+  framework sources this build runs. `pnpm run build:artifacts` runs the
+  `dsh-market` gate after `host-src`, so a packaged or released build always
+  takes this mode.
+- **emit-only** — a fresh checkout's `postinstall` runs before any Host compiler
+  pass and those linked packages carry no `lib/types` yet, so the build emits
+  `lib/` with `tsc --noCheck` and the checkout can boot. A later artifacts build
+  replaces that output with the checked build; the stamp records which mode
+  produced what is on disk.
+
+`postinstall` runs it with `--optional` beside the assistant and better-sidebar
+builds. Both paths skip quietly in checkouts that never initialized the
+submodule, and a lane that packages the plugin fails at the artifact gate
+instead of shipping an import that cannot load. Because only `lib/` is produced
+here, a client-half change must be built and committed in the fork.
+
+`pnpm pack` (the Desktop packaging loops every `plugins/*/package.json`) runs
+the fork's own `prepack`, which recompiles both halves, so the packed tarball
+always carries a `lib/` matching its sources.
+
+**Dependencies.** The scoped `dshmarket>` overrides in `pnpm-workspace.yaml`
+point its framework edges at this checkout: `@deepseek-ai/cordis` and
+`@deepseek-ai/schemastery` link to `vendor/`, and the rest resolve to the
+workspace's `0.2.2-rc.5` packages. Two upstream devDependencies that name
+packages this checkout no longer carries (`@deepseek-ai/dsh-invariants`,
+`@deepseek-ai/dsh-client-ui-settings-plugins`) are removed by the same block:
+nothing in the plugin's `src/` imports them, and leaving them would pull the
+published `0.1.0` line — a second complete harness closure — into the lockfile.
+Its runtime dependencies are downloaded into `plugins/dsh-market/node_modules`
+by `pnpm install`.
+
+**Update.**
+
+```sh
+git submodule update --init --remote plugins/dsh-market   # follows `branch = main`
+pnpm install                                              # relink, install, build `lib/`
+pnpm exec vitest run packages/bundle/web-app/tests/built-in-plugin-market.spec.ts
+```
+
+Then commit the new gitlink with the refreshed `pnpm-lock.yaml`. A fresh
+checkout gets a loadable `lib/` from `pnpm install` itself (the emit-only mode
+above); `pnpm run build:artifacts` then redoes it checked. Booting without ever
+installing dependencies — or in a checkout whose submodule is not populated —
+leaves the `dsh-market` row failing its import.
+
+**Verification.** `packages/bundle/web-app/tests/built-in-plugin-market.spec.ts`
+asserts the composed row, the linked manifest's `dsh.client` web declaration and
+`dsh.bundle.patch`, both shipped entry artifacts (`lib/index.js` and the
+committed `client/client.js`), and that the browser half still publishes the
+`market` control at contract version 1 with a `render` method, and proves the
+check rejects each incomplete form. The real web roster
+(`packages/test-support/client-runtime`) carries `dshmarket` among its browser
+rows with its three `dsh.client.inject` edges, which
+`assembly-bundle-roster.client.spec.ts` pins. A source `dsh web` boot of a
+scratch `$DSH_HOME` answers `/dsh-market/status` with the fork's version and
+`selfManaged: false` from the built host half, and its shell preloads
+`dshmarket/client.js`.
+
+**Documentation.** The fork keeps its own English/Chinese `README` pair in its
+repository. The translation-pairing gate skips submodule working trees for that
+reason: a sidecar written under `plugins/` could not survive the next
+`git submodule update` and would be missing from a fresh checkout, so the pair
+stays the fork's to keep current.
+
+**Turning it off.** Disable the row from a later patch layer
+(`- id: dsh-market` with `disabled: true`) or delete it from the web-app patch.
+The whole catalog goes with it; the Plugins tab's install/reload affordances
+remain as the way back. Installed plugins, snapshots and preferences already
+stored under `$DSH_HOME` stay on disk.
 
 ## sdkwork-dsh-agents — the expert market (专家市场)
 

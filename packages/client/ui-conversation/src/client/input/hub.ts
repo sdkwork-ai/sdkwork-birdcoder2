@@ -175,9 +175,10 @@ export class InputHub implements SessionInputResolver {
         })
       },
       messageSubmitted: (submission) => { reportMessageSubmission(this.rootCtx, submission) },
-      // UI-only observers (input history, recent-input lists) hear the accepted
-      // message on the shared event bus; the composer itself stays the only
-      // sender, and a blank draft never belongs in an input history.
+      // FORK DIVERGENCE: the input-history plugin hears accepted ordinary
+      // messages on the shared event bus. UI-only observers (input history,
+      // recent-input lists) consume it; the composer stays the only sender,
+      // and a blank draft never belongs in an input history.
       messageAccepted: (attempt) => {
         const text = attempt.draftSnapshot
         if (text.trim() === '') return

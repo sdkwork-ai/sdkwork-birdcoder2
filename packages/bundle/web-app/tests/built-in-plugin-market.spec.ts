@@ -1,18 +1,22 @@
 /**
- * The built-in plugin market: the third-party `dshmarket` plugin is a
- * dependency of this bundle and one row mounts it, so a shipped build — and
- * the desktop layer patched over it — opens the Plugins tab's leading chip on
- * the community catalog with no installer step.
+ * The built-in plugin market: `dshmarket`, the SDKWork fork of
+ * `dsh-market/dsh-market`, is linked into this repository as the
+ * `plugins/dsh-market` git submodule and a workspace dependency of this
+ * bundle, and one row mounts it, so a shipped build — and the desktop layer
+ * patched over it — opens the Plugins tab's leading chip on the community
+ * catalog with no installer step.
  *
- * The package is not authored here and is not edited here, so the assertions
- * read the published artifacts as shipped rather than pinning source text: the
- * row exists and is enabled, the package resolves with both halves declared and
- * present, and the browser half still publishes the `market` control that
- * `ui-sdkwork-markets` renders in place. That control is the one soft contract
- * between the two packages — the page accepts only contract version 1 with a
- * `render` method and otherwise falls back to the install affordance — so a
- * market release that changes it has to fail here instead of quietly turning
- * the leading chip back into "not installed".
+ * The package is authored in the fork, not here, so the assertions read the
+ * artifacts as they arrive from the linked checkout rather than pinning source
+ * text: the row exists and is enabled, the package resolves with both halves
+ * declared and present (the committed browser half and the host half this
+ * repository builds from the fork's sources), and the browser half still
+ * publishes the `market` control that `ui-sdkwork-markets` renders in place.
+ * That control is the one soft contract between the two packages — the page
+ * accepts only contract version 1 with a `render` method and otherwise falls
+ * back to the install affordance — so a market release that changes it has to
+ * fail here instead of quietly turning the leading chip back into "not
+ * installed".
  */
 
 import { existsSync, readFileSync } from 'node:fs'
@@ -149,8 +153,9 @@ describe('built-in plugin market', () => {
   it('composes dshmarket by default from this bundle', () => {
     const { manifest, present } = inspect()
     expect(violations(rows().find(row => row.id === ROW_ID), manifest, present)).toEqual([])
-    // Both halves are the published artifacts: this repository installs the
-    // package from npm and never rebuilds it.
+    // The browser half is committed by the fork and the host half is built from
+    // its sources by this repository (`scripts/build-dsh-market.mjs`); both are
+    // read here exactly as the row resolves them.
     expect(present.map(entry => entry.path)).toEqual(['./lib/index.js', './client/client.js'])
   })
 

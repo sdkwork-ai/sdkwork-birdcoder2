@@ -6,9 +6,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import {
-  DEFAULT_INPUT_HISTORY_SETTINGS, INPUT_HISTORY_STORAGE_KEY, MAX_HISTORY_ENTRIES, MAX_RETENTION_DAYS,
-  MIN_RETENTION_DAYS, createInputHistoryStore, normalizeRetentionDays, projectKeyOf,
-  type InputHistoryStorage,
+  DEFAULT_INPUT_HISTORY_SETTINGS, INPUT_HISTORY_STORAGE_KEY, MAX_HISTORY_ENTRIES, MAX_HISTORY_TOTAL_TEXT_LENGTH,
+  MAX_RETENTION_DAYS, MAX_STORED_DOCUMENT_LENGTH, MIN_RETENTION_DAYS, createInputHistoryStore, normalizeRetentionDays,
+  projectKeyOf, type InputHistoryStorage,
 } from '../src/client/input-history-store.ts'
 
 const DAY_MS = 86_400_000
@@ -168,6 +168,26 @@ describe('input history store', () => {
       .toHaveLength(0)
   })
 
+  it('bounds the ledger by total text so one large prompt cannot bloat browser storage', () => {
+    const { store, at } = bench()
+    const body = 'x'.repeat(98_990)
+    for (let index = 0; index < 12; index += 1) {
+      store.record({
+        text: `${String(index).padStart(2, '0')}:${body}`,
+        sessionId: sid('s1'),
+        projectKey: 'p1',
+        submittedAt: at(index),
+      })
+    }
+
+    const entries = store.state.getSnapshot().entries
+    const total = entries.reduce((sum, entry) => sum + entry.text.length, 0)
+    expect(total).toBeLessThanOrEqual(MAX_HISTORY_TOTAL_TEXT_LENGTH)
+    expect(entries.length).toBeLessThan(12)
+    expect(entries.at(-1)?.text.startsWith('11:')).toBe(true)
+    expect(entries[0]?.text.startsWith('07:')).toBe(true)
+  })
+
   it('rehydrates settings and entries from the same storage document', () => {
     const storage = memoryStorage()
     const first = createInputHistoryStore({ storage, now: () => 1_000 })
@@ -199,10 +219,102 @@ describe('input history store', () => {
         { id: 'ok', text: 'ok', sessionId: 's1', projectKey: 'p1', submittedAt: Date.UTC(2026, 10, 18) },
         { id: '', text: 'bad id', sessionId: 's1', projectKey: 'p1', submittedAt: Date.UTC(2026, 10, 18) },
         { id: 'bad time', text: 'bad time', sessionId: 's1', projectKey: 'p1', submittedAt: 'yesterday' },
+        { id: 'blank text', text: '   ', sessionId: 's1', projectKey: 'p1', submittedAt: Date.UTC(2026, 10, 18) },
+        { id: 'huge text', text: 'x'.repeat(100_001), sessionId: 's1', projectKey: 'p1', submittedAt: Date.UTC(2026, 10, 18) },
+        { id: 'bad session', text: 'bad session', sessionId: '', projectKey: 'p1', submittedAt: Date.UTC(2026, 10, 18) },
+        { id: 'bad project', text: 'bad project', sessionId: 's1', projectKey: '', submittedAt: Date.UTC(2026, 10, 18) },
+        'not an entry',
       ],
     }))
     const second = createInputHistoryStore({ storage, now: () => Date.UTC(2026, 10, 19) })
     expect(second.state.getSnapshot().entries.map(entry => entry.text)).toEqual(['ok'])
+  })
+
+  it('discards an oversized document before parsing it', () => {
+    const storage = memoryStorage()
+    storage.setItem(INPUT_HISTORY_STORAGE_KEY, 'x'.repeat(MAX_STORED_DOCUMENT_LENGTH + 1))
+    const store = createInputHistoryStore({ storage, now: () => 1_000 })
+
+    expect(store.state.getSnapshot()).toEqual({ settings: DEFAULT_INPUT_HISTORY_SETTINGS, entries: [] })
+  })
+
+  it('defaults settings and entries when the document carries neither', () => {
+    const storage = memoryStorage()
+    storage.setItem(INPUT_HISTORY_STORAGE_KEY, JSON.stringify({ schemaVersion: 1 }))
+    const store = createInputHistoryStore({ storage, now: () => 1_000 })
+
+    expect(store.state.getSnapshot()).toEqual({ settings: DEFAULT_INPUT_HISTORY_SETTINGS, entries: [] })
+    expect(storage.getItem(INPUT_HISTORY_STORAGE_KEY)).toContain('"entries":[]')
+  })
+
+  it('sorts rehydrated entries by time even when the document is out of order', () => {
+    const storage = memoryStorage()
+    storage.setItem(INPUT_HISTORY_STORAGE_KEY, JSON.stringify({
+      schemaVersion: 1,
+      settings: { enabled: true, scope: 'session', retentionDays: 30 },
+      entries: [
+        { id: 'later', text: 'later', sessionId: 's1', projectKey: 'p1', submittedAt: Date.UTC(2026, 10, 18, 2) },
+        { id: 'earlier', text: 'earlier', sessionId: 's1', projectKey: 'p1', submittedAt: Date.UTC(2026, 10, 18, 1) },
+      ],
+    }))
+    const store = createInputHistoryStore({ storage, now: () => Date.UTC(2026, 10, 19) })
+
+    expect(store.state.getSnapshot().entries.map(entry => entry.text)).toEqual(['earlier', 'later'])
+  })
+
+  it('keeps working in memory when the page exposes no storage', () => {
+    vi.stubGlobal('localStorage', undefined)
+    try {
+      const store = createInputHistoryStore({ now: () => 1_000 })
+      store.record({ text: 'memory only', sessionId: sid('s1'), projectKey: 'p1' })
+
+      expect(store.state.getSnapshot().entries.map(entry => entry.text)).toEqual(['memory only'])
+      expect(store.state.getSnapshot().entries[0]?.submittedAt).toBe(1_000)
+      expect(store.entriesFor('session', { sessionId: sid('s1'), projectKey: 'p1' }, 1_000)).toHaveLength(1)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('treats an inaccessible localStorage as no storage', () => {
+    const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      get: () => { throw new Error('blocked') },
+    })
+    try {
+      const store = createInputHistoryStore({ now: () => 1_000 })
+      expect(store.state.getSnapshot().entries).toEqual([])
+    } finally {
+      if (descriptor === undefined) Reflect.deleteProperty(globalThis, 'localStorage')
+      else Object.defineProperty(globalThis, 'localStorage', descriptor)
+    }
+  })
+
+  it('avoids writes for unchanged settings, an empty clear, and a no-op purge', () => {
+    const { store, at } = bench()
+    store.record({ text: 'kept', sessionId: sid('s1'), projectKey: 'p1', submittedAt: at(0) })
+    const before = store.state.getSnapshot()
+
+    store.updateSettings({ enabled: true, scope: 'session', retentionDays: 30 })
+    store.purgeExpired()
+    expect(store.state.getSnapshot()).toBe(before)
+
+    store.clear()
+    expect(store.state.getSnapshot().entries).toEqual([])
+    const cleared = store.state.getSnapshot()
+    store.clear()
+    expect(store.state.getSnapshot()).toBe(cleared)
+  })
+
+  it('orders equally old entries deterministically', () => {
+    const { store, at } = bench()
+    const submittedAt = at(5_000)
+    store.record({ text: 'first', sessionId: sid('s1'), projectKey: 'p1', submittedAt })
+    store.record({ text: 'second', sessionId: sid('s1'), projectKey: 'p1', submittedAt })
+
+    const entries = store.entriesFor('session', { sessionId: sid('s1'), projectKey: 'p1' })
+    expect(entries.map(entry => entry.text)).toEqual(['second', 'first'])
   })
 
   it('survives storage that refuses reads and writes', () => {
@@ -234,6 +346,7 @@ describe('input history helpers', () => {
   it('trims a project directory and folds Windows separator case', () => {
     expect(projectKeyOf('/home/me/project/')).toBe('/home/me/project')
     expect(projectKeyOf('D:\\Work\\Project\\')).toBe('d:\\work\\project')
+    expect(projectKeyOf('C:/Work/Project/')).toBe('c:/work/project')
     expect(projectKeyOf('   ')).toBe('')
   })
 })

@@ -49,7 +49,11 @@ export interface SessionInputDeps {
   submissionState?: () => MessageSubmissionState
   /** Notify one ordinary message attempt before reference serialization. */
   messageSubmitted?: (submission: MessageSubmission) => void
-  /** Observe one ordinary message after the Host accepted it (identical for every settled path). */
+  /**
+   * FORK DIVERGENCE: observe one ordinary message after the Host accepted it
+   * (the input-history plugin's recording seam). The notification fires once
+   * per consumed settlement and can never interrupt it.
+   */
   messageAccepted?: (attempt: SubmitAttempt) => void
   /** Enter adjudication face resolver; absent/undefined answer = every '/' line falls to the default sink. */
   inputTriggers?: (() => InputTriggerController | undefined) | undefined
@@ -806,12 +810,16 @@ export class SessionInputShell implements SessionInput {
 
   private applySinkOutcome(attempt: SubmitAttempt, outcome: SubmitOutcome): void {
     const accepted = outcome.kind === 'success'
+    // The Host can accept before the sink promise resolves (sendSession calls
+    // accept() first). Only the settlement that the machine actually consumes
+    // is the one accepted-message observers hear about.
+    const settles = accepted && this.core.sendingAttempt === attempt
     if (accepted && attempt.attachmentIds.length > 0) {
       const sent = new Set(attempt.attachmentIds)
       this.attachmentIds = this.attachmentIds.filter(id => !sent.has(id))
     }
     this.dispatchRun(({ type: 'sink-settled', attempt, ok: accepted, outcome }))
-    if (!accepted) return
+    if (!settles) return
     // Observers are notified after the composer settled, and can never interrupt it.
     try { this.deps.messageAccepted?.(attempt) } catch (_error) { /* Notification consumers cannot interrupt settlement. */ }
   }

@@ -13,7 +13,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
-import type { IConversation, SessionInput } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { IConversation, InputState, SessionInput } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { ShortcutFixedInput, ShortcutGesture } from '@deepseek-ai/dsh-client-shortcuts/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { InputHistoryController } from '../src/client/input-history-controller.ts'
@@ -36,17 +36,21 @@ function memoryStorage(): InputHistoryStorage {
   }
 }
 
-/** A composer shell whose only real behavior is the draft store. */
-function shellOf(draft: string): { shell: SessionInput; state: SnapshotStore<{ draft: string; draftRev: number }> } {
-  const state = createSnapshotStore({ draft, draftRev: 1 })
+/** A composer shell whose only real behavior is the draft/phase store. */
+function shellOf(draft: string): {
+  shell: SessionInput
+  state: SnapshotStore<{ draft: string; draftRev: number; phase: InputState['phase'] }>
+} {
+  const state = createSnapshotStore({ draft, draftRev: 1, phase: 'plain' as const })
   return {
     state,
     shell: {
       state,
       setDraft: (text: string) => {
-        state.set({ draft: text, draftRev: state.getSnapshot().draftRev + 1 })
+        const current = state.getSnapshot()
+        state.set({ ...current, draft: text, draftRev: current.draftRev + 1 })
       },
-    } as unknown as SessionInput,
+    } as never,
   }
 }
 
@@ -85,7 +89,8 @@ function setCaret(node: Node, offset: number): void {
 }
 
 /** One fixed keyboard input aimed at a composer. */
-function keydown(composer: Composer, code: string, extra: Partial<ShortcutGesture> = {}): {
+function keydown(composer: Composer, code: string, extra: Partial<ShortcutGesture> = {},
+  region: 'page' | 'editable' | 'terminal' = 'editable', modal: string | null = null): {
   input: ShortcutFixedInput
   consume: ReturnType<typeof vi.fn>
 } {
@@ -103,7 +108,7 @@ function keydown(composer: Composer, code: string, extra: Partial<ShortcutGestur
       defaultPrevented: false,
       ...extra,
     },
-    context: { region: 'editable', modal: null, target: composer.input },
+    context: { region, modal, target: composer.input },
     consume,
   }
   return { input, consume }
@@ -121,7 +126,7 @@ function bench(options: { now?: () => number } = {}) {
     [sid('s2'), shellOf('')],
     [sid('s3'), shellOf('')],
   ])
-  const sessions = {
+  const sessions: ISessions = {
     list: {
       getSnapshot: () => ({
         ids: [...shells.keys()],
@@ -136,8 +141,8 @@ function bench(options: { now?: () => number } = {}) {
       subscribe: () => () => {},
     },
     scope: (id: SessionId) => ({ session: id }),
-  } as unknown as ISessions
-  const conversation = {
+  } as never
+  const conversation: IConversation = {
     input: {
       for: (scope: { session: SessionId }) => {
         const shell = shells.get(scope.session)
@@ -145,12 +150,14 @@ function bench(options: { now?: () => number } = {}) {
         return shell.shell
       },
     },
-  } as unknown as IConversation
+  } as never
   const controller = new InputHistoryController({ store, sessions, conversation })
   return {
     store,
     controller,
     shells,
+    sessions,
+    conversation,
     setClock(value: () => number) { clock = value },
   }
 }
@@ -316,6 +323,89 @@ describe('input history gesture', () => {
     setCaret(composer.text, 0)
     controller.handleFixedInput(keydown(composer, 'ArrowUp').input)
     expect(draft()).toBe('newest')
+  })
+
+  it('does nothing while the composer is frozen by a submission', () => {
+    const { store, controller, shells } = bench()
+    seed(store)
+    const composer = mountComposer('s1', '')
+    setCaret(composer.text, 0)
+    const shell = shells.get(sid('s1'))
+    shell?.state.set({ ...shell.state.getSnapshot(), phase: 'sending' })
+
+    const key = keydown(composer, 'ArrowUp')
+    controller.handleFixedInput(key.input)
+
+    expect(key.consume).not.toHaveBeenCalled()
+    expect(shell?.state.getSnapshot().draft).toBe('draft one')
+  })
+
+  it('ignores resets, non-arrow keys, and keys outside the editable region', () => {
+    const { store, controller, shells } = bench()
+    seed(store)
+    const composer = mountComposer('s1', '')
+    setCaret(composer.text, 0)
+    const draft = () => shells.get(sid('s1'))?.state.getSnapshot().draft
+
+    controller.handleFixedInput({ type: 'reset' })
+    controller.handleFixedInput(keydown(composer, 'Enter').input)
+    const page = keydown(composer, 'ArrowUp', {}, 'page')
+    controller.handleFixedInput(page.input)
+    const modal = keydown(composer, 'ArrowUp', {}, 'editable', 'settings')
+    controller.handleFixedInput(modal.input)
+
+    expect(page.consume).not.toHaveBeenCalled()
+    expect(modal.consume).not.toHaveBeenCalled()
+    expect(draft()).toBe('draft one')
+  })
+
+  it('ignores keys when the Session or its composer facade is gone', () => {
+    const { store, controller, sessions, conversation, shells } = bench()
+    seed(store)
+    const composer = mountComposer('s1', '')
+    setCaret(composer.text, 0)
+    vi.spyOn(sessions, 'scope').mockReturnValueOnce(undefined)
+    controller.handleFixedInput(keydown(composer, 'ArrowUp').input)
+    vi.spyOn(conversation.input, 'for').mockImplementationOnce(() => { throw new Error('composer gone') })
+    controller.handleFixedInput(keydown(composer, 'ArrowUp').input)
+
+    expect(shells.get(sid('s1'))?.state.getSnapshot().draft).toBe('draft one')
+  })
+
+  it('does nothing forward before an entry was recalled', () => {
+    const { store, controller, shells } = bench()
+    seed(store)
+    const composer = mountComposer('s1', '')
+    setCaret(composer.text, 0)
+
+    const key = keydown(composer, 'ArrowDown')
+    controller.handleFixedInput(key.input)
+
+    expect(key.consume).not.toHaveBeenCalled()
+    expect(shells.get(sid('s1'))?.state.getSnapshot().draft).toBe('draft one')
+  })
+
+  it('does nothing when the scope has no ledger entries', () => {
+    const { controller, shells } = bench()
+    const composer = mountComposer('s1', '')
+    setCaret(composer.text, 0)
+
+    const key = keydown(composer, 'ArrowUp')
+    controller.handleFixedInput(key.input)
+
+    expect(key.consume).not.toHaveBeenCalled()
+    expect(shells.get(sid('s1'))?.state.getSnapshot().draft).toBe('draft one')
+  })
+
+  it('recalls from an empty composer', () => {
+    const { store, controller, shells } = bench()
+    store.record({ text: 'empty-draft recall', sessionId: sid('s2'), projectKey: '/work/project', submittedAt: Date.UTC(2026, 10, 19) })
+    const composer = mountComposer('s2', '')
+    setCaret(composer.text, 0)
+
+    controller.handleFixedInput(keydown(composer, 'ArrowUp').input)
+
+    expect(shells.get(sid('s2'))?.state.getSnapshot().draft).toBe('empty-draft recall')
   })
 
   it('does nothing while the feature is disabled', () => {

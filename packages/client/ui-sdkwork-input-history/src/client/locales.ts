@@ -59,7 +59,7 @@ export const en = {
   'retention.hint': 'Entries older than this are cleared automatically. The default is 30 days; choose 1–365.',
   'retention.aria': 'Retention in days',
 
-  'count': '{count} entries cached.',
+  'count': 'Cached entries: {count}',
   'clear.label': 'Clear history',
   'clear.hint': 'Clears only the input history stored in this browser; existing conversations are untouched.',
   'disabled.hint': 'Input history is turned off.',

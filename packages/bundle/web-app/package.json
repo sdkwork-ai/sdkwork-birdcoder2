@@ -272,7 +272,7 @@
     "dsh-mcp-connector": "workspace:*",
     "@michengai/dsh-agency-agents": "workspace:*",
     "@kenz1117/dsh-ui-usage-billing": "workspace:*",
-    "dshmarket": "^1.73.8",
+    "dshmarket": "workspace:*",
     "@botharness/core": "workspace:*",
     "@botharness/ui": "workspace:*",
     "deepseekbot": "workspace:*",
