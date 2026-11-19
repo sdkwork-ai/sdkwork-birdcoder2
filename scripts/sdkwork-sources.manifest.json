@@ -49,7 +49,7 @@
     {
       "name": "sdkwork-cloudrouter",
       "url": "https://github.com/sdkwork-ai/sdkwork-cloudrouter.git",
-      "commit": "462ce56a721fa25dee6b59540ef492ab4e8e5eea"
+      "commit": "10f614e292d4eb2f110d95421bcdd1ab67d025db"
     },
     {
       "name": "sdkwork-models",
@@ -152,7 +152,17 @@
     {
       "name": "sdkwork-deployments",
       "url": "https://github.com/sdkwork-ai/sdkwork-deployments.git",
-      "commit": "cc5fa2135c740f2b0bef0bd36b5bc69172895471"
+      "commit": "53daa38f9fc5f7028d63be25ee7be317985ff7a3"
+    },
+    {
+      "name": "sdkwork-shop",
+      "url": "https://github.com/sdkwork-ai/sdkwork-shop.git",
+      "commit": "a4a2e6864c12afd266705004917c17d4f9c42aa5"
+    },
+    {
+      "name": "sdkwork-inventory",
+      "url": "https://github.com/sdkwork-ai/sdkwork-inventory.git",
+      "commit": "f8b294e8e92459f2460939d76cd5d0dc50f57059"
     },
     {
       "name": "sdkwork-account",

@@ -73,6 +73,8 @@
 #### 版本与依赖
 
 * 根版本前移 **0.2.2-rc.5**（上游 tag `dsh-v0.2.2-rc.5`），随上游发布线推进。
+* SDKWork 生态 pin 对齐：`sdkwork-cloudrouter`（`462ce56a` → `10f614e2`）与 `sdkwork-deployments`（`cc5fa213` → `53daa38f`）前移到各自已推送的 `main`，并新增 `sdkwork-shop`（`a4a2e686`）与 `sdkwork-inventory`（`f8b294e8`）两条 pin。云端路由的新控制台包与部署控制台引用 `@sdkwork/{shop,inventory,deployments}-backend-sdk`，这三个包此前既未 join 成 workspace 成员、也没有 `tsconfig.base.json` 映射，`verify-sdkwork-dependencies` 会在打包第一步失败（`imported by the dependency closure but tsconfig.base.json maps no @sdkwork package root`）。三者现按其余 20 个 backend SDK 的同款形制 join 成员 + 建映射，`Dockerfile` / `Dockerfile.debug` 同步补上 `sdkwork-ecosystem` 复制行。本地仍走 `../sdkwork-*` 相对路径，release 走 pin 的 git checkout，同源可复现。
+* `plugins/sdkwork-dsh-agents` 子模块由 `2d317ce`（1.2.26）前移到 `a2911f0`（1.2.34 镜像同步），并把新版新增的 `@deepseek-ai/dsh-error@0.2.2-rc.3` 依赖补进 lockfile；不同步时 `pnpm install --frozen-lockfile` 直接报 `ERR_PNPM_OUTDATED_LOCKFILE`。
 * `pnpm-lock.yaml` 保留 fork 的 workspace 链接与 SDKWork sibling importer 块（本地开发走 `pnpm-workspace.yaml` 的 `../sdkwork-*` 相对路径 + `workspace:*`，CI/release 走 `agent.workflow.json` 声明、`scripts/sdkwork-sources.manifest.json` pin 的 git 仓库依赖 checkout，两者同源）。
 
 本文件只保留当前版本一节；往期条目随各自版本的提交留在 git 历史里（`git log -p CHANGELOG.md`）。Release notes 就是本节内容。
