@@ -16,7 +16,7 @@ import type {
   ChatNode, ChatNodeHookContext, ChatNodeOwnerProps, ChatSnapshot, UserBeforeOwnerProps,
   ChatViewSlotProps, CommandNode, CompactionSummaryNode, ContextMessageNode, ConversationNode,
   LegacyConversationSlice, ModelRetryNode, StartedToolCall, SteeringMessageNode,
-  ToolCallBlock, ToolResultNode, TurnErrorNode, TurnMaxTokensNode,
+  ToolCallBlock, ToolResultNode, TurnErrorActionsOwnerProps, TurnErrorNode, TurnMaxTokensNode,
   TranscriptViewMode, UserContentInput, UserMessageNode,
 } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {
@@ -289,6 +289,7 @@ type ToolOwner = Pick<ChatNodeOwnerProps, 'openFile' | 'inspectCall'> & {
 const renderCommandSlot: React.ComponentProps<typeof CommandNodeView>['renderSlot'] =
   (_key, _owner, opts) => opts?.fallback ?? null
 const renderTurnTailSlot: React.ComponentProps<typeof TurnTailNodeView>['renderSlot'] = () => null
+const renderTurnErrorSlot: React.ComponentProps<typeof TurnErrorNodeView>['renderSlot'] = () => null
 
 function HarnessChatFlow({ standard, owner, hookContext, renderSlot, useConnectionState }: {
   readonly standard: HarnessStandardProps
@@ -317,6 +318,7 @@ function HarnessUserOrigin({ useRenderer, owner, options }: {
 
 function HarnessChatNode({
   standard, owner, hookContext, usePerformanceUsage, toolOwners, fallback, renderAssistantSlot, renderUserChain,
+  renderTurnErrorActions = renderTurnErrorSlot,
 }: {
   readonly standard: HarnessStandardProps
   readonly owner: RoutedChatNodeOwner
@@ -326,6 +328,7 @@ function HarnessChatNode({
   readonly fallback: React.ReactNode
   readonly renderAssistantSlot: React.ComponentProps<typeof AssistantNodeView>['renderSlot']
   readonly renderUserChain: PropsRenderSlots<'conversation.chat.user.before'>['renderSlotChain']
+  readonly renderTurnErrorActions?: React.ComponentProps<typeof TurnErrorNodeView>['renderSlot']
 }) {
   const hooks = useMemo(() => ({
     useTurnData: CHAT_NODE_INJECT.hooks.turnData(standard, hookContext),
@@ -352,7 +355,7 @@ function HarnessChatNode({
     case 'model-retry':
       return <RetryNodeView {...nodeProps} node={owner.node} />
     case 'turn-error':
-      return <TurnErrorNodeView {...nodeProps} node={owner.node} />
+      return <TurnErrorNodeView {...nodeProps} node={owner.node} renderSlot={renderTurnErrorActions} />
     case 'turn-max-tokens':
       return <TurnMaxTokensNodeView {...nodeProps} node={owner.node} />
     case 'inherited-history':
@@ -467,6 +470,11 @@ function makeHarness(
   const useOriginRenderer = bindSnapshotSelector(originRenderer)
   let nodeSlotOverride: NodeRenderer | undefined
   let imageSlotOverride: ImageRenderer | undefined
+  let turnErrorActionRender: ((owner: TurnErrorActionsOwnerProps) => React.ReactNode) | undefined
+  const renderTurnErrorActions: React.ComponentProps<typeof TurnErrorNodeView>['renderSlot'] = (name, owner) => {
+    if (name !== 'conversation.chat.turn-error.actions') throw new Error(`Undeclared turn-error child: ${name}`)
+    return turnErrorActionRender?.(owner as unknown as TurnErrorActionsOwnerProps) ?? null
+  }
   const renderImages = (name: string, owner: object, options?: { fallback?: React.ReactNode }) => {
     if ((name !== 'conversation.chat.user.images' && name !== 'conversation.chat.message.images') || !isImageOwner(owner)) {
       throw new Error(`Unexpected Chat image Slot: ${name}`)
@@ -480,7 +488,7 @@ function makeHarness(
     return <HarnessChatNode standard={props} owner={owner}
       hookContext={opts.hookContext} usePerformanceUsage={usePerformanceUsage}
       toolOwners={toolOwners} fallback={opts.fallback} renderAssistantSlot={renderAssistantSlot}
-      renderUserChain={renderUserChain} />
+      renderUserChain={renderUserChain} renderTurnErrorActions={renderTurnErrorActions} />
   }
   const renderFlowSlot: ChatFlowSlotProps['renderSlot'] = (key: string, owner: object, opts?: {
     fallback?: React.ReactNode
@@ -624,6 +632,9 @@ function makeHarness(
     setFoldedReplies: (replies: FoldedReplies) => { foldedReplies.set(replies) },
     setNodeRenderer: (renderer: NodeRenderer) => { nodeSlotOverride = renderer },
     setImageRenderer: (renderer: ImageRenderer) => { imageSlotOverride = renderer },
+    setTurnErrorActions: (renderer: (owner: TurnErrorActionsOwnerProps) => React.ReactNode) => {
+      turnErrorActionRender = renderer
+    },
     setOriginRenderer: (renderer: UserChainRenderer | undefined) => { originRenderer.set({ renderer }) },
   }
 }
@@ -2714,6 +2725,20 @@ describe('ChatView', () => {
     expect(view.queryByRole('alert')).toBeNull()
     expect(view.queryByRole('dialog')).toBeNull()
     expect(view.queryByRole('button', { name: '去充值' })).toBeNull()
+  })
+
+  it('hands a terminal failure row its registered fixes with the stable code', () => {
+    const h = makeHarness({ nodes: [user(1, 'try'), turnError(2, 'MISSING_CREDENTIAL')] })
+    const codes: (string | undefined)[] = []
+    h.setTurnErrorActions(({ code }) => {
+      codes.push(code)
+      return <button type="button">登录</button>
+    })
+    const view = render(<h.ChatView {...h.props} />)
+    expect(codes).toEqual(['MISSING_CREDENTIAL'])
+    expect(view.getByRole('button', { name: '登录' })).not.toBeNull()
+    // The stable code stays visible beside the offered fix.
+    expect(view.getByText('MISSING_CREDENTIAL')).not.toBeNull()
   })
 
   it('renders the max-tokens notice with localized guidance, distinct from turn errors', () => {
