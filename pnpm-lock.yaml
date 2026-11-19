@@ -8605,9 +8605,6 @@ importers:
       '@deepseek-ai/dsh-client-modules':
         specifier: workspace:*
         version: link:../modules
-      eventsource-parser:
-        specifier: ^3.1.0
-        version: 3.1.0
 
   packages/client/locale:
     dependencies:
