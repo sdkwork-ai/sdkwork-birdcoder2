@@ -318,6 +318,14 @@ export interface SettingsHeaderOwnerProps {
 export interface SettingsSectionOwnerProps {
   /** Leave the page: close the settings panel, or on the Plugins page return to the view the page was opened from. */
   close: () => void
+  /**
+   * Provider route the shell opened this section to reveal, when another
+   * surface deep-linked to it (the Chat failure row sends the Models page to
+   * the provider whose credential is missing). A section that lists providers
+   * scrolls that row into view; every other section ignores it. Absent on an
+   * ordinary open, so a plain visit keeps the page's own starting position.
+   */
+  focusProvider?: string
 }
 
 /** Icon presentation supplied by the settings navigation row. */

@@ -133,16 +133,24 @@ function ModelRetryItem({ node, active, t }: {
 }
 
 /** Persistent, turn-positioned feedback for a terminal failure. */
-function TurnErrorItem({ node, t }: {
+function TurnErrorItem({ node, t, renderSlot }: {
   node: TurnErrorNode
   t: ChatViewSlotProps['t']
+  renderSlot: PropsRenderSlots<'conversation.chat.turn-error.actions'>['renderSlot']
 }) {
+  // Offered fixes belong to the features that can apply them: the row hands out
+  // the stable failure code and lets each registrant decide whether it has an
+  // affordance for it, so Chat keeps no provider-specific repair logic.
+  const actions = renderSlot('conversation.chat.turn-error.actions', { code: node.code })
   return (
     <div className={css.turnErrorRow} role="status">
       <StateDot state="error" className={css.turnErrorDot} />
       <div className={css.turnErrorCopy}>
         <span className={css.turnErrorTitle}>{node.code === 'ACCOUNT_SIGNED_OUT' || node.code === 'INTERRUPTED' ? t('message.taskStopped') : t('message.turnError')}</span>
         <span className={css.turnErrorMessage}>{failureMessage(node.message, node.code, t)}</span>
+        {actions === null || actions === undefined
+          ? null
+          : <span className={css.turnErrorActions}>{actions}</span>}
       </div>
       {node.code !== undefined && node.code !== 'INTERRUPTED' && <code className={css.turnErrorCode}>{node.code}</code>}
     </div>
@@ -404,8 +412,10 @@ export const RetryNodeView = memo(function RetryNodeView({ node, t }: ChatNodeVi
 })
 
 /** Terminal turn-error keyed Chat renderer. */
-export const TurnErrorNodeView = memo(function TurnErrorNodeView({ node, t }: ChatNodeViewProps<'turn-error'>) {
-  return <TurnErrorItem node={node.data} t={t} />
+export const TurnErrorNodeView = memo(function TurnErrorNodeView({
+  node, renderSlot, t,
+}: ChatNodeViewProps<'turn-error'> & PropsRenderSlots<'conversation.chat.turn-error.actions'>) {
+  return <TurnErrorItem node={node.data} renderSlot={renderSlot} t={t} />
 })
 
 /** Max-tokens turn-end notice keyed Chat renderer. */

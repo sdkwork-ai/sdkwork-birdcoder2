@@ -5,15 +5,40 @@
  * replaces declared, so feature-owned sections and rows mount unchanged.
  */
 import type { HostObservable, InjectFace, PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsStore } from '@deepseek-ai/dsh-client-store'
 // Type-only: pulls ui-sdkwork-app-modes' SlotMap merge (the 'mode.rail.settings'
 // entry) into every program that sees this contract.
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 // Type-only: pulls the settings slot declarations the shell renders into.
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { createSettingsMenuStore } from './menu-store.ts'
 import type { AccountProfile } from './account.ts'
 import type { FeedbackProfile } from './feedback.ts'
 import type { PersonaMenuProfile } from './persona.ts'
 import type { ThemeMenuSnapshot } from './theme-source.ts'
+
+/**
+ * The settings shell's deep-link face: a surface outside the rail opens the
+ * dialog on one registered section and optionally names the provider row that
+ * section should reveal. Provided by this package while it is mounted, so a
+ * composition without the settings shell has no such service and the caller
+ * keeps its own navigation.
+ */
+export interface SettingsMenuService {
+  /**
+   * Show the settings dialog on one section.
+   * @param id - registered `settings.section` id (an unregistered id falls back to the first row).
+   * @param options.focusProvider - provider route the section should reveal, when it lists providers.
+   */
+  openSection(id: string, options?: { focusProvider?: string }): void
+}
+
+declare module '@deepseek-ai/cordis' {
+  interface Context {
+    /** Open the settings dialog from another surface (optional: only the mounted shell provides it). */
+    settingsMenu: SettingsMenuService
+  }
+}
 
 /** One nav row projected from a settings.section registration's options. */
 export interface SettingsSectionRow {
@@ -78,9 +103,9 @@ export type SettingsMenuRootInjected = {
 /**
  * Full component props of the settings menu root: the rail owner share (the
  * seat carries no facts — the trigger is always the compact rail form) plus
- * the declared render shares, the menu dictionary seat, and the injected
- * face. No store is registered — menu/dialog open state and active section id
- * are component-local viewing state.
+ * the declared render shares, the menu dictionary seat, the injected face, and
+ * the declared store sharing dialog visibility and section selection with
+ * surfaces outside the rail. The hover-menu open state stays local.
  */
 export type SettingsMenuRootComponentProps =
   PropsRuntime<'mode.rail.settings'>
@@ -103,3 +128,4 @@ export type SettingsMenuRootComponentProps =
   >
   & PropsLocale<'settings.menu'>
   & InjectFace<SettingsMenuRootInjected>
+  & PropsStore<ReturnType<typeof createSettingsMenuStore>>

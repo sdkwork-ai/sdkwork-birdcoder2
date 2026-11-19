@@ -37,7 +37,10 @@ import { AccountRuntime } from './account.ts'
 import { FeedbackRuntime } from './feedback.ts'
 import { PersonaRuntime } from './persona.ts'
 import { createThemeSource } from './theme-source.ts'
-import type { SettingsMenuRootInjected, SettingsOnboardingStep, SettingsSectionRow } from './shell-contract.ts'
+import { createSettingsMenuStore } from './menu-store.ts'
+import type {
+  SettingsMenuRootInjected, SettingsMenuService, SettingsOnboardingStep, SettingsSectionRow,
+} from './shell-contract.ts'
 import { SettingsMenuRoot } from './SettingsMenuRoot.tsx'
 import { CloseLabel, HeaderContent, TriggerContent } from './chrome.tsx'
 import { GeneralSection } from './GeneralSection.tsx'
@@ -131,6 +134,19 @@ export function apply(ctx: ClientContext): void {
   // exactly while that feature is mounted — whatever order the entries activate.
   const persona = new PersonaRuntime()
   ctx.provide('persona', persona)
+
+  // The dialog's visibility and active section are shared viewing state: the
+  // shell renders them, and a surface outside the rail (the Chat failure row's
+  // configure gesture) opens them through `ctx.settingsMenu`. One instance is
+  // created here and handed to the registration, so the service and the
+  // rendered panel can never disagree about which section is showing.
+  const menuHandle = createSettingsMenuStore()
+  const menuInstance = menuHandle.create()
+  const menuStore: typeof menuHandle = { ...menuHandle, create: () => menuInstance }
+  const settingsMenu: SettingsMenuService = {
+    openSection: (id, options) => { menuInstance.actions.openSection(id, options?.focusProvider) },
+  }
+  ctx.provide('settingsMenu', settingsMenu)
 
   // Theme mirror for the appearance submenu's selection; the service's own
   // snapshot is the seed, the event keeps it current.
@@ -240,6 +256,7 @@ export function apply(ctx: ClientContext): void {
   })
   ctx.slots.inject('mode.rail.settings', () => ctx.slots.register({
     name: 'mode.rail.settings',
+    store: menuStore,
     children: {
       'settings.trigger': { kind: 'single', scope: 'root' },
       'settings.header': { kind: 'single', scope: 'root' },

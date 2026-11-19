@@ -2,8 +2,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
 import { SettingsMenuRoot } from '../src/client/SettingsMenuRoot.tsx'
 import type { SettingsMenuRootComponentProps, SettingsOnboardingStep, SettingsSectionRow } from '../src/client/shell-contract.ts'
+import { createSettingsMenuStore } from '../src/client/menu-store.ts'
 import { zh } from '../src/client/locales.ts'
 import type { AccountProfile } from '../src/client/account.ts'
 import type { FeedbackProfile } from '../src/client/feedback.ts'
@@ -56,7 +58,10 @@ function root(over: RootOverrides = {}) {
   const renderSlot = vi.fn((name: string, _owner: unknown, opts?: { only?: string }): ReactNode => (
     <span data-slot={name}>{name}{opts?.only !== undefined ? `:${opts.only}` : ''}</span>
   ))
+  const menu = createSettingsMenuStore().create()
   const props = {
+    useStore: bindSnapshotSelector(menu),
+    actions: menu.actions,
     useSections: useSections as never,
     useOnboardingSteps: useOnboardingSteps as never,
     useTheme: useTheme as never,
@@ -80,7 +85,9 @@ function root(over: RootOverrides = {}) {
     t,
   }
   render(<SettingsMenuRoot {...props as unknown as SettingsMenuRootComponentProps} />)
-  return { setTheme, signIn, logout, checkForUpdates, openFeedback, openPersona, openDesktopPlugins, quitApp, renderSlot }
+  return {
+    setTheme, signIn, logout, checkForUpdates, openFeedback, openPersona, openDesktopPlugins, quitApp, renderSlot, menu,
+  }
 }
 
 function trigger(): HTMLButtonElement {
@@ -308,6 +315,39 @@ describe('SettingsMenuRoot', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'settings.close' }))
     act(() => { screen.getByRole('button', { name: 'settings.close' }).click() })
     expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('opens a deep-linked section and hands its provider focus to that section', () => {
+    const { menu, renderSlot } = root({
+      sections: [
+        { id: 'general', order: 0, label: '通用' },
+        { id: 'models', order: 10, label: '模型' },
+      ],
+    })
+    const sectionCall = () => renderSlot.mock.calls.findLast(([name]) => name === 'settings.section')
+    act(() => { menu.actions.openSection('models', 'birdcoder') })
+    expect(screen.getByRole('dialog')).not.toBeNull()
+    expect(sectionCall()).toEqual([
+      'settings.section',
+      { close: expect.any(Function) as () => void, focusProvider: 'birdcoder' },
+      { only: 'models' },
+    ])
+    // Choosing another row by hand is an ordinary visit: the reveal target
+    // does not follow the user to the next section.
+    act(() => { screen.getByRole('button', { name: '通用' }).click() })
+    expect(sectionCall()).toEqual([
+      'settings.section',
+      { close: expect.any(Function) as () => void },
+      { only: 'general' },
+    ])
+    // Closing forgets the reveal target, so a later open keeps the page's position.
+    act(() => { screen.getByRole('button', { name: 'settings.close' }).click() })
+    act(() => { menu.actions.openSection('models') })
+    expect(sectionCall()).toEqual([
+      'settings.section',
+      { close: expect.any(Function) as () => void },
+      { only: 'models' },
+    ])
   })
 
   it('gives the Skills settings row its own glyph instead of the fallback gear', () => {

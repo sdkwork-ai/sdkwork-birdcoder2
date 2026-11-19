@@ -68,6 +68,17 @@ export interface AssistantActionOwnerProps {
   messageId: MessageId
 }
 
+/**
+ * Owner currency of a terminal Turn failure's action row. A feature contributes
+ * the fixes its product offers for one failure (sign in, open the surface that
+ * holds the provider credential); the row itself hands out only the stable
+ * failure code, never the provider diagnostic behind it.
+ */
+export interface TurnErrorActionsOwnerProps {
+  /** Stable failure code, absent when the failure carried none. */
+  readonly code: string | undefined
+}
+
 /** Stable quota failure codes retained in the Session log; both raise the frame-wide notice. */
 export type QuotaNoticeCode = 'QUOTA' | 'ACCOUNT_QUOTA'
 
@@ -510,6 +521,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * that entry. With no entries, the standard action row remains unchanged.
      */
     'conversation.chat.assistant-actions': { kind: 'list'; scope: 'session'; owner: AssistantActionOwnerProps }
+    /**
+     * Ordered fixes for one terminal Turn failure. Each entry receives the
+     * stable failure code and returns its own affordances, or null for codes it
+     * does not handle; with no entries the failure row renders as before.
+     */
+    'conversation.chat.turn-error.actions': { kind: 'list'; scope: 'session'; owner: TurnErrorActionsOwnerProps }
     /**
      * Frame-wide quota notice chain. The Chat-owned host in `shell.overlay`
      * offers the one live notice; the first entry whose selector claims its

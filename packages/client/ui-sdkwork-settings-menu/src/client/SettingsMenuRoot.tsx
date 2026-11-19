@@ -17,11 +17,12 @@
  * purchase modal the token-plan plugin contributes through
  * `settings.pointsRecharge`; it is a seat of its own because the popover
  * unmounts its content on close and a payment surface must outlive it.
- * Modal open state, active section id, and menu open state are component-local
- * viewing state; the onboarding coordinator mounts exactly one ordered
- * registrant while the sessions-derived empty-Hero fact is active. Visible
- * dialog chrome belongs to the step, so a mounted-but-deciding step paints
- * nothing here.
+ * Modal open state, active section id, and the provider row a deep link asks
+ * the section to reveal live in the declared store; the popover's own open
+ * state stays component-local viewing state. The onboarding coordinator mounts
+ * exactly one ordered registrant while the sessions-derived empty-Hero fact is
+ * active. Visible dialog chrome belongs to the step, so a mounted-but-deciding
+ * step paints nothing here.
  */
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
@@ -63,6 +64,8 @@ type PanelProps = {
   rows: readonly SettingsSectionRow[]
   renderSlot: SettingsMenuRootComponentProps['renderSlot']
   activeId: string | undefined
+  /** Provider row the shell was asked to reveal in the active section. */
+  focusProvider: string | undefined
   onSelect: (id: string) => void
   onClose: () => void
 }
@@ -72,7 +75,7 @@ type PanelProps = {
  * header button, a mask click, and document-level Escape (mounted only while
  * open, so the listener lifetime is the panel's).
  */
-function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelProps) {
+function SettingsPanel({ rows, renderSlot, activeId, focusProvider, onSelect, onClose }: PanelProps) {
   // Entries can unmount underneath the requested id, so the render-time
   // projection falls back to the first row when the id is gone.
   const active = rows.find(r => r.id === activeId)?.id ?? rows[0]?.id
@@ -120,7 +123,14 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
             </button>
           </div>
           <div className={css.options}>
-            {active !== undefined && renderSlot('settings.section', { close: onClose }, { only: active })}
+            {active !== undefined && renderSlot(
+              'settings.section',
+              {
+                close: onClose,
+                ...focusProvider === undefined ? {} : { focusProvider },
+              },
+              { only: active },
+            )}
           </div>
         </div>
       </div>
@@ -138,9 +148,9 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
     useSections, useOnboardingSteps, useTheme, useAccount, useSessions, useFeedback, usePersona,
     renderSlot, setTheme, signIn, logout, checkForUpdates, openFeedback, openPersona, updatesAvailable,
     openDesktopPlugins, desktopPluginsAvailable, desktopPluginsUsable, quitApp, quitAvailable, t,
+    useStore, actions,
   } = props
   const [menuOpen, setMenuOpen] = useState(false)
-  const [dialogOpen, setDialogOpen] = useState(false)
   const [apiKeysOpen, setApiKeysOpen] = useState(false)
   const [officialAccountsOpen, setOfficialAccountsOpen] = useState(false)
   const [miniProgramsOpen, setMiniProgramsOpen] = useState(false)
@@ -148,13 +158,13 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
   const [certificatesOpen, setCertificatesOpen] = useState(false)
   const [myDeploymentsOpen, setMyDeploymentsOpen] = useState(false)
   const [pointsRechargeOpen, setPointsRechargeOpen] = useState(false)
-  const [activeId, setActiveId] = useState<string | undefined>(undefined)
   const [helpToastSeq, setHelpToastSeq] = useState(0)
   const [completedOnboarding, setCompletedOnboarding] = useState<ReadonlySet<string>>(() => new Set())
-  const close = useCallback(() => {
-    setDialogOpen(false)
-    setActiveId(undefined)
-  }, [])
+  // Dialog visibility, the active section, and the row a deep link asked to
+  // reveal live in the declared store: a surface outside the rail opens the
+  // same dialog through `ctx.settingsMenu`.
+  const { dialogOpen, activeId, focusProvider } = useStore(state => state)
+  const close = actions.close
   const closeApiKeys = useCallback(() => { setApiKeysOpen(false) }, [])
   const closeOfficialAccounts = useCallback(() => { setOfficialAccountsOpen(false) }, [])
   const closeMiniPrograms = useCallback(() => { setMiniProgramsOpen(false) }, [])
@@ -166,10 +176,7 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
   // (the `close` contract above), so this stays a pure visibility write: the
   // modal lives outside the popover and keeps rendering after the menu unmounts.
   const openPointsRecharge = useCallback(() => { setPointsRechargeOpen(true) }, [])
-  const openSection = useCallback((id: string) => {
-    setActiveId(id)
-    setDialogOpen(true)
-  }, [])
+  const openSection = useCallback((id: string) => { actions.openSection(id) }, [actions])
 
   const rows = useSections(s => s)
   const theme = useTheme(s => s)
@@ -340,7 +347,7 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
   const onSelect = useCallback((id: string) => {
     setMenuOpen(false)
     if (id === 'settings') {
-      setDialogOpen(true)
+      actions.open()
     } else if (id === 'persona') {
       openPersona()
     } else if (id === 'api-keys') {
@@ -372,7 +379,7 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
     } else if (id === 'logout') {
       logout()
     }
-  }, [setTheme, signIn, logout, checkForUpdates, openFeedback, openPersona, openDesktopPlugins, quitApp])
+  }, [setTheme, signIn, logout, checkForUpdates, openFeedback, openPersona, openDesktopPlugins, quitApp, actions])
 
   return (
     <>
@@ -434,7 +441,8 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
           rows={rows}
           renderSlot={renderSlot}
           activeId={activeId}
-          onSelect={setActiveId}
+          focusProvider={focusProvider}
+          onSelect={actions.select}
           onClose={close}
         />
       )}
