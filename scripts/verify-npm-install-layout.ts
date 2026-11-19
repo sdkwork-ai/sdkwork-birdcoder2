@@ -69,15 +69,30 @@ export const MAX_RESOLUTION_WORK_UNITS = 2_450_000
 const SECONDS_PER_WORK_UNIT = 2.6e-4
 
 /**
+ * Wall-clock guard the budget itself implies: four times the calibrated cost of
+ * a graph exactly at {@link MAX_RESOLUTION_WORK_UNITS}.
+ */
+const BUDGET_DERIVED_NPM_HANG_GUARD_MS = Math.round(
+  4 * MAX_RESOLUTION_WORK_UNITS * SECONDS_PER_WORK_UNIT * 1000,
+)
+
+/**
  * Wall-clock guard for the npm child process. This is a hang guard, not the
  * gate's growth criterion: {@link MAX_RESOLUTION_WORK_UNITS} decides whether the
  * graph is too large to verify, and a runner up to four times slower than the
- * measured host cannot decide this gate's outcome. Derived from the budget so a
- * raised budget cannot silently shrink the guard's headroom.
+ * measured host cannot decide this gate's outcome.
+ *
+ * FORK MEASUREMENT (SDKWork BirdCoder): the budget-derived ceiling no longer
+ * covers this fork's graph. On 2026-11-20 the lane expired it on ubuntu-24.04
+ * (`Release (dsh)` run 44610789196, job 135866512890) with no layout error, and
+ * a Windows host had the same npm child still resolving after 48 minutes. The
+ * fork carries 472 DSH packages per release plus the plugin submodules' peer
+ * ranges, so peer placement costs far more than the upstream graph the 2.6e-4
+ * s/unit calibration was measured on. Two hours is still a hang guard — the
+ * budget above decides growth — and a completed run prints the exact seconds and
+ * units, which replaces this ceiling.
  */
-const NPM_HANG_GUARD_MS = Math.round(
-  4 * MAX_RESOLUTION_WORK_UNITS * SECONDS_PER_WORK_UNIT * 1000,
-)
+const NPM_HANG_GUARD_MS = Math.max(BUDGET_DERIVED_NPM_HANG_GUARD_MS, 2 * 60 * 60 * 1000)
 
 /** Synthetic incompatible versions used to expose cross-release placement errors. */
 export const SYNTHETIC_DSH_VERSIONS = ['0.1.0', '0.2.0'] as const

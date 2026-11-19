@@ -558,7 +558,13 @@ export async function runCommandWithTimeout(
       exited,
       delay(FORCED_EXIT_TIMEOUT_MS).then(() => undefined),
     ])
-    if (forced === undefined) throw new Error('timed-out process tree did not exit after SIGKILL')
+    // A tree that outlives SIGKILL is a cleanup failure, not a verdict: report the
+    // deadline the same way an ordinary timeout does, so the caller's diagnostic
+    // still names the limit that expired instead of this message. On Windows the
+    // `npm.cmd` → cmd.exe tree is the case that reaches here.
+    if (forced === undefined) {
+      return { status: null, signal: 'SIGKILL', durationMs: performance.now() - started, output, timedOut: true }
+    }
     return { ...forced, durationMs: performance.now() - started, output, timedOut: true }
   } finally {
     if (timeout !== undefined) clearTimeout(timeout)
