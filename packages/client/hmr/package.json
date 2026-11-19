@@ -66,8 +66,7 @@
     "@deepseek-ai/cordis-plugin-loader": "workspace:~",
     "@deepseek-ai/dsh-api-gateway": "workspace:*",
     "@deepseek-ai/dsh-api-remote-access": "workspace:*",
-    "@deepseek-ai/dsh-client-modules": "workspace:*",
-    "eventsource-parser": "^3.1.0"
+    "@deepseek-ai/dsh-client-modules": "workspace:*"
   },
   "files": [
     "locale/*.json",

@@ -180,7 +180,7 @@ export function isTranslationScopeFile(file: string): boolean {
  */
 export function parseGitmodulePaths(content: string): string[] {
   return [...content.matchAll(/^\s*path\s*=\s*(.+?)\s*$/gmu)]
-    .map(match => match[1].split('\\').join('/').replace(/\/+$/u, ''))
+    .map(match => (match[1] ?? '').split('\\').join('/').replace(/\/+$/u, ''))
     .filter(path => path !== '')
 }
 
