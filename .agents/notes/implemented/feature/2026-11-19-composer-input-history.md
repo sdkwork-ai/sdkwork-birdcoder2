@@ -12,7 +12,7 @@ The composer discards a message's text as soon as the Host accepts it, so recall
 
 - A fork-owned client plugin, `packages/client/ui-sdkwork-input-history`, owns the whole feature: the browser-local ledger, the gesture controller, and one `settings.section` page for scope, retention, and clearing.
 - The conversation package publishes one typed event, `conversation/input-accepted`, after an ordinary message settles as accepted, and marks its composer card with `data-composer-session-id`. Both are UI-only extension points; command submissions never fire the event.
-- The gesture rides `ctx.shortcuts.observeFixedInput` after every local composer handler, so a key the `/` or `@` menu consumed never reaches history. A fresh walk starts only with an empty draft or the caret at the asking edge; ↓ past the newest entry restores the draft that recall interrupted.
+- The gesture rides `ctx.shortcuts.observeFixedInput` after every local composer handler, so a key the `/` or `@` menu consumed never reaches history. A fresh walk starts only with an empty draft or the caret at the asking edge; once an entry shows, only a press from a document edge continues the walk, while presses inside it move the caret. ↓ past the newest entry restores the draft that recall interrupted.
 - Entries carry the sending Session and the project key produced by that Session's working directory. Scope is resolved at read time, so switching scope is lossless. Retention (default 30 days, 1–365) is enforced on every read and write, at boot, and by an hourly sweep. Storage is `localStorage` (`dsh.inputHistory.v1`), capped at 500 entries.
 
 ## Alternatives considered

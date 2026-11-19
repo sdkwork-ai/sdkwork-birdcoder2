@@ -11,7 +11,7 @@ export const zh = {
   'nav': '输入历史',
   'title': '输入历史',
   'intro': '在聊天输入框中按 ↑ / ↓ 浏览最近发送过的消息。记录只保存在本机浏览器中，不会上传到服务端。',
-  'keys.hint': '输入框为空或在开头时按 ↑ 选择更早的记录；在结尾时按 ↓ 回到更新的记录，越过最新一条后恢复原草稿。',
+  'keys.hint': '输入框为空或在开头时按 ↑ 选择更早的记录；在结尾时按 ↓ 回到更新的记录，越过最新一条后恢复原草稿。回溯出的记录里，光标仍可正常移动。',
 
   'enable.label': '启用输入历史',
   'enable.hint': '关闭后不再记录新输入，↑ / ↓ 也不会切换历史。',
@@ -42,7 +42,7 @@ export const en = {
   'nav': 'Input history',
   'title': 'Input history',
   'intro': 'Press ↑ / ↓ in the chat input to browse messages you recently sent. History stays in this browser and is never uploaded.',
-  'keys.hint': 'Press ↑ while the input is empty or the caret is at its start to pick an older message; press ↓ at the end to walk back, and past the newest message your draft returns.',
+  'keys.hint': 'Press ↑ while the input is empty or the caret is at its start to pick an older message; press ↓ at the end to walk back, and past the newest message your draft returns. Arrows keep moving the caret inside a recalled entry.',
 
   'enable.label': 'Enable input history',
   'enable.hint': 'When off, new inputs are not recorded and ↑ / ↓ no longer browse history.',

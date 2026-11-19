@@ -33,7 +33,7 @@ kind: "package-reference"
 
 - `src/client/index.ts`——注册词典与 `settings.section` 设置页，然后接上两个扩展点：`ctx.shortcuts.observeFixedInput` 负责键盘手势，`ctx.on('conversation/input-accepted')` 负责记录。它的 `inject` 是唯一接触的服务面。
 - `src/client/input-history-store.ts`——持久账本：localStorage 文档（`dsh.inputHistory.v1`）、结构与条目归一化、同一会话重复消息去重、500 条上限、按范围读取，以及在所有读写路径和每小时清扫中执行保留期裁剪。
-- `src/client/input-history-controller.ts`——键盘手势：从卡片的 `data-composer-session-id` 解析输入框所属会话，拒绝已被输入框自身消费的按键（`defaultPrevented`）、组词中的按键、修饰键组合以及光标不在边缘的位置，再通过会话输入 facade（`setDraft`）写入选中的记录。
+- `src/client/input-history-controller.ts`——键盘手势：从卡片的 `data-composer-session-id` 解析输入框所属会话，拒绝已被输入框自身消费的按键（`defaultPrevented`）、组词中的按键、修饰键组合以及光标不在边缘的位置，再通过会话输入 facade（`setDraft`）写入选中的记录。回溯出的记录显示时，方向键只有从文档边缘才会继续回溯；在记录内部则仍用于移动光标。
 - `src/client/composer-target.ts`——DOM 契约：输入框可编辑区（`data-composer-input`）、其会话卡片，以及光标边界判断。
 - `src/client/InputHistorySection.tsx`——设置页：开关/范围的即时写入、暂存后再提交的缓存天数字段、已缓存条数与清除。
 
