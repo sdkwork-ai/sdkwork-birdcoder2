@@ -90,4 +90,13 @@
 * **翻译配对门禁覆盖子模块**：`.gitmodules` 的 `path` 被解析进排除范围（`parseGitmodulePaths` / `isSubmodulePath`），子模块工作树内的双语文档在其所在仓库翻译，本仓不再要求 sidecar；新增包 README 与 agent-note 补规格（`fix(birdcoder2): guard the gitmodule path capture against a missing group`）。
 * **桌面运行时冒烟**：Office 转换的两条冒烟路由从 `fetch` 换成 `node:http`——undici 在响应头 300 s 未到时就抛裸 `TypeError: fetch failed`，使 `OFFICE_CALL_TIMEOUT_MS` 与引擎自身的 `timeoutMs: 600000` 都轮不到决定；`node:http` 无默认超时，只由该客户端预算兜底，慢 runner 于是「慢但成功」，失败时也报得出路由与预算（`fix(desktop): outwait the Office engine instead of fetch's 300 s header ceiling`）。
 
+#### 发布收口：重打包前的修复（2026-11-19）
+
+本次按 `birdcoder-v0.2.2-rc.5` 重打包，版本线不变；打包链路上有两处会必然失败的问题在本轮修掉，另把四个子模块 pin 前移到各自已发布版本。
+
+* **插件市场的 `prepare` 在干净 checkout 上必失败**：`plugins/dsh-market` 的 `prepare` 原来跑完整 `build`，其 `tsc` 要解析 `@deepseek-ai/cordis` 与 `@deepseek-ai/schemastery` 的 `lib/types`——这两者是 Host 编译器的产物，干净 checkout 上尚不存在，`pnpm install` 于是在 `plugins/dsh-market prepare` 阶段直接 `TS2307`（`Cannot find module '@deepseek-ai/cordis'`）。六条打包 lane 与 `Release (dsh)` 的 Dependency layout 都停在这一步。fork 侧改为 emit-only（`tsc -p tsconfig.json --noCheck`，与 `scripts/build-dsh-market.mjs` 的干净 checkout 模式一致），`prepack` 与 `check` 仍保留类型检查构建；安装期也不再重写已提交的 `client/client.js`（`sdkwork-dsh-market` `b7d62fd`）。
+* **云路由新控制台包缺映射**：`sdkwork-cloudrouter` 新增 `@sdkwork/cloudrouter-pc-console-vm-instances`（VM 实例与硬件市场控制台），`pc-console-shell` 已 import 其 `/contribution`，但本仓 `tsconfig.base.json` 没有对应映射，`verify-sdkwork-dependencies` 在打包第一步就失败（`… maps no @sdkwork package root for it`）。按既有 `/*` 形制补映射，并把 `sdkwork-cloudrouter` 的 pin 从 `10f614e2` 前移到已推送的 `origin/main` `1c3763e8`——那个 pin 里还没有这个包，release checkout 中不会存在被映射的源文件。两处 pin 记录（`scripts/sdkwork-sources.manifest.json` 与 `agent.workflow.json`）同步更新。本地仍走 `../sdkwork-*` 相对路径，release 走 pin 的 git checkout。
+* **子模块 pin 前移**：`dsh-mcp-connector` `v0.2.111` → `v0.2.117`；`dsh-ui-usage-billing` `1.8.4-sdkwork.3` → `1.8.8-sdkwork.1`（#123 压缩调用计入统计、缓存写入独立计价，#124 动效作用域，#125 中转站模型 id 归一与未收录模型补价，#126 通道可见性，#127 兜底账本行键归一与按日补价）；`sdkwork-deepseekbot` `ef40c579` → `05d0e36b`（新配置默认展开 Simple Subpanel 列）；`dsh-market` `e8dc352` → `b7d62fd`。`pnpm-lock.yaml` 只随之改写两个 importer：56 条 `@deepseek-ai/dsh-*` pin `0.2.2-rc.1` → `0.2.2-rc.3`，以及 mcp-connector 的 `undici ^6.29.1`、`zod ^4.6.6`。
+* **本地 Windows 打包验证**：`package:win:x64:unsigned` 在 win-x64 上通过——安装包与 zip 产出，运行时冒烟跑到 CLI 离线插件装卸、Office 技能加载与 DOCX/XLSX/PPTX→PDF 转换全绿，`stage-desktop-artifacts.ts` 按发布契约收出 3 个资产（`.exe` / `.zip` / `latest.yml`）。
+
 本文件只保留当前版本一节；往期条目随各自版本的提交留在 git 历史里（`git log -p CHANGELOG.md`）。Release notes 就是本节内容。
