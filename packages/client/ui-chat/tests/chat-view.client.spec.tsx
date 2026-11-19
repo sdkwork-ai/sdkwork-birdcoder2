@@ -471,9 +471,9 @@ function makeHarness(
   let nodeSlotOverride: NodeRenderer | undefined
   let imageSlotOverride: ImageRenderer | undefined
   let turnErrorActionRender: ((owner: TurnErrorActionsOwnerProps) => React.ReactNode) | undefined
-  const renderTurnErrorActions: React.ComponentProps<typeof TurnErrorNodeView>['renderSlot'] = (name, owner) => {
+  const renderTurnErrorActions = (name: string, owner: TurnErrorActionsOwnerProps): React.ReactNode => {
     if (name !== 'conversation.chat.turn-error.actions') throw new Error(`Undeclared turn-error child: ${name}`)
-    return turnErrorActionRender?.(owner as unknown as TurnErrorActionsOwnerProps) ?? null
+    return turnErrorActionRender?.(owner) ?? null
   }
   const renderImages = (name: string, owner: object, options?: { fallback?: React.ReactNode }) => {
     if ((name !== 'conversation.chat.user.images' && name !== 'conversation.chat.message.images') || !isImageOwner(owner)) {
