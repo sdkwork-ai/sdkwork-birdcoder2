@@ -16,7 +16,7 @@ import type {
   ChatNode, ChatNodeHookContext, ChatNodeOwnerProps, ChatSnapshot, UserBeforeOwnerProps,
   ChatViewSlotProps, CommandNode, CompactionSummaryNode, ContextMessageNode, ConversationNode,
   LegacyConversationSlice, ModelRetryNode, StartedToolCall, SteeringMessageNode,
-  ToolCallBlock, ToolResultNode, TurnErrorActionsOwnerProps, TurnErrorNode, TurnMaxTokensNode,
+  ToolCallBlock, ToolResultNode, TurnErrorNode, TurnErrorRepairOwnerProps, TurnMaxTokensNode,
   TranscriptViewMode, UserContentInput, UserMessageNode,
 } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {
@@ -289,7 +289,13 @@ type ToolOwner = Pick<ChatNodeOwnerProps, 'openFile' | 'inspectCall'> & {
 const renderCommandSlot: React.ComponentProps<typeof CommandNodeView>['renderSlot'] =
   (_key, _owner, opts) => opts?.fallback ?? null
 const renderTurnTailSlot: React.ComponentProps<typeof TurnTailNodeView>['renderSlot'] = () => null
-const renderTurnErrorSlot = (_name: string, _owner: TurnErrorActionsOwnerProps): React.ReactNode => null
+/** Renderer stub for the failure row's two repair seats: falling back to the sentence label. */
+type TurnErrorFixRenderer = (
+  name: string,
+  owner: TurnErrorRepairOwnerProps,
+  opts?: { fallback?: React.ReactNode },
+) => React.ReactNode
+const renderTurnErrorFixStub: TurnErrorFixRenderer = (_name, _owner, opts) => opts?.fallback ?? null
 
 function HarnessChatFlow({ standard, owner, hookContext, renderSlot, useConnectionState }: {
   readonly standard: HarnessStandardProps
@@ -318,7 +324,7 @@ function HarnessUserOrigin({ useRenderer, owner, options }: {
 
 function HarnessChatNode({
   standard, owner, hookContext, usePerformanceUsage, toolOwners, fallback, renderAssistantSlot, renderUserChain,
-  renderTurnErrorActions = renderTurnErrorSlot,
+  renderTurnErrorFix = renderTurnErrorFixStub,
 }: {
   readonly standard: HarnessStandardProps
   readonly owner: RoutedChatNodeOwner
@@ -328,7 +334,7 @@ function HarnessChatNode({
   readonly fallback: React.ReactNode
   readonly renderAssistantSlot: React.ComponentProps<typeof AssistantNodeView>['renderSlot']
   readonly renderUserChain: PropsRenderSlots<'conversation.chat.user.before'>['renderSlotChain']
-  readonly renderTurnErrorActions?: (name: string, owner: TurnErrorActionsOwnerProps) => React.ReactNode
+  readonly renderTurnErrorFix?: TurnErrorFixRenderer
 }) {
   const hooks = useMemo(() => ({
     useTurnData: CHAT_NODE_INJECT.hooks.turnData(standard, hookContext),
@@ -355,7 +361,7 @@ function HarnessChatNode({
     case 'model-retry':
       return <RetryNodeView {...nodeProps} node={owner.node} />
     case 'turn-error':
-      return <TurnErrorNodeView {...nodeProps} node={owner.node} renderSlot={renderTurnErrorActions as never} />
+      return <TurnErrorNodeView {...nodeProps} node={owner.node} renderSlot={renderTurnErrorFix as never} />
     case 'turn-max-tokens':
       return <TurnMaxTokensNodeView {...nodeProps} node={owner.node} />
     case 'inherited-history':
@@ -470,10 +476,12 @@ function makeHarness(
   const useOriginRenderer = bindSnapshotSelector(originRenderer)
   let nodeSlotOverride: NodeRenderer | undefined
   let imageSlotOverride: ImageRenderer | undefined
-  let turnErrorActionRender: ((owner: TurnErrorActionsOwnerProps) => React.ReactNode) | undefined
-  const renderTurnErrorActions = (name: string, owner: TurnErrorActionsOwnerProps): React.ReactNode => {
-    if (name !== 'conversation.chat.turn-error.actions') throw new Error(`Undeclared turn-error child: ${name}`)
-    return turnErrorActionRender?.(owner) ?? null
+  let turnErrorFixRender: ((name: string, owner: TurnErrorRepairOwnerProps) => React.ReactNode) | undefined
+  const renderTurnErrorFix: TurnErrorFixRenderer = (name, owner, opts) => {
+    if (name !== 'conversation.chat.turn-error.sign-in' && name !== 'conversation.chat.turn-error.model-settings') {
+      throw new Error(`Undeclared turn-error child: ${name}`)
+    }
+    return turnErrorFixRender?.(name, owner) ?? opts?.fallback ?? null
   }
   const renderImages = (name: string, owner: object, options?: { fallback?: React.ReactNode }) => {
     if ((name !== 'conversation.chat.user.images' && name !== 'conversation.chat.message.images') || !isImageOwner(owner)) {
@@ -488,7 +496,7 @@ function makeHarness(
     return <HarnessChatNode standard={props} owner={owner}
       hookContext={opts.hookContext} usePerformanceUsage={usePerformanceUsage}
       toolOwners={toolOwners} fallback={opts.fallback} renderAssistantSlot={renderAssistantSlot}
-      renderUserChain={renderUserChain} renderTurnErrorActions={renderTurnErrorActions} />
+      renderUserChain={renderUserChain} renderTurnErrorFix={renderTurnErrorFix} />
   }
   const renderFlowSlot: ChatFlowSlotProps['renderSlot'] = (key: string, owner: object, opts?: {
     fallback?: React.ReactNode
@@ -632,8 +640,8 @@ function makeHarness(
     setFoldedReplies: (replies: FoldedReplies) => { foldedReplies.set(replies) },
     setNodeRenderer: (renderer: NodeRenderer) => { nodeSlotOverride = renderer },
     setImageRenderer: (renderer: ImageRenderer) => { imageSlotOverride = renderer },
-    setTurnErrorActions: (renderer: (owner: TurnErrorActionsOwnerProps) => React.ReactNode) => {
-      turnErrorActionRender = renderer
+    setTurnErrorFix: (renderer: (name: string, owner: TurnErrorRepairOwnerProps) => React.ReactNode) => {
+      turnErrorFixRender = renderer
     },
     setOriginRenderer: (renderer: UserChainRenderer | undefined) => { originRenderer.set({ renderer }) },
   }
@@ -2718,7 +2726,7 @@ describe('ChatView', () => {
       '本轮运行失败当前请求的额度已用尽QUOTA',
       '本轮运行失败当前请求的额度已用尽ACCOUNT_QUOTA',
       '任务已停止DSH 进程在本轮完成前退出（例如被强制结束、崩溃或关闭超时），重新启动后本轮已中止。未完成的工具调用结果未知。',
-      '本轮运行失败缺少模型凭据：请先登录账号（登录后会自动使用 Auth Token），或在 设置 → 模型 中填写该提供方的 API 密钥。MISSING_CREDENTIAL',
+      '本轮运行失败缺少模型凭据：请先登录账号（登录后可使用官方配置的模型），或在 设置 → 模型 中填写该提供方的 API 密钥。MISSING_CREDENTIAL',
     ])
     // The transient notice is the frame-wide host's job; the failure row keeps
     // neither a recharge affordance nor a toast of its own.
@@ -2727,17 +2735,24 @@ describe('ChatView', () => {
     expect(view.queryByRole('button', { name: '去充值' })).toBeNull()
   })
 
-  it('hands a terminal failure row its registered fixes with the stable code', () => {
+  it('embeds the registered repairs inside the missing-credential sentence', () => {
     const h = makeHarness({ nodes: [user(1, 'try'), turnError(2, 'MISSING_CREDENTIAL')] })
-    const codes: (string | undefined)[] = []
-    h.setTurnErrorActions(({ code }) => {
-      codes.push(code)
-      return <button type="button">登录</button>
+    const seen: Array<{ name: string; code: string | undefined; label: string }> = []
+    h.setTurnErrorFix((name, owner) => {
+      seen.push({ name, code: owner.code, label: owner.label })
+      return <button type="button">{owner.label}</button>
     })
     const view = render(<h.ChatView {...h.props} />)
-    expect(codes).toEqual(['MISSING_CREDENTIAL'])
-    expect(view.getByRole('button', { name: '登录' })).not.toBeNull()
-    // The stable code stays visible beside the offered fix.
+    expect(seen).toEqual([
+      { name: 'conversation.chat.turn-error.sign-in', code: 'MISSING_CREDENTIAL', label: '登录账号' },
+      { name: 'conversation.chat.turn-error.model-settings', code: 'MISSING_CREDENTIAL', label: '设置 → 模型' },
+    ])
+    // Both phrases are links inside the sentence, not a separate action strip.
+    const signIn = view.getByRole('button', { name: '登录账号' })
+    expect(view.getByRole('button', { name: '设置 → 模型' })).not.toBeNull()
+    expect(signIn.closest('[role="status"]')?.textContent)
+      .toContain('缺少模型凭据：请先登录账号（登录后可使用官方配置的模型），或在 设置 → 模型 中填写该提供方的 API 密钥。')
+    // The stable code stays visible beside the copy.
     expect(view.getByText('MISSING_CREDENTIAL')).not.toBeNull()
   })
 

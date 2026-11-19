@@ -149,6 +149,23 @@ describe('IamService desktop browser login', () => {
     expect(Reflect.get(globalThis, '__DSH_IAM_SIGN_IN__')).toBeUndefined()
   })
 
+  it('holds the welcome request until the sign-in host mounts, then opens the hand-off', async () => {
+    Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
+    Reflect.set(globalThis, '__DSH_IAM_SIGN_IN__', true)
+    const service = new IamService(scopeOf({ signInMethod: 'browser' }), envOf('https://api.example'), layoutOf())
+    await service.startPendingSignIn()
+    // Before the overlay renders there is no store to open; consuming the
+    // one-shot request here would lose the login it carries.
+    expect(Reflect.get(globalThis, '__DSH_IAM_SIGN_IN__')).toBe(true)
+    expect(desktop.begin).not.toHaveBeenCalled()
+    const openBrowser = vi.fn()
+    service.attachModal({ openEntry: vi.fn(), openLogin: vi.fn(), openBrowser, close: vi.fn() })
+    await service.startPendingSignIn()
+    expect(openBrowser).toHaveBeenCalledTimes(1)
+    expect(Reflect.get(globalThis, '__DSH_IAM_SIGN_IN__')).toBeUndefined()
+    await vi.waitFor(() => { expect(desktop.begin).toHaveBeenCalledTimes(1) })
+  })
+
   it('skips the sign-in surface when a session is already restored', async () => {
     Reflect.set(globalThis, '__DSH_IAM_SIGN_IN__', true)
     const service = new IamService(scopeOf(), envOf('https://api.example'), layoutOf())

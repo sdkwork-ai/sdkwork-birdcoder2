@@ -85,7 +85,10 @@ export function registerChatNodeRenderers(
     name: 'conversation.chat.node',
     key: 'turn-error',
     locale: NS,
-    children: { 'conversation.chat.turn-error.actions': { kind: 'list', scope: 'session' } },
+    children: {
+      'conversation.chat.turn-error.sign-in': { kind: 'single', scope: 'session' },
+      'conversation.chat.turn-error.model-settings': { kind: 'single', scope: 'session' },
+    },
   }, TurnErrorNodeView))
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register(
     { name: 'conversation.chat.node', key: 'turn-max-tokens', locale: NS }, TurnMaxTokensNodeView))

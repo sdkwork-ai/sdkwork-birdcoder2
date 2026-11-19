@@ -42,9 +42,6 @@ export const zh = {
   'signOut.close': '关闭',
   'relay.signInHint': 'BirdCoder 使用登录账号的 Auth Token 作为 API 密钥：登录后会自动填入，也可以编辑该提供方并填写自己的 API 密钥。',
   'relay.signIn': '登录并自动填入',
-  'turnError.signIn': '登录',
-  'turnError.configure': '配置',
-  'turnError.configureHint': '打开 BirdCoder 模型设置',
 } satisfies Record<string, string>
 
 /** The ui-sdkwork-iam namespace key union. */
@@ -92,7 +89,4 @@ export const en = {
   'signOut.close': 'Close',
   'relay.signInHint': 'BirdCoder uses your signed-in Auth Token as its API key. Signing in fills it automatically; you can also edit this provider to enter your own API key.',
   'relay.signIn': 'Sign in to fill it',
-  'turnError.signIn': 'Sign in',
-  'turnError.configure': 'Configure',
-  'turnError.configureHint': 'Open the BirdCoder model settings',
 } satisfies Record<UiIamKey, string>

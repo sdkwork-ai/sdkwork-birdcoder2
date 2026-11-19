@@ -69,14 +69,17 @@ export interface AssistantActionOwnerProps {
 }
 
 /**
- * Owner currency of a terminal Turn failure's action row. A feature contributes
- * the fixes its product offers for one failure (sign in, open the surface that
- * holds the provider credential); the row itself hands out only the stable
- * failure code, never the provider diagnostic behind it.
+ * Owner currency of one repair seat inside a terminal Turn failure's copy. A
+ * feature contributes the affordance its product offers (sign in, open the
+ * surface that holds the provider credential) and renders the label the row
+ * passes in, so the sentence keeps one localized source of truth. The row
+ * itself hands out only the stable failure code, never the provider diagnostic.
  */
-export interface TurnErrorActionsOwnerProps {
+export interface TurnErrorRepairOwnerProps {
   /** Stable failure code, absent when the failure carried none. */
   readonly code: string | undefined
+  /** Localized link text the sentence already carries at this position. */
+  readonly label: string
 }
 
 /** Stable quota failure codes retained in the Session log; both raise the frame-wide notice. */
@@ -522,11 +525,14 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'conversation.chat.assistant-actions': { kind: 'list'; scope: 'session'; owner: AssistantActionOwnerProps }
     /**
-     * Ordered fixes for one terminal Turn failure. Each entry receives the
-     * stable failure code and returns its own affordances, or null for codes it
-     * does not handle; with no entries the failure row renders as before.
+     * The in-sentence fix a terminal failure row offers for a missing model
+     * credential: a feature makes the phrase the row already carries act as a
+     * sign-in link, or leaves it plain text when it has no such gesture. The
+     * row renders the label itself when the seat has no registrant.
      */
-    'conversation.chat.turn-error.actions': { kind: 'list'; scope: 'session'; owner: TurnErrorActionsOwnerProps }
+    'conversation.chat.turn-error.sign-in': { kind: 'single'; scope: 'session'; owner: TurnErrorRepairOwnerProps }
+    /** The in-sentence Models-page fix for a missing model credential (see `turn-error.sign-in`). */
+    'conversation.chat.turn-error.model-settings': { kind: 'single'; scope: 'session'; owner: TurnErrorRepairOwnerProps }
     /**
      * Frame-wide quota notice chain. The Chat-owned host in `shell.overlay`
      * offers the one live notice; the first entry whose selector claims its

@@ -8,7 +8,8 @@ import { usePinnedBrowserLanguages } from '@deepseek-ai/dsh-client-test-runtime'
 import { apply, inject } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import { IamService } from '../src/client/iam-service.ts'
 import { AccountModePage } from '../src/client/AccountModePage.tsx'
-import { MissingCredentialActions, type MissingCredentialActionsInjected } from '../src/client/MissingCredentialActions.tsx'
+import { ModelSettingsFixLink, SignInFixLink } from '../src/client/MissingCredentialActions.tsx'
+import type { ModelSettingsFixInjected, SignInFixInjected } from '../src/client/MissingCredentialActions.tsx'
 import { RelayProviderHint } from '../src/client/RelayProviderHint.tsx'
 import { SignInOverlay } from '../src/client/SignInOverlay.tsx'
 import { DEFAULT_UI_IAM_SETTINGS, type UiIamSettings } from '../src/iam-settings.ts'
@@ -48,7 +49,8 @@ function declare(slots: SlotRegistry): () => void {
         'mode.page': { kind: 'keyed', scope: 'root' },
         'shell.overlay': { kind: 'list', scope: 'root' },
         'settings.models.provider-card': { kind: 'keyed', scope: 'root' },
-        'conversation.chat.turn-error.actions': { kind: 'list', scope: 'session' },
+        'conversation.chat.turn-error.sign-in': { kind: 'single', scope: 'session' },
+        'conversation.chat.turn-error.model-settings': { kind: 'single', scope: 'session' },
       },
     } as never,
     () => null,
@@ -193,31 +195,39 @@ describe('ui-sdkwork-iam client plugin', () => {
     expect(entries[0].component).toBe(RelayProviderHint)
   })
 
-  it('offers the sign-in and Models-page fixes on the Chat failure row', async () => {
+  it('turns the failure sentence phrases into the sign-in and Models-page links', async () => {
     const { ctx } = await bench()
-    const entries = (ctx.get('slots') as SlotRegistry).entries('conversation.chat.turn-error.actions')
-    expect(entries).toHaveLength(1)
-    expect(entries[0].component).toBe(MissingCredentialActions)
-    const injected = (entries[0].inject as () => MissingCredentialActionsInjected)()
-    expect(injected.hooks.signedIn.getSnapshot()).toBe(false)
-    // The sign-in gesture raises the product entry modal itself, without
-    // waiting for a caller-owned surface to answer the pending login.
+    const slots = ctx.get('slots') as SlotRegistry
+    const signIn = slots.entries('conversation.chat.turn-error.sign-in')
+    expect(signIn).toHaveLength(1)
+    expect(signIn[0].component).toBe(SignInFixLink)
+    const signInInjected = (signIn[0].inject as () => SignInFixInjected)()
+    expect(signInInjected.hooks.signedIn.getSnapshot()).toBe(false)
+    // The sign-in link raises the product entry modal itself, without waiting
+    // for a caller-owned surface to answer the pending login.
     const open = vi.spyOn((ctx.get('iam') as IamService), 'openSignInOverlay')
-    injected.signIn()
+    signInInjected.signIn()
     expect(open).toHaveBeenCalledTimes(1)
+
+    const modelSettings = slots.entries('conversation.chat.turn-error.model-settings')
+    expect(modelSettings).toHaveLength(1)
+    expect(modelSettings[0].component).toBe(ModelSettingsFixLink)
+    const modelSettingsInjected = (modelSettings[0].inject as () => ModelSettingsFixInjected)()
     // Configure without the settings shell is inert rather than throwing: the
     // composition has no Models page to open.
-    expect(() => { injected.configure() }).not.toThrow()
+    expect(() => { modelSettingsInjected.configure() }).not.toThrow()
   })
 
   it('disposes every registration on teardown', async () => {
     const { slots, fiber } = await bench()
     expect(slots.entries('mode.page').length).toBeGreaterThan(0)
     expect(slots.entries('settings.models.provider-card').length).toBe(1)
-    expect(slots.entries('conversation.chat.turn-error.actions').length).toBe(1)
+    expect(slots.entries('conversation.chat.turn-error.sign-in').length).toBe(1)
+    expect(slots.entries('conversation.chat.turn-error.model-settings').length).toBe(1)
     await fiber.dispose()
     expect(slots.entries('mode.page').length).toBe(0)
     expect(slots.entries('settings.models.provider-card').length).toBe(0)
-    expect(slots.entries('conversation.chat.turn-error.actions').length).toBe(0)
+    expect(slots.entries('conversation.chat.turn-error.sign-in').length).toBe(0)
+    expect(slots.entries('conversation.chat.turn-error.model-settings').length).toBe(0)
   })
 })

@@ -44,7 +44,9 @@ export interface WelcomeOperations {
   /**
    * Enter the workspace and start the SDKWork IAM desktop browser login there.
    * The welcome window never holds IAM tokens; the workspace boots with the
-   * one-shot sign-in flag and runs the hosted authorize + deep-link flow.
+   * one-shot sign-in flag and runs the hosted authorize + deep-link flow. The
+   * launch preloads that document before the welcome decision, so handing the
+   * request over boots it again instead of resuming the answered document.
    */
   iamSignIn?(): Promise<void>
 

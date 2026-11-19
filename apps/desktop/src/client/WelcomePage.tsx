@@ -26,6 +26,7 @@ export function Welcome({ api }: { api: WelcomeApi }) {
   const [attempt, setAttempt] = useState<AccountView['attempt']>(null)
   const attemptRef = useRef<AccountView['attempt']>(null)
   const [starting, setStarting] = useState(false)
+  const startingRef = useRef(false)
   const [cancelling, setCancelling] = useState(false)
   const [copyFeedback, setCopyFeedback] = useState<{ status: 'idle' | 'busy' | 'copied' | 'failed' }>({ status: 'idle' })
   const copyState = copyFeedback.status
@@ -46,6 +47,7 @@ export function Welcome({ api }: { api: WelcomeApi }) {
     if (pageRef.current === 'key' || (state.attempt === null && pageRef.current === 'entry')) return
     attemptRef.current = state.attempt
     setAttempt(state.attempt)
+    startingRef.current = false
     setStarting(false)
     setCopyFeedback({ status: 'idle' })
     navigate(state.attempt === null || state.attempt.phase === 'cancelled' ? 'entry' : 'account')
@@ -128,11 +130,16 @@ export function Welcome({ api }: { api: WelcomeApi }) {
     }
   }
   async function start() {
+    // The shell keeps this page on screen until the workspace has rebooted
+    // with the sign-in request, so a second click must not repeat the handoff.
+    if (startingRef.current) return
+    startingRef.current = true
     if (api.iamSignIn !== undefined) {
       setStarting(true)
       try {
         await api.iamSignIn()
       } catch {
+        startingRef.current = false
         if (mounted.current) setStarting(false)
       }
       return
@@ -146,6 +153,7 @@ export function Welcome({ api }: { api: WelcomeApi }) {
       const state = await api.startSignIn()
       if (mounted.current && revision.current === current) showAccount(state)
     } catch {
+      startingRef.current = false
       if (mounted.current && revision.current === current) setStarting(false)
     }
   }
@@ -183,11 +191,11 @@ export function Welcome({ api }: { api: WelcomeApi }) {
       : phase === 'failed' ? m.welcomeAuthFailed : m.welcomeAuthExchanging
   const heading = page === 'entry' ? 'welcome-heading' : page === 'key' ? 'key-title' : 'auth-status'
   const entryActions: LoginAction[] = [
-    { id: 'sign-in', label: m.welcomeSignIn, kind: 'primary',
+    { id: 'sign-in', label: m.welcomeSignIn, kind: 'primary', busy: starting, busyLabel: m.welcomeAuthStarting,
       onClick: () => { void api.analytics?.('auth_page_click', { button_name: 'sign_in' }); void start() } },
     ...api.showApiKeyEntry
       ? [{
-        id: 'api-key', label: m.welcomeApiKey, kind: 'secondary' as const,
+        id: 'api-key', label: m.welcomeApiKey, kind: 'secondary' as const, disabled: starting,
         onClick: () => { void api.analytics?.('auth_page_click', { button_name: 'api-key' }); navigate('key') },
       }]
       : [],

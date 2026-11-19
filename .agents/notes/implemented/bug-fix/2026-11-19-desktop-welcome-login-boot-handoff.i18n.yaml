@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-19-desktop-welcome-login-boot-handoff.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-11-19-desktop-welcome-login-boot-handoff.md
+/agent-note-the-startup-welcome-login-boots-the-preloaded-workspace-before-running-the-browser-login:
+  en: 86449b064f1a6c3a
+  zh: ef0c3210eab94e94
+/agent-note-the-startup-welcome-login-boots-the-preloaded-workspace-before-running-the-browser-login/problem:
+  en: 7b2687b404341408
+  zh: 93692808f2aefa17
+/agent-note-the-startup-welcome-login-boots-the-preloaded-workspace-before-running-the-browser-login/decision:
+  en: 0142d7a0681b1c57
+  zh: 1ed5be1c44a7305a
+/agent-note-the-startup-welcome-login-boots-the-preloaded-workspace-before-running-the-browser-login/alternatives-considered:
+  en: fcd70cd2e29505ca
+  zh: 53634188f9c5a73e
+/agent-note-the-startup-welcome-login-boots-the-preloaded-workspace-before-running-the-browser-login/consequences:
+  en: 678fdf93f8f34aaa
+  zh: e789373b0dea4a8e
+/agent-note-the-startup-welcome-login-boots-the-preloaded-workspace-before-running-the-browser-login/verification:
+  en: 5eace1c3e4c020aa
+  zh: 10125a9469d8c75e

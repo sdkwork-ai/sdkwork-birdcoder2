@@ -61,6 +61,16 @@ describe('desktop welcome presentation', () => {
     await vi.waitFor(() => { expect(iamSignIn).toHaveBeenCalledTimes(1) })
   })
 
+  it('asks for the workspace hand-off once while the first click is in flight', async () => {
+    const pending: PromiseWithResolvers<void> = Promise.withResolvers()
+    const iamSignIn = vi.fn(() => pending.promise)
+    const view = mount('en', undefined, { iamSignIn })
+    fireEvent.click(view.button('#sign-in'))
+    fireEvent.click(view.button('#sign-in'))
+    expect(iamSignIn).toHaveBeenCalledTimes(1)
+    pending.resolve()
+  })
+
   it('hides the API-key entry unless the deployment opts in', () => {
     const view = mount('en', undefined, { showApiKeyEntry: false })
     expect(view.document.querySelector('#api-key')).toBeNull()

@@ -1,63 +1,79 @@
 // @vitest-environment jsdom
-/** The Chat failure row's credential fixes: when they show and what they dispatch. */
+/** The failure sentence's repair links: when they show and what they dispatch. */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import {
-  MissingCredentialActions, type MissingCredentialActionsInjected,
+  ModelSettingsFixLink, SignInFixLink, type ModelSettingsFixInjected, type SignInFixInjected,
 } from '../src/client/MissingCredentialActions.tsx'
-import { zh } from '../src/client/locales.ts'
 
 afterEach(cleanup)
 
-const t = (key: string): string => (zh as Record<string, string>)[key] ?? key
+/** The label the Chat row supplies for the seat under test. */
+const LABEL = '登录账号'
 
-function fixes(options: { code?: string | undefined; signedIn?: boolean } = {}) {
+function signInLink(options: { code?: string; label?: string; signedIn?: boolean } = {}) {
   const signIn = vi.fn()
-  const configure = vi.fn()
-  const injected: MissingCredentialActionsInjected = {
+  const injected: SignInFixInjected = {
     signIn,
-    configure,
     hooks: {
       signedIn: { getSnapshot: () => options.signedIn ?? false, subscribe: () => () => {} },
     },
   }
-  const code = options.code === undefined ? 'MISSING_CREDENTIAL' : options.code
   const props = {
-    code,
+    code: options.code ?? 'MISSING_CREDENTIAL',
+    label: options.label ?? LABEL,
     signIn: injected.signIn,
-    configure: injected.configure,
     hooks: injected.hooks,
     useSignedIn: (selector: (signedIn: boolean) => boolean) => selector(injected.hooks.signedIn.getSnapshot()),
-    t,
   }
-  const rendered = render(<MissingCredentialActions {...props as never} />)
-  return { signIn, configure, rendered }
+  const rendered = render(<SignInFixLink {...props as never} />)
+  return { signIn, rendered }
 }
 
-describe('MissingCredentialActions', () => {
-  it('offers both documented fixes for a missing credential', () => {
-    fixes()
-    expect(screen.getByRole('button', { name: zh['turnError.signIn'] })).not.toBeNull()
-    expect(screen.getByRole('button', { name: zh['turnError.configure'] })).not.toBeNull()
-  })
+function modelSettingsLink(options: { code?: string; label?: string } = {}) {
+  const configure = vi.fn()
+  const injected: ModelSettingsFixInjected = { configure }
+  const props = {
+    code: options.code ?? 'MISSING_CREDENTIAL',
+    label: options.label ?? LABEL,
+    configure: injected.configure,
+  }
+  const rendered = render(<ModelSettingsFixLink {...props as never} />)
+  return { configure, rendered }
+}
 
-  it('raises the entry modal on a sign-in click and opens the Models page on a configure click', () => {
-    const { signIn, configure } = fixes()
-    fireEvent.click(screen.getByRole('button', { name: zh['turnError.signIn'] }))
+describe('SignInFixLink', () => {
+  it('renders the sentence label as the sign-in gesture', () => {
+    const { signIn } = signInLink()
+    fireEvent.click(screen.getByRole('button', { name: LABEL }))
     expect(signIn).toHaveBeenCalledTimes(1)
-    fireEvent.click(screen.getByRole('button', { name: zh['turnError.configure'] }))
-    expect(configure).toHaveBeenCalledTimes(1)
   })
 
-  it('keeps the configure gesture the only repair once a session is held', () => {
-    fixes({ signedIn: true })
-    expect(screen.queryByRole('button', { name: zh['turnError.signIn'] })).toBeNull()
-    expect(screen.getByRole('button', { name: zh['turnError.configure'] })).not.toBeNull()
+  it('keeps the phrase readable but inert once a session is held', () => {
+    signInLink({ signedIn: true })
+    expect(screen.queryByRole('button', { name: LABEL })).toBeNull()
+    expect(screen.getByText(LABEL)).not.toBeNull()
   })
 
   it('stays out of every other failure code', () => {
     for (const code of ['AUTH', 'QUOTA', 'INTERRUPTED', 'TRANSPORT']) {
-      const { rendered } = fixes({ code })
+      const { rendered } = signInLink({ code })
+      expect(rendered.container.textContent).toBe('')
+      rendered.unmount()
+    }
+  })
+})
+
+describe('ModelSettingsFixLink', () => {
+  it('renders the sentence label as the Settings → Models gesture', () => {
+    const { configure } = modelSettingsLink()
+    fireEvent.click(screen.getByRole('button', { name: LABEL }))
+    expect(configure).toHaveBeenCalledTimes(1)
+  })
+
+  it('stays out of every other failure code', () => {
+    for (const code of ['AUTH', 'QUOTA', 'INTERRUPTED', 'TRANSPORT']) {
+      const { rendered } = modelSettingsLink({ code })
       expect(rendered.container.textContent).toBe('')
       rendered.unmount()
     }

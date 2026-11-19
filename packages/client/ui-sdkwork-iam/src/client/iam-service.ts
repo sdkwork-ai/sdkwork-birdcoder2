@@ -990,13 +990,16 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   }
 
   /**
-   * Adopt the modal open/close actions (overlay registration's bound store).
+   * Adopt the modal's actions once its host has mounted.
    *
-   * A launch callback can fail before the overlay exists (a cold start redeems
-   * as soon as the page boots), so the recorded failure is presented here: the
-   * user who just tried to sign in sees the reason and the recovery actions
-   * instead of an anonymous workspace.
-   * @param actions - the modal actions the overlay registration bound.
+   * The store's bound actions exist only after the overlay entry renders, so a
+   * launch request or a callback failure recorded before that point has no
+   * surface to open. The service only presents through this face, and the
+   * host calls it on mount; a launch callback can fail before the overlay
+   * exists (a cold start redeems as soon as the page boots), so the recorded
+   * failure is presented here: the user who just tried to sign in sees the
+   * reason and the recovery actions instead of an anonymous workspace.
+   * @param actions - the modal controls the overlay registration bound.
    */
   attachModal(actions: IamModalActions): void {
     this.modal = actions
@@ -1078,8 +1081,8 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
       return
     }
     if (!this.isConfigured() && !await this.whenConfigured()) return
-    // The overlay is only mountable after its registration bound the modal
-    // actions; leave the request for the next call (env or bootstrap) until then.
+    // The overlay's store actions exist only once its entry rendered; leave
+    // the request for the mount, which answers it after binding the surface.
     if (this.modal === undefined) return
     // One shot: a later sign-out must not replay this launch request.
     Reflect.deleteProperty(host, IAM_SIGN_IN_GLOBAL)

@@ -729,10 +729,15 @@ async function main(): Promise<void> {
     return mainWindow
   }
   let navigation: { window: BrowserWindow; url: string; promise: Promise<void> } | undefined
-  const navigateMain = (url: string): Promise<void> => {
+  /**
+   * Load the workspace document, joining an in-flight load of the same URL.
+   * @param url - application document to load.
+   * @param reload - start a fresh boot even when that document is already current.
+   */
+  const navigateMain = (url: string, reload = false): Promise<void> => {
     const window = mainWindow
     if (quitting || window === undefined || window.isDestroyed()) return Promise.resolve()
-    if (navigation?.window === window && navigation.url === url) return navigation.promise
+    if (!reload && navigation?.window === window && navigation.url === url) return navigation.promise
     const next = { window, url, promise: Promise.resolve() }
     next.promise = window.loadURL(url).catch((error: unknown) => {
       if (quitting || shuttingDown || window.isDestroyed() || navigation !== next
@@ -1682,10 +1687,10 @@ async function main(): Promise<void> {
     })
     return window
   }
-  const enterWorkspace = async ({ activate = true }: { activate?: boolean } = {}): Promise<void> => {
+  const enterWorkspace = async ({ activate = true, reload = false }: { activate?: boolean; reload?: boolean } = {}): Promise<void> => {
     if (quitting) return
     const window = mainWindow ?? createMainWindow()
-    await navigateMain(applicationUrl)
+    await navigateMain(applicationUrl, reload)
     if (isQuitting() || recovery.active || window.isDestroyed()) return
     if (process.platform === 'win32') window.setBackgroundColor(chromeFallbackFill())
     if (activate) window.show()
@@ -1818,9 +1823,12 @@ async function main(): Promise<void> {
             return
           }
           pendingIamSignIn = true
-          // The workspace now shows the login form itself, so it takes focus
-          // instead of leaving it with the closing welcome page.
-          await enterWorkspace()
+          // A launch preloads the workspace document before the welcome
+          // decision, so its boot response has already been answered and the
+          // one-shot flag above would never be read. A fresh boot is the
+          // documented delivery, and it also takes focus into the login
+          // surface it raises instead of leaving it with the closing page.
+          await enterWorkspace({ reload: true })
         },
         skip: async () => {
           if (welcomePurpose === 'sign-in') finishSignInPage('dismissed')

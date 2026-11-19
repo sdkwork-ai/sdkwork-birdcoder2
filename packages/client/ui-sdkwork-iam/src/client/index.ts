@@ -41,7 +41,9 @@ import { createIamSignOutStore } from './iam-sign-out-store.ts'
 import { IamService, type IamProfileSnapshot } from './iam-service.ts'
 import { startRelayCredentialMirror } from './relay-credential.ts'
 import { RelayProviderHint, RELAY_PROVIDER, type RelayProviderHintInjected } from './RelayProviderHint.tsx'
-import { MissingCredentialActions, type MissingCredentialActionsInjected } from './MissingCredentialActions.tsx'
+import {
+  ModelSettingsFixLink, SignInFixLink, type ModelSettingsFixInjected, type SignInFixInjected,
+} from './MissingCredentialActions.tsx'
 import { AccountModePage, toSdkworkLocale, type AccountModePageInjected } from './AccountModePage.tsx'
 import { readDesktopSignInPage } from './desktop-sign-in-page.ts'
 import { SignInOverlay, type SignInOverlayInjected } from './SignInOverlay.tsx'
@@ -144,19 +146,10 @@ export function apply(ctx: ClientContext): void {
   tryBootstrap()
   ctx.effect(() => env.subscribe(tryBootstrap), 'ui-sdkwork-iam: session bootstrap')
 
-  // The modal open/close actions bound by the overlay registration; the
-  // service dispatches through them from the settings-menu sign-in gesture.
+  // The sign-in overlay owns the modal state; the service receives that
+  // store's bound actions when the entry mounts (see the registration below),
+  // so a request recorded earlier has a surface to present.
   const uiStore = createIamUiStore()
-  let boundModal: BoundActions<typeof uiStore> | undefined
-  service.attachModal({
-    openEntry: () => { boundModal?.openEntry() },
-    openLogin: () => { boundModal?.openLogin() },
-    openBrowser: () => { boundModal?.openBrowser() },
-    close: () => { boundModal?.closeModal() },
-  })
-  // Answer a pending welcome request now that the overlay can mount; the call
-  // is a no-op once the request was consumed or no session restore is pending.
-  tryBootstrap()
 
   // The account mode page: full-page auth while signed out, the account
   // summary while signed in, the config notice while unconfigured.
@@ -200,7 +193,20 @@ export function apply(ctx: ClientContext): void {
     locale: NS,
     store: uiStore,
     inject: (actions): SignInOverlayInjected => {
-      boundModal = actions
+      // The store's bound actions exist only after this entry rendered, so the
+      // service may present through them from this point on. A launch request
+      // or a failed cold-start callback recorded before the mount is answered
+      // here, after the surface can actually open; deferring past the render
+      // keeps store writes out of React's render phase.
+      queueMicrotask(() => {
+        service.attachModal({
+          openEntry: actions.openEntry,
+          openLogin: actions.openLogin,
+          openBrowser: actions.openBrowser,
+          close: actions.closeModal,
+        })
+        tryBootstrap()
+      })
       return {
         controller: service.controller,
         onClose: () => { service.dismissSignIn() },
@@ -290,21 +296,17 @@ export function apply(ctx: ClientContext): void {
     }),
   }, RelayProviderHint))
 
-  // The Chat failure row's credential fixes: sign in (the relay then uses the
-  // signed-in Auth Token) or open Settings → Models on the BirdCoder card and
-  // store a key there. This is the same pair of repairs the failure copy names,
-  // so the row states them as gestures instead of instructions. The settings
+  // The Chat failure row's credential fixes: the sentence the row already
+  // renders names both repairs, so each phrase becomes the gesture instead of
+  // the row growing a separate action strip. Sign in raises the product entry
+  // modal (the relay then uses the signed-in Auth Token); Configure opens
+  // Settings → Models on the BirdCoder card to store a key there. The settings
   // shell provides the deep-link service; a composition without it keeps the
-  // plain row, since there is no Models page to open either.
-  ctx.slots.inject('conversation.chat.turn-error.actions', () => ctx.slots.register({
-    name: 'conversation.chat.turn-error.actions',
-    id: 'credential-fixes',
-    locale: NS,
-    inject: (): MissingCredentialActionsInjected => ({
+  // plain sentence, since there is no Models page to open either.
+  ctx.slots.inject('conversation.chat.turn-error.sign-in', () => ctx.slots.register({
+    name: 'conversation.chat.turn-error.sign-in',
+    inject: (): SignInFixInjected => ({
       signIn: () => { service.openSignInOverlay() },
-      configure: () => {
-        ctx.get('settingsMenu')?.openSection('models', { focusProvider: RELAY_PROVIDER })
-      },
       hooks: {
         signedIn: {
           getSnapshot: () => service.isSignedIn(),
@@ -312,5 +314,13 @@ export function apply(ctx: ClientContext): void {
         },
       },
     }),
-  }, MissingCredentialActions))
+  }, SignInFixLink))
+  ctx.slots.inject('conversation.chat.turn-error.model-settings', () => ctx.slots.register({
+    name: 'conversation.chat.turn-error.model-settings',
+    inject: (): ModelSettingsFixInjected => ({
+      configure: () => {
+        ctx.get('settingsMenu')?.openSection('models', { focusProvider: RELAY_PROVIDER })
+      },
+    }),
+  }, ModelSettingsFixLink))
 }

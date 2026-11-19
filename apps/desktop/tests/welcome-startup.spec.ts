@@ -222,6 +222,45 @@ it('opens the startup welcome page over a running workspace for a sign-in demand
   expect(state.focusWorkspace).toHaveBeenCalledOnce()
 })
 
+it('reloads the preloaded workspace so the startup sign-in request reaches a fresh boot', async () => {
+  vi.resetModules()
+  vi.clearAllMocks()
+  state.preference = 'zh'
+  state.hasApiKey = false
+  state.operations = undefined
+  state.loadWorkspace.mockClear()
+  state.showWorkspace.mockClear()
+  state.closeWelcome.mockClear()
+  vi.useFakeTimers()
+  vi.stubEnv('DSH_CLIENT_VERSION', '1.2.3')
+  vi.stubEnv('DSH_DESKTOP_DEV_PROJECT_DIR', '/development-profile')
+  vi.stubEnv('DSH_DESKTOP_NODE_BINARY', '/runtime/node')
+  vi.stubEnv('DSH_DESKTOP_PNPM_ENTRY', '/runtime/pnpm')
+  vi.stubEnv('DSH_DESKTOP_DSH_DIR', '/runtime/dsh')
+  vi.stubEnv('DSH_DESKTOP_PRIMARY_RUNTIME_DIR', '/runtime/primary-runtime')
+  vi.stubEnv('DSH_DESKTOP_HOST_INSPECT_PORT', undefined)
+  vi.stubEnv('DSH_DESKTOP_OPEN_DEVTOOLS', '0')
+  vi.stubEnv('DSH_DESKTOP_MANDATORY_UPDATE_CONFIG', undefined)
+  vi.stubEnv('DSH_DESKTOP_UPDATE_JOURNAL_DIR', undefined)
+
+  await import('../src/main.ts')
+  await vi.waitFor(() => { expect(state.operations).toBeDefined() })
+  // The launch preloads the Web document before the welcome decision, so its
+  // boot response was answered before this page could be clicked.
+  expect(state.loadWorkspace).toHaveBeenCalledExactlyOnceWith('dsh-app://app/')
+  state.loadWorkspace.mockClear()
+
+  await state.operations!.iamSignIn!()
+
+  // The one-shot flag rides a fresh boot; a cached document would never read it.
+  expect(state.loadWorkspace).toHaveBeenCalledExactlyOnceWith('dsh-app://app/')
+  expect(state.closeWelcome).toHaveBeenCalledOnce()
+  const contents = state.contents as { mainFrame: { url: string }; send: ReturnType<typeof vi.fn> }
+  const boot = state.handlers.get(DESKTOP_IPC.boot)!
+  const result = await boot({ sender: contents, senderFrame: contents.mainFrame }) as { injections: unknown[] }
+  expect(result.injections).toContainEqual({ kind: 'global', name: '__DSH_IAM_SIGN_IN__', value: true })
+})
+
 it.each([false, true])('starts welcome onboarding without carrying update focus into login or skip (Windows update=%s)', async (updated) => {
   vi.resetModules()
   vi.clearAllMocks()
