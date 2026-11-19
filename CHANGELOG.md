@@ -77,4 +77,17 @@
 * `plugins/sdkwork-dsh-agents` 子模块由 `2d317ce`（1.2.26）前移到 `a2911f0`（1.2.34 镜像同步），并把新版新增的 `@deepseek-ai/dsh-error@0.2.2-rc.3` 依赖补进 lockfile；不同步时 `pnpm install --frozen-lockfile` 直接报 `ERR_PNPM_OUTDATED_LOCKFILE`。
 * `pnpm-lock.yaml` 保留 fork 的 workspace 链接与 SDKWork sibling importer 块（本地开发走 `pnpm-workspace.yaml` 的 `../sdkwork-*` 相对路径 + `workspace:*`，CI/release 走 `agent.workflow.json` 声明、`scripts/sdkwork-sources.manifest.json` pin 的 git 仓库依赖 checkout，两者同源）。
 
+#### 合并后的 fork 变更（2026-11-19）
+
+合入 rc.5 之后 fork 侧在同一版本线上继续推进的自有能力（`ff72ca4f20..9d00779d7a`，13 个提交；依赖与 pin 的调整已记入上节）。上游代码与提交记录不受影响。
+
+* **输入框历史（新包 `ui-sdkwork-input-history`）**：记录 Host 已接受的普通消息到浏览器本地存储，输入框裸 ↑/↓ 回溯——↑ 走向更旧一条、↓ 走向更新并在越过最新一条后恢复被中断的草稿，新一轮回溯只在草稿的询问边界开始（`feat(client): add the composer input history section and share the input contract`）。设置页「输入历史」可选范围（本会话 / 本项目 / 本浏览器全部会话）、保留窗口（默认 30 天）并可清空缓存；关闭开关即停止记录与回溯，账本保留至清空或过期。历史按浏览器配置存放，不跨账号或机器同步。输入契约与召回后的光标行为写入 README 与 agent-note（`docs(client): describe the caret behaviour inside a recalled input-history entry`）。
+* **设置菜单 shell store**：新增对话框可见性、当前分区与待揭示 provider 路由的共享 store，让轨道之外的表面——会话失败行的「去配置」手势——能在自己的分区打开设置对话框；悬停菜单的展开状态仍是组件内查看状态（`feat(client): add the settings menu store and its slot wiring`）。
+* **缺失凭据修复接到会话失败行**：失败行给出缺失凭据的修复入口，`ui-settings` 模型分区按 `focusProvider` 定位并高亮对应 provider 行，普通导航清掉该定位；chat 视图测试补上动作归属的收窄（`feat(client): surface missing-credential fixes on the chat failure row`、`test(client): narrow the turn-error action owner through the slot cast`、`test(client): cover the missing-credential action flow in the chat view`）。
+* **欢迎页登录交棒新 workspace boot**：`ui-sdkwork-iam` 只在 overlay 条目渲染、store 动作绑定完成后接管模态动作，冷启动换票或回调失败因此有表面可呈现——用户看到失败原因与恢复动作，而不是匿名工作区；登录完成以新的 workspace boot 启动（`feat(desktop): hand the welcome sign-in to a fresh workspace boot`）。
+* **插件市场 fork 落地**：`plugins/dsh-market`（`dsh-market` 的 SDKWork fork）作为 pin 住的子模块接入，host 半侧由 `scripts/build-dsh-market.mjs` 从子模块 `src/` 编译出被 gitignore 的 `lib/`；判鲜按内容哈希而非 mtime，`postinstall` 与 `build:artifacts` 新增 `dsh-market` 闸门并排在 `host-src` 之后（其 `tsc` 要对本仓 `vendor/cordis`、`vendor/schemastery` 的输出做类型检查）。浏览器半侧 `client/client.js` 仍由子模块提交，本仓不重新生成（`feat(birdcoder2): fork the plugin market and finalize the composer input history section`）。
+* **HMR 恢复 `pluginEvents` 流**：客户端在一个 client entry 里重新同步 Host 插件图与 synced 配置，插件启停与配置变更不刷新页面即生效，代码重建替换受影响插件；独立的 transport / events 模块及其 fallback 规格移除（`fix(client-hmr): finish the pluginEvents stream restoration`），`tsconfig.client.tests.json` 直接引用 hmr 的 client project（`fix(birdcoder2): reference the hmr client project from the client-tests face`），two-face 包改为单侧解析后重跑各自规格（`docs(fork-sync): resolve two-face packages from one side and rerun their specs`）。
+* **翻译配对门禁覆盖子模块**：`.gitmodules` 的 `path` 被解析进排除范围（`parseGitmodulePaths` / `isSubmodulePath`），子模块工作树内的双语文档在其所在仓库翻译，本仓不再要求 sidecar；新增包 README 与 agent-note 补规格（`fix(birdcoder2): guard the gitmodule path capture against a missing group`）。
+* **桌面运行时冒烟**：Office 引擎探测改为轮询引擎自身状态，绕开 fetch 的 300 s 响应头上限（`fix(desktop): outwait the Office engine instead of fetch's 300 s header ceiling`）。
+
 本文件只保留当前版本一节；往期条目随各自版本的提交留在 git 历史里（`git log -p CHANGELOG.md`）。Release notes 就是本节内容。
