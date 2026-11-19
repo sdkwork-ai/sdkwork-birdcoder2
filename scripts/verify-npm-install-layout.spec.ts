@@ -92,6 +92,29 @@ describe('npm install layout verifier', () => {
     expect(dual.get('@deepseek-ai/dsh-invariants')).toBe(index.get('@deepseek-ai/dsh-invariants'))
   })
 
+  it('points a glue range the working release satisfies at the root synthetic release', () => {
+    const index: RegistryIndex = new Map([
+      ['@deepseek-ai/dsh', new Map([['0.1.1-rc.2', { name: '@deepseek-ai/dsh', version: '0.1.1-rc.2' }]])],
+      ['dsh-better-sidebar', new Map([['0.32.1', {
+        name: 'dsh-better-sidebar',
+        version: '0.32.1',
+        peerDependencies: {
+          '@deepseek-ai/dsh': '^0.1.1-rc.1',
+          '@deepseek-ai/dsh-invariants': '^0.0.1',
+        },
+      }]])],
+    ])
+
+    const dual = buildDualDshRegistry(index, '0.1.1-rc.2')
+
+    expect(dual.get('dsh-better-sidebar')?.get('0.32.1')).toMatchObject({
+      peerDependencies: {
+        '@deepseek-ai/dsh': '^0.2.0',
+        '@deepseek-ai/dsh-invariants': '^0.0.1',
+      },
+    })
+  })
+
   it('ignores a DSH package that is not a workspace member in the layout', () => {
     const layout = validLayout()
     const packages = {

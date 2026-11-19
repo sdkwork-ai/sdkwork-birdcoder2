@@ -693,7 +693,14 @@ export async function resolveNpmPackageLock(
   } finally {
     server.closeAllConnections()
     await close(server)
-    rmSync(consumer, { recursive: true, force: true })
+    try {
+      rmSync(consumer, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+    } catch {
+      // A killed npm child can keep a handle on its consumer directory, and on
+      // Windows that surfaces as EBUSY. Cleanup is best effort: letting it throw
+      // here would replace the guard's diagnostic (the timeout, or the layout
+      // error) with a scratch-directory message that names no cause.
+    }
   }
 }
 

@@ -2,6 +2,7 @@
 
 import { readFileSync } from 'node:fs'
 import { posix, resolve } from 'node:path'
+import { satisfies } from 'semver'
 import {
   buildRegistryIndex,
   resolveNpmPackageLock,
@@ -114,14 +115,16 @@ function cloneForVersion(manifest: object, version: string): MutableRegistryMani
 }
 
 /**
- * Rewrite DSH edges of non-DSH packages that pin the working release.
+ * Rewrite DSH edges of non-DSH packages whose range the working release accepts.
  * @param versions - Published versions of one non-DSH package name.
  * @param sourceVersion - Workspace version the dual substitution replaces.
+ * @param index - Registry the substitution produced, keyed by package name.
  * @returns The same map when no version pins the source release; otherwise a rewritten copy.
  */
 function rewriteGlueDshEdges(
   versions: ReadonlyMap<string, RegistryVersion>,
   sourceVersion: string,
+  index: RegistryIndex,
 ): ReadonlyMap<string, RegistryVersion> {
   const rootVersion = SYNTHETIC_DSH_VERSIONS[1]
   let rewritten: Map<string, RegistryVersion> | undefined
@@ -134,7 +137,7 @@ function rewriteGlueDshEdges(
       let dependenciesNext: Record<string, string> | undefined
       for (const [dependency, range] of Object.entries(dependencies)) {
         if (!isDshPackage(dependency)) continue
-        const synthetic = glueRangeForSourceRelease(range, sourceVersion, rootVersion)
+        const synthetic = glueRangeForSourceRelease(range, sourceVersion, rootVersion, index.get(dependency))
         if (synthetic === undefined) continue
         dependenciesNext ??= { ...dependencies }
         dependenciesNext[dependency] = synthetic
@@ -151,26 +154,32 @@ function rewriteGlueDshEdges(
 }
 
 /**
- * Rewrite one non-DSH ("glue") dependency range that pins the working release.
+ * Rewrite one non-DSH ("glue") dependency range that the working release satisfies.
  *
  * Glue packages — workspace members outside the DSH namespace, such as the
- * BotHarness packages `@deepseek-ai/dsh-web-app` publishes against — declare
- * `workspace:*` on DSH packages, which the pack simulation rewrites to the
- * exact workspace version. The dual-release substitution removes that version
- * from the registry, so an exact pin would 404. Point the range at the root
- * synthetic release instead: the glue package is shared between the releases,
+ * BotHarness packages `@deepseek-ai/dsh-web-app` publishes against, and the
+ * plugin submodules that peer on a range of DSH versions — declare ranges over
+ * the working release. The dual-release substitution removes every real DSH
+ * version from the registry, so an unchanged range has no candidate left and
+ * npm backtracks over the whole tree looking for one; a required peer that
+ * never resolves turns the lane into a wall-clock failure with no layout
+ * verdict at all. Any range the working release satisfies therefore points at
+ * the root synthetic release: the glue package is shared between the releases,
  * and npm resolves its dependency against the hoisted root installation.
  * @param range - Already-published range on a non-DSH manifest.
  * @param sourceVersion - Workspace version the dual substitution replaces.
  * @param rootVersion - The root synthetic release version.
- * @returns The synthetic range, or the input when it does not pin the source release.
+ * @param target - Registry versions of the range's DSH package.
+ * @returns The synthetic range, or the input when the working release does not satisfy it.
  */
-function glueRangeForSourceRelease(range: string, sourceVersion: string, rootVersion: string): string | undefined {
-  if (range === sourceVersion || range === `=${sourceVersion}` || range === `^${sourceVersion}`) {
-    return `^${rootVersion}`
-  }
-  if (range === `~${sourceVersion}`) return `~${rootVersion}`
-  return undefined
+function glueRangeForSourceRelease(
+  range: string,
+  sourceVersion: string,
+  rootVersion: string,
+  target: ReadonlyMap<string, RegistryVersion> | undefined,
+): string | undefined {
+  if (target === undefined || !target.has(sourceVersion)) return undefined
+  return satisfies(sourceVersion, range) ? `^${rootVersion}` : undefined
 }
 
 /**
@@ -184,7 +193,7 @@ export function buildDualDshRegistry(index: RegistryIndex, sourceVersion: string
   let dshPackages = 0
   for (const [name, versions] of index) {
     if (!isDshPackage(name)) {
-      output.set(name, rewriteGlueDshEdges(versions, sourceVersion))
+      output.set(name, rewriteGlueDshEdges(versions, sourceVersion, index))
       continue
     }
     const source = versions.get(sourceVersion)
