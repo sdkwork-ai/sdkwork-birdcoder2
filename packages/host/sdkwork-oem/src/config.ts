@@ -150,6 +150,13 @@ export interface OemSdkworkConfig {
    * reaches this application.
    */
   readonly iamRedirectUri: string
+  /**
+   * Whether the desktop login may present an RFC 8252 loopback redirect
+   * (`http://127.0.0.1:<port>/auth/callback`). The deployment sets this only
+   * after its IAM OAuth client allows loopback redirects for the desktop
+   * public client; when false the shell keeps the registered custom scheme.
+   */
+  readonly iamLoopbackRedirect: boolean
 }
 
 /** Display identity an OEM deployment publishes. */
@@ -221,6 +228,7 @@ export interface OemEnvironmentOverride {
     readonly iamAuthorizeBaseUrl?: unknown
     readonly iamClientId?: unknown
     readonly iamRedirectUri?: unknown
+    readonly iamLoopbackRedirect?: unknown
   }
   readonly deepseek?: {
     readonly platformOrigin?: unknown
@@ -256,6 +264,7 @@ export function defaultOemConfig(environment: OemEnvironment = 'production'): Oe
       iamAuthorizeBaseUrl: origins.iamAuthorize,
       iamClientId: DEFAULT_IAM_CLIENT_ID,
       iamRedirectUri: DEFAULT_IAM_REDIRECT_URI,
+      iamLoopbackRedirect: false,
     },
     deepseek: {
       platformOrigin: origins.platform,
@@ -562,6 +571,7 @@ export function resolveOemConfig(
     'sdkwork.iamRedirectUri',
     expectedScheme,
   )
+  const iamLoopbackRedirect = optionalBoolean(sdkwork, 'iamLoopbackRedirect', 'sdkwork.iamLoopbackRedirect') ?? false
   if (schemeOf(iamRedirect) !== expectedScheme) {
     throw new Error(
       `oem: sdkwork.iamRedirectUri is ${JSON.stringify(iamRedirect)} but this application runs as the `
@@ -603,6 +613,7 @@ export function resolveOemConfig(
       ),
       iamClientId: iamClient,
       iamRedirectUri: iamRedirect,
+      iamLoopbackRedirect,
     },
     deepseek: {
       platformOrigin,

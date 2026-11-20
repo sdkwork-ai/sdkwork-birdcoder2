@@ -31,7 +31,7 @@ import {
   IconArchiveOutlineRegular, IconBranchOutlineRegular, IconCodeOutlineRegular, IconCopyOutlineRegular,
   IconDownloadOutlineRegular, IconEditOutlineRegular, IconEllipsisOutlineRegular, IconFolderOpenOutlineRegular,
   IconLayersOutlineRegular, IconLinkOutlineRegular, IconPinFillRegular, IconPinOutlineRegular,
-  IconSendOutlineRegular, IconTrashOutlineRegular,
+  IconSendOutlineRegular, IconShieldOutlineRegular, IconTrashOutlineRegular,
   Menu, SubmenuMenu, Toast,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -39,9 +39,9 @@ import { writeClipboard } from '@deepseek-ai/dsh-client-ui-primitives'
 import { appBuildMenuRows, decodeAppBuildRow, familyName } from './appBuild/menuRows.tsx'
 import type { AppBuildCatalog, AppBuildService } from './appBuild/contract.ts'
 import type {
-  RowContextMenuChannel, RowMenusDeployPublishPort, RowMenusSessionLogDownloadPort,
-  RowMenusWorkspacesPort, SessionRowMenuOwnerProps, WorkspaceRowMenuActions,
-  WorkspaceRowMenuOwnerProps,
+  RowContextMenuChannel, RowMenusAccessTokenPort, RowMenusDeployPublishPort,
+  RowMenusSessionLogDownloadPort, RowMenusWorkspacesPort, SessionRowMenuOwnerProps,
+  WorkspaceRowMenuActions, WorkspaceRowMenuOwnerProps,
 } from './contract/slots.ts'
 
 /** Shared row-menu action services (injected; absent degrades the rows to no-ops). */
@@ -50,6 +50,22 @@ export interface RowMenuActionsServices {
   sessionLogDownload?: RowMenusSessionLogDownloadPort | undefined
   deployPublish?: RowMenusDeployPublishPort | undefined
   appBuild?: AppBuildService | undefined
+  accessToken?: RowMenusAccessTokenPort | undefined
+}
+
+/**
+ * Whether one project directory carries the SDKWork project prefix.
+ *
+ * The access-token row is offered only for `sdkwork-*` project directories:
+ * the initializer reads and writes an SDKWork application root's committed
+ * token matrix, so every other project keeps the menu without that verb.
+ * @param cwd - the row's workspace directory.
+ * @returns true when the directory name starts with `sdkwork-`.
+ */
+function isSdkworkProjectDirectory(cwd: string | undefined): boolean {
+  if (cwd === undefined || cwd === '') return false
+  const segments = cwd.split(/[\\/]+/u).filter(segment => segment !== '')
+  return (segments[segments.length - 1] ?? '').toLowerCase().startsWith('sdkwork-')
 }
 
 /** One path/export/copy action invocation that must not throw out of the menu. */
@@ -197,7 +213,7 @@ function dispatchPathAction(
  */
 export function WorkspaceRowMenu({
   label, cwd, actions, onMenuOpenChange, t, iconButtonClassName, contextMenu, workspaces,
-  deployPublish, appBuild,
+  deployPublish, appBuild, accessToken,
 }: WorkspaceRowMenuOwnerProps & RowMenuActionsServices & {
   /** Report open-state flips so the owner can suppress its hover card. */
   onMenuOpenChange?: ((open: boolean) => void) | undefined
@@ -237,6 +253,9 @@ export function WorkspaceRowMenu({
   const items: MenuEntry[] = [
     ...buildPathRows(cwd, workspaces, t),
     ...appBuildMenuRows({ catalog, t }),
+    ...(accessToken !== undefined && isSdkworkProjectDirectory(cwd)
+      ? [{ id: 'initializeAccessToken', label: t('menu.initializeAccessToken'), icon: <IconShieldOutlineRegular size={16} /> }]
+      : []),
     ...(deployPublish !== undefined
       ? [{ id: 'publish', label: t('menu.publishProject'), icon: <IconSendOutlineRegular size={16} /> }]
       : []),
@@ -269,6 +288,9 @@ export function WorkspaceRowMenu({
       return
     }
     dispatchPathAction(id, cwd, workspaces, report)
+    if (id === 'initializeAccessToken' && cwd !== undefined && cwd !== '') {
+      accessToken?.open({ directory: cwd, displayTitle: label })
+    }
     if (id === 'publish') deployPublish?.open({ defaultDirectory: cwd })
     if (id === 'publishTemplate') deployPublish?.openPublishTemplate?.({ defaultDirectory: cwd })
     if (id === 'installTemplate') deployPublish?.openInstallTemplate?.({ defaultDirectory: cwd })

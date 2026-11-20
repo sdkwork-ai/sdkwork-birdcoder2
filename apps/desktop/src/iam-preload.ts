@@ -8,6 +8,7 @@
 
 import type { IpcRenderer } from 'electron'
 import { SDKWORK_DESKTOP_BRIDGE, SDKWORK_DESKTOP_PRELOAD_KEY } from './iam-deep-links.ts'
+import { IAM_LOOPBACK_BRIDGE } from './iam-loopback-protocol.ts'
 import { IAM_SESSION_BRIDGE, type IamSessionRecord } from './iam-session-protocol.ts'
 
 /** The context bridge slice this module needs. */
@@ -27,6 +28,12 @@ export function exposeSdkworkDesktopBridge(contextBridge: IamPreloadContextBridg
     for (const listener of [...listeners]) listener(payload)
   }
   ipcRenderer.on(SDKWORK_DESKTOP_BRIDGE.deepLinksOpenEvent, forward)
+  const loopbackListeners = new Set<(url: string) => void>()
+  const forwardLoopback = (_event: Electron.IpcRendererEvent, payload: unknown): void => {
+    if (typeof payload !== 'string') return
+    for (const listener of [...loopbackListeners]) listener(payload)
+  }
+  ipcRenderer.on(IAM_LOOPBACK_BRIDGE.callback, forwardLoopback)
 
   contextBridge.exposeInMainWorld(SDKWORK_DESKTOP_PRELOAD_KEY, {
     deepLinks: {
@@ -37,6 +44,24 @@ export function exposeSdkworkDesktopBridge(contextBridge: IamPreloadContextBridg
       onOpenUrl: (handler: (url: string) => void): (() => void) => {
         listeners.add(handler)
         return () => { listeners.delete(handler) }
+      },
+    },
+    loopbackLogin: {
+      start: async (): Promise<{ redirectUri: string }> => {
+        const value: unknown = await ipcRenderer.invoke(IAM_LOOPBACK_BRIDGE.start)
+        if (typeof value !== 'object' || value === null) throw new Error('loopback login returned no redirect URI')
+        const redirectUri = (value as { redirectUri?: unknown }).redirectUri
+        if (typeof redirectUri !== 'string' || redirectUri === '') {
+          throw new Error('loopback login returned no redirect URI')
+        }
+        return { redirectUri }
+      },
+      cancel: async (): Promise<void> => {
+        await ipcRenderer.invoke(IAM_LOOPBACK_BRIDGE.cancel)
+      },
+      onCallback: (handler: (url: string) => void): (() => void) => {
+        loopbackListeners.add(handler)
+        return () => { loopbackListeners.delete(handler) }
       },
     },
     shellOpen: {

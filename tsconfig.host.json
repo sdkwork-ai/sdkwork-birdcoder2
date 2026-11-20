@@ -400,6 +400,7 @@
     // dropped the directory reference that used to pull the host face in
     // transitively).
     { "path": "./packages/client/ui-sdkwork-image-models/tsconfig.host.json" },
+    { "path": "./packages/client/ui-sdkwork-access-token/tsconfig.host.json" },
     { "path": "./packages/client/ui-sdkwork-music-models/tsconfig.host.json" },
     { "path": "./packages/client/ui-sdkwork-video-models/tsconfig.host.json" },
     { "path": "./packages/client/ui-sdkwork-voice-models/tsconfig.host.json" },

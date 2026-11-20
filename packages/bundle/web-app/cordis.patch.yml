@@ -1035,6 +1035,12 @@
     # sidebar.workspaces.rowMenus hole; removing the row restores upstream.
     - id: ui-sdkwork-workspace-row-menus
       name: '@deepseek-ai/dsh-client-ui-sdkwork-workspace-row-menus'
+    # SDKWork access-token initializer: the workspace row menu's
+    # "初始化 Access Token" verb and the dialog it opens. Writes the public
+    # application access token (tenant-level or organization-level) into every
+    # selected application root's committed profile matrix.
+    - id: ui-sdkwork-access-token
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-access-token'
     # Durable workflow lifecycle as an independent Chat node after the
     # existing generic workflow tool row.
     - id: ui-workflow-run

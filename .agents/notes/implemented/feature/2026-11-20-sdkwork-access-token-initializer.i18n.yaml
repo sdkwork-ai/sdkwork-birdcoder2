@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-20-sdkwork-access-token-initializer.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-20-sdkwork-access-token-initializer.md
+/agent-note-the-project-row-menu-initializes-sdkwork-application-access-tokens:
+  en: 6d814d3109cac57a
+  zh: 02aa80ebae40e4da
+/agent-note-the-project-row-menu-initializes-sdkwork-application-access-tokens/problem:
+  en: 150e68c795d176b5
+  zh: 59da27c991eea3b3
+/agent-note-the-project-row-menu-initializes-sdkwork-application-access-tokens/decision:
+  en: c25211bf6f6f4004
+  zh: dad96f0a76edb4ae
+/agent-note-the-project-row-menu-initializes-sdkwork-application-access-tokens/alternatives-considered:
+  en: b99d6a747cd1681a
+  zh: e5e6c08ab0b5c8d2
+/agent-note-the-project-row-menu-initializes-sdkwork-application-access-tokens/consequences:
+  en: dc8913572f37831d
+  zh: 2c52ece33e5f80e4

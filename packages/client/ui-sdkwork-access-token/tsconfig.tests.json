@@ -1,0 +1,32 @@
+{
+  "extends": "./tsconfig.client.json",
+  "compilerOptions": {
+    // The full typecheck project: checks this package's own code (both faces)
+    // AND the sdkwork sibling source its signed flow composes against. The
+    // emit projects resolve those packages through declaration facades
+    // (sdkwork-types/); this project drops the facades and resolves the real
+    // packages through node_modules, so it is the drift guard for the SDK
+    // surface. noEmit keeps the external source out of the declaration
+    // machinery, and the wide rootDir admits the sibling checkouts.
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "noCheck": false,
+    "types": ["node"],
+    "rootDir": "../../../..",
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "paths": {}
+  },
+  "include": [
+    "src",
+    "tests",
+    "../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript/src",
+    "../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript/generated",
+    "../../../../sdkwork-deployments/sdks/sdkwork-deployments-app-sdk/sdkwork-deployments-app-sdk-typescript/src",
+    "../../../../sdkwork-deployments/sdks/sdkwork-deployments-app-sdk/sdkwork-deployments-app-sdk-typescript/generated",
+    "../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src",
+    "../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src"
+  ]
+}

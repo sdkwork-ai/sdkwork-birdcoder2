@@ -22,7 +22,8 @@ import { createAppBuildService } from './appBuild/index.ts'
 import { BuildIndicator } from './appBuild/BuildIndicator.tsx'
 import type { AppBuildRemoteNamespace } from './appBuild/contract.ts'
 import type {
-  RowMenusDeployPublishPort, RowMenusSessionLogDownloadPort, RowMenusWorkspacesPort,
+  RowMenusAccessTokenPort, RowMenusDeployPublishPort, RowMenusSessionLogDownloadPort,
+  RowMenusWorkspacesPort,
 } from './contract/slots.ts'
 import { RowMenusEntry } from './RowMenusEntry.tsx'
 import { en, NS, zh, type SdkworkRowMenusKey } from './locales.ts'
@@ -133,11 +134,16 @@ export function apply(ctx: ClientContext): void {
         sessionLogDownload?: RowMenusSessionLogDownloadPort | undefined
         deployPublish?: RowMenusDeployPublishPort | undefined
         appBuild?: typeof appBuild.service | undefined
+        accessToken?: RowMenusAccessTokenPort | undefined
       } => ({
         workspaces,
         sessionLogDownload,
         deployPublish,
         appBuild: appBuild.service,
+        // Optional service: the access-token initializer is a separate plugin,
+        // so a composition without it keeps every other row and simply has no
+        // access-token verb.
+        accessToken: ctx.get('accessTokenInitializer') as RowMenusAccessTokenPort | undefined,
       }),
     }, RowMenusEntry),
   )

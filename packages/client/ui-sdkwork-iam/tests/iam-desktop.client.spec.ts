@@ -82,7 +82,9 @@ describe('createIamDesktopLogin', () => {
     expect(runtimeOptions.authorizeBaseUrl).toBe('https://platform.birdcoder.com')
     expect(runtimeOptions.flowTtlMs).toBe(270_000)
     expect(runtimeOptions.host.id).toBe('electron')
-    expect(runtimeOptions.onSession).toBe(onSession)
+    expect(runtimeOptions.onSession).toBeTypeOf('function')
+    await runtimeOptions.onSession({} as never)
+    expect(onSession).toHaveBeenCalledTimes(1)
 
     await login.begin()
     expect(runtime.beginLogin).toHaveBeenCalledTimes(1)

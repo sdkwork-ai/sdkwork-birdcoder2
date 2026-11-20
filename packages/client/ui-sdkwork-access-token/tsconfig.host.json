@@ -1,0 +1,26 @@
+{
+  // Host face: the durable login settings section and the DSH-home projection.
+  // The browser face is its sibling tsconfig.client.json; the two programs meet
+  // only through the shared src/access-token-settings.ts contract.
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.host.tsbuildinfo"
+  },
+  "files": [
+    "src/index.ts",
+    "src/access-token-settings.ts"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../settings/settings"
+    },
+    {
+      "path": "../../host/webserver"
+    }
+  ]
+}

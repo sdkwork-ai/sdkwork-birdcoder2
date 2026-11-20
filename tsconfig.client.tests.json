@@ -102,6 +102,10 @@
     // SDK source, so the aggregate builds the package by reference and
     // skips its tests (tsconfig.tests.json is the full check).
     "packages/client/ui-sdkwork-feedback/tests/**",
+    // ui-sdkwork-access-token follows the same split: its tests compose the
+    // real IAM/deploy SDK transports, so tsconfig.tests.json is the drift
+    // guard and the aggregate builds the package by reference.
+    "packages/client/ui-sdkwork-access-token/tests/**",
     // ui-sdkwork-token-plan tests import the Membership/Order/Promotion PC surface and
     // generated SDK source; tsconfig.tests.json is the drift guard.
     "packages/client/ui-sdkwork-token-plan/tests/**",
@@ -279,6 +283,7 @@
     { "path": "./packages/client/ui-sdkwork-oem" },
     { "path": "./packages/client/ui-sdkwork-persona" },
     { "path": "./packages/client/ui-sdkwork-feedback" },
+    { "path": "./packages/client/ui-sdkwork-access-token/tsconfig.client.json" },
     { "path": "./packages/client/locale/tsconfig.client.json" },
     { "path": "./packages/client/ui-renderer" },
     { "path": "./packages/client/ui-session" },

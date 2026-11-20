@@ -1,0 +1,43 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-access-token/README.md
+/:
+  en: ebc43d47935ca3aa
+  zh: db70885342a5503c
+/deepseek-ai-dsh-client-ui-sdkwork-access-token:
+  en: 56ad7527c73e0f33
+  zh: b48a0b43df9f0444
+/deepseek-ai-dsh-client-ui-sdkwork-access-token/summary:
+  en: 0237b670ded16fd1
+  zh: 3489443219dfd7c8
+/deepseek-ai-dsh-client-ui-sdkwork-access-token/table-of-contents:
+  en: ca5dc537b0599b2a
+  zh: ca5dc537b0599b2a
+/deepseek-ai-dsh-client-ui-sdkwork-access-token/use-this-package:
+  en: 0142720f0deaffce
+  zh: 3509aac62c5b0dff
+/deepseek-ai-dsh-client-ui-sdkwork-access-token/use-this-package/remembered-login-dsh-home:
+  en: 42b11b60c80234c1
+  zh: 14f80f6eb05b6737
+/deepseek-ai-dsh-client-ui-sdkwork-access-token/understand-the-implementation:
+  en: 240473b7763baf20
+  zh: 6bcb70fe6c143aec
+/deepseek-ai-dsh-client-ui-sdkwork-access-token/understand-the-implementation/generation-logic:
+  en: d2bf0fdff2eff1b9
+  zh: b874c2e1a86f24d1
+/deepseek-ai-dsh-client-ui-sdkwork-access-token/dev-note:
+  en: 395b7324dd2b3abe
+  zh: 379c6a7e8a51d262
+/deepseek-ai-dsh-client-ui-sdkwork-access-token/runtime-invariants:
+  en: e1876b3e07290481
+  zh: 81cd744f527f4e42
+/deepseek-ai-dsh-client-ui-sdkwork-access-token/model-experience:
+  en: 3b9506bdd08d3286
+  zh: 9fc66bbdb3ddf98c
+/deepseek-ai-dsh-client-ui-sdkwork-access-token/model-experience/kv-cache-effect:
+  en: fcdd38bb52b9dc6a
+  zh: cd3842c066f14dae
+/deepseek-ai-dsh-client-ui-sdkwork-access-token/known-limitations-and-deferred-work:
+  en: adc0bbb2cc1e34b5
+  zh: 7fd3f249dd5c1e93

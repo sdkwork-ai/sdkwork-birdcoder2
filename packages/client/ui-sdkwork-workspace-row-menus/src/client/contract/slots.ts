@@ -48,6 +48,19 @@ export interface RowMenusSessionLogDownloadPort {
   download(sessionId: SessionId): Promise<void>
 }
 
+/**
+ * Minimal SDKWork access-token initializer port (structural slice of
+ * ui-sdkwork-access-token's service). The plugin is optional: without it the
+ * project menu simply has no access-token row.
+ */
+export interface RowMenusAccessTokenPort {
+  /**
+   * Open the access-token initializer dialog for one project directory.
+   * @param options - the project directory and the clicked row's title.
+   */
+  open(options: { directory: string; displayTitle?: string | undefined }): void
+}
+
 /** Minimal publish-project service face (structural slice of ui-sdkwork-deploy's DeployPublishService). */
 export interface RowMenusDeployPublishPort {
   /**

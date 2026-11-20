@@ -85,3 +85,4 @@ SDKWork 自定义插件统一以 **`sdkwork`** 标识，一眼可辨：
 | 包路径 | npm 包名 | 作用 |
 |--------|----------|------|
 | `packages/client/ui-sdkwork-input-history` | `@deepseek-ai/dsh-client-ui-sdkwork-input-history` | 输入框历史输入缓存：记录 Host 接受的普通消息到浏览器本地，↑/↓ 按 session / 项目 / 全局作用域切换历史输入；设置弹窗新增「输入历史」页（开关、范围、缓存时长默认 30 天并自动过期清理）。 |
+| `packages/client/ui-sdkwork-access-token` | `@deepseek-ai/dsh-client-ui-sdkwork-access-token` | Access Token 初始化：工作区 `sdkwork-*` 工程目录右键菜单「初始化 Access Token」。公共模式按 `APP_ACCESS_TOKEN_SPEC.md` 生成租户级/组织级公共应用访问令牌，并按应用类型（Vite / Flutter / 小程序 / Harmony 原生 / 其他 JSON 运行时）写入十个 Profile 矩阵文件；签名模式复用 IAM 会话或账号密码登录（admin/operator 登录后写入标准设置分区，并投影为 `<DSH_HOME>/sdkwork/access-token.config.json`），只允许为本人创建的应用经 `appAccessTokens.create` 交换签名令牌并校验后展示；同时向共享工作区右键菜单贡献同一动词。 |

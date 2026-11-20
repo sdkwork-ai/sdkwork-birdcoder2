@@ -44,7 +44,10 @@ import { installDesktopDirectoryPicker } from './directory-picker.ts'
 import { installMicrophonePermissions } from './microphone-permissions.ts'
 import { DesktopBackendController } from './backend-controller.ts'
 import { DESKTOP_IPC, SCHEME, assertDesktopSender, type DesktopSignInOutcome, type DesktopUpdateState } from './ipc.ts'
-import { createIamDeepLinkBridge, findIamDeepLink } from './iam-deep-links.ts'
+import { createIamDeepLinkBridge, findIamDeepLink, matchesIamRedirectUri } from './iam-deep-links.ts'
+import { createIamDeepLinkRelay, type IamDeepLinkRelay } from './iam-deep-link-relay.ts'
+import { IAM_LOOPBACK_BRIDGE } from './iam-loopback-protocol.ts'
+import { createIamLoopbackRedirect } from './iam-loopback-redirect.ts'
 import { createIamSessionBridge, type IamSessionSecretStorage } from './iam-session.ts'
 import { readDeviceInfo } from './device-info.ts'
 import { DESKTOP_DEFAULT_BRAND, desktopUpdateReadyConfirmation, formatDesktopMessage, resolveDesktopLocale, resolveDesktopStartupLocale } from './locale.ts'
@@ -1115,6 +1118,13 @@ async function main(): Promise<void> {
   // `enterWorkspace` exists below; a relaunch callback is handled by
   // `openInitialWindow` instead.
   let requestIamWorkspaceEntry: () => void = () => {}
+  const launchIamCallback = findIamDeepLink(launchDeepLinks, iamRedirectUri)
+  // Both the installed build and a development build register the same brand
+  // scheme, so the OS may hand a callback to either process. The relay below
+  // shares every callback this process receives, and each renderer keeps only
+  // the one whose pending PKCE state it owns; the spool carries it to an
+  // instance that starts after the link. Protocol ownership is never relied on.
+  const relayHandle: { relay?: IamDeepLinkRelay } = {}
   const iamDeepLinks = createIamDeepLinkBridge({
     app,
     ipcMain,
@@ -1126,10 +1136,60 @@ async function main(): Promise<void> {
     redirectUri: iamRedirectUri,
     registerScheme: app.isPackaged || process.env.DSH_DESKTOP_DEV_APP === '1',
     allowInsecureHttp: desktopAllowInsecureHttp(),
-    initialUrl: findIamDeepLink(launchDeepLinks, iamRedirectUri),
+    initialUrl: launchIamCallback,
     onIamCallback: () => { requestIamWorkspaceEntry() },
+    onExternalCallback: (url) => { relayHandle.relay?.share(url) },
   })
-  app.on('will-quit', () => { iamDeepLinks.dispose() })
+  const iamDeepLinkRelay = createIamDeepLinkRelay({
+    identity: brand.desktop.protocol,
+    isCallback: url => matchesIamRedirectUri(url, iamRedirectUri),
+    deliver: (url) => { iamDeepLinks.acceptExternalUrl(url) },
+    warn: (line) => { console.warn(line) },
+  })
+  relayHandle.relay = iamDeepLinkRelay
+  void iamDeepLinkRelay.start()
+  // A launch URL can belong to a login started in another process: share it so
+  // that process redeems the code instead of leaving it waiting.
+  if (launchIamCallback !== null) iamDeepLinkRelay.share(launchIamCallback)
+
+  // RFC 8252 loopback redirect: the renderer presents a per-process
+  // `http://127.0.0.1:<port>/auth/callback` to the hosted authorize page, so a
+  // login always returns to the process that started it. Enabled in a
+  // development launch by default; a packaged build opts in with
+  // `DSH_DESKTOP_IAM_LOOPBACK=1` once its IAM client allows loopback redirects.
+  // The custom-scheme bridge above stays in place as the fallback.
+  const loopbackEnabled = (): boolean => {
+    const configured = process.env.DSH_DESKTOP_IAM_LOOPBACK?.trim()
+    if (configured === '1') return true
+    if (configured === '0') return false
+    // A deployment that has registered loopback redirects enables it in its
+    // OEM profile; a source launch keeps it on for local verification.
+    if (oem().sdkwork.iamLoopbackRedirect) return true
+    return !app.isPackaged
+  }
+  const iamLoopback = createIamLoopbackRedirect({
+    brandName: desktopBrandName(),
+    onCallback: (url) => {
+      mainWindow?.webContents.send(IAM_LOOPBACK_BRIDGE.callback, url)
+      requestIamWorkspaceEntry()
+    },
+  })
+  ipcMain.handle(IAM_LOOPBACK_BRIDGE.start, async (event) => {
+    assertProductSender(event)
+    if (!loopbackEnabled()) throw new Error('loopback login is disabled')
+    return iamLoopback.start()
+  })
+  ipcMain.handle(IAM_LOOPBACK_BRIDGE.cancel, async (event) => {
+    assertProductSender(event)
+    await iamLoopback.cancel()
+  })
+  app.on('will-quit', () => {
+    void iamLoopback.dispose()
+    ipcMain.removeHandler(IAM_LOOPBACK_BRIDGE.start)
+    ipcMain.removeHandler(IAM_LOOPBACK_BRIDGE.cancel)
+    void iamDeepLinkRelay.dispose()
+    iamDeepLinks.dispose()
+  })
   // Startup decides workspace-over-welcome once, before any window exists to
   // take the launch URL: the bridge retires that flag on the take so a later
   // sign-out can show the welcome screen again.

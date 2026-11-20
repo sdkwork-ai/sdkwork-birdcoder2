@@ -74,6 +74,7 @@ describe('sdkwork-oem plugin', () => {
           iamAuthorizeBaseUrl: 'https://platform.birdcoder.com',
           iamClientId: 'birdcoder',
           iamRedirectUri: 'birdcoder://auth/callback',
+          iamLoopbackRedirect: false,
         },
       },
     }])

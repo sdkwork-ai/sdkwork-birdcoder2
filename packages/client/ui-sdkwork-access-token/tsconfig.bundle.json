@@ -1,0 +1,10 @@
+{
+  // Bundle-time tsconfig for tsdown: strips the declaration-facade `paths`
+  // (sdkwork-types/) so the client bundle resolves the REAL sdkwork packages
+  // through node_modules and inlines their source. Everything else inherits
+  // the emit project's settings.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {}
+  }
+}

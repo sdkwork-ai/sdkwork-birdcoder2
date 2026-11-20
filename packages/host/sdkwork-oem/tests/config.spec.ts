@@ -50,6 +50,7 @@ describe('resolveOemConfig', () => {
         iamAuthorizeBaseUrl: 'https://platform.birdcoder.com',
         iamClientId: 'birdcoder',
         iamRedirectUri: 'birdcoder://auth/callback',
+        iamLoopbackRedirect: false,
       },
       deepseek: {
         platformOrigin: 'https://platform.birdcoder.com',
@@ -187,6 +188,7 @@ describe('resolveOemConfig', () => {
       iamAuthorizeBaseUrl: 'https://platform.acme.test',
       iamClientId: 'birdcoder',
       iamRedirectUri: 'birdcoder://auth/callback',
+      iamLoopbackRedirect: false,
     })
     expect(() => resolveOemConfig({ sdkwork: { iamBaseUrl: 'http://iam.acme.test' } }))
       .toThrow(/sdkwork\.iamBaseUrl/)
@@ -194,6 +196,13 @@ describe('resolveOemConfig', () => {
       .toThrow(/sdkwork\.iamBaseUrl/)
     expect(() => resolveOemConfig({ sdkwork: { iamAuthorizeBaseUrl: 'http://platform.acme.test' } }))
       .toThrow(/sdkwork\.iamAuthorizeBaseUrl/)
+  })
+
+  it('enables the RFC 8252 loopback redirect only when the deployment opts in', () => {
+    expect(resolveOemConfig(undefined).sdkwork.iamLoopbackRedirect).toBe(false)
+    expect(resolveOemConfig({ sdkwork: { iamLoopbackRedirect: true } }).sdkwork.iamLoopbackRedirect).toBe(true)
+    expect(() => resolveOemConfig({ sdkwork: { iamLoopbackRedirect: 'yes' } }))
+      .toThrow(/sdkwork\.iamLoopbackRedirect/)
   })
 
   it('repoints the desktop OAuth identity only together with the running brand', () => {
@@ -418,6 +427,7 @@ describe('oemBootConfig', () => {
         iamAuthorizeBaseUrl: 'https://platform.birdcoder.com',
         iamClientId: 'birdcoder',
         iamRedirectUri: 'birdcoder://auth/callback',
+        iamLoopbackRedirect: false,
       },
     })
   })

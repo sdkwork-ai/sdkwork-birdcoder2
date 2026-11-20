@@ -13,8 +13,8 @@
 import { SessionRowMenu, WorkspaceRowMenu } from './RowMenus.tsx'
 import type { AppBuildService } from './appBuild/contract.ts'
 import type {
-  RowContextMenuChannel, RowMenusDeployPublishPort, RowMenusSessionLogDownloadPort,
-  RowMenusWorkspacesPort,
+  RowContextMenuChannel, RowMenusAccessTokenPort, RowMenusDeployPublishPort,
+  RowMenusSessionLogDownloadPort, RowMenusWorkspacesPort,
 } from './contract/slots.ts'
 
 export function RowMenusEntry(props: {
@@ -44,6 +44,7 @@ export function RowMenusEntry(props: {
   sessionLogDownload?: RowMenusSessionLogDownloadPort | undefined
   deployPublish?: RowMenusDeployPublishPort | undefined
   appBuild?: AppBuildService | undefined
+  accessToken?: RowMenusAccessTokenPort | undefined
 }) {
   if (props.sessionId !== undefined) {
     if (props.title === undefined || props.onRename === undefined
@@ -87,6 +88,7 @@ export function RowMenusEntry(props: {
       sessionLogDownload={props.sessionLogDownload}
       deployPublish={props.deployPublish}
       appBuild={props.appBuild}
+      accessToken={props.accessToken}
       t={props.t ?? (key => key)}
     />
   )

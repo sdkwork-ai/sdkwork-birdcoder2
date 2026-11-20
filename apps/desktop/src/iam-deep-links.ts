@@ -45,6 +45,14 @@ export interface IamDeepLinkBridge {
   /** URL the OS handed the app at launch, if any. */
   getInitialUrl(): string | null
   /**
+   * Hand a callback received from another process to this process's renderer.
+   *
+   * Only a URL matching the registered redirect enters the flow; this is the
+   * cross-process hand-off's delivery path and never re-broadcasts.
+   * @param url - callback URL relayed by a peer instance.
+   */
+  acceptExternalUrl(url: string): void
+  /**
    * Whether the process launch itself carried an IAM callback.
    *
    * The renderer consumes the launch URL once (so a used code is never
@@ -87,6 +95,13 @@ export interface IamDeepLinkBridgeOptions {
    * redeem the code.
    */
   onIamCallback?: (url: string) => void
+  /**
+   * Called for every callback this process receives from the OS, after the
+   * local delivery. The shell shares it with peer instances so the process
+   * that actually started the login can redeem it even when the OS routed the
+   * link to another one (both channels register the same scheme).
+   */
+  onExternalCallback?: (url: string) => void
 }
 
 /** One parsed deep-link shape: what the callback contract compares. */
@@ -194,23 +209,32 @@ export function createIamDeepLinkBridge(options: IamDeepLinkBridgeOptions): IamD
 
   if (options.registerScheme) app.setAsDefaultProtocolClient(scheme)
 
+  /**
+   * Deliver one matching callback to this process: the startup URL (taken once
+   * by the renderer), the live IPC event, and the shell's workspace request.
+   */
+  const accept = (url: string): void => {
+    if (disposed || !matchesIamRedirectUri(url, options.redirectUri)) return
+    initialUrl = url
+    options.getWindow()?.webContents.send(SDKWORK_DESKTOP_BRIDGE.deepLinksOpenEvent, url)
+    options.onIamCallback?.(url)
+  }
+
   const handleOpenUrl = (event: { preventDefault(): void }, url: string): void => {
     // Another listener owns the product's own deep links; claiming the event
     // before matching would make this bridge swallow them.
     if (disposed || typeof url !== 'string' || !matchesIamRedirectUri(url, options.redirectUri)) return
     event.preventDefault()
-    initialUrl = url
-    options.getWindow()?.webContents.send(SDKWORK_DESKTOP_BRIDGE.deepLinksOpenEvent, url)
-    options.onIamCallback?.(url)
+    accept(url)
+    options.onExternalCallback?.(url)
   }
 
   const handleSecondInstance = (_event: unknown, argv: readonly string[]): void => {
     if (!Array.isArray(argv)) return
     const url = findIamDeepLink(argv, options.redirectUri)
     if (url !== null) {
-      initialUrl = url
-      options.getWindow()?.webContents.send(SDKWORK_DESKTOP_BRIDGE.deepLinksOpenEvent, url)
-      options.onIamCallback?.(url)
+      accept(url)
+      options.onExternalCallback?.(url)
     }
   }
 
@@ -232,6 +256,7 @@ export function createIamDeepLinkBridge(options: IamDeepLinkBridgeOptions): IamD
 
   return {
     getInitialUrl: takeInitialUrl,
+    acceptExternalUrl: accept,
     hasLaunchCallback: () => launchCallback,
     dispose: () => {
       disposed = true

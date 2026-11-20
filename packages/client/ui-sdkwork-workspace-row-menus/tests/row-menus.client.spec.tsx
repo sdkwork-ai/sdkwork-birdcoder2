@@ -735,3 +735,58 @@ describe('SDKWork path/export actions in the row menus', () => {
     expect(screen.getByRole('menuitem', { name: '发布应用' })).toBeTruthy()
   })
 })
+
+describe('WorkspaceRowMenu access-token initializer row', () => {
+  it('offers 初始化 Access Token for an sdkwork-* project directory and dispatches the directory', () => {
+    const accessToken = { open: vi.fn() }
+    render(
+      <div>
+        <WorkspaceRowMenu
+          label="IM"
+          cwd="/work/sdkwork-im"
+          actions={{ rename: vi.fn(), delete: vi.fn() }}
+          iconButtonClassName={TRIGGER}
+          accessToken={accessToken}
+          t={t}
+        />
+      </div>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '工作区“IM”的操作' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '初始化 Access Token' }))
+    expect(accessToken.open).toHaveBeenCalledWith({ directory: '/work/sdkwork-im', displayTitle: 'IM' })
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it('keeps the row off non-SDKWork directories and without an initializer service', () => {
+    const accessToken = { open: vi.fn() }
+    render(
+      <div>
+        <WorkspaceRowMenu
+          label="Other"
+          cwd="/work/other-app"
+          actions={{ rename: vi.fn(), delete: vi.fn() }}
+          iconButtonClassName={TRIGGER}
+          accessToken={accessToken}
+          t={t}
+        />
+      </div>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '工作区“Other”的操作' }))
+    expect(screen.queryByRole('menuitem', { name: '初始化 Access Token' })).toBeNull()
+    expect(screen.getByRole('menuitem', { name: '删除工作区' })).toBeTruthy()
+    cleanup()
+    render(
+      <div>
+        <WorkspaceRowMenu
+          label="IM"
+          cwd="/work/sdkwork-im"
+          actions={{ rename: vi.fn(), delete: vi.fn() }}
+          iconButtonClassName={TRIGGER}
+          t={t}
+        />
+      </div>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '工作区“IM”的操作' }))
+    expect(screen.queryByRole('menuitem', { name: '初始化 Access Token' })).toBeNull()
+  })
+})

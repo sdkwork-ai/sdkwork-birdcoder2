@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-20-deeplink-login-multi-process-handoff.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-20-deeplink-login-multi-process-handoff.md
+/agent-note-a-deep-link-login-callback-reaches-the-process-that-owns-its-pkce-flow:
+  en: 574f1a58c1167af4
+  zh: b556b034d664c12d
+/agent-note-a-deep-link-login-callback-reaches-the-process-that-owns-its-pkce-flow/problem:
+  en: 80231a843c873081
+  zh: 899327cbf6e4fd85
+/agent-note-a-deep-link-login-callback-reaches-the-process-that-owns-its-pkce-flow/decision:
+  en: e973fbea126f2b72
+  zh: 4111c3e055648251
+/agent-note-a-deep-link-login-callback-reaches-the-process-that-owns-its-pkce-flow/alternatives-considered:
+  en: 256ea612338e7734
+  zh: 4c9ec60d68dd67d3
+/agent-note-a-deep-link-login-callback-reaches-the-process-that-owns-its-pkce-flow/consequences:
+  en: 8581671677d75914
+  zh: bbc7d5ffb856ddab

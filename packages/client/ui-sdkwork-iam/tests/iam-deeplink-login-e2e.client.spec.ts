@@ -9,6 +9,8 @@
  * shared token manager → the dual-token headers every SDK client sends.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createServer, type Server } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { buildAuthHeaders, AuthenticationError } from '@sdkwork/sdk-common'
 import { DEFAULT_UI_IAM_SETTINGS, type UiIamSettings } from '../src/iam-settings.ts'
 import type { SettingsScope } from '@deepseek-ai/dsh-client-runtime/client'
@@ -104,9 +106,12 @@ import { createIamAccountSource } from '../src/client/account-source.ts'
 let openHandlers: Array<(url: string) => void> = []
 const openedUrls: string[] = []
 let durableRecord: unknown = null
+let loopbackHandlers: Array<(url: string) => void> = []
+let loopbackCanceled = 0
+const LOOPBACK_REDIRECT = 'http://127.0.0.1:54321/auth/callback'
 
-function installDesktopBridge(): void {
-  ;(globalThis as Record<string, unknown>).sdkworkDesktop = {
+function installDesktopBridge(options: { loopback?: 'ok' | 'unavailable' } = {}): void {
+  const bridge: Record<string, unknown> = {
     deepLinks: {
       getInitialUrl: async () => null,
       onOpenUrl: (handler: (url: string) => void) => {
@@ -125,6 +130,25 @@ function installDesktopBridge(): void {
       clear: async () => { durableRecord = null },
     },
   }
+  if (options.loopback === 'ok') {
+    bridge.loopbackLogin = {
+      start: async () => ({ redirectUri: LOOPBACK_REDIRECT }),
+      cancel: async () => { loopbackCanceled += 1 },
+      onCallback: (handler: (url: string) => void) => {
+        loopbackHandlers.push(handler)
+        return () => {
+          loopbackHandlers = loopbackHandlers.filter(candidate => candidate !== handler)
+        }
+      },
+    }
+  } else if (options.loopback === 'unavailable') {
+    bridge.loopbackLogin = {
+      start: async () => { throw new Error('loopback disabled') },
+      cancel: async () => { loopbackCanceled += 1 },
+      onCallback: () => () => {},
+    }
+  }
+  ;(globalThis as Record<string, unknown>).sdkworkDesktop = bridge
 }
 
 /** Deliver one OS deep link to every registered listener, as Electron does. */
@@ -192,6 +216,8 @@ describe('deeplink login end to end', () => {
     openedUrls.length = 0
     openHandlers = []
     durableRecord = null
+    loopbackHandlers = []
+    loopbackCanceled = 0
     client.oauth.desktopSessions.create.mockClear()
     client.http.request.mockClear()
     client.iam.users.current.retrieve.mockClear()
@@ -224,7 +250,7 @@ describe('deeplink login end to end', () => {
     //    callback reach the hosted platform page.
     await service.beginBrowserSignIn()
     expect(openedUrls).toHaveLength(1)
-    const authorizeUrl = new URL(openedUrls[0]!)
+    const authorizeUrl = new URL(openedUrls[0])
     expect(authorizeUrl.origin).toBe('https://platform.birdcoder.com')
     expect(authorizeUrl.pathname).toBe('/iam/oauth/authorize')
     expect(authorizeUrl.searchParams.get('client_id')).toBe('birdcoder')
@@ -313,6 +339,103 @@ describe('deeplink login end to end', () => {
     expect(service.browserSignInFailure()).toBeUndefined()
   })
 
+  it('uses a per-process loopback redirect and redeems its callback', async () => {
+    installDesktopBridge({ loopback: 'ok' })
+    const service = new IamService(scopeOf(), envOf(), layoutOf())
+    await service.beginBrowserSignIn()
+    expect(openedUrls).toHaveLength(1)
+    const authorizeUrl = new URL(openedUrls[0])
+    expect(authorizeUrl.searchParams.get('redirect_uri')).toBe(LOOPBACK_REDIRECT)
+    const state = authorizeUrl.searchParams.get('state')
+    expect(state).toBeTruthy()
+    expect(loopbackHandlers.length).toBeGreaterThan(0)
+    for (const handler of [...loopbackHandlers]) {
+      handler(`${LOOPBACK_REDIRECT}?code=loopback-1&state=${state}`)
+    }
+    await vi.waitFor(() => { expect(service.isSignedIn()).toBe(true) })
+    expect(exchangeCalls[0]).toMatchObject({
+      clientId: 'birdcoder',
+      authorizationCode: 'loopback-1',
+      redirectUri: LOOPBACK_REDIRECT,
+    })
+    expect(service.browserSignInFailed()).toBe(false)
+    // The ephemeral listener stops as soon as the session is committed.
+    expect(loopbackCanceled).toBeGreaterThan(0)
+  })
+
+  it('ignores a forged loopback callback and still redeems the real one', async () => {
+    installDesktopBridge({ loopback: 'ok' })
+    const service = new IamService(scopeOf(), envOf(), layoutOf())
+    await service.beginBrowserSignIn()
+    const authorizeUrl = new URL(openedUrls[0])
+    const state = authorizeUrl.searchParams.get('state')
+    // A local request with a foreign state must not fail or consume the flow.
+    for (const handler of [...loopbackHandlers]) {
+      handler(`${LOOPBACK_REDIRECT}?code=forged&state=forged`)
+    }
+    expect(service.isSignedIn()).toBe(false)
+    expect(service.browserSignInFailed()).toBe(false)
+    for (const handler of [...loopbackHandlers]) {
+      handler(`${LOOPBACK_REDIRECT}?code=real&state=${state}`)
+    }
+    await vi.waitFor(() => { expect(service.isSignedIn()).toBe(true) })
+    expect(exchangeCalls[0]).toMatchObject({ authorizationCode: 'real', redirectUri: LOOPBACK_REDIRECT })
+  })
+
+  it('completes a login through a real loopback HTTP redirect', async () => {
+    let server: Server | undefined
+    try {
+      const handlers: Array<(url: string) => void> = []
+      server = createServer((request, response) => {
+        const port = (server?.address() as AddressInfo).port
+        const url = `http://127.0.0.1:${String(port)}${request.url ?? ''}`
+        for (const handler of [...handlers]) handler(url)
+        response.writeHead(200, { 'content-type': 'text/plain' }).end('ok')
+      })
+      await new Promise<void>((resolve) => { server?.listen(0, '127.0.0.1', () => { resolve() }) })
+      const { port } = server.address() as AddressInfo
+      const redirectUri = `http://127.0.0.1:${String(port)}/auth/callback`
+      ;(globalThis as Record<string, unknown>).sdkworkDesktop = {
+        ...(globalThis as Record<string, unknown>).sdkworkDesktop as Record<string, unknown>,
+        loopbackLogin: {
+          start: async () => ({ redirectUri }),
+          cancel: async () => {},
+          onCallback: (handler: (url: string) => void) => {
+            handlers.push(handler)
+            return () => {
+              const index = handlers.indexOf(handler)
+              if (index >= 0) handlers.splice(index, 1)
+            }
+          },
+        },
+      }
+      const service = new IamService(scopeOf(), envOf(), layoutOf())
+      await service.beginBrowserSignIn()
+      const authorizeUrl = new URL(openedUrls[0])
+      expect(authorizeUrl.searchParams.get('redirect_uri')).toBe(redirectUri)
+      const state = authorizeUrl.searchParams.get('state')
+      await fetch(`${redirectUri}?code=http-loopback&state=${state}`)
+      await vi.waitFor(() => { expect(service.isSignedIn()).toBe(true) })
+      expect(exchangeCalls[0]).toMatchObject({ authorizationCode: 'http-loopback', redirectUri })
+    } finally {
+      if (server !== undefined) await new Promise<void>((resolve) => { server?.close(() => { resolve() }) })
+    }
+  })
+
+  it('falls back to the registered custom-scheme callback when loopback is unavailable', async () => {
+    installDesktopBridge({ loopback: 'unavailable' })
+    const service = new IamService(scopeOf(), envOf(), layoutOf())
+    await service.beginBrowserSignIn()
+    expect(openedUrls).toHaveLength(1)
+    const authorizeUrl = new URL(openedUrls[0])
+    expect(authorizeUrl.searchParams.get('redirect_uri')).toBe(REDIRECT)
+    const state = authorizeUrl.searchParams.get('state')
+    expect(openHandlers).toHaveLength(1)
+    emitDeepLink(`${REDIRECT}?code=fallback-1&state=${state}`)
+    await vi.waitFor(() => { expect(service.isSignedIn()).toBe(true) })
+    expect(exchangeCalls[0]).toMatchObject({ authorizationCode: 'fallback-1', redirectUri: REDIRECT })
+  })
+
   it('opens the desktop product page and then the hosted browser login', async () => {
     const openSignIn = vi.fn(async () => 'login' as const)
     ;(globalThis as Record<string, unknown>).dshDesktop = { auth: { openSignIn } }
@@ -347,7 +470,7 @@ describe('deeplink login end to end', () => {
   it('records the failing step when the hosted authorization is refused', async () => {
     const service = new IamService(scopeOf(), envOf(), layoutOf())
     await service.beginBrowserSignIn()
-    const state = new URL(openedUrls[0]!).searchParams.get('state')
+    const state = new URL(openedUrls[0]).searchParams.get('state')
     emitDeepLink(
       `${REDIRECT}?error=server_error&error_description=The hosted authorization could not be started.&state=${state}`,
     )
@@ -370,7 +493,7 @@ describe('deeplink login end to end', () => {
   it('reports a rejected code exchange and leaves the app signed out', async () => {
     const service = new IamService(scopeOf(), envOf(), layoutOf())
     await service.beginBrowserSignIn()
-    const state = new URL(openedUrls[0]!).searchParams.get('state')
+    const state = new URL(openedUrls[0]).searchParams.get('state')
     client.oauth.desktopSessions.create.mockRejectedValueOnce(new Error('authorization code is invalid or expired'))
     emitDeepLink(`${REDIRECT}?code=code-4&state=${state}`)
 
@@ -384,7 +507,7 @@ describe('deeplink login end to end', () => {
   it('discards a committed session the account endpoint refuses', async () => {
     const service = new IamService(scopeOf(), envOf(), layoutOf())
     await service.beginBrowserSignIn()
-    const state = new URL(openedUrls[0]!).searchParams.get('state')
+    const state = new URL(openedUrls[0]).searchParams.get('state')
     // The exchange succeeds, but the gateway refuses the issued credentials. If
     // this were accepted, the login would look complete while every SDK client
     // failed on the same rejected session.
@@ -438,7 +561,7 @@ describe('deeplink login end to end', () => {
 
     const service = new IamService(scopeOf(), envOf(), layoutOf())
     await service.beginBrowserSignIn()
-    const state = new URL(openedUrls[0]!).searchParams.get('state')
+    const state = new URL(openedUrls[0]).searchParams.get('state')
     emitDeepLink(`${REDIRECT}?code=code-5&state=${state}`)
     await vi.waitFor(() => { expect(service.isSignedIn()).toBe(true) })
     // A loaded worker can let the pre-expiry scheduler fire before this read;
@@ -466,7 +589,7 @@ describe('deeplink login end to end', () => {
   it('ignores a repeated callback after the login already completed', async () => {
     const service = new IamService(scopeOf(), envOf(), layoutOf())
     await service.beginBrowserSignIn()
-    const state = new URL(openedUrls[0]!).searchParams.get('state')
+    const state = new URL(openedUrls[0]).searchParams.get('state')
     const callback = `${REDIRECT}?code=code-6&state=${state}`
     emitDeepLink(callback)
     await vi.waitFor(() => { expect(service.isSignedIn()).toBe(true) })
@@ -494,7 +617,7 @@ describe('deeplink login end to end', () => {
     expect(service.browserSignInFailed()).toBe(false)
 
     // The real callback still completes the attempt.
-    const state = new URL(openedUrls[0]!).searchParams.get('state')
+    const state = new URL(openedUrls[0]).searchParams.get('state')
     emitDeepLink(`${REDIRECT}?code=code-7&state=${state}`)
     await vi.waitFor(() => { expect(service.isSignedIn()).toBe(true) })
   })
@@ -502,7 +625,7 @@ describe('deeplink login end to end', () => {
   it('signs out of both stores and releases the shared credentials', async () => {
     const service = new IamService(scopeOf(), envOf(), layoutOf())
     await service.beginBrowserSignIn()
-    const state = new URL(openedUrls[0]!).searchParams.get('state')
+    const state = new URL(openedUrls[0]).searchParams.get('state')
     emitDeepLink(`${REDIRECT}?code=code-2&state=${state}`)
     await vi.waitFor(() => { expect(service.isSignedIn()).toBe(true) })
     expect(durableRecord).not.toBeNull()

@@ -1,0 +1,63 @@
+{
+  // Client face: the workspace row menu action, the dialog, and the signed
+  // flow. The sdkwork sibling packages enter the emit program through local
+  // declaration facades (sdkwork-types/) so their source closure never joins
+  // this program; the bundle and tsconfig.tests.json resolve the real packages.
+  "extends": "../../../tsconfig.base.client.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.client.tsbuildinfo",
+    "paths": {
+      "@sdkwork/deployments-app-sdk": ["./sdkwork-types/deployments-app-sdk.d.ts"],
+      "@sdkwork/iam-app-sdk": ["./sdkwork-types/iam-app-sdk.d.ts"],
+      "@sdkwork/sdk-common": ["./sdkwork-types/sdk-common.d.ts"]
+    }
+  },
+  "include": [
+    "src/client",
+    "src/access-token-settings.ts",
+    "src/css-modules.d.ts"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../locale/tsconfig.client.json"
+    },
+    {
+      "path": "../store"
+    },
+    {
+      "path": "../ui-context-menu"
+    },
+    {
+      "path": "../ui-layout"
+    },
+    {
+      "path": "../ui-primitives"
+    },
+    {
+      "path": "../ui-renderer"
+    },
+    {
+      "path": "../ui-sdkwork-env/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-sdkwork-iam"
+    },
+    {
+      "path": "../ui-settings/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-slots"
+    },
+    {
+      "path": "../ui-workspace/tsconfig.client.json"
+    }
+  ]
+}

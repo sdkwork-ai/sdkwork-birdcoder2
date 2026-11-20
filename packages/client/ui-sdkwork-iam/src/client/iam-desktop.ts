@@ -69,6 +69,29 @@ interface SdkworkDesktopGlobal {
   readonly sdkworkDesktop?: unknown
 }
 
+/** Loopback redirect controls the desktop shell exposes next to the bridge. */
+export interface SdkworkDesktopLoopbackPort {
+  /** Start a listener and return the per-process redirect URI. */
+  start(): Promise<{ redirectUri: string }>
+  /** Stop the pending listener. */
+  cancel(): Promise<void>
+  /** Subscribe to accepted callback URLs; returns the unsubscribe function. */
+  onCallback(handler: (url: string) => void): () => void
+}
+
+/**
+ * The upstream bridge plus this fork's loopback extension.
+ *
+ * A loopback redirect needs no operating-system scheme association, so it is
+ * the preferred callback when the shell offers it and the IAM client allows
+ * `http://127.0.0.1:<port>` redirects. The custom-scheme `deepLinks` bridge
+ * remains the fallback and the source of cold-start callbacks.
+ */
+export interface SdkworkDesktopBridge extends SdkworkDesktopBridgeShape {
+  /** Present when the shell can host a loopback login listener. */
+  loopbackLogin?: SdkworkDesktopLoopbackPort
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -77,7 +100,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * Read the standard `sdkworkDesktop` bridge from the page.
  * @returns the validated bridge, or undefined outside the desktop shell.
  */
-export function readSdkworkDesktopBridge(): SdkworkDesktopBridgeShape | undefined {
+export function readSdkworkDesktopBridge(): SdkworkDesktopBridge | undefined {
   const candidate = (globalThis as SdkworkDesktopGlobal).sdkworkDesktop
   if (!isRecord(candidate)) return undefined
   const deepLinks = candidate.deepLinks
@@ -91,7 +114,7 @@ export function readSdkworkDesktopBridge(): SdkworkDesktopBridgeShape | undefine
   // The page global is foreign input, so each exposed method binds the
   // validated function to the object that owned it and narrows its result
   // here rather than trusting the bridge's declared types.
-  return {
+  const bridge: SdkworkDesktopBridge = {
     deepLinks: {
       getInitialUrl: async () => {
         const value: unknown = await Reflect.apply(getInitialUrl, deepLinks, [])
@@ -108,6 +131,27 @@ export function readSdkworkDesktopBridge(): SdkworkDesktopBridgeShape | undefine
       },
     },
   }
+  const loopback = candidate.loopbackLogin
+  if (isRecord(loopback)) {
+    const { start, cancel, onCallback } = loopback
+    if (typeof start === 'function' && typeof cancel === 'function' && typeof onCallback === 'function') {
+      bridge.loopbackLogin = {
+        start: async () => {
+          const value: unknown = await Reflect.apply(start, loopback, [])
+          if (!isRecord(value) || typeof value.redirectUri !== 'string') {
+            throw new Error('loopback login returned no redirect URI')
+          }
+          return { redirectUri: value.redirectUri }
+        },
+        cancel: async () => { await Reflect.apply(cancel, loopback, []) },
+        onCallback: (handler) => {
+          const value: unknown = Reflect.apply(onCallback, loopback, [handler])
+          return typeof value === 'function' ? value as () => void : () => {}
+        },
+      }
+    }
+  }
+  return bridge
 }
 
 /**
@@ -150,14 +194,17 @@ export function readSdkworkDesktopIamSessionBridge(): SdkworkDesktopIamSessionPo
 export interface CreateIamDesktopLoginOptions {
   /** OAuth client id the hosted authorization receives as `client_id`. */
   clientId: string
-  /** Registered deep-link callback the hosted login returns through. */
+  /**
+   * Registered deep-link callback used when the shell offers no loopback
+   * listener (or the loopback listener cannot start).
+   */
   redirectUri: string
   /** Hosted IAM authorization origin, e.g. `https://platform.birdcoder.com`. */
   authorizeBaseUrl: string
   /** IAM app-api origin used for the desktop-session exchange. */
   baseUrl: string
   tokenManager: AuthTokenManager
-  bridge: SdkworkDesktopBridgeShape
+  bridge: SdkworkDesktopBridge
   /** Stable opaque per-install device identity used to scope the session. */
   deviceId?: string
   /** Deadline of the pending flow; defaults to the desktop runtime's own window. */
@@ -179,6 +226,12 @@ export interface IamDesktopLogin {
 
 /**
  * Build the desktop browser-login flow over the standard preload bridge.
+ *
+ * When the shell exposes a loopback listener, each attempt starts a fresh
+ * RFC 8252 redirect (`http://127.0.0.1:<port>/auth/callback`) and builds a
+ * runtime around that URI; the loopback callback and any fallback deep link
+ * both feed the same state/PKCE validation. Without a listener the flow keeps
+ * the registered custom-scheme callback unchanged.
  * @param options - identity, origins, token manager, bridge, and session sink.
  * @returns the flow controls the IAM service drives.
  */
@@ -189,7 +242,12 @@ export function createIamDesktopLogin(options: CreateIamDesktopLoginOptions): Ia
     platform: 'pc',
     tokenManager: options.tokenManager,
   })
-  const host: SdkworkDesktopAuthHostPort = {
+  type Runtime = ReturnType<typeof createSdkworkIamDesktopAuthRuntime>
+  const listeners = new Set<() => void>()
+  const notify = (): void => {
+    for (const listener of [...listeners]) listener()
+  }
+  const standardHost: SdkworkDesktopAuthHostPort = {
     id: 'electron',
     async getInitialUrl() {
       return options.bridge.deepLinks.getInitialUrl()
@@ -201,25 +259,100 @@ export function createIamDesktopLogin(options: CreateIamDesktopLoginOptions): Ia
       await options.bridge.shellOpen.open(url)
     },
   }
-  const runtime = createSdkworkIamDesktopAuthRuntime({
-    appId: options.clientId,
-    redirectUri: options.redirectUri,
-    authorizeBaseUrl: options.authorizeBaseUrl,
-    // Only the redeem leg is bound through the client; the runtime never uses
-    // the rest of the generated SDK surface.
-    appSdkClient: createAtMostOnceRedeemClient(client),
-    host,
-    onSession: options.onSession,
-    ...(options.deviceId === undefined ? {} : { deviceId: options.deviceId }),
-    ...(options.flowTtlMs === undefined ? {} : { flowTtlMs: options.flowTtlMs }),
-    ...(options.onError === undefined ? {} : { onError: options.onError }),
+  const loopbackHost = (port: SdkworkDesktopLoopbackPort): SdkworkDesktopAuthHostPort => ({
+    id: 'electron-loopback',
+    async getInitialUrl() {
+      // A loopback callback cannot arrive before this runtime exists: the
+      // listener is started first and the browser opens only afterwards.
+      return null
+    },
+    onOpenUrl(handler) {
+      const offLoopback = port.onCallback(handler)
+      const offDeepLinks = options.bridge.deepLinks.onOpenUrl(handler)
+      return () => {
+        offLoopback()
+        offDeepLinks()
+      }
+    },
+    async openExternal(url) {
+      await options.bridge.shellOpen.open(url)
+    },
   })
+  let activeLoopback: SdkworkDesktopLoopbackPort | undefined
+  let disposed = false
+  /** Stop the loopback listener without letting a transport failure escape. */
+  const stopLoopback = (): void => {
+    const loopback = activeLoopback
+    activeLoopback = undefined
+    if (loopback !== undefined) {
+      void loopback.cancel().catch(() => {})
+    }
+  }
+  const createRuntime = (redirectUri: string, host: SdkworkDesktopAuthHostPort): Runtime =>
+    createSdkworkIamDesktopAuthRuntime({
+      appId: options.clientId,
+      redirectUri,
+      authorizeBaseUrl: options.authorizeBaseUrl,
+      // Only the redeem leg is bound through the client; the runtime never uses
+      // the rest of the generated SDK surface.
+      appSdkClient: createAtMostOnceRedeemClient(client),
+      host,
+      onSession: async (session) => {
+        // The login is settled: the ephemeral port has done its job and must
+        // not keep accepting local requests for the rest of its timeout.
+        stopLoopback()
+        await options.onSession(session)
+      },
+      ...(options.deviceId === undefined ? {} : { deviceId: options.deviceId }),
+      ...(options.flowTtlMs === undefined ? {} : { flowTtlMs: options.flowTtlMs }),
+      ...(options.onError === undefined ? {} : { onError: options.onError }),
+    })
+  let runtime = createRuntime(options.redirectUri, standardHost)
+  let unsubscribeRuntime = runtime.controller.subscribe(notify)
+
+  /** Swap the runtime for one bound to the current callback carrier. */
+  const replaceRuntime = (redirectUri: string, host: SdkworkDesktopAuthHostPort): void => {
+    unsubscribeRuntime()
+    runtime.dispose()
+    runtime = createRuntime(redirectUri, host)
+    unsubscribeRuntime = runtime.controller.subscribe(notify)
+  }
+
   return {
-    begin: () => runtime.beginLogin(),
-    cancel: async () => { await runtime.cancelLogin() },
+    async begin() {
+      if (disposed) throw new Error('the desktop login has been disposed')
+      const loopback = options.bridge.loopbackLogin
+      if (loopback !== undefined) {
+        try {
+          const started = await loopback.start()
+          activeLoopback = loopback
+          replaceRuntime(started.redirectUri, loopbackHost(loopback))
+        } catch {
+          // The shell declined a listener (older build or a deployment that
+          // has not enabled loopback redirects): keep the registered callback.
+          console.warn('[ui-sdkwork-iam] loopback redirect unavailable; using the registered callback')
+          activeLoopback = undefined
+          replaceRuntime(options.redirectUri, standardHost)
+        }
+      }
+      await runtime.beginLogin()
+    },
+    async cancel() {
+      stopLoopback()
+      await Promise.resolve(runtime.cancelLogin())
+    },
     isWaiting: () => runtime.controller.isWaiting(),
-    subscribe: listener => runtime.controller.subscribe(listener),
+    subscribe: (listener) => {
+      listeners.add(listener)
+      return () => { listeners.delete(listener) }
+    },
     completePendingCallbackFromLaunch: () => runtime.completePendingCallbackFromLaunch(),
-    dispose: () => { runtime.dispose() },
+    dispose: () => {
+      disposed = true
+      stopLoopback()
+      unsubscribeRuntime()
+      runtime.dispose()
+      listeners.clear()
+    },
   }
 }

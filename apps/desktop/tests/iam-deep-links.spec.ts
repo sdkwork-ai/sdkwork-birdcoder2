@@ -226,6 +226,60 @@ describe('createIamDeepLinkBridge', () => {
     await open({}, 'http://platform-dev.birdcoder.com/iam/v3/oauth/authorize')
     expect(openExternal).toHaveBeenCalledWith('http://platform-dev.birdcoder.com/iam/v3/oauth/authorize')
   })
+
+  it('accepts a callback relayed by a peer process without re-broadcasting it', () => {
+    const send = vi.fn()
+    const onIamCallback = vi.fn()
+    const onExternalCallback = vi.fn()
+    const bridge = createIamDeepLinkBridge({
+      app: fakeApp(),
+      ipcMain: fakeIpc(),
+      shell: { openExternal: vi.fn(async () => {}) },
+      redirectUri: REDIRECT,
+      getWindow: () => ({ webContents: { send } }) as never,
+      assertSender: vi.fn(),
+      registerScheme: false,
+      argv: [],
+      onIamCallback,
+      onExternalCallback,
+    })
+
+    bridge.acceptExternalUrl('birdcoder://open')
+    expect(send).not.toHaveBeenCalled()
+    bridge.acceptExternalUrl(`${REDIRECT}?code=peer&state=s`)
+    expect(send).toHaveBeenCalledWith(SDKWORK_DESKTOP_BRIDGE.deepLinksOpenEvent,
+      `${REDIRECT}?code=peer&state=s`)
+    expect(onIamCallback).toHaveBeenCalledWith(`${REDIRECT}?code=peer&state=s`)
+    // Delivery from a peer is not shared back to the peers.
+    expect(onExternalCallback).not.toHaveBeenCalled()
+    bridge.dispose()
+  })
+
+  it('shares every OS callback with peer processes after delivering it locally', () => {
+    const app = fakeApp()
+    const send = vi.fn()
+    const onExternalCallback = vi.fn()
+    const bridge = createIamDeepLinkBridge({
+      app,
+      ipcMain: fakeIpc(),
+      shell: { openExternal: vi.fn(async () => {}) },
+      redirectUri: REDIRECT,
+      getWindow: () => ({ webContents: { send } }) as never,
+      assertSender: vi.fn(),
+      registerScheme: true,
+      argv: [],
+      onExternalCallback,
+    })
+
+    app.emitOpenUrl(`${REDIRECT}?code=live&state=s`)
+    app.emitSecondInstance(['birdcoder.exe', `${REDIRECT}?code=second&state=s`])
+    app.emitOpenUrl('birdcoder://open')
+    expect(onExternalCallback.mock.calls).toEqual([
+      [`${REDIRECT}?code=live&state=s`],
+      [`${REDIRECT}?code=second&state=s`],
+    ])
+    bridge.dispose()
+  })
 })
 
 describe('matchesIamRedirectUri', () => {
