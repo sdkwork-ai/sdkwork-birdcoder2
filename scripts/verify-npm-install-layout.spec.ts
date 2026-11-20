@@ -115,6 +115,58 @@ describe('npm install layout verifier', () => {
     })
   })
 
+  it('points a glue range that satisfies both synthetic releases at the root release', () => {
+    // A plugin peers on `*`: no prerelease satisfies it, so the working-release
+    // rule left it alone and npm could bind the plugin to either release.
+    const index: RegistryIndex = new Map([
+      ['@deepseek-ai/dsh', new Map([['0.1.1-rc.2', { name: '@deepseek-ai/dsh', version: '0.1.1-rc.2' }]])],
+      ['@deepseek-ai/dsh-child', new Map([['0.1.1-rc.2', { name: '@deepseek-ai/dsh-child', version: '0.1.1-rc.2' }]])],
+      ['@deepseek-ai/dsh-invariants', new Map([['0.1.0-rc.8', {
+        name: '@deepseek-ai/dsh-invariants',
+        version: '0.1.0-rc.8',
+      }]])],
+      ['dsh-mcp-connector', new Map([['0.2.117', {
+        name: 'dsh-mcp-connector',
+        version: '0.2.117',
+        peerDependencies: {
+          '@deepseek-ai/dsh': '*',
+          '@deepseek-ai/dsh-child': '*',
+          '@deepseek-ai/dsh-invariants': '*',
+        },
+      }]])],
+    ])
+
+    const dual = buildDualDshRegistry(index, '0.1.1-rc.2')
+
+    expect(dual.get('dsh-mcp-connector')?.get('0.2.117')).toMatchObject({
+      peerDependencies: {
+        // Substituted packages: the ambiguity is the dual release, so it binds to root.
+        '@deepseek-ai/dsh': '^0.2.0',
+        '@deepseek-ai/dsh-child': '^0.2.0',
+        // Not a workspace member: its published versions stay, and `*` is npm's own choice.
+        '@deepseek-ai/dsh-invariants': '*',
+      },
+    })
+  })
+
+  it('keeps a glue range that names exactly one synthetic release', () => {
+    const index: RegistryIndex = new Map([
+      ['@deepseek-ai/dsh', new Map([['0.1.1-rc.2', { name: '@deepseek-ai/dsh', version: '0.1.1-rc.2' }]])],
+      ['@deepseek-ai/dsh-child', new Map([['0.1.1-rc.2', { name: '@deepseek-ai/dsh-child', version: '0.1.1-rc.2' }]])],
+      ['dsh-better-sidebar', new Map([['0.32.1', {
+        name: 'dsh-better-sidebar',
+        version: '0.32.1',
+        peerDependencies: { '@deepseek-ai/dsh-child': '^0.1.0' },
+      }]])],
+    ])
+
+    const dual = buildDualDshRegistry(index, '0.1.1-rc.2')
+
+    expect(dual.get('dsh-better-sidebar')?.get('0.32.1')).toMatchObject({
+      peerDependencies: { '@deepseek-ai/dsh-child': '^0.1.0' },
+    })
+  })
+
   it('ignores a DSH package that is not a workspace member in the layout', () => {
     const layout = validLayout()
     const packages = {

@@ -169,7 +169,8 @@ function rewriteGlueDshEdges(
 }
 
 /**
- * Rewrite one non-DSH ("glue") dependency range that the working release satisfies.
+ * Rewrite one non-DSH ("glue") dependency range that would otherwise pick
+ * between the two synthetic releases.
  *
  * Glue packages — workspace members outside the DSH namespace, such as the
  * BotHarness packages `@deepseek-ai/dsh-web-app` publishes against, and the
@@ -178,14 +179,30 @@ function rewriteGlueDshEdges(
  * version from the registry, so an unchanged range has no candidate left and
  * npm backtracks over the whole tree looking for one; a required peer that
  * never resolves turns the lane into a wall-clock failure with no layout
- * verdict at all. Any range the working release satisfies therefore points at
- * the root synthetic release: the glue package is shared between the releases,
- * and npm resolves its dependency against the hoisted root installation.
+ * verdict at all.
+ *
+ * Two shapes therefore point at the root synthetic release:
+ *
+ * - A range the working release satisfies. The glue package is shared between
+ *   the releases, and npm resolves its dependency against the hoisted root
+ *   installation.
+ * - A range that satisfies *both* synthetic releases without naming either. A
+ *   plugin's `"*"` peer is the common case, and `satisfies(sourceVersion, '*')`
+ *   is false for every prerelease, so the first rule never covered it. Leaving
+ *   it alone lets npm choose per placement: the plugin then earns a copy under
+ *   each release, and every such choice re-runs `canPlacePeers` over the whole
+ *   peer set — the combinatorial branch the lane cannot finish. Binding it to
+ *   the root release removes the choice without changing what the gate asserts,
+ *   because the gate verifies DSH→DSH edges, never a glue package's own edges.
+ *
+ * A range with exactly one candidate already names a release, and a DSH package
+ * the substitution did not replace (an upstream `@deepseek-ai/dsh-*` installed
+ * from the registry) keeps its published versions, so its ranges stay untouched.
  * @param range - Already-published range on a non-DSH manifest.
  * @param sourceVersion - Workspace version the dual substitution replaces.
  * @param rootVersion - The root synthetic release version.
  * @param target - Registry versions of the range's DSH package.
- * @returns The synthetic range, or the input when the working release does not satisfy it.
+ * @returns The synthetic range, or `undefined` to leave the range unchanged.
  */
 function glueRangeForSourceRelease(
   range: string,
@@ -194,7 +211,9 @@ function glueRangeForSourceRelease(
   target: ReadonlyMap<string, RegistryVersion> | undefined,
 ): string | undefined {
   if (target === undefined || !target.has(sourceVersion)) return undefined
-  return satisfies(sourceVersion, range) ? `^${rootVersion}` : undefined
+  if (satisfies(sourceVersion, range)) return `^${rootVersion}`
+  const candidates = SYNTHETIC_DSH_VERSIONS.filter(version => satisfies(version, range))
+  return candidates.length > 1 ? `^${rootVersion}` : undefined
 }
 
 /**
