@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   createIamDeepLinkBridge, findIamDeepLink, matchesIamRedirectUri, SDKWORK_DESKTOP_BRIDGE,
 } from '../src/iam-deep-links.ts'
+import { IAM_LOOPBACK_BRIDGE } from '../src/iam-loopback-protocol.ts'
 import { exposeSdkworkDesktopBridge } from '../src/iam-preload.ts'
 
 /** The registered callback the shipped brand and OEM profile both use. */
@@ -208,6 +209,27 @@ describe('createIamDeepLinkBridge', () => {
     await expect(open({}, '')).rejects.toThrow(/URL string/)
   })
 
+  it('reports the opened authorize URL so the shell can route its state', async () => {
+    const ipcMain = fakeIpc()
+    const onAuthorizeUrl = vi.fn()
+    createIamDeepLinkBridge({
+      app: fakeApp(),
+      ipcMain: ipcMain,
+      shell: { openExternal: vi.fn(async () => {}) },
+      redirectUri: REDIRECT,
+      getWindow: () => undefined,
+      assertSender: vi.fn(),
+      registerScheme: false,
+      argv: [],
+      onAuthorizeUrl,
+    })
+    const open = ipcMain.handlers.get(SDKWORK_DESKTOP_BRIDGE.shellOpen)!
+    await open({}, 'https://platform.birdcoder.com/iam/oauth/authorize?state=state-a')
+    expect(onAuthorizeUrl).toHaveBeenCalledWith('https://platform.birdcoder.com/iam/oauth/authorize?state=state-a')
+    await expect(open({}, 'file:///C:/Windows/System32')).rejects.toThrow(/refused scheme/)
+    expect(onAuthorizeUrl).toHaveBeenCalledTimes(1)
+  })
+
   it('admits plain-HTTP authorize pages only when the launch is development', async () => {
     const ipcMain = fakeIpc()
     const openExternal = vi.fn(async () => {})
@@ -316,6 +338,7 @@ describe('exposeSdkworkDesktopBridge', () => {
       invoke: vi.fn(async (channel: string, ...args: unknown[]) => {
         invoked.push([channel, args])
         if (channel === SDKWORK_DESKTOP_BRIDGE.deepLinksGetInitialUrl) return initial
+        if (channel === IAM_LOOPBACK_BRIDGE.start) return { redirectUri: 'http://127.0.0.1:1234/auth/callback' }
         return undefined
       }),
       on: vi.fn((channel: string, listener: (event: unknown, payload: unknown) => void) => { listeners.set(channel, listener) }),
@@ -326,6 +349,11 @@ describe('exposeSdkworkDesktopBridge', () => {
     const bridge = values.get('sdkworkDesktop') as {
       deepLinks: { getInitialUrl(): Promise<string | null>; onOpenUrl(handler: (url: string) => void): () => void }
       shellOpen: { open(url: string): Promise<void> }
+      loopbackLogin: {
+        start(): Promise<{ redirectUri: string }>
+        cancel(): Promise<void>
+        onCallback(handler: (url: string) => void): () => void
+      }
     }
     expect(await bridge.deepLinks.getInitialUrl()).toBe(initial)
     initial = null
@@ -341,5 +369,16 @@ describe('exposeSdkworkDesktopBridge', () => {
 
     await bridge.shellOpen.open('https://platform.birdcoder.com/auth/login')
     expect(invoked).toContainEqual([SDKWORK_DESKTOP_BRIDGE.shellOpen, ['https://platform.birdcoder.com/auth/login']])
+
+    expect(await bridge.loopbackLogin.start()).toEqual({ redirectUri: 'http://127.0.0.1:1234/auth/callback' })
+    const callbacks: string[] = []
+    const offLoopback = bridge.loopbackLogin.onCallback((url) => { callbacks.push(url) })
+    listeners.get(IAM_LOOPBACK_BRIDGE.callback)?.({}, 'http://127.0.0.1:1234/auth/callback?code=c&state=s')
+    expect(callbacks).toEqual(['http://127.0.0.1:1234/auth/callback?code=c&state=s'])
+    offLoopback()
+    listeners.get(IAM_LOOPBACK_BRIDGE.callback)?.({}, 'http://127.0.0.1:1234/auth/callback?code=skip&state=s')
+    expect(callbacks).toHaveLength(1)
+    await bridge.loopbackLogin.cancel()
+    expect(invoked).toContainEqual([IAM_LOOPBACK_BRIDGE.cancel, []])
   })
 })

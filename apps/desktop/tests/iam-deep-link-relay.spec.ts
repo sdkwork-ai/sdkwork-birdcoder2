@@ -9,6 +9,11 @@ import {
 
 const CALLBACK = 'birdcoder://auth/callback?code=abc&state=s'
 
+/** One callback for a chosen state. */
+function callbackFor(state: string): string {
+  return `birdcoder://auth/callback?code=abc&state=${state}`
+}
+
 const directories: string[] = []
 
 /** A private shared directory for one case. */
@@ -49,6 +54,46 @@ describe('createIamDeepLinkRelay', () => {
     const b = await relayAt(directory, receivedB)
     a.share(CALLBACK)
     await vi.waitFor(() => { expect(receivedB).toHaveBeenCalledWith(CALLBACK) })
+    expect(receivedA).not.toHaveBeenCalled()
+    await a.dispose()
+    await b.dispose()
+  })
+
+  it('routes a callback only to the process that started the login', async () => {
+    const directory = await temporary()
+    const receivedA = vi.fn()
+    const receivedB = vi.fn()
+    const a = await relayAt(directory, receivedA)
+    const b = await relayAt(directory, receivedB)
+    a.registerLogin('https://platform.birdcoder.com/iam/oauth/authorize?client_id=birdcoder&state=state-a')
+    await vi.waitFor(async () => {
+      expect((await readdir(join(directory, 'states'))).length).toBe(1)
+    })
+
+    b.share(callbackFor('state-a'))
+    await vi.waitFor(() => { expect(receivedA).toHaveBeenCalledWith(callbackFor('state-a')) })
+    expect(receivedB).not.toHaveBeenCalled()
+    await a.dispose()
+    await b.dispose()
+  })
+
+  it('ignores a non-authorize URL when registering a login state', async () => {
+    const directory = await temporary()
+    const relay = await relayAt(directory)
+    relay.registerLogin('https://platform.birdcoder.com/other?state=state-a')
+    await new Promise((resolve) => { setTimeout(resolve, 50) })
+    await expect(readdir(join(directory, 'states'))).rejects.toThrow()
+    await relay.dispose()
+  })
+
+  it('broadcasts an unknown state as the compatibility fallback', async () => {
+    const directory = await temporary()
+    const receivedA = vi.fn()
+    const receivedB = vi.fn()
+    const a = await relayAt(directory, receivedA)
+    const b = await relayAt(directory, receivedB)
+    a.share(callbackFor('unknown'))
+    await vi.waitFor(() => { expect(receivedB).toHaveBeenCalledWith(callbackFor('unknown')) })
     expect(receivedA).not.toHaveBeenCalled()
     await a.dispose()
     await b.dispose()

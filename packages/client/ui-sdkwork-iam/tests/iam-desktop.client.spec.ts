@@ -52,6 +52,34 @@ describe('readSdkworkDesktopBridge', () => {
       Reflect.deleteProperty(globalThis, 'sdkworkDesktop')
     }
   })
+
+  it('validates the optional loopback slice', async () => {
+    const loopback = {
+      start: vi.fn(async () => ({ redirectUri: 'http://127.0.0.1:1234/auth/callback' })),
+      cancel: vi.fn(async () => {}),
+      onCallback: vi.fn(() => () => {}),
+    }
+    Reflect.set(globalThis, 'sdkworkDesktop', { ...bridge(), loopbackLogin: loopback })
+    try {
+      const parsed = readSdkworkDesktopBridge()
+      expect(await parsed?.loopbackLogin?.start())
+        .toEqual({ redirectUri: 'http://127.0.0.1:1234/auth/callback' })
+      expect(parsed?.loopbackLogin?.onCallback(() => {})).toBeTypeOf('function')
+      await parsed?.loopbackLogin?.cancel()
+
+      Reflect.set(globalThis, 'sdkworkDesktop', { ...bridge(), loopbackLogin: { start: 1 } })
+      expect(readSdkworkDesktopBridge()?.loopbackLogin).toBeUndefined()
+
+      Reflect.set(globalThis, 'sdkworkDesktop', {
+        ...bridge(),
+        loopbackLogin: { ...loopback, start: async () => ({ redirectUri: 42 }) },
+      })
+      await expect(readSdkworkDesktopBridge()?.loopbackLogin?.start())
+        .rejects.toThrow(/redirect URI/u)
+    } finally {
+      Reflect.deleteProperty(globalThis, 'sdkworkDesktop')
+    }
+  })
 })
 
 describe('createIamDesktopLogin', () => {

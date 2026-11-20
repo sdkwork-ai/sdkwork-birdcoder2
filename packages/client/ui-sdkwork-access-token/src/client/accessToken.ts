@@ -28,12 +28,35 @@ export const PUBLIC_APP_ACCESS_TOKEN_ISSUER = 'sdkwork-iam-public'
 export const PUBLIC_APP_ACCESS_TOKEN_SIGNATURE = 'public'
 
 /**
- * Fixed generation instant (`2026-01-01T00:00:00Z`) and rotation ceiling
- * (`2100-01-01T00:00:00Z`). Rotation is an explicit change to these constants
- * plus a full regeneration; committed tokens do not expire in normal operation.
+ * Fixed generation instant (`2026-01-01T00:00:00Z`). It keeps an unchanged
+ * application byte-identical across regenerations; rotation is explicit.
  */
 export const PUBLIC_APP_ACCESS_TOKEN_ISSUED_AT = Math.floor(Date.UTC(2026, 0, 1) / 1000)
-export const PUBLIC_APP_ACCESS_TOKEN_EXPIRES_AT = Math.floor(Date.UTC(2100, 0, 1) / 1000)
+
+/**
+ * The `exp` value of a permanent token: `0` means "never expires"
+ * (`APP_ACCESS_TOKEN_SPEC.md` §3, `sdkwork-iam`
+ * `APPLICATION_ACCESS_TOKEN_NO_EXPIRY`).
+ *
+ * The token ships inside the packaged application and is SaaS-isolation
+ * material, not a session credential, so its default lifetime is unbounded: a
+ * shipped build cannot renew a credential it never kept. An explicit
+ * `expiresAt` opts into a time-boxed rotation window instead.
+ */
+export const PUBLIC_APP_ACCESS_TOKEN_NO_EXPIRY = 0
+
+/**
+ * Whether one `exp` claim means "never expires".
+ *
+ * Both the sentinel `0` and an absent claim are permanent, matching the server
+ * contract; any other finite value is a rotation deadline.
+ * @param value - decoded `exp` claim, when present.
+ * @returns true when the token never expires.
+ */
+export function isApplicationAccessTokenExpiryPermanent(value: unknown): boolean {
+  if (value === undefined || value === null) return true
+  return typeof value === 'number' && Number.isFinite(value) && value === PUBLIC_APP_ACCESS_TOKEN_NO_EXPIRY
+}
 
 /** Lifecycle environments of the profile matrix (`ENVIRONMENT_SPEC.md` §5.1). */
 export const CLIENT_ENVIRONMENTS = ['development', 'test', 'staging', 'demo', 'production'] as const
@@ -95,7 +118,7 @@ export interface AccessTokenBuildOptions {
   sessionId?: string | undefined
   /** Rotation instant override (seconds); defaults to the fixed generation instant. */
   issuedAt?: number | undefined
-  /** Rotation ceiling override (seconds). */
+  /** Explicit rotation deadline (seconds); omitted keeps the token permanent. */
   expiresAt?: number | undefined
 }
 
@@ -237,6 +260,16 @@ export function buildPublicApplicationAccessToken(options: AccessTokenBuildOptio
     : ''
   const level: AccessTokenLevel = options.level
     ?? (declaredOrganizationId !== '' && declaredOrganizationId !== '0' ? 'organization' : 'tenant')
+  // An explicit level decides, and it must not silently discard a declared
+  // organization: the canonical generator refuses the same contradiction
+  // (`ownership_scope=TENANT` with a non-zero organization), so the browser
+  // builder fails closed instead of coercing the binding away.
+  if (options.level === 'tenant' && declaredOrganizationId !== '' && declaredOrganizationId !== '0') {
+    throw new Error(
+      `level=tenant contradicts organizationId=${declaredOrganizationId}; `
+      + 'an organization binding requires level=organization.',
+    )
+  }
   const organizationId = level === 'organization'
     ? requireDecimalId(declaredOrganizationId, 'organizationId')
     : '0'
@@ -258,7 +291,15 @@ export function buildPublicApplicationAccessToken(options: AccessTokenBuildOptio
     .map(entry => requireText(entry, 'permissionScope entry'))
   const uniquePermissionScope = [...new Set(permissionScope.length > 0 ? permissionScope : ['iam:self'])]
   const issuedAt = options.issuedAt === undefined ? PUBLIC_APP_ACCESS_TOKEN_ISSUED_AT : Math.trunc(options.issuedAt)
-  const expiresAt = options.expiresAt === undefined ? PUBLIC_APP_ACCESS_TOKEN_EXPIRES_AT : Math.trunc(options.expiresAt)
+  const expiresAt = options.expiresAt === undefined
+    ? PUBLIC_APP_ACCESS_TOKEN_NO_EXPIRY
+    : Math.trunc(options.expiresAt)
+  if (!isApplicationAccessTokenExpiryPermanent(expiresAt) && expiresAt <= issuedAt) {
+    throw new Error(
+      `expiresAt=${expiresAt} must be after the token's issuedAt=${issuedAt}, or `
+      + `${PUBLIC_APP_ACCESS_TOKEN_NO_EXPIRY} for a permanent token.`,
+    )
+  }
   const ownershipScope: OwnershipScope = level === 'organization' ? 'ORGANIZATION' : 'TENANT'
   const loginScope: OwnershipScope = organizationId === '0' ? 'TENANT' : 'ORGANIZATION'
   if (loginScope !== ownershipScope) {
@@ -335,6 +376,17 @@ export function decodePublicApplicationAccessToken(token: string): DecodedPublic
   const payloadRecord = payload as Record<string, unknown>
   if (payloadRecord.token_class !== 'application' || payloadRecord.token_type !== 'access') {
     throw new Error('Public application access token must declare token_class=application and token_type=access.')
+  }
+  // `exp` is permanent (`0`) or a concrete rotation deadline; any other shape is
+  // malformed. A concrete past deadline is a gate decision, not a decode failure.
+  if (
+    payloadRecord.exp !== undefined
+    && (typeof payloadRecord.exp !== 'number' || !Number.isInteger(payloadRecord.exp) || payloadRecord.exp < 0)
+  ) {
+    throw new Error(
+      'Public application access token exp claim must be a non-negative integer; '
+      + `got ${claimText(payloadRecord.exp)}. Use exp=0 for a permanent token.`,
+    )
   }
   const organizationId = claimText(payloadRecord.organization_id)
   const expectedLoginScope = organizationId === '0' ? 'TENANT' : 'ORGANIZATION'

@@ -227,6 +227,30 @@ function resolveRoot(selection: AccessTokenRootSelection, request: AccessTokenIn
   if (type === undefined) {
     throw new Error(`unknown application type "${selection.applicationTypeId}" for ${selection.candidate.rootPath}.`)
   }
+  const requestedOrganizationId = (request.organizationId ?? '').trim()
+  const manifestOrganizationId = (selection.candidate.identity.organizationId ?? '').trim()
+  // The installation decides its release level (`APPLICATION_IDENTITY_SPEC.md` §4.1):
+  // a root whose manifest binds a non-zero organization is an organization-level
+  // surface, so a tenant-level request must not overwrite it, and an organization
+  // request must target that same organization. Roots of different levels are
+  // initialized in separate runs.
+  if (request.level === 'tenant' && manifestOrganizationId !== '' && manifestOrganizationId !== '0') {
+    throw new Error(
+      `${selection.candidate.rootPath}: its manifest binds organization ${manifestOrganizationId}; `
+      + 'a tenant-level token must not replace an organization-level surface.',
+    )
+  }
+  if (
+    request.level === 'organization'
+    && manifestOrganizationId !== ''
+    && manifestOrganizationId !== '0'
+    && manifestOrganizationId !== requestedOrganizationId
+  ) {
+    throw new Error(
+      `${selection.candidate.rootPath}: its manifest binds organization ${manifestOrganizationId}, not `
+      + `${requestedOrganizationId}; select roots of one organization or initialize them separately.`,
+    )
+  }
   if (!type.runtimeTargets.includes(selection.runtimeTarget)) {
     throw new Error(
       `${selection.candidate.rootPath}: runtime target "${selection.runtimeTarget}" is not valid for `
@@ -262,6 +286,12 @@ export async function initializeAccessTokens(
   const organizationId = (request.organizationId ?? '').trim()
   if (request.level === 'organization' && organizationId === '') {
     throw new Error('an organization-level token needs the organization id it binds to.')
+  }
+  if (request.level === 'tenant' && organizationId !== '' && organizationId !== '0') {
+    throw new Error(
+      `a tenant-level token cannot bind organizationId=${organizationId}; clear the organization `
+      + 'field or choose the organization level.',
+    )
   }
   const resolved = request.roots.map(selection => resolveRoot(selection, request))
   const files: AccessTokenFileOutcome[] = []

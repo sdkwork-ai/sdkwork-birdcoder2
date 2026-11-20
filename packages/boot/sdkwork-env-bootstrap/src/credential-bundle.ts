@@ -152,6 +152,11 @@ export function writeCredentialBundle(path: string, bundle: SdkworkCredentialBun
 
 /**
  * Decode the `iat`/`exp` claims of a JWT into ISO-8601 timestamps.
+ *
+ * A public application access token is permanent (`exp: 0`) or carries no
+ * `exp`; neither has an expiry instant to record, so only a positive deadline
+ * produces `expiresAt`. Reading the sentinel as 1970 would report every
+ * permanent token as long expired.
  * @param token - the bearer token.
  * @returns the timestamps that were present, as ISO strings.
  */
@@ -163,7 +168,7 @@ export function readTokenTimestamps(token: string): { issuedAt?: string; expires
       Buffer.from((parts[1] ?? '').replace(/-/gu, '+').replace(/_/gu, '/'), 'base64').toString('utf8'),
     ) as { iat?: unknown; exp?: unknown }
     const iso = (value: unknown): string | undefined =>
-      typeof value === 'number' && Number.isFinite(value)
+      typeof value === 'number' && Number.isFinite(value) && value > 0
         ? new Date(value * 1000).toISOString()
         : undefined
     const issuedAt = iso(payload.iat)

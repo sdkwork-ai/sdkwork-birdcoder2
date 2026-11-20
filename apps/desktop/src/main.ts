@@ -47,6 +47,7 @@ import { DESKTOP_IPC, SCHEME, assertDesktopSender, type DesktopSignInOutcome, ty
 import { createIamDeepLinkBridge, findIamDeepLink, matchesIamRedirectUri } from './iam-deep-links.ts'
 import { createIamDeepLinkRelay, type IamDeepLinkRelay } from './iam-deep-link-relay.ts'
 import { IAM_LOOPBACK_BRIDGE } from './iam-loopback-protocol.ts'
+import { loopbackLoginEnabled } from './iam-loopback-policy.ts'
 import { createIamLoopbackRedirect } from './iam-loopback-redirect.ts'
 import { createIamSessionBridge, type IamSessionSecretStorage } from './iam-session.ts'
 import { readDeviceInfo } from './device-info.ts'
@@ -1119,6 +1120,13 @@ async function main(): Promise<void> {
   // `openInitialWindow` instead.
   let requestIamWorkspaceEntry: () => void = () => {}
   const launchIamCallback = findIamDeepLink(launchDeepLinks, iamRedirectUri)
+  const iamAuthorizeOrigin = (() => {
+    try {
+      return new URL(oem().sdkwork.iamAuthorizeBaseUrl).origin
+    } catch {
+      return ''
+    }
+  })()
   // Both the installed build and a development build register the same brand
   // scheme, so the OS may hand a callback to either process. The relay below
   // shares every callback this process receives, and each renderer keeps only
@@ -1137,8 +1145,20 @@ async function main(): Promise<void> {
     registerScheme: app.isPackaged || process.env.DSH_DESKTOP_DEV_APP === '1',
     allowInsecureHttp: desktopAllowInsecureHttp(),
     initialUrl: launchIamCallback,
-    onIamCallback: () => { requestIamWorkspaceEntry() },
+    onIamCallback: () => {
+      requestIamWorkspaceEntry()
+      focusPrimaryWindow()
+    },
     onExternalCallback: (url) => { relayHandle.relay?.share(url) },
+    onAuthorizeUrl: (url) => {
+      try {
+        const parsed = new URL(url)
+        if (parsed.origin !== iamAuthorizeOrigin || !parsed.pathname.endsWith('/iam/oauth/authorize')) return
+      } catch {
+        return
+      }
+      relayHandle.relay?.registerLogin(url)
+    },
   })
   const iamDeepLinkRelay = createIamDeepLinkRelay({
     identity: brand.desktop.protocol,
@@ -1158,20 +1178,16 @@ async function main(): Promise<void> {
   // development launch by default; a packaged build opts in with
   // `DSH_DESKTOP_IAM_LOOPBACK=1` once its IAM client allows loopback redirects.
   // The custom-scheme bridge above stays in place as the fallback.
-  const loopbackEnabled = (): boolean => {
-    const configured = process.env.DSH_DESKTOP_IAM_LOOPBACK?.trim()
-    if (configured === '1') return true
-    if (configured === '0') return false
-    // A deployment that has registered loopback redirects enables it in its
-    // OEM profile; a source launch keeps it on for local verification.
-    if (oem().sdkwork.iamLoopbackRedirect) return true
-    return !app.isPackaged
-  }
+  const loopbackEnabled = (): boolean => loopbackLoginEnabled({
+    env: process.env,
+    oemEnabled: oem().sdkwork.iamLoopbackRedirect,
+  })
   const iamLoopback = createIamLoopbackRedirect({
     brandName: desktopBrandName(),
     onCallback: (url) => {
       mainWindow?.webContents.send(IAM_LOOPBACK_BRIDGE.callback, url)
       requestIamWorkspaceEntry()
+      focusPrimaryWindow()
     },
   })
   ipcMain.handle(IAM_LOOPBACK_BRIDGE.start, async (event) => {

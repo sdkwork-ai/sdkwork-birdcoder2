@@ -37,6 +37,15 @@ export const IAM_DEEP_LINK_RELAY_HEADER = 'x-dsh-iam-relay'
 /** How long a spooled callback may still sign a newly started instance in. */
 export const IAM_DEEP_LINK_SPOOL_TTL_MS = 10 * 60_000
 
+/** How long a started login's `state` stays routable to its process. */
+export const IAM_DEEP_LINK_STATE_TTL_MS = 6 * 60_000
+
+/** Subdirectory holding the `state`-to-owner registry. */
+const STATE_DIRECTORY = 'states'
+
+/** Bound on a state value copied from an authorize URL. */
+const MAX_STATE_LENGTH = 512
+
 /** Bound on one relayed URL body. */
 const MAX_BODY_BYTES = 8 * 1024
 
@@ -55,6 +64,14 @@ interface RelayInstance {
 interface SpooledCallback {
   url: string
   at: number
+}
+
+/** One started login's owner, keyed by its OAuth `state`. */
+interface StateOwner {
+  endpoint: string
+  token: string
+  pid: number
+  expiresAt: number
 }
 
 /** Options of {@link createIamDeepLinkRelay}. */
@@ -77,6 +94,16 @@ export interface IamDeepLinkRelayOptions {
 export interface IamDeepLinkRelay {
   /** Start listening, publish this instance, and drain the spool. */
   start(): Promise<void>
+  /**
+   * Remember the `state` of an authorization page this process just opened.
+   *
+   * The shell sees the authorize URL before the browser opens; recording its
+   * state lets whichever process receives the callback route it directly to the
+   * process that started the login, instead of broadcasting the code to every
+   * instance.
+   * @param url - the absolute hosted authorize URL.
+   */
+  registerLogin(url: string): void
   /** Share one callback this process just received from the OS. */
   share(url: string): void
   /** Stop listening and remove this instance's registry entry. */
@@ -152,6 +179,7 @@ export function createIamDeepLinkRelay(options: IamDeepLinkRelayOptions): IamDee
   const identityHash = createHash('sha256').update(options.identity).digest('hex').slice(0, 16)
   const directory = options.directory ?? join(tmpdir(), 'dsh-iam-deep-links', identityHash)
   const spoolDirectory = join(directory, 'spool')
+  const stateDirectory = join(directory, STATE_DIRECTORY)
   const instanceFile = join(directory, `${String(process.pid)}-${randomUUID()}.json`)
   const token = randomUUID()
   let server: Server | undefined
@@ -233,6 +261,25 @@ export function createIamDeepLinkRelay(options: IamDeepLinkRelayOptions): IamDee
   }
 
   /** Send one URL to every other live instance. */
+  const sendTo = async (entry: StateOwner | RelayInstance, url: string): Promise<boolean> => {
+    if (typeof entry.pid === 'number' && !processAlive(entry.pid)) return false
+    try {
+      const response = await fetch(entry.endpoint, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', [IAM_DEEP_LINK_RELAY_HEADER]: entry.token },
+        body: JSON.stringify({ url }),
+        signal: AbortSignal.timeout(PEER_TIMEOUT_MS),
+      })
+      return response.ok
+    } catch (error) {
+      // A peer that quit between registry scan and delivery is expected.
+      if ((error as Error).name !== 'AbortError') {
+        warn(`[iam-deep-links] peer delivery failed: ${(error as Error).message}`)
+      }
+      return false
+    }
+  }
+
   const broadcast = async (url: string): Promise<void> => {
     let names: string[]
     try {
@@ -249,21 +296,92 @@ export function createIamDeepLinkRelay(options: IamDeepLinkRelayOptions): IamDee
         continue
       }
       if (entry === undefined || typeof entry.endpoint !== 'string' || typeof entry.token !== 'string') continue
-      if (typeof entry.pid === 'number' && !processAlive(entry.pid)) continue
+      await sendTo(entry, url)
+    }
+  }
+
+  /** Read the OAuth `state` carried by an authorize or callback URL. */
+  const stateOf = (url: string): string | undefined => {
+    try {
+      const state = new URL(url).searchParams.get('state')
+      if (state === null) return undefined
+      const trimmed = state.trim()
+      return trimmed === '' || trimmed.length > MAX_STATE_LENGTH ? undefined : trimmed
+    } catch {
+      return undefined
+    }
+  }
+
+  /** Registry path for one state (the file name hashes the state). */
+  const stateFileOf = (state: string): string =>
+    join(stateDirectory, `${createHash('sha256').update(state).digest('hex')}.json`)
+
+  /** Remember which process owns a login state. */
+  const registerState = async (state: string): Promise<void> => {
+    if (endpoint === undefined || !started) return
+    try {
+      await mkdir(stateDirectory, { recursive: true, mode: 0o700 })
+      const owner: StateOwner = { endpoint, token, pid: process.pid, expiresAt: now() + IAM_DEEP_LINK_STATE_TTL_MS }
+      await writeFile(stateFileOf(state), `${JSON.stringify(owner, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 })
+    } catch (error) {
+      warn(`[iam-deep-links] cannot register login state: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+
+  /** Resolve the live owner of one state. */
+  const ownerOf = async (state: string): Promise<StateOwner | undefined> => {
+    try {
+      const entry = jsonObject(await readFile(stateFileOf(state), 'utf8')) as StateOwner | undefined
+      if (entry === undefined || typeof entry.endpoint !== 'string' || typeof entry.token !== 'string'
+        || typeof entry.pid !== 'number' || typeof entry.expiresAt !== 'number') return undefined
+      if (entry.expiresAt <= now() || !processAlive(entry.pid)) return undefined
+      return entry
+    } catch {
+      return undefined
+    }
+  }
+
+  /** Remove expired or dead state entries. */
+  const pruneStates = async (): Promise<void> => {
+    let names: string[]
+    try {
+      names = await readdir(stateDirectory)
+    } catch {
+      return
+    }
+    for (const name of names) {
+      const path = join(stateDirectory, name)
       try {
-        await fetch(entry.endpoint, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json', [IAM_DEEP_LINK_RELAY_HEADER]: entry.token },
-          body: JSON.stringify({ url }),
-          signal: AbortSignal.timeout(PEER_TIMEOUT_MS),
-        })
-      } catch (error) {
-        // A peer that quit between registry scan and delivery is expected.
-        if ((error as Error).name !== 'AbortError') {
-          warn(`[iam-deep-links] peer delivery failed: ${(error as Error).message}`)
+        const entry = jsonObject(await readFile(path, 'utf8')) as StateOwner | undefined
+        // A partial read while another process is writing is not expired state:
+        // leave it for the next pass instead of deleting a live login.
+        if (entry === undefined || typeof entry.expiresAt !== 'number' || typeof entry.pid !== 'number') continue
+        if (entry.expiresAt <= now() || !processAlive(entry.pid)) {
+          await rm(path, { force: true })
         }
+      } catch {
+        // A racing reader or writer owns this entry.
       }
     }
+  }
+
+  /** Route one callback to its owner, falling back to the broadcast. */
+  const route = async (url: string): Promise<void> => {
+    const state = stateOf(url)
+    if (state !== undefined) {
+      await pruneStates()
+      const owner = await ownerOf(state)
+      if (owner !== undefined) {
+        if (owner.pid === process.pid) {
+          // Same process: the local bridge already delivered it. Compare the
+          // endpoint too, so tests and a future multi-listener process do not
+          // mistake another relay instance for this one.
+          if (owner.endpoint === endpoint) return
+        }
+        if (await sendTo(owner, url)) return
+      }
+    }
+    await broadcast(url)
   }
 
   /** Handle one relayed callback request. */
@@ -333,6 +451,7 @@ export function createIamDeepLinkRelay(options: IamDeepLinkRelayOptions): IamDee
         await writeFile(instanceFile, `${JSON.stringify(instance, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 })
         await pruneInstances()
         await pruneSpool()
+        await pruneStates()
         await drainSpool()
       } catch (error) {
         // A relay that cannot start must not take the application down: the
@@ -342,10 +461,20 @@ export function createIamDeepLinkRelay(options: IamDeepLinkRelayOptions): IamDee
         warn(`[iam-deep-links] relay unavailable: ${error instanceof Error ? error.message : String(error)}`)
       }
     },
+    registerLogin(url) {
+      if (disposed || !started) return
+      try {
+        if (!new URL(url).pathname.endsWith('/iam/oauth/authorize')) return
+      } catch {
+        return
+      }
+      const state = stateOf(url)
+      if (state !== undefined) void registerState(state)
+    },
     share(url) {
       if (disposed || !options.isCallback(url)) return
       void spool(url)
-      void broadcast(url)
+      void route(url)
     },
     async dispose() {
       if (disposed) return

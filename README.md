@@ -113,10 +113,17 @@ repository cannot know an installation's id, so the root `.env.<deployment-profi
 documents carry the `__SDKWORK_DEPLOY_APPLICATION_ID__` placeholder and `apps/web/vite.config.ts`
 substitutes the anchor at build time.
 
+The token ships inside the packaged application, so it is permanent: `exp` is `0` (never expires),
+never a session lifetime. Every profile of the matrix carries one — the token-only materializer
+mode owns that line and preserves the rest of each documented profile — and every application type
+(Web/Desktop shell, PC/H5/pad, Flutter, mini program) has the same matrix.
+
 The build reads the anchor from its environment first, then from the repository's gitignored `.env`
 layer, which is where the SDKWork app registration records this installation's deploy application
 id (`SDKWORK_DEPLOY_APPLICATION_ID`). Export it on a build host that has neither (it is not a
-secret):
+secret). CI reads the repository variable `SDKWORK_DEPLOY_APPLICATION_ID` and falls back to the
+recorded registration id when it is unset, so a deployment can repoint the anchor without editing
+a workflow:
 
 ```sh
 export SDKWORK_DEPLOY_APPLICATION_ID=381158401561858048

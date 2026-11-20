@@ -288,11 +288,32 @@ describe('initializeAccessTokens', () => {
       fs, roots: [selection(root, 'vite')], level: 'organization', profiles: PROFILES,
     })).rejects.toThrow(/organization id/u)
     await expect(initializeAccessTokens({
+      fs, roots: [selection(root, 'vite')], level: 'tenant', organizationId: '42', profiles: PROFILES,
+    })).rejects.toThrow(/cannot bind organizationId=42/u)
+    await expect(initializeAccessTokens({
       fs,
       roots: [selection(candidate('/repo/apps/app', { tenantId: '' }), 'vite')],
       level: 'tenant',
       profiles: PROFILES,
     })).rejects.toThrow(/tenantId/u)
+    expect(fs.writes).toEqual([])
+  })
+
+  it('refuses a request that would change a root release level', async () => {
+    const fs = new MemoryFs(['/repo', '/repo/apps', '/repo/apps/org-app'])
+    await expect(initializeAccessTokens({
+      fs,
+      roots: [selection(candidate('/repo/apps/org-app', { organizationId: '42' }), 'vite')],
+      level: 'tenant',
+      profiles: PROFILES,
+    })).rejects.toThrow(/must not replace an organization-level surface/u)
+    await expect(initializeAccessTokens({
+      fs,
+      roots: [selection(candidate('/repo/apps/org-app', { organizationId: '42' }), 'vite')],
+      level: 'organization',
+      organizationId: '43',
+      profiles: PROFILES,
+    })).rejects.toThrow(/binds organization 42, not 43/u)
     expect(fs.writes).toEqual([])
   })
 

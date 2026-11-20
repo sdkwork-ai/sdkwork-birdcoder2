@@ -102,6 +102,12 @@ export interface IamDeepLinkBridgeOptions {
    * link to another one (both channels register the same scheme).
    */
   onExternalCallback?: (url: string) => void
+  /**
+   * Called with every URL the renderer asks the shell to open. The shell uses
+   * it to remember the hosted authorization page's `state`, so a callback can
+   * be routed to the process that started the login.
+   */
+  onAuthorizeUrl?: (url: string) => void
 }
 
 /** One parsed deep-link shape: what the callback contract compares. */
@@ -251,6 +257,7 @@ export function createIamDeepLinkBridge(options: IamDeepLinkBridgeOptions): IamD
     options.assertSender(event)
     if (typeof url !== 'string' || url.trim() === '') throw new Error('sdkwork shellOpen requires a URL string')
     assertOpenable(url, options.allowInsecureHttp === true, scheme)
+    options.onAuthorizeUrl?.(url)
     await shell.openExternal(url)
   })
 

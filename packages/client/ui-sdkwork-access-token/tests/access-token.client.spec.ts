@@ -6,10 +6,11 @@
 
 import { describe, expect, it } from 'vitest'
 import {
-  CLIENT_DEPLOYMENT_PROFILES, CLIENT_ENVIRONMENTS, PUBLIC_APP_ACCESS_TOKEN_EXPIRES_AT,
-  PUBLIC_APP_ACCESS_TOKEN_ISSUED_AT, RUNTIME_TARGETS, buildPublicApplicationAccessToken,
-  clientProfileIds, decodePublicApplicationAccessToken, deploymentModeOf, parseClientProfileId,
-  profileIdOf, summarizePublicApplicationAccessToken,
+  CLIENT_DEPLOYMENT_PROFILES, CLIENT_ENVIRONMENTS, PUBLIC_APP_ACCESS_TOKEN_ISSUED_AT,
+  PUBLIC_APP_ACCESS_TOKEN_NO_EXPIRY, RUNTIME_TARGETS, buildPublicApplicationAccessToken,
+  clientProfileIds, decodePublicApplicationAccessToken, deploymentModeOf,
+  isApplicationAccessTokenExpiryPermanent, parseClientProfileId, profileIdOf,
+  summarizePublicApplicationAccessToken,
 } from '../src/client/accessToken.ts'
 import type { AccessTokenProfile } from '../src/client/accessToken.ts'
 import referenceTokens from './fixtures/reference-tokens.json'
@@ -89,15 +90,15 @@ describe('buildPublicApplicationAccessToken', () => {
     expect(token).toBe(ORGANIZATION_LEVEL_GOLDEN)
   })
 
-  it('is deterministic across calls and ignores a manifest organization on a tenant token', () => {
+  it('is deterministic across calls and refuses a tenant level bound to an organization', () => {
     const first = buildPublicApplicationAccessToken({
-      identity: { appId: 'sdkwork-im-pc', tenantId: '100001', organizationId: '42' },
+      identity: { appId: 'sdkwork-im-pc', tenantId: '100001', organizationId: '0' },
       profile: DEV_PROFILE,
       runtimeTarget: 'browser',
       level: 'tenant',
     })
     const second = buildPublicApplicationAccessToken({
-      identity: { appId: 'sdkwork-im-pc', tenantId: '100001', organizationId: '42' },
+      identity: { appId: 'sdkwork-im-pc', tenantId: '100001', organizationId: '0' },
       profile: DEV_PROFILE,
       runtimeTarget: 'browser',
       level: 'tenant',
@@ -107,6 +108,14 @@ describe('buildPublicApplicationAccessToken', () => {
     expect(payload.organization_id).toBe('0')
     expect(payload.login_scope).toBe('TENANT')
     expect(payload.ownership_scope).toBe('TENANT')
+    // An explicit tenant level cannot silently discard an organization binding;
+    // the canonical generator refuses the same contradiction.
+    expect(() => buildPublicApplicationAccessToken({
+      identity: { appId: 'sdkwork-im-pc', tenantId: '100001', organizationId: '42' },
+      profile: DEV_PROFILE,
+      runtimeTarget: 'browser',
+      level: 'tenant',
+    })).toThrow(/level=tenant contradicts organizationId=42/u)
   })
 
   it('derives the level from a non-zero organization when none is passed', () => {
@@ -130,7 +139,9 @@ describe('buildPublicApplicationAccessToken', () => {
     })
     const { payload } = decodePublicApplicationAccessToken(token)
     expect(payload.iat).toBe(PUBLIC_APP_ACCESS_TOKEN_ISSUED_AT)
-    expect(payload.exp).toBe(PUBLIC_APP_ACCESS_TOKEN_EXPIRES_AT)
+    expect(payload.exp).toBe(PUBLIC_APP_ACCESS_TOKEN_NO_EXPIRY)
+    expect(payload.exp).toBe(0)
+    expect(isApplicationAccessTokenExpiryPermanent(payload.exp)).toBe(true)
     expect(payload.session_id).toBe('bootstrap-public-sdkwork-im-pc-standalone.development')
     expect(payload.token_class).toBe('application')
     expect(payload.token_type).toBe('access')
@@ -185,6 +196,23 @@ describe('buildPublicApplicationAccessToken', () => {
     expect(decodePublicApplicationAccessToken(token).payload.permission_scope)
       .toEqual(['iam:self', 'app:read'])
   })
+
+  it('keeps an explicit rotation deadline and refuses one at or before issuance', () => {
+    const rotation = buildPublicApplicationAccessToken({
+      identity: { appId: 'app', tenantId: '1', organizationId: '0' },
+      profile: DEV_PROFILE,
+      runtimeTarget: 'browser',
+      expiresAt: PUBLIC_APP_ACCESS_TOKEN_ISSUED_AT + 86_400,
+    })
+    expect(decodePublicApplicationAccessToken(rotation).payload.exp)
+      .toBe(PUBLIC_APP_ACCESS_TOKEN_ISSUED_AT + 86_400)
+    expect(() => buildPublicApplicationAccessToken({
+      identity: { appId: 'app', tenantId: '1', organizationId: '0' },
+      profile: DEV_PROFILE,
+      runtimeTarget: 'browser',
+      expiresAt: PUBLIC_APP_ACCESS_TOKEN_ISSUED_AT,
+    })).toThrow(/must be after the token's issuedAt/u)
+  })
 })
 
 describe('decodePublicApplicationAccessToken', () => {
@@ -207,6 +235,24 @@ describe('decodePublicApplicationAccessToken', () => {
     decoded.login_scope = 'TENANT'
     const contradictory = `${orgHeader}.${encodeSegment(JSON.stringify(decoded))}.public`
     expect(() => decodePublicApplicationAccessToken(contradictory)).toThrow(/login_scope/u)
+  })
+
+  it('refuses a malformed exp claim while accepting permanent and future deadlines', () => {
+    const [header, payload] = TENANT_LEVEL_GOLDEN.split('.')
+    const claims = JSON.parse(decodeSegment(payload ?? '')) as Record<string, unknown>
+    claims.exp = 'soon'
+    expect(() => decodePublicApplicationAccessToken(
+      `${header}.${encodeSegment(JSON.stringify(claims))}.public`,
+    )).toThrow(/exp claim/u)
+    claims.exp = -1
+    expect(() => decodePublicApplicationAccessToken(
+      `${header}.${encodeSegment(JSON.stringify(claims))}.public`,
+    )).toThrow(/exp claim/u)
+    // An absent claim is permanent, exactly like the sentinel.
+    delete claims.exp
+    expect(decodePublicApplicationAccessToken(
+      `${header}.${encodeSegment(JSON.stringify(claims))}.public`,
+    ).payload.exp).toBeUndefined()
   })
 
   it('summarizes the isolation claims the dialog preview shows', () => {

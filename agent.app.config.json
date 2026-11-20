@@ -41,7 +41,8 @@
       "enabled": true,
       "clientId": "birdcoder",
       "redirectUris": [
-        "birdcoder://auth/callback"
+        "birdcoder://auth/callback",
+        "http://127.0.0.1:0/auth/callback"
       ],
       "allowedScopes": [
         "openid",

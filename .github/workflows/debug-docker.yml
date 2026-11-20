@@ -46,7 +46,7 @@ jobs:
         # which verifies the client build record against the official artifact
         # profile.
         env:
-          SDKWORK_DEPLOY_APPLICATION_ID: app_01a18b4f-6f61-7ff1-b86c-75b54995883f
+          SDKWORK_DEPLOY_APPLICATION_ID: ${{ vars.SDKWORK_DEPLOY_APPLICATION_ID || 'app_01a18b4f-6f61-7ff1-b86c-75b54995883f' }}
         run: pnpm run build:official
 
       - name: Prepare prebuilt context

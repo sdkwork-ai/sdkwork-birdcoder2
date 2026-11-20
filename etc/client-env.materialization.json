@@ -32,6 +32,21 @@
   ],
   "surfaces": [
     {
+      "id": "sdkwork-birdcoder2-web",
+      "root": ".",
+      "format": "dotenv-root",
+      "mode": "token-only",
+      "runtimeTarget": "browser",
+      "accessToken": {
+        "appIdEnv": "SDKWORK_DEPLOY_APPLICATION_ID",
+        "tenantId": "100001",
+        "organizationId": "0",
+        "permissionScope": [
+          "iam:self"
+        ]
+      }
+    },
+    {
       "id": "sdkwork-birdcoder2-pc",
       "root": "apps/sdkwork-birdcoder2-pc",
       "format": "vite",

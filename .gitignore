@@ -6,8 +6,9 @@ CLAUDE.local.md
 # `~/.sdkwork/<application-code>/credentials/<profile-id>.json`, the host
 # PostgreSQL profile in `config/host/postgres.env`, and desktop packaging
 # settings in `apps/desktop/packaging/<platform>.env`.
-.env.standalone.staging
-.env.cloud.staging
+#
+# Every profile of the matrix is tracked, staging included: a token ships with
+# the packaged application, so a release lane cannot be missing its carrier.
 # Retired composed names. Nothing reads them, and tools/check-env-file-naming.mjs
 # fails when one exists; they stay ignored only so a stray file cannot be
 # committed while it is being deleted.

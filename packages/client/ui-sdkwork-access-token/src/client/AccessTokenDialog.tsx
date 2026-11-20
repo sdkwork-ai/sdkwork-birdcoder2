@@ -496,7 +496,7 @@ export function AccessTokenDialog(props: AccessTokenDialogProps) {
                     type="radio"
                     name="sdkwork-access-token-level"
                     checked={form.level === 'tenant'}
-                    onChange={() => { updateForm({ level: 'tenant' }) }}
+                    onChange={() => { updateForm({ level: 'tenant', organizationId: '' }) }}
                   />
                   <span className={css.levelName}>{t('dialog.level.tenant')}</span>
                   <span className={css.levelHint}>{t('dialog.level.tenant.hint')}</span>
