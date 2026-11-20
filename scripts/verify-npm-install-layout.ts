@@ -2,7 +2,6 @@
 
 import { readFileSync } from 'node:fs'
 import { posix, resolve } from 'node:path'
-import { satisfies } from 'semver'
 import {
   buildRegistryIndex,
   resolveNpmPackageLock,
@@ -80,19 +79,18 @@ const BUDGET_DERIVED_NPM_HANG_GUARD_MS = Math.round(
  * Wall-clock guard for the npm child process. This is a hang guard, not the
  * gate's growth criterion: {@link MAX_RESOLUTION_WORK_UNITS} decides whether the
  * graph is too large to verify, and a runner up to four times slower than the
- * measured host cannot decide this gate's outcome.
+ * measured host cannot decide this gate's outcome. Derived from the budget so a
+ * raised budget cannot silently shrink the guard's headroom.
  *
- * FORK MEASUREMENT (SDKWork BirdCoder): the budget-derived ceiling no longer
- * covers this fork's graph. On 2026-11-20 the lane expired it on ubuntu-24.04
- * (`Release (dsh)` run 44610789196, job 135866512890) with no layout error, and
- * a Windows host had the same npm child still resolving after 48 minutes. The
- * fork carries 472 DSH packages per release plus the plugin submodules' peer
- * ranges, so peer placement costs far more than the upstream graph the 2.6e-4
- * s/unit calibration was measured on. Two hours is still a hang guard — the
- * budget above decides growth — and a completed run prints the exact seconds and
- * units, which replaces this ceiling.
+ * FORK MEASUREMENT (SDKWork BirdCoder): the derived ceiling is enough again once
+ * the glue edges are out of the graph ({@link stripGlueDshEdges}). Before that,
+ * the fork never finished: `Release (dsh)` run 44621601708 expired a 7,200 s
+ * guard on ubuntu-24.04 with no layout error, and this host had the npm child
+ * still resolving after 1 h 55 m at 93% of one core. With the glue edges dropped
+ * the same graph returns a verdict in 223 s here, which is 11× inside the
+ * derived guard.
  */
-const NPM_HANG_GUARD_MS = Math.max(BUDGET_DERIVED_NPM_HANG_GUARD_MS, 2 * 60 * 60 * 1000)
+const NPM_HANG_GUARD_MS = BUDGET_DERIVED_NPM_HANG_GUARD_MS
 
 /** Synthetic incompatible versions used to expose cross-release placement errors. */
 export const SYNTHETIC_DSH_VERSIONS = ['0.1.0', '0.2.0'] as const
@@ -130,35 +128,62 @@ function cloneForVersion(manifest: object, version: string): MutableRegistryMani
 }
 
 /**
- * Rewrite DSH edges of non-DSH packages whose range the working release accepts.
+ * Remove every DSH edge from a non-DSH ("glue") package.
+ *
+ * Glue packages — workspace members outside the DSH namespace, such as the
+ * BotHarness packages `@deepseek-ai/dsh-web-app` publishes against, and the
+ * plugin submodules that peer on a range of DSH versions — are the one part of
+ * this graph the gate never reads: {@link assertDualDshInstallLayout} walks the
+ * edges of DSH packages only. Their edges onto DSH packages therefore have to
+ * *resolve* without the gate ever asserting what they resolved to, and in a
+ * two-release registry no resolution is both cheap and honest:
+ *
+ * - A range with no candidate left after the substitution (`dsh-mcp-client`
+ *   pinned to a release this workspace no longer publishes) makes npm search
+ *   for one.
+ * - A range that fits both synthetic releases — a plugin's `"*"` peer, since no
+ *   prerelease satisfies `*` — lets npm choose per placement, so the glue
+ *   package earns a copy under each release and every choice re-runs
+ *   `canPlacePeers` over the whole peer set.
+ * - A range rewritten to the root release instead makes npm *install* that
+ *   release's copies for the shared glue package, so those packages exist only
+ *   at the root and the assertion fails on `only <root> contains: …`.
+ * - An edge onto a `@deepseek-ai/dsh-*` package the workspace does not build
+ *   pulls an unrelated published release into the graph. `ui-usage-billing`
+ *   peers on `@deepseek-ai/dsh-invariants`, whose own `schemastery ~3.18.4` and
+ *   `cordis ~4.0.4` have no candidate here.
+ *
+ * Dropping the edges is the only one of those that leaves the assertion intact,
+ * because it asserts nothing about them. Measured on this checkout: 219 edges
+ * dropped, and the dual-release resolution that had never finished inside a
+ * 7,200 s guard returned a verdict in 223 s.
  * @param versions - Published versions of one non-DSH package name.
- * @param sourceVersion - Workspace version the dual substitution replaces.
- * @param index - Registry the substitution produced, keyed by package name.
- * @returns The same map when no version pins the source release; otherwise a rewritten copy.
+ * @returns The same map when no version declares a DSH edge; otherwise a copy without them.
  */
-function rewriteGlueDshEdges(
+function stripGlueDshEdges(
   versions: ReadonlyMap<string, RegistryVersion>,
-  sourceVersion: string,
-  index: RegistryIndex,
 ): ReadonlyMap<string, RegistryVersion> {
-  const rootVersion = SYNTHETIC_DSH_VERSIONS[1]
   let rewritten: Map<string, RegistryVersion> | undefined
   for (const [version, manifest] of versions) {
     let changed = false
-    const next: Record<string, unknown> = { ...manifest }
-    for (const field of DEPENDENCY_FIELDS) {
-      const dependencies = manifest[field]
-      if (dependencies === undefined) continue
-      let dependenciesNext: Record<string, string> | undefined
-      for (const [dependency, range] of Object.entries(dependencies)) {
-        if (!isDshPackage(dependency)) continue
-        const synthetic = glueRangeForSourceRelease(range, sourceVersion, rootVersion, index.get(dependency))
-        if (synthetic === undefined) continue
-        dependenciesNext ??= { ...dependencies }
-        dependenciesNext[dependency] = synthetic
-        changed = true
+    const next: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(manifest)) {
+      if (!DEPENDENCY_FIELDS.includes(key as typeof DEPENDENCY_FIELDS[number])) {
+        next[key] = value
+        continue
       }
-      if (dependenciesNext !== undefined) next[field] = dependenciesNext
+      const dependencies = value as Record<string, string>
+      const kept = Object.fromEntries(
+        Object.entries(dependencies).filter(([dependency]) => !isDshPackage(dependency)),
+      )
+      if (Object.keys(kept).length === Object.keys(dependencies).length) {
+        next[key] = value
+        continue
+      }
+      changed = true
+      // A field whose every entry named a DSH package disappears entirely, so a
+      // stripped `optionalDependencies` does not linger as an empty object.
+      if (Object.keys(kept).length > 0) next[key] = kept
     }
     if (changed) {
       rewritten ??= new Map(versions)
@@ -168,53 +193,6 @@ function rewriteGlueDshEdges(
   return rewritten ?? versions
 }
 
-/**
- * Rewrite one non-DSH ("glue") dependency range that would otherwise pick
- * between the two synthetic releases.
- *
- * Glue packages — workspace members outside the DSH namespace, such as the
- * BotHarness packages `@deepseek-ai/dsh-web-app` publishes against, and the
- * plugin submodules that peer on a range of DSH versions — declare ranges over
- * the working release. The dual-release substitution removes every real DSH
- * version from the registry, so an unchanged range has no candidate left and
- * npm backtracks over the whole tree looking for one; a required peer that
- * never resolves turns the lane into a wall-clock failure with no layout
- * verdict at all.
- *
- * Two shapes therefore point at the root synthetic release:
- *
- * - A range the working release satisfies. The glue package is shared between
- *   the releases, and npm resolves its dependency against the hoisted root
- *   installation.
- * - A range that satisfies *both* synthetic releases without naming either. A
- *   plugin's `"*"` peer is the common case, and `satisfies(sourceVersion, '*')`
- *   is false for every prerelease, so the first rule never covered it. Leaving
- *   it alone lets npm choose per placement: the plugin then earns a copy under
- *   each release, and every such choice re-runs `canPlacePeers` over the whole
- *   peer set — the combinatorial branch the lane cannot finish. Binding it to
- *   the root release removes the choice without changing what the gate asserts,
- *   because the gate verifies DSH→DSH edges, never a glue package's own edges.
- *
- * A range with exactly one candidate already names a release, and a DSH package
- * the substitution did not replace (an upstream `@deepseek-ai/dsh-*` installed
- * from the registry) keeps its published versions, so its ranges stay untouched.
- * @param range - Already-published range on a non-DSH manifest.
- * @param sourceVersion - Workspace version the dual substitution replaces.
- * @param rootVersion - The root synthetic release version.
- * @param target - Registry versions of the range's DSH package.
- * @returns The synthetic range, or `undefined` to leave the range unchanged.
- */
-function glueRangeForSourceRelease(
-  range: string,
-  sourceVersion: string,
-  rootVersion: string,
-  target: ReadonlyMap<string, RegistryVersion> | undefined,
-): string | undefined {
-  if (target === undefined || !target.has(sourceVersion)) return undefined
-  if (satisfies(sourceVersion, range)) return `^${rootVersion}`
-  const candidates = SYNTHETIC_DSH_VERSIONS.filter(version => satisfies(version, range))
-  return candidates.length > 1 ? `^${rootVersion}` : undefined
-}
 
 /**
  * Replace the working release with two incompatible, internally consistent DSH releases.
@@ -227,7 +205,7 @@ export function buildDualDshRegistry(index: RegistryIndex, sourceVersion: string
   let dshPackages = 0
   for (const [name, versions] of index) {
     if (!isDshPackage(name)) {
-      output.set(name, rewriteGlueDshEdges(versions, sourceVersion, index))
+      output.set(name, stripGlueDshEdges(versions))
       continue
     }
     const source = versions.get(sourceVersion)

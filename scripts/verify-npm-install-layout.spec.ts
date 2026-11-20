@@ -92,32 +92,7 @@ describe('npm install layout verifier', () => {
     expect(dual.get('@deepseek-ai/dsh-invariants')).toBe(index.get('@deepseek-ai/dsh-invariants'))
   })
 
-  it('points a glue range the working release satisfies at the root synthetic release', () => {
-    const index: RegistryIndex = new Map([
-      ['@deepseek-ai/dsh', new Map([['0.1.1-rc.2', { name: '@deepseek-ai/dsh', version: '0.1.1-rc.2' }]])],
-      ['dsh-better-sidebar', new Map([['0.32.1', {
-        name: 'dsh-better-sidebar',
-        version: '0.32.1',
-        peerDependencies: {
-          '@deepseek-ai/dsh': '^0.1.1-rc.1',
-          '@deepseek-ai/dsh-invariants': '^0.0.1',
-        },
-      }]])],
-    ])
-
-    const dual = buildDualDshRegistry(index, '0.1.1-rc.2')
-
-    expect(dual.get('dsh-better-sidebar')?.get('0.32.1')).toMatchObject({
-      peerDependencies: {
-        '@deepseek-ai/dsh': '^0.2.0',
-        '@deepseek-ai/dsh-invariants': '^0.0.1',
-      },
-    })
-  })
-
-  it('points a glue range that satisfies both synthetic releases at the root release', () => {
-    // A plugin peers on `*`: no prerelease satisfies it, so the working-release
-    // rule left it alone and npm could bind the plugin to either release.
+  it('removes every DSH edge from a glue package and keeps the others', () => {
     const index: RegistryIndex = new Map([
       ['@deepseek-ai/dsh', new Map([['0.1.1-rc.2', { name: '@deepseek-ai/dsh', version: '0.1.1-rc.2' }]])],
       ['@deepseek-ai/dsh-child', new Map([['0.1.1-rc.2', { name: '@deepseek-ai/dsh-child', version: '0.1.1-rc.2' }]])],
@@ -128,43 +103,43 @@ describe('npm install layout verifier', () => {
       ['dsh-mcp-connector', new Map([['0.2.117', {
         name: 'dsh-mcp-connector',
         version: '0.2.117',
+        dependencies: { '@deepseek-ai/dsh-child': '0.1.1-rc.2', 'left-pad': '^1.3.0' },
+        optionalDependencies: { '@deepseek-ai/dsh': '^0.1.1-rc.2' },
         peerDependencies: {
           '@deepseek-ai/dsh': '*',
-          '@deepseek-ai/dsh-child': '*',
           '@deepseek-ai/dsh-invariants': '*',
+          react: '19.2.8',
         },
       }]])],
     ])
 
     const dual = buildDualDshRegistry(index, '0.1.1-rc.2')
 
+    // No resolution of these edges is both cheap and honest: an unchanged range
+    // has no candidate, a range fitting both releases lets npm choose per
+    // placement, and a range bound to the root release makes npm install that
+    // release's copies for a shared package. The gate asserts DSH edges only, so
+    // it drops them and keeps the glue package's own dependencies.
     expect(dual.get('dsh-mcp-connector')?.get('0.2.117')).toMatchObject({
-      peerDependencies: {
-        // Substituted packages: the ambiguity is the dual release, so it binds to root.
-        '@deepseek-ai/dsh': '^0.2.0',
-        '@deepseek-ai/dsh-child': '^0.2.0',
-        // Not a workspace member: its published versions stay, and `*` is npm's own choice.
-        '@deepseek-ai/dsh-invariants': '*',
-      },
+      dependencies: { 'left-pad': '^1.3.0' },
+      peerDependencies: { react: '19.2.8' },
     })
+    expect(dual.get('dsh-mcp-connector')?.get('0.2.117')).not.toHaveProperty('optionalDependencies')
   })
 
-  it('keeps a glue range that names exactly one synthetic release', () => {
+  it('leaves a glue package without DSH edges untouched', () => {
     const index: RegistryIndex = new Map([
       ['@deepseek-ai/dsh', new Map([['0.1.1-rc.2', { name: '@deepseek-ai/dsh', version: '0.1.1-rc.2' }]])],
-      ['@deepseek-ai/dsh-child', new Map([['0.1.1-rc.2', { name: '@deepseek-ai/dsh-child', version: '0.1.1-rc.2' }]])],
       ['dsh-better-sidebar', new Map([['0.32.1', {
         name: 'dsh-better-sidebar',
         version: '0.32.1',
-        peerDependencies: { '@deepseek-ai/dsh-child': '^0.1.0' },
+        peerDependencies: { react: '19.2.8' },
       }]])],
     ])
 
     const dual = buildDualDshRegistry(index, '0.1.1-rc.2')
 
-    expect(dual.get('dsh-better-sidebar')?.get('0.32.1')).toMatchObject({
-      peerDependencies: { '@deepseek-ai/dsh-child': '^0.1.0' },
-    })
+    expect(dual.get('dsh-better-sidebar')).toBe(index.get('dsh-better-sidebar'))
   })
 
   it('ignores a DSH package that is not a workspace member in the layout', () => {
