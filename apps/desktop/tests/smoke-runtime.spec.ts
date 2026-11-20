@@ -42,7 +42,10 @@ const loadedSkills = [
   { name: 'office-xlsx', bytes: 5611 },
 ]
 
-it('uses the private readiness Cookie for every packaged runtime HTTP probe', async () => {
+type OfficeFailureMode = 'ok' | 'timeout-once' | 'error-once'
+
+/** Run the whole packaged-runtime smoke against a real Host HTTP listener. */
+async function runPackagedRuntimeSmoke(officeFailureMode: OfficeFailureMode = 'ok') {
   const root = mkdtempSync(join(tmpdir(), 'dsh-smoke-auth-'))
   const ctx = new Context()
   onTestFinished(async () => {
@@ -70,6 +73,7 @@ it('uses the private readiness Cookie for every packaged runtime HTTP probe', as
     requests.push({ path: request.url, cookie: request.headers.cookie })
     await next()
   })
+  let officeFailures = 0
   ctx.effect(() => ctx.webServer.registerFallback({
     handler(request, response) {
       const path = request.url
@@ -78,7 +82,20 @@ it('uses the private readiness Cookie for every packaged runtime HTTP probe', as
       else if (path === '/desktop-smoke-install') response.end('{}')
       else if (path === '/desktop-smoke-installed') response.end('installed plugin ready')
       else if (path === '/desktop-smoke-skills') response.end(JSON.stringify(loadedSkills))
-      else if (path?.startsWith('/desktop-smoke-office/')) response.end('%PDF-1.7\nfixture\n%%EOF')
+      else if (path?.startsWith('/desktop-smoke-office/')) {
+        // The smoke plugin emits 504 only for the engine's `code: 'timeout'`;
+        // the fixture reproduces that wire contract here.
+        if (officeFailureMode !== 'ok' && path.endsWith('/xlsx') && officeFailures === 0) {
+          officeFailures++
+          if (officeFailureMode === 'timeout-once') {
+            response.writeHead(504).end("OfficeKitError: LibreOffice conversion timed out.\n  code: 'timeout'")
+          } else {
+            response.writeHead(500).end('OfficeKitError: unsupported fixture')
+          }
+        } else {
+          response.end('%PDF-1.7\nfixture\n%%EOF')
+        }
+      }
       else if (path?.startsWith('/desktop-smoke-office-operations/')) response.end(JSON.stringify({
         images: ['89504e470d0a1a0a'], converted: '504b0304', recalculated: path.endsWith('/xlsx') ? '504b0304' : null,
       }))
@@ -106,8 +123,13 @@ it('uses the private readiness Cookie for every packaged runtime HTTP probe', as
     }
     return { stdout: '', stderr: '' }
   })
-  vi.spyOn(console, 'log').mockImplementation(() => {})
+  const log = vi.spyOn(console, 'log').mockImplementation(() => {})
   await smokeDesktopRuntime(join(root, 'payload'), process.execPath, runtime, {}, resources)
+  return { requests, smokeHome, log, cookie }
+}
+
+it('uses the private readiness Cookie for every packaged runtime HTTP probe', async () => {
+  const { requests, smokeHome, cookie } = await runPackagedRuntimeSmoke()
   expect(requests.map(request => request.path)).toEqual([
     '/', '/desktop-smoke', '/desktop-smoke-install', '/desktop-smoke-installed', '/desktop-smoke-skills',
     '/desktop-smoke-office/docx', '/desktop-smoke-office/xlsx', '/desktop-smoke-office/pptx',
@@ -117,6 +139,17 @@ it('uses the private readiness Cookie for every packaged runtime HTTP probe', as
   expect(boundary.stop).toHaveBeenCalledOnce()
   expect(smokeHome).toBeDefined()
   expect(existsSync(smokeHome!)).toBe(false)
+})
+
+it('retries a single engine timeout and still validates the successful output', async () => {
+  const { requests, log } = await runPackagedRuntimeSmoke('timeout-once')
+  expect(requests.filter(request => request.path === '/desktop-smoke-office/xlsx')).toHaveLength(2)
+  expect(requests.filter(request => request.path === '/desktop-smoke-office/docx')).toHaveLength(1)
+  expect(log).toHaveBeenCalledWith(expect.stringContaining('retrying the operation once'))
+})
+
+it('fails immediately on a non-timeout Office error', async () => {
+  await expect(runPackagedRuntimeSmoke('error-once')).rejects.toThrow('desktop runtime: xlsx conversion failed')
 })
 
 describe('assertOfficeSkillsLoadable', () => {

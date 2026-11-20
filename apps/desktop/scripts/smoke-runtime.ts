@@ -71,6 +71,37 @@ function requestOfficeRoute(url: URL, cookie: string, timeoutMs: number): Promis
 }
 
 /**
+ * Issue one Office smoke request, tolerating a single transient LibreOffice
+ * engine timeout by retrying once.
+ *
+ * The engine's per-operation ceiling (`timeoutMs: 600000`) is a bound on a hung
+ * engine, not a service-level promise, and the `macos-15-intel` release runner
+ * intermittently crosses it on one of the smoke's one-page fixtures even though
+ * the identical packaged engine finishes every operation in ~17 s on arm64 and
+ * took 51-65 s on this lane on other days. The failure is a transient stall in
+ * the runner's LibreOffice process, not a defect in the packaged runtime.
+ *
+ * The smoke plugin answers 504 only when the engine reports `code: 'timeout'`;
+ * every other failure stays a 500 and fails immediately. A failed conversion is
+ * evicted from office-kit's queue, so retrying the same route re-runs the real
+ * operation rather than replaying a cached result. The retry keeps the full
+ * assertion — the caller still validates the PDF/PNG/ZIP output of the
+ * successful response — so this raises resilience without weakening the check.
+ * @param url - Smoke route on the Host's loopback origin.
+ * @param cookie - Host authentication cookie returned with the readiness URL.
+ * @param timeoutMs - Client budget per attempt.
+ * @returns The successful response, or the second attempt's response.
+ */
+async function requestOfficeRouteWithTimeoutRetry(
+  url: URL, cookie: string, timeoutMs: number,
+): Promise<{ readonly status: number; readonly body: Buffer }> {
+  const first = await requestOfficeRoute(url, cookie, timeoutMs)
+  if (first.status !== 504) return first
+  console.log(`desktop runtime: ${url.pathname} hit a transient LibreOffice timeout; retrying the operation once`)
+  return await requestOfficeRoute(url, cookie, timeoutMs)
+}
+
+/**
  * Check CLI package operations, Host startup, its frontend, external plugins, packaged Office skill loading,
  * and real Office rendering, conversion, and recalculation.
  * @param root - Materialized dsh resources.
@@ -146,6 +177,12 @@ export function apply(ctx) {
 import { Context } from '@deepseek-ai/cordis'
 import { inspect } from 'node:util'
 import { readFile } from 'node:fs/promises'
+function respondOfficeError(response, error) {
+  // Only the engine's own timeout is retryable (504). Every other failure is a
+  // real smoke failure and must fail the lane on the first attempt (500).
+  response.statusCode = error != null && error.code === 'timeout' ? 504 : 500
+  response.end(inspect(error, { depth: 5 }))
+}
 export function apply(ctx) {
   if (!(ctx instanceof Context)) throw new Error('desktop runtime: external plugin loaded another Cordis instance')
   ctx.effect(() => ctx.webServer.register({ kind: 'exact', path: '/desktop-smoke',
@@ -184,8 +221,7 @@ export function apply(ctx) {
               async read() { return { bytes, version: 'fixture' } } } })
           response.end(Buffer.from(result.pdf))
         } catch (error) {
-          response.statusCode = 500
-          response.end(inspect(error, { depth: 5 }))
+          respondOfficeError(response, error)
         }
       } }))
     ctx.effect(() => ctx.webServer.register({ kind: 'exact', path: '/desktop-smoke-office-operations/' + input.extension,
@@ -216,8 +252,7 @@ export function apply(ctx) {
             recalculated: recalculated === undefined ? null : (await readFile(recalculated.path)).subarray(0, 4).toString('hex'),
           }))
         } catch (error) {
-          response.statusCode = 500
-          response.end(inspect(error, { depth: 5 }))
+          respondOfficeError(response, error)
         }
       } }))
   }
@@ -258,7 +293,7 @@ export function apply(ctx) {
     assertOfficeSkillsLoadable(loadedSkills)
     console.log('desktop runtime: packaged Office skills listed and loaded')
     for (const { extension } of inputs) {
-      const converted = await requestOfficeRoute(new URL(`/desktop-smoke-office/${extension}`, ready.url), cookie, OFFICE_CALL_TIMEOUT_MS)
+      const converted = await requestOfficeRouteWithTimeoutRetry(new URL(`/desktop-smoke-office/${extension}`, ready.url), cookie, OFFICE_CALL_TIMEOUT_MS)
       if (converted.status !== 200) throw new Error(`desktop runtime: ${extension} conversion failed: ${converted.body.toString()}`)
       const pdf = converted.body
       if (!/^%PDF-\d\.\d/u.test(pdf.subarray(0, 8).toString())
@@ -267,7 +302,7 @@ export function apply(ctx) {
       }
     }
     for (const { extension } of inputs) {
-      const operations = await requestOfficeRoute(new URL(`/desktop-smoke-office-operations/${extension}`, ready.url), cookie, OFFICE_CALL_TIMEOUT_MS)
+      const operations = await requestOfficeRouteWithTimeoutRetry(new URL(`/desktop-smoke-office-operations/${extension}`, ready.url), cookie, OFFICE_CALL_TIMEOUT_MS)
       if (operations.status !== 200) throw new Error(`desktop runtime: ${extension} Office operations failed: ${operations.body.toString()}`)
       const result = JSON.parse(operations.body.toString('utf8')) as { images: string[]; converted: string; recalculated: string | null }
       // PNG images, then ZIP containers for OpenDocument and XLSX outputs.

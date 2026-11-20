@@ -12,6 +12,19 @@ on:
         description: Release version to rehearse (use the package.json version)
         required: true
         type: string
+      # Repair path for a tag run where exactly one packaging lane failed: reuse
+      # every successful artifact from that run and replace only the repaired
+      # lane's artifact, so a green lane is never rebuilt. Both inputs must be
+      # supplied together; ordinary tag pushes leave them empty and package all
+      # lanes exactly as before.
+      repair-base-run:
+        description: Run id whose successful artifacts are reused
+        required: false
+        type: string
+      repair-mac-x64-run:
+        description: Run id providing a replacement dsh-desktop-macos-x64 artifact
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -30,6 +43,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       version: ${{ steps.version.outputs.version }}
+      repair: ${{ steps.version.outputs.repair }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -41,6 +55,8 @@ jobs:
         shell: bash
         env:
           DISPATCH_VERSION: ${{ inputs.version }}
+          REPAIR_BASE_RUN: ${{ inputs.repair-base-run }}
+          REPAIR_MAC_X64_RUN: ${{ inputs.repair-mac-x64-run }}
         run: |
           set -euo pipefail
           if [[ "$GITHUB_EVENT_NAME" == push ]]; then
@@ -55,10 +71,28 @@ jobs:
             exit 1
           }
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          # A repair only makes sense from a tag dispatch; a partial repair
+          # would otherwise publish artifacts from unrelated runs.
+          if [[ -n "$REPAIR_BASE_RUN" || -n "$REPAIR_MAC_X64_RUN" ]]; then
+            test "$GITHUB_EVENT_NAME" = workflow_dispatch
+            test -n "$REPAIR_BASE_RUN" && test -n "$REPAIR_MAC_X64_RUN" || {
+              echo "repair needs both repair-base-run and repair-mac-x64-run" >&2
+              exit 1
+            }
+            [[ "$REPAIR_BASE_RUN" =~ ^[0-9]+$ && "$REPAIR_MAC_X64_RUN" =~ ^[0-9]+$ ]] || {
+              echo "repair run ids must be numeric" >&2
+              exit 1
+            }
+            test "$REPAIR_BASE_RUN" != "$REPAIR_MAC_X64_RUN"
+            echo 'repair=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'repair=false' >> "$GITHUB_OUTPUT"
+          fi
 
   desktop:
     name: Package Desktop targets
     needs: resolve
+    if: needs.resolve.outputs.repair != 'true'
     uses: ./.github/workflows/desktop-release.yml
     with:
       version: ${{ needs.resolve.outputs.version }}
@@ -74,6 +108,7 @@ jobs:
   container-bundle:
     name: Package Compose and Kubernetes bundle
     needs: resolve
+    if: needs.resolve.outputs.repair != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -134,6 +169,7 @@ jobs:
   container-native:
     name: Build container Landlock ${{ matrix.arch }}
     needs: resolve
+    if: needs.resolve.outputs.repair != 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -177,6 +213,7 @@ jobs:
   container-image:
     name: Package container ${{ matrix.platform }}
     needs: [resolve, container-bundle, container-native]
+    if: needs.resolve.outputs.repair != 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -242,7 +279,7 @@ jobs:
         env:
           # The committed root profiles carry the placeholder anchor; the build
           # re-anchors the public token from this deploy application id.
-          SDKWORK_DEPLOY_APPLICATION_ID: app_01a18b4f-6f61-7ff1-b86c-75b54995883f
+          SDKWORK_DEPLOY_APPLICATION_ID: ${{ vars.SDKWORK_DEPLOY_APPLICATION_ID || 'app_01a18b4f-6f61-7ff1-b86c-75b54995883f' }}
         run: pnpm run build:official
 
       - name: Prepare prebuilt context
@@ -393,6 +430,10 @@ jobs:
   release:
     name: Publish one verified GitHub Release
     if: >-
+      always() && needs.resolve.result == 'success' &&
+      (needs.resolve.outputs.repair == 'true' ||
+       (needs.desktop.result == 'success' && needs.container-bundle.result == 'success' &&
+        needs.container-image.result == 'success')) &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       startsWith(github.ref, 'refs/tags/birdcoder-v')
     needs: [resolve, desktop, container-bundle, container-image]
@@ -403,6 +444,8 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: write
+      # Repair dispatch downloads artifacts produced by an earlier run.
+      actions: read
     steps:
       - uses: actions/checkout@v6
         with:
@@ -423,15 +466,30 @@ jobs:
       # container bundle and image archives are birdcoder-container-*.
       # download-artifact accepts ONE glob per step, so each family downloads
       # in its own step into the same artifacts directory.
+      # A normal run assembles artifacts from itself. A repair run reads every
+      # green lane from the base run and replaces only the repackaged lane.
       - uses: actions/download-artifact@v4
         with:
           pattern: dsh-desktop-*
           path: artifacts
+          run-id: ${{ needs.resolve.outputs.repair == 'true' && inputs.repair-base-run || github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Replace the repaired mac-x64 artifact
+        if: needs.resolve.outputs.repair == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: dsh-desktop-macos-x64
+          path: artifacts/dsh-desktop-macos-x64
+          run-id: ${{ inputs.repair-mac-x64-run }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/download-artifact@v4
         with:
           pattern: birdcoder-container-*
           path: artifacts
+          run-id: ${{ needs.resolve.outputs.repair == 'true' && inputs.repair-base-run || github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Assemble and verify exact release assets
         run: pnpm exec tsx scripts/release/assemble-github-release.ts --input artifacts --output release-assets --version ${{ needs.resolve.outputs.version }}
