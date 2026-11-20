@@ -13,7 +13,7 @@ import type { SignedAccessFeatures } from '../src/client/SignedTokenPanel.tsx'
 import type { AccessTokenCredentialsFace } from '../src/client/credentials-contract.ts'
 import { createAccessTokenDialogStore } from '../src/client/store.ts'
 import { decodePublicApplicationAccessToken } from '../src/client/accessToken.ts'
-import { MemoryFs } from './memory-fs.ts'
+import { MemoryFs } from './memory-fs.client.ts'
 import { zh as copy } from '../src/client/locales.ts'
 
 afterEach(cleanup)

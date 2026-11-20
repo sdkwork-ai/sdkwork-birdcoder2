@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { describeAccessTokenProject } from '../src/client/project.ts'
-import { MemoryFs } from './memory-fs.ts'
+import { MemoryFs } from './memory-fs.client.ts'
 
 /** A minimal v3 manifest carrying the fields the initializer reads. */
 function manifest(identity: {

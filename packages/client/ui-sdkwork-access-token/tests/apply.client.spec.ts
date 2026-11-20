@@ -19,7 +19,7 @@ import { ACCESS_TOKEN_CONFIG_FILE_GLOBAL, type SdkworkAccessTokenAccount } from 
 import { AccessTokenDialog } from '../src/client/AccessTokenDialog.tsx'
 import type { AccessTokenDialogInjected } from '../src/client/AccessTokenDialog.tsx'
 import { createAccessTokenDialogStore } from '../src/client/store.ts'
-import { MemoryFs } from './memory-fs.ts'
+import { MemoryFs } from './memory-fs.client.ts'
 
 /** A workspace context-menu contribution captured by the stand-in service. */
 interface CapturedContribution {

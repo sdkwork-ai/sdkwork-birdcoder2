@@ -14,7 +14,7 @@ import type { AccessTokenRootSelection } from '../src/client/initializer.ts'
 import {
   initializeAccessTokens, mergeDotenvAccessToken, mergeHarmonyRuntimeEnvAccessToken, mergeJsonAccessToken,
 } from '../src/client/initializer.ts'
-import { MemoryFs } from './memory-fs.ts'
+import { MemoryFs } from './memory-fs.client.ts'
 
 /** One application root fixture. */
 function candidate(rootPath: string, overrides: Partial<AccessTokenCandidate['identity']> = {}): AccessTokenCandidate {
