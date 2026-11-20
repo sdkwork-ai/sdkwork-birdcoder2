@@ -162,16 +162,72 @@ describe('npm install layout verifier', () => {
     })
   })
 
-  it.each([
-    ['react', 'node_modules/react'],
-    ['react-dom', 'node_modules/react-dom'],
-    ['react', 'node_modules/dsh-previous/node_modules/react'],
-    ['react-dom', 'node_modules/dsh-previous/node_modules/react-dom'],
-  ])('rejects browser runtime %s installed at %s in the DSH-only consumer', (name, path) => {
+  it('accepts one auto-installed react/react-dom peer copy per release-free root', () => {
     const layout = validLayout()
-    const packages = { ...layout.packages, [path]: { version: '18.3.1' } }
+    const packages = {
+      ...layout.packages,
+      'node_modules/react': { version: '19.2.8' },
+      'node_modules/react-dom': { version: '19.2.8' },
+    }
+    expect(assertDualDshInstallLayout({ ...layout, packages }, WORKSPACE_DSH_PACKAGES)).toEqual({
+      dshPackagesPerVersion: 3,
+      checkedDshEdges: 4,
+    })
+  })
+
+  it('rejects a browser runtime declared by the synthetic consumer itself', () => {
+    const layout = validLayout()
+    const packages = {
+      ...layout.packages,
+      '': { dependencies: { ...layout.packages['']?.dependencies, react: '19.2.8' } },
+      'node_modules/react': { version: '19.2.8' },
+    }
     expect(() => assertDualDshInstallLayout({ ...layout, packages }, WORKSPACE_DSH_PACKAGES)).toThrow(
-      `${path}: ${name} is a browser build input`,
+      'synthetic consumer declares browser build input react',
+    )
+  })
+
+  it.each([
+    ['dependencies', 'dependencies react is a browser build input'],
+    ['optionalDependencies', 'optionalDependencies react is a browser build input'],
+  ])('rejects a DSH package reaching react through %s', (field, message) => {
+    const layout = validLayout()
+    const packages = {
+      ...layout.packages,
+      'node_modules/@deepseek-ai/dsh': {
+        ...layout.packages['node_modules/@deepseek-ai/dsh'],
+        [field]: { react: '19.2.8' },
+      },
+      'node_modules/react': { version: '19.2.8' },
+    }
+    expect(() => assertDualDshInstallLayout({ ...layout, packages }, WORKSPACE_DSH_PACKAGES)).toThrow(message)
+  })
+
+  it('allows a DSH package to declare react only as a peer', () => {
+    const layout = validLayout()
+    const packages = {
+      ...layout.packages,
+      'node_modules/@deepseek-ai/dsh': {
+        ...layout.packages['node_modules/@deepseek-ai/dsh'],
+        peerDependencies: { ...layout.packages['node_modules/@deepseek-ai/dsh']?.peerDependencies, react: '19.2.8' },
+      },
+      'node_modules/react': { version: '19.2.8' },
+    }
+    expect(assertDualDshInstallLayout({ ...layout, packages }, WORKSPACE_DSH_PACKAGES)).toEqual({
+      dshPackagesPerVersion: 3,
+      checkedDshEdges: 4,
+    })
+  })
+
+  it('rejects two installed copies of a browser runtime', () => {
+    const layout = validLayout()
+    const packages = {
+      ...layout.packages,
+      'node_modules/react': { version: '19.2.8' },
+      'node_modules/dsh-previous/node_modules/react': { version: '18.3.1' },
+    }
+    expect(() => assertDualDshInstallLayout({ ...layout, packages }, WORKSPACE_DSH_PACKAGES)).toThrow(
+      'react has 2 installed copies, expected one',
     )
   })
 

@@ -277,10 +277,32 @@ export function assertDualDshInstallLayout(
   const installed = Object.entries(packageLock.packages)
   let checkedDshEdges = 0
 
+  // `react`/`react-dom` are browser build inputs, so the synthetic consumer's
+  // own manifest must never name them. npm 7+ auto-installs peerDependencies,
+  // though, and this fork's DSH client packages declare `react` as a peer (and
+  // plugin submodules declare it as a peer too). Those copies legitimately land
+  // in the resolved tree; rejecting their mere presence is not a DSH-layout
+  // invariant. What the gate must still hold is narrower and stronger:
+  //   1. no DSH package reaches a browser build input through a *runtime* edge
+  //      (dependencies / optionalDependencies) — only a peer declaration may;
+  //   2. each browser runtime resolves to a single installed copy, so the two
+  //      synthetic DSH releases cannot be split by conflicting React versions.
+  const BROWSER_INPUTS = new Set(['react', 'react-dom'])
+  const browserCopies = new Map<string, string[]>()
+  const consumer = packageLock.packages['']
+  for (const browserName of BROWSER_INPUTS) {
+    if (consumer?.dependencies?.[browserName] !== undefined
+      || consumer?.optionalDependencies?.[browserName] !== undefined) {
+      errors.push(`synthetic consumer declares browser build input ${browserName}`)
+    }
+  }
+
   for (const [path, manifest] of installed) {
     const name = packageNameAtPath(path, manifest)
-    if (name === 'react' || name === 'react-dom') {
-      errors.push(`${path}: ${name} is a browser build input, not a dependency of the synthetic DSH-only consumer`)
+    if (name !== undefined && BROWSER_INPUTS.has(name)) {
+      const copies = browserCopies.get(name) ?? []
+      copies.push(path)
+      browserCopies.set(name, copies)
     }
     if (name === undefined || !dshPackages.has(name)) continue
     const version = manifest.version
@@ -300,6 +322,13 @@ export function assertDualDshInstallLayout(
 
     for (const field of DEPENDENCY_FIELDS) {
       for (const dependency of Object.keys(manifest[field] ?? {})) {
+        // A peer declaration is how this fork declares the browser runtime; it
+        // is not an edge the DSH package installs on its own. A hard dependency
+        // on a browser input, however, would make the DSH-only consumer drag a
+        // renderer into its runtime closure and must be rejected.
+        if (BROWSER_INPUTS.has(dependency) && field !== 'peerDependencies') {
+          errors.push(`${path}: ${field} ${dependency} is a browser build input in a DSH package`)
+        }
         if (!dshPackages.has(dependency)) continue
         const targetPath = resolvePackagePath(packageLock.packages, path, dependency)
         const optionalPeer = field === 'peerDependencies'
@@ -317,6 +346,13 @@ export function assertDualDshInstallLayout(
           )
         }
       }
+    }
+  }
+
+  for (const browserName of BROWSER_INPUTS) {
+    const copies = browserCopies.get(browserName) ?? []
+    if (copies.length > 1) {
+      errors.push(`${browserName} has ${String(copies.length)} installed copies, expected one: ${copies.join(', ')}`)
     }
   }
 
