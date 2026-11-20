@@ -99,4 +99,12 @@
 * **子模块 pin 前移**：`dsh-mcp-connector` `v0.2.111` → `v0.2.117`；`dsh-ui-usage-billing` `1.8.4-sdkwork.3` → `1.8.8-sdkwork.1`（#123 压缩调用计入统计、缓存写入独立计价，#124 动效作用域，#125 中转站模型 id 归一与未收录模型补价，#126 通道可见性，#127 兜底账本行键归一与按日补价）；`sdkwork-deepseekbot` `ef40c579` → `05d0e36b`（新配置默认展开 Simple Subpanel 列）；`dsh-market` `e8dc352` → `b7d62fd`。`pnpm-lock.yaml` 只随之改写两个 importer：56 条 `@deepseek-ai/dsh-*` pin `0.2.2-rc.1` → `0.2.2-rc.3`，以及 mcp-connector 的 `undici ^6.29.1`、`zod ^4.6.6`。
 * **本地 Windows 打包验证**：`package:win:x64:unsigned` 在 win-x64 上通过——安装包与 zip 产出，运行时冒烟跑到 CLI 离线插件装卸、Office 技能加载与 DOCX/XLSX/PPTX→PDF 转换全绿，`stage-desktop-artifacts.ts` 按发布契约收出 3 个资产（`.exe` / `.zip` / `latest.yml`）。
 
+#### 发布收口：2026-11-20 再打包
+
+本次仍在 `0.2.2-rc.5` 版本线上，把 tag 之后合入 main 的 IAM deep-link loopback policy 与 access-token bootstrap 纳入正式包，并只前移真正前进的 git submodule。
+
+* **子模块前移**：`dsh-mcp-connector` `e762e57` → `ed9ea13`（v0.2.118 + 实时 locale 修复与 GilData MCP bridge）；远端 `main` 相对旧 pin 是快进，依赖集合未变，因此 `pnpm-lock.yaml` 的 importer 无需改写。`dsh-better-sidebar` 保持 `aa2a058`：远端 `main` 的 `2811573` 实际是它的祖先，移动会造成倒退并丢掉已合入的 editor 修复。
+* **依赖管理**：本地仍由 `pnpm-workspace.yaml` 的 `../sdkwork-*` 相对路径与 `workspace:*` 解析，release 仍由 `agent.workflow.json` 与 `scripts/sdkwork-sources.manifest.json` 的 git pin checkout 解析；没有把任何本地路径写进 release 依赖。
+* **本地 Windows 打包验证**：`package:win:x64:unsigned` 在 win-x64 上通过，产出 `BirdCoder-0.2.2-rc.5-win-x64.exe` / `.zip` / `latest.yml`；冒烟覆盖 CLI 离线插件装卸、Office 技能加载与 DOCX/XLSX/PPTX→PDF 转换，全部通过。
+
 本文件只保留当前版本一节；往期条目随各自版本的提交留在 git 历史里（`git log -p CHANGELOG.md`）。Release notes 就是本节内容。
