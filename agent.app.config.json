@@ -72,6 +72,20 @@
     ],
     "defaultDeploymentProfile": "cloud"
   },
+  "environments": {
+    "test": {
+      "accessUrl": "https://birdcoder2-test.sdkwork.com/"
+    },
+    "staging": {
+      "accessUrl": "https://birdcoder2-staging.sdkwork.com/"
+    },
+    "demo": {
+      "accessUrl": "https://birdcoder2-demo.sdkwork.com/"
+    },
+    "production": {
+      "accessUrl": "https://birdcoder2.sdkwork.com/"
+    }
+  },
   "media": {
     "icons": {
       "primary": {

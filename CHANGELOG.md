@@ -107,4 +107,14 @@
 * **依赖管理**：本地仍由 `pnpm-workspace.yaml` 的 `../sdkwork-*` 相对路径与 `workspace:*` 解析，release 仍由 `agent.workflow.json` 与 `scripts/sdkwork-sources.manifest.json` 的 git pin checkout 解析；没有把任何本地路径写进 release 依赖。
 * **本地 Windows 打包验证**：`package:win:x64:unsigned` 在 win-x64 上通过，产出 `BirdCoder-0.2.2-rc.5-win-x64.exe` / `.zip` / `latest.yml`；冒烟覆盖 CLI 离线插件装卸、Office 技能加载与 DOCX/XLSX/PPTX→PDF 转换，全部通过。
 
+#### 发布收口：2026-11-21 IAM 兑换与启动锚点修复
+
+同一 `0.2.2-rc.5` 版本线，纳入 tag 之后合入 main 的 IAM 登录与 access-token 修复，并撤掉一处会让 release 工作流在 CI 必然失败的前置门禁。
+
+* **桌面兑换信封**：`ui-sdkwork-iam` 的 V3 会话创建调用从 `sdkworkUnwrapKind: 'data'` 改为 `'item'`，与生成的 `oauth.desktopSessions.create` 一致（`{"code":0,"data":{"item":{...}}}`）；此前把 `{ item: session }` 交给会话校验器，会把成功兑换误判为不完整会话。登录失败提示优先显示服务端/传输层 `detail`，固定摘要 `message` 退为兜底；失败日志保留原始 error，便于按状态码、问题码与 trace id 与 IAM 服务端日志对齐。
+* **启动锚点**：`admin:bootstrap:app` 从 `scripts/sdkwork-app-bootstrap.mjs` 迁到 `scripts/bootstrap/bootstrap-app.mjs`，支持 `--deploy-application-id` / `SDKWORK_DEPLOY_APPLICATION_ID` 覆盖 manifest 回退值，使 access token 的 `app_id` 与部署自身应用一致（provision → enable → access-credential）。本地新增 `check:architecture` 三项校验（IAM application bootstrap、access-token lifecycle、embedded bootstrap workspace audit），均针对 `sdkwork-specs` 规范，本地全绿。
+* **CI 门禁纠正**：`release:verify` / `release:pack` 曾被前置 `check:release-access-token:require-anchor`。该脚本依赖 CI 未 checkout 的 `../sdkwork-specs/tools/...`，且要求构建后才材料化的应用锚点，放在 `release:verify`（Build 之前）会在干净 checkout 上必然失败；已撤销这两处前置，锚点校验保留为本地按需执行的脚本，不影响 release 打包链。
+* **依赖管理**：本地仍由 `pnpm-workspace.yaml` 的 `../sdkwork-*` 相对路径与 `workspace:*` 解析，release 仍由 `agent.workflow.json` 与 `scripts/sdkwork-sources.manifest.json` 的 git pin checkout 解析；根 importer 的 98 个 devDependency 与 lockfile 逐项一致，没有把本地路径写进 release 依赖。
+* **本地 Windows 打包验证**：`package:win:x64:unsigned` 在 win-x64 上通过，产出 `BirdCoder-0.2.2-rc.5-win-x64.exe` / `.zip` / `latest.yml`。
+
 本文件只保留当前版本一节；往期条目随各自版本的提交留在 git 历史里（`git log -p CHANGELOG.md`）。Release notes 就是本节内容。
