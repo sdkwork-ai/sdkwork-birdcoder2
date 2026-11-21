@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { decodeInstallationApplication } from '../src/client/installation-facts.ts'
 
 const RESPONSE = {
-  appId: 'app_registered',
+  appId: '382418217538162688',
   tenantId: '100001',
   organizationId: '0',
   releaseScope: 'TENANT',
@@ -24,6 +24,11 @@ const RESPONSE = {
 describe('decodeInstallationApplication', () => {
   it('accepts a complete platform response', () => {
     expect(decodeInstallationApplication(RESPONSE)).toEqual(RESPONSE)
+    // The platform's own id vocabulary is authoritative, whatever its shape.
+    expect(decodeInstallationApplication({ ...RESPONSE, appId: 'app_01a18b4f-6f61-7ff1-b86c-75b54995883f' }))
+      .toEqual({ ...RESPONSE, appId: 'app_01a18b4f-6f61-7ff1-b86c-75b54995883f' })
+    expect(decodeInstallationApplication({ ...RESPONSE, appId: '1906659d-ef4c-4b89-b72f-606512821ad7' }))
+      .toEqual({ ...RESPONSE, appId: '1906659d-ef4c-4b89-b72f-606512821ad7' })
   })
 
   it('rejects a non-object payload', () => {

@@ -19,9 +19,11 @@ import type {
   AboutProductFacts, AboutReleaseScope,
 } from './installation-facts.ts'
 import {
-  SHIPPED_PRODUCT_LINKS, SHIPPED_PRODUCT_VENDOR,
+  SHIPPED_PRODUCT_APP_KEY, SHIPPED_PRODUCT_LINKS, SHIPPED_PRODUCT_VENDOR,
 } from './installation-facts.ts'
-import type { AboutInstallationSnapshot, AboutLocalFacts, AboutUnavailableReason } from './about-runtime.ts'
+import type {
+  AboutAppMode, AboutInstallationSnapshot, AboutLocalFacts, AboutUnavailableReason,
+} from './about-runtime.ts'
 import type { AboutKey } from './locales.ts'
 import css from './AboutContent.module.css'
 
@@ -57,6 +59,11 @@ const MODE_KEYS: Record<AboutDeploymentMode, AboutKey> = {
   local: 'value.mode.local',
 }
 
+const APP_MODE_KEYS: Record<AboutAppMode, AboutKey> = {
+  desktop: 'value.appMode.desktop',
+  web: 'value.appMode.web',
+}
+
 const SCOPE_KEYS: Record<AboutReleaseScope, AboutKey> = {
   TENANT: 'value.scope.TENANT',
   ORGANIZATION: 'value.scope.ORGANIZATION',
@@ -76,6 +83,7 @@ function statusKey(installation: AboutInstallationSnapshot): AboutKey {
 function noticeKey(reason: AboutUnavailableReason): AboutKey {
   switch (reason) {
     case 'unconfigured': return 'notice.unconfigured'
+    case 'unauthenticated': return 'notice.unauthenticated'
     case 'invalid': return 'notice.invalid'
     default: return 'notice.failed'
   }
@@ -170,12 +178,15 @@ export function AboutContent({ t, local, installation, variant, onRefresh }: Abo
   const loading = installation.phase === 'loading'
   const productName = product?.name ?? t('hero.productName')
   const version = local.version
-  const appId = application?.appId ?? local.appId
-  const appKey = product?.appKey ?? local.appKey
+  // The registered id is the platform's answer only: this page never presents a
+  // local token claim or deployment anchor as the registered application.
+  const registeredAppId = application?.appId
+  const appKey = product?.appKey ?? SHIPPED_PRODUCT_APP_KEY
   const environment = application?.environment ?? local.environment
   const mode = application?.deploymentMode
   const scope = application?.releaseScope
   const organization = application?.organizationId
+  const tenant = application?.tenantId
   const links = productLinks(product)
   const vendor = product?.vendor ?? SHIPPED_PRODUCT_VENDOR
   const shortCommit = local.commit === undefined ? undefined : local.commit.slice(0, 7)
@@ -231,35 +242,37 @@ export function AboutContent({ t, local, installation, variant, onRefresh }: Abo
         <FieldRow label={t('field.version')} value={version ?? t('value.unknown')} t={t} copyText={version} />
         <FieldRow
           label={t('field.appId')}
-          value={appId === '' ? t('value.unknown') : appId}
+          value={registeredAppId ?? t('value.notAvailable')}
           t={t}
           mono
-          copyText={appId === '' ? undefined : appId}
+          copyText={registeredAppId}
+          pending={loading && registeredAppId === undefined}
         />
-        <FieldRow label={t('field.appKey')} value={appKey === '' ? t('value.unknown') : appKey} t={t} mono />
-        <FieldRow label={t('field.vendor')} value={product?.vendor ?? t('value.unknown')} t={t} pending={loading} />
+        <FieldRow label={t('field.appKey')} value={appKey} t={t} mono />
+        <FieldRow label={t('field.vendor')} value={vendor} t={t} />
       </Card>
 
       <Card title={t('section.deployment')}>
+        <FieldRow label={t('field.appMode')} value={t(APP_MODE_KEYS[local.appMode])} t={t} />
         <FieldRow label={t('field.environment')} value={t(ENVIRONMENT_KEYS[environment])} t={t} />
         <FieldRow
           label={t('field.deploymentMode')}
           value={mode === undefined ? t('value.unknown') : t(MODE_KEYS[mode])}
           t={t}
-          pending={loading}
+          pending={loading && mode === undefined}
         />
         <FieldRow
           label={t('field.releaseScope')}
           value={scope === undefined ? t('value.unknown') : t(SCOPE_KEYS[scope])}
           t={t}
-          pending={loading}
+          pending={loading && scope === undefined}
         />
         <FieldRow
           label={t('field.tenant')}
-          value={application?.tenantId ?? t('value.unknown')}
+          value={tenant ?? t('value.unknown')}
           t={t}
           mono
-          pending={loading}
+          pending={loading && tenant === undefined}
         />
         {showOrganization && (
           <FieldRow label={t('field.organization')} value={organization} t={t} mono />

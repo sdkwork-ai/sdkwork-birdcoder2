@@ -696,6 +696,7 @@ async function main(): Promise<void> {
     ipcMain,
     getWindow: () => mainWindow,
     assertSender: (event) => { assertProductSender(event) },
+    appVersion: () => app.getVersion(),
   })
   const showAbout = (): void => { aboutCommand.show() }
   const commandManager = new DesktopCommandManager({

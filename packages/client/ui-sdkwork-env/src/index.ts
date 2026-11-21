@@ -14,7 +14,7 @@ export {
   type SdkworkEnvProfile, type SdkworkEnvironment, type UiEnvSettings,
 } from './env-settings.ts'
 export { SDKWORK_ENV_BOOT_GLOBAL } from './env-settings.ts'
-export { projectSdkworkEnvBase, resolveUiEnvEnvironment, SDKWORK_BASE_URL_KEYS } from './env-projection.ts'
+export { projectSdkworkEnvBase, resolveUiEnvEnvironment, SDKWORK_APP_ID_KEYS, SDKWORK_BASE_URL_KEYS } from './env-projection.ts'
 
 const NAMESPACE_PATTERN = /^[a-z][a-z0-9-]*$/
 

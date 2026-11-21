@@ -40,6 +40,18 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
+/**
+ * The About dialog service surface this shell probes. `ui-sdkwork-about`
+ * provides it as `ctx.about`, and the plugin is optional: a composition without
+ * it has no About row. The shell declares the one operation its row needs and
+ * reads the service by name, so the About page stays below this shell in the
+ * project graph.
+ */
+export interface AboutDialogService {
+  /** Show the About dialog. */
+  open(): void
+}
+
 /** One nav row projected from a settings.section registration's options. */
 export interface SettingsSectionRow {
   id: string

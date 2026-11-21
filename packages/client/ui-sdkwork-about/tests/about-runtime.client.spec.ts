@@ -8,7 +8,7 @@ import {
 import type { AboutInstallationFacts } from '../src/client/installation-facts.ts'
 
 const APPLICATION: AboutInstallationFacts = {
-  appId: 'app_registered',
+  appId: '382418217538162688',
   tenantId: '100001',
   organizationId: '0',
   releaseScope: 'TENANT',
@@ -27,7 +27,7 @@ const APPLICATION: AboutInstallationFacts = {
 }
 
 interface EnvironmentOverrides {
-  accessToken?: string
+  session?: { accessToken: string; authToken: string } | null
   environment?: 'development' | 'testing' | 'production'
   appId?: string
   version?: string
@@ -38,7 +38,7 @@ interface EnvironmentOverrides {
 function environment(over: EnvironmentOverrides = {}) {
   const listeners = new Set<() => void>()
   const current = {
-    accessToken: 'token',
+    session: { accessToken: 'token', authToken: 'auth' } as { accessToken: string; authToken: string } | null,
     environment: 'production' as const,
     appId: 'app_declared',
     version: '0.2.2-rc.5',
@@ -51,10 +51,10 @@ function environment(over: EnvironmentOverrides = {}) {
     commit: () => current.commit,
     dirty: () => current.dirty,
     declaredAppId: () => current.appId,
-    declaredAppKey: () => 'sdkwork-birdcoder2',
     apiBaseUrl: () => 'https://api.birdcoder.com',
-    accessToken: () => current.accessToken,
+    credentials: () => current.session ?? undefined,
     environment: () => current.environment,
+    appMode: () => 'web',
     subscribe: (listener) => {
       listeners.add(listener)
       return () => { listeners.delete(listener) }
@@ -78,7 +78,7 @@ describe('AboutRuntime', () => {
     const p = port(async () => APPLICATION)
     const runtime = new AboutRuntime(env.value, () => p.port)
     const stop = runtime.start()
-    expect(runtime.local.getSnapshot()).toMatchObject({ appId: 'app_declared', version: '0.2.2-rc.5' })
+    expect(runtime.local.getSnapshot()).toMatchObject({ appId: 'app_declared', version: '0.2.2-rc.5', appMode: 'web' })
     expect(runtime.installation.getSnapshot()).toEqual({ phase: 'loading' })
     await vi.waitFor(() => { expect(runtime.installation.getSnapshot()).toEqual({ phase: 'ready', application: APPLICATION }) })
     stop()
@@ -219,5 +219,48 @@ describe('AboutRuntime', () => {
     offInstallation()
     offLocal()
     expect(runtime.installation.getSnapshot()).toBe(same)
+  })
+
+  it('reports an unauthenticated launch without calling the platform', () => {
+    const env = environment({ session: null })
+    const createPort = vi.fn(() => undefined)
+    const runtime = new AboutRuntime(env.value, createPort)
+    runtime.start()
+    expect(runtime.installation.getSnapshot()).toEqual({ phase: 'unavailable', reason: 'unauthenticated' })
+  })
+
+  it('uses the shell version only when the client build carries none', () => {
+    const env = environment({ version: undefined })
+    const runtime = new AboutRuntime(env.value, () => undefined)
+    const local = vi.fn()
+    runtime.local.subscribe(local)
+    runtime.setFallbackVersion('9.9.9')
+    expect(runtime.local.getSnapshot().version).toBe('9.9.9')
+    expect(local).toHaveBeenCalledTimes(1)
+    runtime.setFallbackVersion('9.9.9')
+    expect(local).toHaveBeenCalledTimes(1)
+    runtime.setFallbackVersion('  ')
+    expect(runtime.local.getSnapshot().version).toBeUndefined()
+    runtime.dispose()
+  })
+
+  it('never overrides a version the build already carries', () => {
+    const env = environment()
+    const runtime = new AboutRuntime(env.value, () => undefined)
+    runtime.setFallbackVersion('9.9.9')
+    expect(runtime.local.getSnapshot().version).toBe('0.2.2-rc.5')
+    runtime.dispose()
+  })
+
+  it('keeps a shell version fallback across environment changes', () => {
+    const env = environment({ version: undefined })
+    const runtime = new AboutRuntime(env.value, () => undefined)
+    const stop = runtime.start()
+    runtime.setFallbackVersion('9.9.9')
+    env.current.environment = 'testing'
+    env.notify()
+    expect(runtime.local.getSnapshot()).toMatchObject({ version: '9.9.9', environment: 'testing' })
+    stop()
+    runtime.dispose()
   })
 })

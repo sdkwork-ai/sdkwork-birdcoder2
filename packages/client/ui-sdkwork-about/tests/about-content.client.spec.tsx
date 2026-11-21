@@ -26,14 +26,14 @@ const LOCAL: AboutLocalFacts = {
   version: '0.2.2-rc.5',
   commit: '0123456789abcdef',
   dirty: true,
-  appId: 'app_declared',
-  appKey: 'sdkwork-birdcoder2',
+  appId: '382429273778032640',
   apiBaseUrl: 'https://api.birdcoder.com',
   environment: 'production',
+  appMode: 'web',
 }
 
 const APPLICATION: AboutInstallationFacts = {
-  appId: 'app_registered',
+  appId: '382429273778032640',
   tenantId: '100001',
   organizationId: '0',
   releaseScope: 'TENANT',
@@ -76,16 +76,23 @@ function content(over: Partial<{
 }
 
 describe('AboutContent', () => {
-  it('presents the resolved installation identity, links, and copyright', () => {
+  it('presents the server-resolved installation identity, links, and copyright', () => {
     content()
     expect(screen.getByText('SDKWork Birdcoder')).not.toBeNull()
     expect(screen.getByText('v0.2.2-rc.5')).not.toBeNull()
     expect(screen.getByText('已连接平台')).not.toBeNull()
-    expect(screen.getByText('app_registered')).not.toBeNull()
+    // The registered app id is the platform's answer only.
+    expect(screen.getByText('已注册 App ID')).not.toBeNull()
+    expect(screen.getByText('382429273778032640')).not.toBeNull()
+    expect(screen.queryByText('本地')).toBeNull()
+    expect(screen.queryByText('未获取')).toBeNull()
     expect(screen.getByText('100001')).not.toBeNull()
     expect(screen.getByText('测试环境')).not.toBeNull()
     expect(screen.getByText('云端托管')).not.toBeNull()
     expect(screen.getByText('全租户')).not.toBeNull()
+    expect(screen.getByText('应用方式')).not.toBeNull()
+    expect(screen.getByText('网页应用')).not.toBeNull()
+    expect(screen.getByText('sdkwork-birdcoder2')).not.toBeNull()
     expect(screen.getByText('SDKWork')).not.toBeNull()
     const website = screen.getByRole('link', { name: /官网/ })
     expect(website.getAttribute('href')).toBe(APPLICATION.product.websiteUrl)
@@ -93,22 +100,45 @@ describe('AboutContent', () => {
     expect(screen.getByText(/保留所有权利/)).not.toBeNull()
   })
 
-  it('renders the local declaration while the platform read is loading', () => {
+  it('shows a busy app id row and the shipped product facts while the platform read is loading', () => {
     content({ installation: state('loading') })
     expect(screen.getByText('正在读取')).not.toBeNull()
-    expect(screen.getByText('app_declared')).not.toBeNull()
+    // The registered id stays a busy row: a local anchor never stands in for it.
+    expect(screen.queryByText('382429273778032640')).toBeNull()
     expect(screen.getByText('生产环境')).not.toBeNull()
-    // Remote-only rows are busy skeletons rather than stale or empty values.
+    expect(screen.getByText('SDKWORK')).not.toBeNull()
+    expect(screen.getByText('sdkwork-birdcoder2')).not.toBeNull()
     expect(document.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThanOrEqual(3)
   })
 
-  it('keeps local facts and explains an unconfigured deployment', () => {
+  it('keeps local build facts but shows no registered app id when the platform read fails', () => {
     content({ installation: state('unavailable', 'unconfigured') })
     expect(screen.getByText('仅本地信息')).not.toBeNull()
     expect(screen.getByText(/未配置访问令牌/)).not.toBeNull()
-    expect(screen.getByText('app_declared')).not.toBeNull()
-    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+    expect(screen.getByText('未获取')).not.toBeNull()
+    expect(screen.queryByText('382429273778032640')).toBeNull()
+    expect(screen.queryByText('本地')).toBeNull()
+    // The version and the API endpoint remain local build facts.
+    expect(screen.getByText('v0.2.2-rc.5')).not.toBeNull()
+    expect(screen.getByText('https://api.birdcoder.com')).not.toBeNull()
     expect(screen.getByRole('button', { name: '重试' })).not.toBeNull()
+  })
+
+  it('shows the sign-in notice when the launch carries no session', () => {
+    content({ installation: state('unavailable', 'unauthenticated') })
+    expect(screen.getByText(/登录 SDKWork 账号/)).not.toBeNull()
+    expect(screen.getByText('未获取')).not.toBeNull()
+  })
+
+  it('never presents a product key as the registered app id', () => {
+    content({
+      local: { ...LOCAL, appId: 'sdkwork-birdcoder' },
+      installation: state('unavailable'),
+    })
+    expect(screen.queryByText('sdkwork-birdcoder')).toBeNull()
+    expect(screen.getByText('未获取')).not.toBeNull()
+    // The product key row still names the published product, never a fake id.
+    expect(screen.getByText('sdkwork-birdcoder2')).not.toBeNull()
   })
 
   it('explains an incomplete platform response', () => {
@@ -175,6 +205,14 @@ describe('AboutContent', () => {
     expect(screen.getAllByText(label).length).toBeGreaterThan(0)
   })
 
+  it.each([
+    ['desktop', '桌面应用'],
+    ['web', '网页应用'],
+  ] as const)('localizes the %s application mode', (appMode, label) => {
+    content({ local: { ...LOCAL, appMode } })
+    expect(screen.getByText(label)).not.toBeNull()
+  })
+
   it('falls back to the shipped product links before the platform answers', () => {
     content({ installation: state('loading') })
     expect(screen.getByRole('link', { name: /隐私政策/ }).getAttribute('href'))
@@ -183,13 +221,13 @@ describe('AboutContent', () => {
       .toBe(SHIPPED_PRODUCT_LINKS.termsOfServiceUrl)
   })
 
-  it('copies the registered app id and reports success locally', async () => {
+  it('copies the server-resolved app id and reports success locally', async () => {
     const writeText = vi.fn(() => Promise.resolve())
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
     content()
     const copies = screen.getAllByRole('button', { name: '复制' })
     fireEvent.click(copies[1])
-    expect(writeText).toHaveBeenCalledWith('app_registered')
+    expect(writeText).toHaveBeenCalledWith('382429273778032640')
     expect(await screen.findByLabelText('已复制')).not.toBeNull()
   })
 
@@ -243,7 +281,7 @@ describe('AboutContent', () => {
 
   it('renders unknown build metadata as placeholders', () => {
     content({
-      local: { ...LOCAL, version: undefined, commit: undefined, dirty: false, appId: '', appKey: '', apiBaseUrl: '' },
+      local: { ...LOCAL, version: undefined, commit: undefined, dirty: false, appId: '', apiBaseUrl: '' },
       installation: state('unavailable'),
     })
     expect(screen.getByText('版本未知')).not.toBeNull()

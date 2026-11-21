@@ -6,14 +6,14 @@
   en: 63b33cb4e1f5142d
   zh: c347da2e53394244
 /agent-note-the-about-surface-reads-its-installation-identity-from-the-app-api/problem:
-  en: 0f7b61fa56d9c4a8
-  zh: 303054d9b3cdbe90
+  en: 2753a5d85bc3a095
+  zh: c23228b12d41ce20
 /agent-note-the-about-surface-reads-its-installation-identity-from-the-app-api/decision:
-  en: aaa83d4c6444757e
-  zh: 2c5e0d3305b9c4f5
+  en: 247cd1a67e19ee94
+  zh: 4e9320294b7ad640
 /agent-note-the-about-surface-reads-its-installation-identity-from-the-app-api/alternatives-considered:
-  en: 375579682ffcb966
-  zh: c87556735740a8ea
+  en: 036537e3df545398
+  zh: df773fe9352b13f0
 /agent-note-the-about-surface-reads-its-installation-identity-from-the-app-api/consequences:
-  en: 1ad35943570dbfd0
-  zh: 085dc5c74cf77289
+  en: 561eef815167c534
+  zh: eb44ea877ec46e7c

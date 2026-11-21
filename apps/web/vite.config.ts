@@ -2,7 +2,14 @@ import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { resolveSdkworkLaunchProfile, type SdkworkLaunchProfile } from '@deepseek-ai/dsh-sdkwork-env-bootstrap'
+import {
+  DEPLOY_APPLICATION_ID_ENV,
+  foldSdkworkSurfaceIdentity,
+  resolveDeployApplicationIdentity,
+  resolveSdkworkLaunchProfile,
+  withDeployApplicationId,
+  type SdkworkLaunchProfile,
+} from '@deepseek-ai/dsh-sdkwork-env-bootstrap'
 import { createLaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
 import { SDKWORK_ENV_BOOT_GLOBAL, projectSdkworkEnvBase } from '@deepseek-ai/dsh-client-ui-sdkwork-env'
 import { defineConfig, loadEnv } from 'vite'
@@ -229,55 +236,26 @@ const SURFACE_ORIGIN_KEYS = [
 /** A loopback origin, which a non-development build must never bake. */
 const LOOPBACK_ORIGIN = /^https?:\/\/(?:127\.0\.0\.1|localhost|\[::1\])(?::\d+)?(?:\/|$)/iu
 
-/** Placeholder the committed root profiles carry until a build supplies the anchor. */
-const PENDING_DEPLOY_APPLICATION_ID = '__SDKWORK_DEPLOY_APPLICATION_ID__'
-
-/** Build-environment variable carrying this installation's deploy application id. */
-const DEPLOY_APPLICATION_ID_ENV = 'SDKWORK_DEPLOY_APPLICATION_ID'
-
-/**
- * Re-anchor one committed public application access token on the deploy
- * application id a build injects.
- *
- * The public token is deterministic material: `app_id`/`aud` (and the
- * `session_id` derived from them) are its only installation-scoped claims, so
- * replacing them reproduces exactly the token the SDKWork materializer writes for
- * that anchor. The committed profiles carry the placeholder instead, because a
- * repository cannot know a deployment's id (APP_ACCESS_TOKEN_SPEC.md section
- * 3.1.1).
- * @param token - committed token, anchored on the placeholder or a real id.
- * @param appId - deploy application id the build injects.
- * @returns the token bound to `appId`.
- */
-function withDeployApplicationId(token: string, appId: string): string {
-  const parts = token.split('.')
-  if (parts.length !== 3) {
-    throw new Error(`apps/web: SDKWORK_ACCESS_TOKEN must be a three-part public application token; got ${parts.length} segment(s)`)
-  }
-  const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')) as Record<string, unknown>
-  const previous = String(payload.app_id ?? '')
-  payload.app_id = appId
-  payload.aud = appId
-  if (typeof payload.session_id === 'string' && previous !== '') {
-    payload.session_id = payload.session_id.split(previous).join(appId)
-  }
-  return `${parts[0]}.${Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url')}.${parts[2]}`
-}
-
 /**
  * Bind the deployment identity into the values this build bakes into the page.
  *
+ * The identity comes from the first layer that names it: the build's
+ * `SDKWORK_DEPLOY_APPLICATION_ID` anchor, the profile's `SDKWORK_APP_ID`, or a
+ * token a materializer already anchored. A profile that carries the placeholder
+ * token and no anchor still fails, because that page would ship a credential
+ * IAM suppresses.
  * @param loaded - values read from the selected `.env.<profile>` document and
- *   from the repository `.env` layer.
+ *   from the surface `.env.local` layer.
  * @param anchor - `SDKWORK_DEPLOY_APPLICATION_ID`, exported by the build
- *   environment or recorded in the repository `.env` layer.
- * @throws When the profile still carries the placeholder and neither source
- *   supplies an anchor: the page would ship a credential IAM suppresses, so the
- *   build fails and names the variable instead.
+ *   environment or recorded in an env layer.
+ * @throws When no layer names this installation, and the profile carries no
+ *   anchored token: the build fails and names the variable instead.
  */
 function materializeDeployIdentity(loaded: Record<string, string>, anchor: string): void {
   const declared = (loaded.SDKWORK_APP_ID ?? '').trim()
-  if (anchor === '' && (declared === '' || declared === PENDING_DEPLOY_APPLICATION_ID)) {
+  const token = (loaded.SDKWORK_ACCESS_TOKEN ?? '').trim()
+  const identity = resolveDeployApplicationIdentity({ declaredAppId: declared, accessToken: token, anchor })
+  if (identity === undefined) {
     throw new Error(
       `${DEPLOY_APPLICATION_ID_ENV} is required to build apps/web: the committed profile carries `
       + `SDKWORK_APP_ID=${declared === '' ? '(empty)' : declared}, so this build must inject the installation's `
@@ -285,11 +263,9 @@ function materializeDeployIdentity(loaded: Record<string, string>, anchor: strin
       + 'SDKWork materializer for this profile with it set.',
     )
   }
-  const appId = anchor === '' ? declared : anchor
-  loaded.SDKWORK_APP_ID = appId
-  const token = (loaded.SDKWORK_ACCESS_TOKEN ?? '').trim()
+  loaded.SDKWORK_APP_ID = identity.appId
   // An empty token defers to interactive IAM login and stays empty.
-  if (token !== '') loaded.SDKWORK_ACCESS_TOKEN = withDeployApplicationId(token, appId)
+  if (token !== '') loaded.SDKWORK_ACCESS_TOKEN = withDeployApplicationId(token, identity.appId)
 }
 
 /**
@@ -341,8 +317,11 @@ function sdkworkEnvInjection(deploymentProfile: DeploymentProfile, environment: 
     const profileId = `${deploymentProfile}.${environment}`
     // The Web application owns its own surface env (`apps/web/.env.<profile>`);
     // the repository-root file remains the fallback for a checkout that has not
-    // materialized the Web surface yet. Desktop packaging exports its own anchor,
-    // which still outranks the file and re-anchors the token to the Desktop app.
+    // materialized the Web surface yet. `loadEnv` reads the selected directory,
+    // so a materialized surface also keeps its anchor in `apps/web/.env.local`
+    // (written by `admin:bootstrap:app`). Desktop packaging exports its own
+    // anchor, which still outranks the file and re-anchors the token to the
+    // Desktop app.
     const surfaceEnv = join(fileURLToPath(new URL('.', import.meta.url)), `.env.${profileId}`)
     const tracked = existsSync(surfaceEnv)
       ? surfaceEnv
@@ -364,10 +343,11 @@ function sdkworkEnvInjection(deploymentProfile: DeploymentProfile, environment: 
     if (!name.startsWith('DSH_WEB_SDKWORK_') || value === undefined || value.trim() === '') continue
     loaded[name.slice('DSH_WEB_'.length)] = value
   }
+  foldSdkworkSurfaceIdentity(loaded)
   // The committed profiles carry the placeholder; a build must inject the anchor
   // (or a real local token) before the page can rely on this deployment identity.
   // An exported anchor outranks the explicit `DSH_WEB_SDKWORK_*` channel, which
-  // outranks the repository `.env` layer.
+  // outranks the surface `.env.local` layer the anchor is recorded in.
   const fileAnchor = (loaded[DEPLOY_APPLICATION_ID_ENV] ?? '').trim()
   materializeDeployIdentity(loaded, exportedAnchor === '' ? fileAnchor : exportedAnchor)
   if (environment !== 'development') {

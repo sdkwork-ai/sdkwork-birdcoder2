@@ -88,6 +88,11 @@ export function exposeSdkworkDesktopBridge(contextBridge: IamPreloadContextBridg
         const value: unknown = await ipcRenderer.invoke(ABOUT_BRIDGE.takePending)
         return value === true
       },
+      facts: async (): Promise<{ appVersion: string }> => {
+        const value: unknown = await ipcRenderer.invoke(ABOUT_BRIDGE.facts)
+        const record = typeof value === 'object' && value !== null ? value as Record<string, unknown> : {}
+        return { appVersion: typeof record.appVersion === 'string' ? record.appVersion : '' }
+      },
     },
     iamSession: {
       read: async (): Promise<IamSessionRecord | null> => {

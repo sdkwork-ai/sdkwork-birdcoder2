@@ -2278,7 +2278,7 @@ importers:
         specifier: 'catalog:'
         version: 19.2.8
       react-router-dom:
-        specifier: ^7.18.4
+        specifier: ^7.15.0
         version: 7.18.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     devDependencies:
       '@types/react':
@@ -11006,6 +11006,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-sdkwork-env':
         specifier: workspace:*
         version: link:../ui-sdkwork-env
+      '@deepseek-ai/dsh-client-ui-sdkwork-iam':
+        specifier: workspace:*
+        version: link:../ui-sdkwork-iam
       '@deepseek-ai/dsh-client-ui-settings':
         specifier: workspace:*
         version: link:../ui-settings
@@ -13600,9 +13603,6 @@ importers:
       '@deepseek-ai/dsh-client-ui-renderer':
         specifier: workspace:*
         version: link:../ui-renderer
-      '@deepseek-ai/dsh-client-ui-sdkwork-about':
-        specifier: workspace:*
-        version: link:../ui-sdkwork-about
       '@deepseek-ai/dsh-client-ui-sdkwork-app-modes':
         specifier: workspace:*
         version: link:../ui-sdkwork-app-modes

@@ -118,23 +118,34 @@ never a session lifetime. Every profile of the matrix carries one — the token-
 mode owns that line and preserves the rest of each documented profile — and every application type
 (Web/Desktop shell, PC/H5/pad, Flutter, mini program) has the same matrix.
 
-The build reads the anchor from its environment first, then from the repository's gitignored `.env`
-layer, which is where the SDKWork app registration records this installation's deploy application
-id (`SDKWORK_DEPLOY_APPLICATION_ID`). Export it on a build host that has neither (it is not a
-secret). CI reads the repository variable `SDKWORK_DEPLOY_APPLICATION_ID` and falls back to the
-recorded registration id when it is unset, so a deployment can repoint the anchor without editing
-a workflow:
+The build resolves the anchor from its environment first, then from the loaded env layer: the
+repository's gitignored `.env`, or — once a surface has its own materialized profile —
+`apps/web/.env.local`, because `apps/web/vite.config.ts` loads the surface directory and never reads
+the repository `.env` layer. A token the materializer already anchored also satisfies the build, so a
+materialized surface needs no export; only a placeholder token without an anchor fails. Export the
+anchor on a build host that has none (it is not a secret). CI reads the repository variable
+`SDKWORK_DEPLOY_APPLICATION_ID` and falls back to the recorded registration id when it is unset, so a
+deployment can repoint the anchor without editing a workflow:
 
 ```sh
 export SDKWORK_DEPLOY_APPLICATION_ID=381158401561858048
 pnpm build
 ```
 
-The build fails, naming `SDKWORK_DEPLOY_APPLICATION_ID`, while the placeholder is still in place and
-neither source supplies an anchor. A production profile's committed placeholder `SDKWORK_APP_ID`
-outranks `.env.local`, so a development `.env.local` override cannot satisfy a production build;
-supply the anchor instead. Never commit a live token or a real app id; `.env.example` documents the
-same contract.
+`admin:bootstrap:app` records the id a remote registration returns: IAM application bootstrap answers
+with `deployApplicationId`, and the command writes it into the repository `.env` (as the
+surface-scoped `SDKWORK_DEPLOY_APPLICATION_ID_<SURFACE>`, or the base variable for the repository-root
+surface) and into that surface's `.env.local`. An id returned by any other call — or carried by an
+issued token — is recorded the same way:
+
+```sh
+pnpm exec tsx scripts/bootstrap/record-deploy-anchor.ts --from registration-response.json
+pnpm exec tsx scripts/bootstrap/record-deploy-anchor.ts --access-token "$SDKWORK_ACCESS_TOKEN" \
+  --surface apps/web --surface-id sdkwork-birdcoder2-web-app
+```
+
+Never commit a live token or a real app id: both layers the recorder writes are gitignored, and
+`.env.example` documents the same contract.
 
 ## Application Roots
 

@@ -22,7 +22,14 @@ import type { IpcMain, IpcMainInvokeEvent } from 'electron'
 export const ABOUT_BRIDGE = {
   openEvent: 'sdkwork:about:open',
   takePending: 'sdkwork:about:takePending',
+  facts: 'sdkwork:about:facts',
 } as const
+
+/** Shell facts the About surface may show when the page build carries none. */
+export interface AboutShellFacts {
+  /** Installed application version (`app.getVersion()`). */
+  readonly appVersion: string
+}
 
 /**
  * Window surface the command needs.
@@ -52,6 +59,8 @@ export interface AboutBridgeOptions {
   getWindow: () => AboutCommandWindow | undefined
   /** Reject a bridge call from a frame this application does not own. */
   assertSender: (event: IpcMainInvokeEvent) => void
+  /** Installed application version the About surface may fall back to. */
+  appVersion: () => string
 }
 
 /** One main-process About command instance. */
@@ -84,6 +93,10 @@ export function createAboutCommand(options: AboutBridgeOptions): AboutCommand {
     options.assertSender(event)
     return take()
   })
+  options.ipcMain.handle(ABOUT_BRIDGE.facts, (event): AboutShellFacts => {
+    options.assertSender(event)
+    return { appVersion: options.appVersion() }
+  })
   return {
     show: () => {
       const window = options.getWindow()
@@ -100,6 +113,9 @@ export function createAboutCommand(options: AboutBridgeOptions): AboutCommand {
       window.webContents.send(ABOUT_BRIDGE.openEvent)
     },
     takePending: take,
-    dispose: () => { options.ipcMain.removeHandler?.(ABOUT_BRIDGE.takePending) },
+    dispose: () => {
+      options.ipcMain.removeHandler?.(ABOUT_BRIDGE.takePending)
+      options.ipcMain.removeHandler?.(ABOUT_BRIDGE.facts)
+    },
   }
 }

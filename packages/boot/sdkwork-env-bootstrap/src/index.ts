@@ -1422,3 +1422,6 @@ async function importCredentialEntry(
     return undefined
   }
 }
+
+export * from './deploy-anchor.ts'
+export * from './surface-profile.ts'

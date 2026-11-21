@@ -20,7 +20,9 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  width: min(460px, 100%);
+  /* Wide enough for the product identity, both information cards, and the
+     two-column link grid without tight wraps. */
+  width: min(644px, 100%);
   max-height: calc(100vh - 48px);
   overflow: hidden;
   border-radius: var(--dsw-radius-lg);

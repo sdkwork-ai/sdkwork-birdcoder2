@@ -154,6 +154,17 @@ packages/**/src/**/*.d.ts.map
 !packages/web/tool-web/src/turndown-plugin-gfm.d.ts
 !packages/client/ui-renderer/src/client/use-sync-external-store.d.ts
 
+# tsc emit beside the committed generated SDK sources (the .ts sources are
+# tracked; the compiled JS, declarations and source maps are build output)
+sdks/**/src/**/*.js
+sdks/**/src/**/*.js.map
+sdks/**/src/**/*.d.ts
+sdks/**/src/**/*.d.ts.map
+sdks/**/generated/**/src/**/*.js
+sdks/**/generated/**/src/**/*.js.map
+sdks/**/generated/**/src/**/*.d.ts
+sdks/**/generated/**/src/**/*.d.ts.map
+
 # Temporary scratch directories
 tmp-pack-scan/
 **/temp-test/

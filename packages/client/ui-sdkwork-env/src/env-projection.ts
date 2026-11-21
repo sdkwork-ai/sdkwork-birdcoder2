@@ -48,6 +48,24 @@ export const SDKWORK_CLOUD_ROUTER_URL_KEYS = [
 const ENVIRONMENT_KEYS = ['SDKWORK_BIRDCODER_ENVIRONMENT', 'SDKWORK_ENVIRONMENT'] as const
 
 /**
+ * Launch-environment keys naming the registered deploy application id this
+ * build belongs to (`APPLICATION_IDENTITY_SPEC.md` section 4), application-scoped
+ * first.
+ *
+ * The page build writes the value it resolved from the deployment anchor into
+ * `SDKWORK_APP_ID`, so the browser knows which installation it targets even when
+ * the platform read cannot answer. The committed placeholder is not an
+ * installation, so it is never projected.
+ */
+export const SDKWORK_APP_ID_KEYS = ['SDKWORK_BIRDCODER_APP_ID', 'SDKWORK_APP_ID'] as const
+
+/** Launch-environment keys naming this surface's product application key, application-scoped first. */
+export const SDKWORK_APP_KEY_KEYS = ['SDKWORK_BIRDCODER_APP_KEY', 'SDKWORK_APP_KEY'] as const
+
+/** Committed placeholder a profile carries until a build supplies the anchor. */
+const PENDING_DEPLOY_APPLICATION_ID = '__SDKWORK_DEPLOY_APPLICATION_ID__'
+
+/**
  * Resolve the ui-sdkwork-env environment slot the launch environment declares.
  * @param env - the launch environment snapshot.
  * @returns the ui-sdkwork-env slot, or `undefined` when no SDKWork environment key is
@@ -85,6 +103,8 @@ export function projectSdkworkEnvBase(env: LaunchEnvironmentSnapshot): Partial<U
   const baseUrl = firstValue(env, SDKWORK_BASE_URL_KEYS)
   const imApiBaseUrl = firstValue(env, SDKWORK_IM_API_BASE_URL_KEYS)
   const accessToken = env.get('SDKWORK_ACCESS_TOKEN')?.value.trim()
+  const appId = registeredAppId(firstValue(env, SDKWORK_APP_ID_KEYS))
+  const appKey = firstValue(env, SDKWORK_APP_KEY_KEYS)
   const imEmbedUrl = firstValue(env, IM_EMBED_URL_KEYS)
   const cloudRouterUrl = firstValue(env, SDKWORK_CLOUD_ROUTER_URL_KEYS)
   const officialAccountServerIps = env.get('SDKWORK_OFFICIAL_ACCOUNT_SERVER_IPS')?.value.trim()
@@ -92,6 +112,8 @@ export function projectSdkworkEnvBase(env: LaunchEnvironmentSnapshot): Partial<U
     ...baseUrl === undefined ? {} : { apiBaseUrl: baseUrl },
     ...imApiBaseUrl === undefined ? {} : { imApiBaseUrl },
     ...accessToken ? { accessToken } : {},
+    ...appId === undefined ? {} : { appId },
+    ...appKey === undefined ? {} : { appKey },
     ...imEmbedUrl === undefined ? {} : { imEmbedUrl },
     ...cloudRouterUrl === undefined ? {} : { cloudRouterUrl },
     ...officialAccountServerIps ? { officialAccountServerIps } : {},
@@ -100,6 +122,16 @@ export function projectSdkworkEnvBase(env: LaunchEnvironmentSnapshot): Partial<U
     environment,
     ...Object.keys(profile).length === 0 ? {} : { [environment]: profile },
   }
+}
+
+/**
+ * Read a deploy application id a build materialized, dropping the committed
+ * placeholder (which names no installation).
+ * @param value - raw launch-environment value.
+ * @returns the id, or undefined when absent or still the placeholder.
+ */
+function registeredAppId(value: string | undefined): string | undefined {
+  return value === undefined || value === PENDING_DEPLOY_APPLICATION_ID ? undefined : value
 }
 
 function firstValue(

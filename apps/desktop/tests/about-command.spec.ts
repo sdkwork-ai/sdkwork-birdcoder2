@@ -30,6 +30,7 @@ function harness(options: { window?: () => AboutCommandWindow | undefined } = {}
     ipcMain,
     getWindow: options.window ?? (() => window),
     assertSender,
+    appVersion: () => '1.2.3',
   })
   return { command, handlers, removed, window, assertSender }
 }
@@ -37,6 +38,12 @@ function harness(options: { window?: () => AboutCommandWindow | undefined } = {}
 function takePending(handlers: Map<string, Handler>): unknown {
   const handler = handlers.get(ABOUT_BRIDGE.takePending)
   if (handler === undefined) throw new Error('About command registered no pending handler')
+  return handler({} as IpcMainInvokeEvent)
+}
+
+function facts(handlers: Map<string, Handler>): unknown {
+  const handler = handlers.get(ABOUT_BRIDGE.facts)
+  if (handler === undefined) throw new Error('About command registered no facts handler')
   return handler({} as IpcMainInvokeEvent)
 }
 
@@ -80,10 +87,17 @@ describe('desktop About command', () => {
     expect(b.assertSender).toHaveBeenCalledTimes(2)
   })
 
-  it('detaches the IPC handler on dispose', () => {
+  it('serves the installed shell version to a page without build metadata', () => {
+    const b = harness()
+    expect(facts(b.handlers)).toEqual({ appVersion: '1.2.3' })
+    expect(b.assertSender).toHaveBeenCalledOnce()
+  })
+
+  it('detaches every IPC handler on dispose', () => {
     const b = harness()
     b.command.dispose()
-    expect(b.removed).toEqual([ABOUT_BRIDGE.takePending])
+    expect(b.removed).toEqual([ABOUT_BRIDGE.takePending, ABOUT_BRIDGE.facts])
     expect(b.handlers.has(ABOUT_BRIDGE.takePending)).toBe(false)
+    expect(b.handlers.has(ABOUT_BRIDGE.facts)).toBe(false)
   })
 })

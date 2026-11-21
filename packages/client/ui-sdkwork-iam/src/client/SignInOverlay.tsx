@@ -55,11 +55,20 @@ const BROWSER_FAILURE_KEYS = {
 
 /**
  * Locale key for one failed browser-login step.
- * @param code - the desktop auth runtime's error code.
+ *
+ * A provider-denied `server_error` is the hosted authorization page refusing to
+ * start the login: no consent screen was ever shown, so the generic "cancelled
+ * or not approved" line would send the user looking for a decision they never
+ * made. Every other provider-denied detail is the callback's OAuth error and
+ * keeps that line.
+ * @param failure - the desktop auth runtime's error code and detail.
  * @returns the copy key; an unknown code keeps the generic recovery line.
  */
-function browserFailureKey(code: string): UiIamKey {
-  return BROWSER_FAILURE_KEYS[code as keyof typeof BROWSER_FAILURE_KEYS] ?? 'browser.reason.unknown'
+function browserFailureKey(failure: IamBrowserLoginFailure): UiIamKey {
+  if (failure.code === 'provider-denied' && failure.detail === 'server_error') {
+    return 'browser.reason.provider-start-failed'
+  }
+  return BROWSER_FAILURE_KEYS[failure.code as keyof typeof BROWSER_FAILURE_KEYS] ?? 'browser.reason.unknown'
 }
 
 /** Injected business face: the auth controller, the gestures, locale, config. */
@@ -155,10 +164,16 @@ function SignInOverlayContent(props: SignInOverlayProps) {
   const colorScheme = theme.active.colorScheme
   // The step's localized line explains which part of the login broke; the
   // host's own reason is the detail a support report needs, so both are shown.
-  // The host reason wins when it exists: for a failed exchange the runtime's
-  // own message is a fixed "start again" summary, while `detail` carries the
+  // A refused start names its actionable reason in the hosted page's
+  // description (`message`), while `detail` only carries the OAuth error class
+  // (`server_error`). A failed exchange is the reverse: the runtime's own
+  // message is a fixed "start again" summary and `detail` carries the
   // rejection the server or transport actually reported.
-  const browserDetail = browserFailure?.detail ?? browserFailure?.message
+  const browserDetail = browserFailure === undefined
+    ? undefined
+    : browserFailure.code === 'provider-denied'
+      ? browserFailure.message ?? browserFailure.detail
+      : browserFailure.detail ?? browserFailure.message
   const titleId = useId()
   const headingId = useId()
   const descriptionId = useId()
@@ -206,7 +221,7 @@ function SignInOverlayContent(props: SignInOverlayProps) {
             {browserFailed ? t('browser.failedDetail') : t('browser.detail')}
           </p>
           {browserFailed && browserFailure !== undefined
-            ? <p className={css.browserReason}>{t(browserFailureKey(browserFailure.code))}</p>
+            ? <p className={css.browserReason}>{t(browserFailureKey(browserFailure))}</p>
             : null}
           {browserFailed && browserDetail !== undefined
             ? (

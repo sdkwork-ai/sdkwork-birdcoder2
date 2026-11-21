@@ -33,15 +33,13 @@ import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: pulls ctx.theme + theme/change into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
-// Type-only: pulls the About service declaration (`ctx.about`) into this program.
-import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-about/client'
 import { AccountRuntime } from './account.ts'
 import { FeedbackRuntime } from './feedback.ts'
 import { PersonaRuntime } from './persona.ts'
 import { createThemeSource } from './theme-source.ts'
 import { createSettingsMenuStore } from './menu-store.ts'
 import type {
-  SettingsMenuRootInjected, SettingsMenuService, SettingsOnboardingStep, SettingsSectionRow,
+  AboutDialogService, SettingsMenuRootInjected, SettingsMenuService, SettingsOnboardingStep, SettingsSectionRow,
 } from './shell-contract.ts'
 import { SettingsMenuRoot } from './SettingsMenuRoot.tsx'
 import { CloseLabel, HeaderContent, TriggerContent } from './chrome.tsx'
@@ -184,6 +182,15 @@ export function apply(ctx: ClientContext): void {
   let rows: readonly SettingsSectionRow[] = []
   let onboardingVersion = -1
   let onboardingSteps: readonly SettingsOnboardingStep[] = []
+  /**
+   * The About dialog service in this composition, or undefined when the optional
+   * `ui-sdkwork-about` plugin is not mounted.
+   * @returns the About dialog surface the menu's About row opens.
+   */
+  function aboutService(): AboutDialogService | undefined {
+    return ctx.get('about') as AboutDialogService | undefined
+  }
+
   const shellInjected = (): SettingsMenuRootInjected => ({
     hooks: {
       sections: {
@@ -240,8 +247,8 @@ export function apply(ctx: ClientContext): void {
     logout: () => { void account.logout() },
     openFeedback: () => { feedback.open() },
     openPersona: () => { persona.open() },
-    openAbout: () => { ctx.get('about')?.open() },
-    aboutAvailable: ctx.get('about') !== undefined,
+    openAbout: () => { aboutService()?.open() },
+    aboutAvailable: aboutService() !== undefined,
     checkForUpdates: () => {
       const updates = updatesOf()
       if (updates === undefined) return

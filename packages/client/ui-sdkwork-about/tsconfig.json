@@ -44,6 +44,9 @@
       "path": "../ui-sdkwork-env/tsconfig.client.json"
     },
     {
+      "path": "../ui-sdkwork-iam"
+    },
+    {
       "path": "../ui-layout"
     }
   ]

@@ -141,6 +141,31 @@ describe('projectSdkworkEnvBase', () => {
     })).development?.imEmbedUrl).toBe('https://im.example.test/embed.js')
   })
 
+  it('projects the registered deploy application id and product key', () => {
+    expect(projectSdkworkEnvBase(snapshot({
+      SDKWORK_PROFILE_ID: 'cloud.production',
+      SDKWORK_APP_ID: '382429273778032640',
+      SDKWORK_APP_KEY: 'sdkwork-birdcoder2-web-app',
+    }))).toEqual({
+      environment: 'production',
+      production: { appId: '382429273778032640', appKey: 'sdkwork-birdcoder2-web-app' },
+    })
+    // The application-scoped key wins, and the un-materialized placeholder is
+    // never projected as an installation.
+    expect(projectSdkworkEnvBase(snapshot({
+      SDKWORK_PROFILE_ID: 'cloud.production',
+      SDKWORK_BIRDCODER_APP_ID: 'app_01a18b4f',
+      SDKWORK_APP_ID: '382429273778032640',
+    }))).toEqual({
+      environment: 'production',
+      production: { appId: 'app_01a18b4f' },
+    })
+    expect(projectSdkworkEnvBase(snapshot({
+      SDKWORK_PROFILE_ID: 'cloud.production',
+      SDKWORK_APP_ID: '__SDKWORK_DEPLOY_APPLICATION_ID__',
+    }))).toEqual({ environment: 'production' })
+  })
+
   it('omits empty access token and base URL fields', () => {
     expect(projectSdkworkEnvBase(snapshot({
       SDKWORK_PROFILE_ID: 'standalone.production',

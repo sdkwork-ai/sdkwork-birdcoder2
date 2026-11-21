@@ -247,7 +247,7 @@ impl InstallationProductProfile {
     pub fn birdcoder() -> Self {
         Self {
             name: "SDKWork Birdcoder".to_owned(),
-            vendor: "SDKWork".to_owned(),
+            vendor: "SDKWORK".to_owned(),
             app_key: "sdkwork-birdcoder2".to_owned(),
             icon_url: "https://cdn.sdkwork.com/apps/sdkwork-birdcoder/assets/icon-1024.png"
                 .to_owned(),

@@ -24,11 +24,14 @@
  * (`backend.deployApplicationId`, else `backend.appId`). A deployment whose own
  * application id differs — the identity its access tokens must carry — passes
  * `--deploy-application-id <id>` or exports `SDKWORK_DEPLOY_APPLICATION_ID`.
+ * Whatever the remote bootstrap returns as `deployApplicationId` is recorded
+ * into this checkout's env layers afterwards ({@link ./record-deploy-anchor}),
+ * so a later `pnpm build` or `pnpm desktop:prod` needs no repeated export.
  * @module scripts/bootstrap/bootstrap-app
  */
 
 import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { dirname, relative, resolve } from 'node:path'
 import {
   applySdkworkLaunchEnv,
   bootstrapCredentialBundlePath,
@@ -36,7 +39,8 @@ import {
   resolveSdkworkBootstrapProfile,
   resolveSdkworkLaunchProfile,
   writeCredentialBundle,
-} from '../packages/boot/sdkwork-env-bootstrap/src/index.ts'
+} from '../../packages/boot/sdkwork-env-bootstrap/src/index.ts'
+import { recordDeployAnchor } from './record-deploy-anchor.ts'
 import {
   bootstrapApplicationFromManifest,
   createFetchIamApplicationBootstrapClient,
@@ -171,10 +175,24 @@ async function main() {
     source: 'iam-application-bootstrap',
   })
   const appKey = typeof manifest?.app?.key === 'string' ? manifest.app.key : 'app'
+  // The remote bootstrap just returned the installation's deploy application id;
+  // record it where this checkout's builds read it, so the Web build and the
+  // desktop lanes resolve the same anchor without a per-shell export.
+  const recorded = typeof result.deployApplicationId === 'string' && result.deployApplicationId.trim() !== ''
+    ? recordDeployAnchor({
+      repoRoot,
+      appId: result.deployApplicationId,
+      surfaceRoot: dirname(manifestPath),
+      surfaceId: typeof manifest?.app?.key === 'string' ? manifest.app.key : undefined,
+    })
+    : []
+  const recordedSummary = recorded.length === 0
+    ? ''
+    : `; recorded ${recorded.map((write) => `${relative(repoRoot, write.file).replaceAll('\\', '/')} (${write.variables.join(', ')})`).join(', ')}`
   process.stdout.write(
     `${NAME}: registered ${appKey} for ${environment.environment} at ${environment.backendApiBaseUrl}; `
     + `installation ${result.installationId}; deploy application ${result.deployApplicationId}; `
-    + `wrote ${bundlePath}\n`,
+    + `wrote ${bundlePath}${recordedSummary}\n`,
   )
 }
 

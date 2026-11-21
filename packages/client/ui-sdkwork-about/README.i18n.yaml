@@ -3,32 +3,32 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-about/README.md
 /:
-  en: 92a98c4776246658
-  zh: 8893c065d6c16d4c
+  en: ac20c186dcae0328
+  zh: f30efbfcab503fb7
 /deepseek-ai-dsh-client-ui-sdkwork-about:
   en: ba5124dc795df6e6
   zh: c624ef287be5866b
 /deepseek-ai-dsh-client-ui-sdkwork-about/summary:
-  en: 535043fff0b2ca5d
-  zh: 538585fb79a07b99
+  en: e4b1efca5be9c0d8
+  zh: 5cd9a7195553c2e8
 /deepseek-ai-dsh-client-ui-sdkwork-about/table-of-contents:
   en: 9c42f386b6bd09cd
   zh: f0c66d319544471d
 /deepseek-ai-dsh-client-ui-sdkwork-about/surface:
-  en: d3cdc69f1d3d4334
-  zh: 4a2d49ea67549635
+  en: 9d399234fa768828
+  zh: 25a08782403fa25e
 /deepseek-ai-dsh-client-ui-sdkwork-about/data:
-  en: 19c769dad4f053ae
-  zh: dba3eb83e4a3b18e
+  en: c23afb39f5ad461a
+  zh: fb93618029072b56
 /deepseek-ai-dsh-client-ui-sdkwork-about/installation-identity:
-  en: ad9cc14d9fd5dd92
-  zh: a28b1e858faa09b1
+  en: 465e624d9efd418f
+  zh: 8546be4c6742d0a8
 /deepseek-ai-dsh-client-ui-sdkwork-about/desktop-about-command:
   en: 685c3cd171a55a51
   zh: ff23b14398595498
 /deepseek-ai-dsh-client-ui-sdkwork-about/implementation-notes:
-  en: 55962deeaa174d93
-  zh: 17ceefe6e7bc5243
+  en: f3a602e3f02d3d30
+  zh: d921875d3cbf0239
 /deepseek-ai-dsh-client-ui-sdkwork-about/model-experience:
   en: 739da37d14772687
   zh: 5f5eb36b2abfe9df
@@ -36,5 +36,5 @@
   en: 6250c7744b2590b1
   zh: 9779c98fff4c949a
 /deepseek-ai-dsh-client-ui-sdkwork-about/known-limitations-and-deferred-work:
-  en: 2f5791073fa5c6c0
-  zh: 682c6215e025a8af
+  en: ff2da5567c8968f2
+  zh: 8e130717b078677c

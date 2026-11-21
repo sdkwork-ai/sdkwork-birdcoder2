@@ -147,9 +147,34 @@ describe('SignInOverlay', () => {
   })
 
   it('names the failing step of a browser hand-off', () => {
-    overlay({ open: true, step: 'browser', browserFailed: true, browserFailure: { code: 'provider-denied' } })
+    overlay({ open: true, step: 'browser', browserFailed: true, browserFailure: { code: 'provider-denied', detail: 'access_denied' } })
     const dialog = screen.getByRole('dialog')
     expect(within(dialog).getByText('browser.reason.provider-denied')).not.toBeNull()
+    // The callback's OAuth error is the only host reason a refused consent
+    // carries, so it owns the diagnostics line.
+    expect(within(dialog).getByTestId('iam-browser-failure-detail').textContent)
+      .toBe('browser.failureDetailaccess_denied')
+  })
+
+  it('reports a hosted authorization that could not start instead of a denied consent', () => {
+    overlay({
+      open: true,
+      step: 'browser',
+      browserFailed: true,
+      browserFailure: {
+        code: 'provider-denied',
+        message: 'The hosted authorization could not be started. Start the login again.',
+        detail: 'server_error',
+      },
+    })
+    const dialog = screen.getByRole('dialog')
+    // No consent screen appeared, so the "cancelled or not approved" line would
+    // misstate what happened.
+    expect(within(dialog).getByText('browser.reason.provider-start-failed')).not.toBeNull()
+    expect(within(dialog).queryByText('browser.reason.provider-denied')).toBeNull()
+    // The page's own sentence is actionable; the OAuth error class alone is not.
+    expect(within(dialog).getByTestId('iam-browser-failure-detail').textContent)
+      .toBe('browser.failureDetailThe hosted authorization could not be started. Start the login again.')
   })
 
   it('shows the host reason under the named step', () => {

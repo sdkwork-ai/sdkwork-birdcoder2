@@ -56,7 +56,16 @@ function scopeOf(settings: UiEnvSettings) {
 
 interface BenchOptions {
   accessToken?: string
+  credentials?: { accessToken: string; authToken: string } | null
   bridge?: unknown
+}
+
+/** IAM session face the About read authenticates through. */
+function sessionStub(tokens: { accessToken?: string; authToken?: string }) {
+  return {
+    sessionTokens: () => tokens,
+    onAuthToken: () => () => {},
+  }
 }
 
 async function bench(options: BenchOptions = {}) {
@@ -73,6 +82,12 @@ async function bench(options: BenchOptions = {}) {
     environment: 'production',
     production: { apiBaseUrl: 'https://api.birdcoder.com', accessToken: options.accessToken ?? 'token' },
   }))
+  const credentials = options.credentials === undefined
+    ? { accessToken: 'token', authToken: 'auth' }
+    : options.credentials
+  ctx.provide('iam', (credentials === null
+    ? sessionStub({})
+    : sessionStub(credentials)) as never)
   const slots = ctx.get('slots')
   if (slots === undefined) throw new Error('the slot registry was not mounted')
   slots.register({
@@ -88,7 +103,7 @@ async function bench(options: BenchOptions = {}) {
 
 describe('ui-sdkwork-about apply', () => {
   it('declares the services it uses', () => {
-    expect(inject).toEqual(['slots', 'locale', 'env'])
+    expect(inject).toEqual(['slots', 'locale', 'env', 'iam'])
   })
 
   it('registers the About section after every feature page', async () => {
@@ -106,7 +121,7 @@ describe('ui-sdkwork-about apply', () => {
     expect(b.slots.entries('shell.overlay').some(candidate => candidate.component === AboutDialog)).toBe(true)
   })
 
-  it('provides the About service and reads the installation with the profile token', async () => {
+  it('provides the About service and reads the installation with the signed-in session credentials', async () => {
     sdk.retrieve.mockResolvedValue(APPLICATION)
     const b = await bench()
     const service = b.ctx.get('about')
@@ -120,8 +135,8 @@ describe('ui-sdkwork-about apply', () => {
     await vi.waitFor(() => { expect(sdk.retrieve).toHaveBeenCalledTimes(2) })
   })
 
-  it('does not read the platform without a configured access token', async () => {
-    const b = await bench({ accessToken: '' })
+  it('does not read the platform while signed out', async () => {
+    const b = await bench({ credentials: null })
     expect(b.ctx.get('about')).toBeDefined()
     expect(sdk.retrieve).not.toHaveBeenCalled()
   })
@@ -170,6 +185,21 @@ describe('ui-sdkwork-about apply', () => {
     const takePending = vi.fn(() => Promise.reject(new Error('handler missing')))
     await bench({ bridge: { about: { onOpen: () => () => {}, takePending } } })
     await vi.waitFor(() => { expect(error).toHaveBeenCalledWith(expect.stringContaining('desktop About'), expect.any(Error)) })
+  })
+
+  it('logs a desktop facts bridge that cannot report the version', async () => {
+    sdk.retrieve.mockResolvedValue(APPLICATION)
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await bench({
+      bridge: {
+        about: {
+          onOpen: () => () => {},
+          takePending: async () => false,
+          facts: () => Promise.reject(new Error('no facts')),
+        },
+      },
+    })
+    await vi.waitFor(() => { expect(error).toHaveBeenCalledWith(expect.stringContaining('desktop facts'), expect.any(Error)) })
   })
 
   it('ignores a partial or absent desktop bridge', async () => {
