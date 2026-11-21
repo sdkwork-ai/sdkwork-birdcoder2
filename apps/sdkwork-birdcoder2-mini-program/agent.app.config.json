@@ -227,5 +227,10 @@
         "updatedAt": "2026-11-13T12:50:05.877Z"
       }
     }
+  },
+  "environments": {
+    "production": {
+      "accessUrl": "https://sdkwork-birdcoder2-mini-program.production.sdkwork.com/"
+    }
   }
 }

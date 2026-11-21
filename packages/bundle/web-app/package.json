@@ -208,6 +208,7 @@
     "@deepseek-ai/dsh-sdkwork-template-install": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-apikey": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-access-token": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-sdkwork-about": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-official-accounts": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-mini-program-accounts": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-dns": "workspace:*",

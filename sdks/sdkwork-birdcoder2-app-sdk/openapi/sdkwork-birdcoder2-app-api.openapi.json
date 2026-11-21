@@ -20,6 +20,10 @@
     {
       "name": "agent",
       "description": "Agent conversations relayed to the host that runs the sdkwork-birdcoder2 instance."
+    },
+    {
+      "name": "installation",
+      "description": "The installation application the caller’s access token names."
     }
   ],
   "paths": {
@@ -988,6 +992,57 @@
         "x-sdkwork-request-context": "WebRequestContext",
         "x-sdkwork-api-surface": "app-api"
       }
+    },
+    "/app/v3/api/installation": {
+      "get": {
+        "operationId": "installation.retrieve",
+        "summary": "Get the caller's installation application",
+        "description": "Returns the application identity the presented access token names: the deploy application anchor, the release scope the credential was issued for, the lifecycle environment, the deployment mode, and the product slice frozen at install time. The installation is the caller’s own and is never addressed in the URL.",
+        "tags": [
+          "installation"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Installation application returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstallationApplicationEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response envelope.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthToken": [],
+            "AccessToken": []
+          }
+        ],
+        "x-sdkwork-auth-mode": "dual-token",
+        "x-sdkwork-data-scope": "owner",
+        "x-sdkwork-deployment": "all",
+        "x-sdkwork-domain": "installation",
+        "x-sdkwork-public": false,
+        "x-sdkwork-resource": "birdcoder.installation",
+        "x-sdkwork-surface": "app",
+        "x-sdkwork-tenant-scope": "tenant",
+        "x-sdkwork-api-authority": "sdkwork-birdcoder2-app-api",
+        "x-sdkwork-owner": "sdkwork-birdcoder2",
+        "x-sdkwork-request-context": "WebRequestContext",
+        "x-sdkwork-api-surface": "app-api"
+      }
     }
   },
   "components": {
@@ -1757,6 +1812,150 @@
                 "required": [
                   "items",
                   "pageInfo"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "data"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "InstallationReleaseScope": {
+        "type": "string",
+        "description": "Release scope of the installation that issued the credential (APPLICATION_IDENTITY_SPEC.md section 4.1).",
+        "enum": [
+          "TENANT",
+          "ORGANIZATION",
+          "USER"
+        ]
+      },
+      "InstallationEnvironment": {
+        "type": "string",
+        "description": "SDKWork lifecycle environment the installation was registered for.",
+        "enum": [
+          "development",
+          "testing",
+          "production"
+        ]
+      },
+      "InstallationDeploymentMode": {
+        "type": "string",
+        "description": "Application runtime topology of the installation.",
+        "enum": [
+          "saas",
+          "private",
+          "local"
+        ]
+      },
+      "InstallationProduct": {
+        "type": "object",
+        "description": "Product identity an installation freezes when it is created.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Display name of the product."
+          },
+          "vendor": {
+            "type": "string",
+            "description": "Vendor that publishes the product."
+          },
+          "appKey": {
+            "type": "string",
+            "description": "Stable product key the deployment reports to platform collectors."
+          },
+          "iconUrl": {
+            "type": "string",
+            "description": "Absolute URL of the product mark."
+          },
+          "websiteUrl": {
+            "type": "string",
+            "description": "Public product website."
+          },
+          "supportUrl": {
+            "type": "string",
+            "description": "Support entry point."
+          },
+          "privacyPolicyUrl": {
+            "type": "string",
+            "description": "Privacy policy."
+          },
+          "termsOfServiceUrl": {
+            "type": "string",
+            "description": "Terms of service."
+          }
+        },
+        "required": [
+          "name",
+          "vendor",
+          "appKey",
+          "iconUrl",
+          "websiteUrl",
+          "supportUrl",
+          "privacyPolicyUrl",
+          "termsOfServiceUrl"
+        ],
+        "additionalProperties": false
+      },
+      "InstallationApplication": {
+        "type": "object",
+        "description": "The application identity the presented access token names.",
+        "properties": {
+          "appId": {
+            "type": "string",
+            "description": "Deploy application anchor (the token app_id claim)."
+          },
+          "tenantId": {
+            "type": "string",
+            "description": "Tenant the installation belongs to."
+          },
+          "organizationId": {
+            "type": "string",
+            "description": "Resolved organization scope; 0 for a tenant-level installation."
+          },
+          "releaseScope": {
+            "$ref": "#/components/schemas/InstallationReleaseScope"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/InstallationEnvironment"
+          },
+          "deploymentMode": {
+            "$ref": "#/components/schemas/InstallationDeploymentMode"
+          },
+          "product": {
+            "$ref": "#/components/schemas/InstallationProduct"
+          }
+        },
+        "required": [
+          "appId",
+          "tenantId",
+          "organizationId",
+          "releaseScope",
+          "environment",
+          "deploymentMode",
+          "product"
+        ],
+        "additionalProperties": false
+      },
+      "InstallationApplicationEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SdkWorkApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "item": {
+                    "$ref": "#/components/schemas/InstallationApplication"
+                  }
+                },
+                "required": [
+                  "item"
                 ],
                 "additionalProperties": false
               }

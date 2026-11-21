@@ -1,0 +1,89 @@
+/* The desktop About dialog: the product page's compact framing over the same
+   shared content. The mask matches the sign-out question's material and sits
+   above page modals and the shell's menus. */
+
+.mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--dsw-alias-bg-mask-1);
+  backdrop-filter: var(--dsw-mask-blur);
+  pointer-events: auto;
+}
+
+.panel {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: min(460px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  border-radius: var(--dsw-radius-lg);
+  background: var(--dsw-alias-bg-layer-2);
+  box-shadow: var(--dsw-shadow-lv3);
+}
+
+.panel:focus {
+  outline: none;
+}
+
+.close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  corner-shape: round;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.body {
+  padding: 22px 22px 4px;
+  overflow: auto;
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 22px 20px;
+}
+
+@media (hover: hover) {
+  .close:hover {
+    background: var(--dsw-alias-interactive-bg-hover);
+  }
+}
+
+@media (max-width: 520px) {
+  .mask {
+    padding: 12px;
+  }
+
+  .panel {
+    max-height: calc(100vh - 24px);
+  }
+
+  .body {
+    padding: 18px 16px 0;
+  }
+
+  .actions {
+    padding: 10px 16px 16px;
+  }
+}

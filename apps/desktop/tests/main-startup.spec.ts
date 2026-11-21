@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os'
 import type { MenuItemConstructorOptions, MessageBoxOptions } from 'electron'
 import { DESKTOP_IPC, type DesktopUpdateState } from '../src/ipc.ts'
 import { INSECURE_TLS_ELECTRON_SWITCH } from '../src/tls-trust.ts'
+import { ABOUT_BRIDGE } from '../src/about-command.ts'
 import { MANDATORY_IPC } from '../src/mandatory-update-ipc.ts'
 import { DesktopHostFatalError, DesktopHostUncleanExitError } from '../src/host-process.ts'
 import { en, zh } from '../src/locale.ts'
@@ -900,31 +901,26 @@ describe('desktop main startup', () => {
     harness.app.isPackaged = packaged
     vi.spyOn(harness.app, 'getLocale').mockReturnValue(locale)
     vi.spyOn(harness.app, 'getPreferredSystemLanguages').mockReturnValue([locale])
-    vi.spyOn(harness.app, 'getPreferredSystemLanguages').mockReturnValue([locale])
     await readyForUpdate()
     const submenu = applicationMenuItems()
     const options = harness.app.setAboutPanelOptions.mock.calls[0]![0]
     const expected = JSON.parse(readFileSync(new URL('./expected/about-panel.json', import.meta.url), 'utf8')) as Record<string, unknown>
     const [about, separator] = submenu
-    expect({ menu: [{ label: about!.label, role: about!.role }, separator], options: { ...options, iconPath: '<app icon>' } })
+    expect({ menu: [{ label: about!.label }, separator], options: { ...options, iconPath: '<app icon>' } })
       .toEqual(expected[`${platform}:${locale}`])
     expect(options.iconPath).toBe(packaged ? join('desktop-test-resources', 'icon.png')
       : join('desktop-test-app', 'resources', 'icon-windows.png'))
-    if (platform !== 'win32') { expect(about!.click).toBeUndefined(); return }
-    // Windows reuses the dimmed update dialog because Electron's fallback is a bare message box.
-    harness.dialog.showMessageBox.mockResolvedValueOnce({ response: 0 })
+    // Every platform opens the in-app About dialog: the product page is the one
+    // About design, and only the page carries the deployment profile.
+    expect(about!.click).toBeTypeOf('function')
+    const window = harness.windows[0]!
+    window.webContents.send.mockClear()
     ;(about!.click as () => void)()
-    await vi.advanceTimersByTimeAsync(0)
-    const zh = locale === 'zh-CN'
-    expect(harness.dialog.showMessageBox).toHaveBeenLastCalledWith(expect.objectContaining({
-      type: 'info', title: zh ? '关于 BirdCoder' : 'About BirdCoder', message: 'BirdCoder',
-      detail: zh ? '版本 V1.0.0' : 'Version V1.0.0', buttons: [zh ? '确定' : 'OK'], cancelId: 0,
-    }))
-    // A dialog that cannot open is logged, not surfaced as an unhandled rejection.
-    harness.dialog.showMessageBox.mockRejectedValueOnce(new Error('overlay unavailable'))
-    ;(about!.click as () => void)()
-    await vi.advanceTimersByTimeAsync(0)
-    expect(console.error).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'overlay unavailable' }))
+    expect(window.webContents.send).toHaveBeenCalledWith(ABOUT_BRIDGE.openEvent)
+    // A command issued before the page listens stays pending until it asks once.
+    window.webContents.mainFrame.url = 'dsh-app://app/index.html'
+    expect(invoke(ABOUT_BRIDGE.takePending, 'app')).toBe(true)
+    expect(invoke(ABOUT_BRIDGE.takePending, 'app')).toBe(false)
   })
 
   it.each(['missing-file', 'missing-field', 'disabled'] as const)('suppresses every test auth dialog for %s while continuing update checks', async (configuration) => {
@@ -1515,7 +1511,7 @@ describe('desktop main startup', () => {
         [en.speechMenu, [['startSpeaking'], ['stopSpeaking']]]])
     const application = template[0]!.submenu as MenuItemConstructorOptions[]
     expect(application.filter(item => item.visible !== false).map(describeItem)).toEqual(
-      ['about', 'separator', en.checkUpdatesMenu, en.cliCommandMenu, 'separator', 'toggleDevTools', 'separator', 'hide', 'hideOthers', 'unhide', 'separator', 'quit'])
+      ['About BirdCoder', 'separator', en.checkUpdatesMenu, en.cliCommandMenu, 'separator', 'toggleDevTools', 'separator', 'hide', 'hideOthers', 'unhide', 'separator', 'quit'])
     expect(harness.menu.setApplicationMenu).toHaveBeenCalledOnce()
   })
 

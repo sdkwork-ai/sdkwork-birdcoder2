@@ -1,4 +1,4 @@
-# SDKWork build-composition workspace root for sdkwork-birdcoder2.
+﻿# SDKWork build-composition workspace root for sdkwork-birdcoder2.
 # Generated API assembly crates under crates/* are workspace members; sibling
 # and cross-repo SDKWork path dependencies are declared once in this table.
 #
@@ -13,7 +13,9 @@ members = [
     "crates/sdkwork-api-birdcoder2-assembly",
     "crates/sdkwork-birdcoder2-host-runtime-service",
     "crates/sdkwork-birdcoder2-iam-application-bootstrap",
+    "crates/sdkwork-birdcoder2-installation-service",
     "crates/sdkwork-routes-birdcoder2-app-api",
+    "crates/sdkwork-routes-birdcoder2-installation-app-api",
     "crates/sdkwork-routes-birdcoder2-internal-api",
 ]
 
@@ -61,5 +63,7 @@ sdkwork-database-config = { path = "../sdkwork-database/crates/sdkwork-database-
 sdkwork-api-birdcoder2-assembly = { path = "crates/sdkwork-api-birdcoder2-assembly" }
 sdkwork-birdcoder2-host-runtime-service = { path = "crates/sdkwork-birdcoder2-host-runtime-service" }
 sdkwork-birdcoder2-iam-application-bootstrap = { path = "crates/sdkwork-birdcoder2-iam-application-bootstrap" }
+sdkwork-birdcoder2-installation-service = { path = "crates/sdkwork-birdcoder2-installation-service" }
 sdkwork-routes-birdcoder2-app-api = { path = "crates/sdkwork-routes-birdcoder2-app-api" }
+sdkwork-routes-birdcoder2-installation-app-api = { path = "crates/sdkwork-routes-birdcoder2-installation-app-api" }
 sdkwork-routes-birdcoder2-internal-api = { path = "crates/sdkwork-routes-birdcoder2-internal-api" }

@@ -1208,6 +1208,16 @@
     - id: ui-sdkwork-profile
       name: '@deepseek-ai/dsh-client-ui-sdkwork-profile'
 
+    # SDKWork 关于 (About): the settings section that presents the product mark,
+    # the build version, the installation's registered app id, and the deployment
+    # identity the BirdCoder2 App API resolves from the deployment access token,
+    # plus the About dialog the desktop application menu's command opens through
+    # `ctx.about`. The read is `GET /app/v3/api/installation` through the
+    # generated `@sdkwork/birdcoder2-app-sdk` client; the local build facts and
+    # the gateway origin/token come from the ui-sdkwork-env profile.
+    - id: ui-sdkwork-about
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-about'
+
     # SDKWork feedback integration: the settings-menu feedback row (bound to
     # the ui-sdkwork-settings-menu feedback seam) and the feedback dialog submitting
     # to the appstore feedback collector. The collector base URL, app key,

@@ -1,7 +1,7 @@
 {
   "darwin:en-US": {
     "menu": [
-      { "label": "About BirdCoder", "role": "about" },
+      { "label": "About BirdCoder" },
       { "type": "separator" }
     ],
     "options": {
@@ -14,7 +14,7 @@
   },
   "darwin:zh-CN": {
     "menu": [
-      { "label": "关于 BirdCoder", "role": "about" },
+      { "label": "关于 BirdCoder" },
       { "type": "separator" }
     ],
     "options": {

@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // The full typecheck project: checks this package's own code AND the
+    // generated BirdCoder2 App SDK source its installation read composes
+    // against. The emit project resolves that SDK through the workspace source
+    // alias without re-checking it; this project drops the relaxed flags so the
+    // package and its specs are checked against it.
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "noCheck": false,
+    "types": ["node"],
+    "rootDir": "../../..",
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "paths": {}
+  },
+  "include": [
+    "src",
+    "tests",
+    "../../../sdks/sdkwork-birdcoder2-app-sdk/sdkwork-birdcoder2-app-sdk-typescript/src",
+    "../../../sdks/sdkwork-birdcoder2-app-sdk/sdkwork-birdcoder2-app-sdk-typescript/generated/server-openapi/src"
+  ]
+}

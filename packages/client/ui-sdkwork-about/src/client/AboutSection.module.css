@@ -1,0 +1,9 @@
+/* The 关于 settings section: one content column inside the settings panel's
+   padded options area. The shared About content owns the card spacing. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 8px;
+}

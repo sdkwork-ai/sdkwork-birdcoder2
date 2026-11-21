@@ -92,6 +92,8 @@ jobs:
       - name: Build the preview page and pack the VFS image
         env:
           DSH_CLIENT_TITLE: DSH preview pr-${{ github.event.pull_request.number }}
+          # The browser artifact carries the Web deploy application identity.
+          SDKWORK_DEPLOY_APPLICATION_ID: ${{ vars.SDKWORK_DEPLOY_APPLICATION_ID_SDKWORK_BIRDCODER2_WEB_APP || '382429273778032640' }}
         run: pnpm --filter @deepseek-ai/dsh-web-frontend run build:preview
 
       # Sourcemaps carry complete sources and stay off the deployment platform.

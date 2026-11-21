@@ -44,7 +44,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "6410eb229c4d64d9b66fca4cb1c08b68b4d4a895718ebc0801457b9dd02c941f"
+      "sha256": "290b8a06026a03921d2e4139f49cf1f97d1917dfb0ab8e210378f37afb4a9eb9"
     },
     {
       "path": "sdkwork-sdk.json",
@@ -64,7 +64,11 @@
     },
     {
       "path": "src/api/index.ts",
-      "sha256": "e6674c19b204191059427508360a5f966f2fc2db6419b5ec4534bdf42b2075aa"
+      "sha256": "28d3d9a8444616ce4bb0aedff3bb239451ed60aecd7b7292819b2e77bd46e0c7"
+    },
+    {
+      "path": "src/api/installation.ts",
+      "sha256": "6e93e21f1a3ab5b6323cc7bbdf262073e5ca59a06e02a627bfd41f413744880b"
     },
     {
       "path": "src/api/paths.ts",
@@ -88,7 +92,7 @@
     },
     {
       "path": "src/sdk.ts",
-      "sha256": "9e86a8d586d6d56647acbd2fb8b14d20a42854ccefe299ea390c7eca52c7d856"
+      "sha256": "cad4b08023b98e8b04eb8be5de01ec836eb8b0f24b2ce96e8b19dc7e6e25a5aa"
     },
     {
       "path": "src/types/agent-event-kind.ts",
@@ -204,7 +208,31 @@
     },
     {
       "path": "src/types/index.ts",
-      "sha256": "723f83a000b62374c509970abc2c31a7b63dbb2203cb66520a8c60f415cfb6b0"
+      "sha256": "79a029e25e16a74a4089de2543638d92527aa74fd785923fefc43d11aec71fa2"
+    },
+    {
+      "path": "src/types/installation-application-envelope.ts",
+      "sha256": "a7626fa6866b2d51e86dd4021da5dc48c18e964bb30ace37ef3c844b84ee277c"
+    },
+    {
+      "path": "src/types/installation-application.ts",
+      "sha256": "f48582694a538085640973bfffa3fde160c7eb681695bec024413824f70d7c1e"
+    },
+    {
+      "path": "src/types/installation-deployment-mode.ts",
+      "sha256": "488f17170b0dd70213ff7767d480d6450c51e01dbbe4fd7570c616eb89b15954"
+    },
+    {
+      "path": "src/types/installation-environment.ts",
+      "sha256": "109252a39333b9c169361b83707603c80cdeeeea50a1caea17cf0c9e58e5bdae"
+    },
+    {
+      "path": "src/types/installation-product.ts",
+      "sha256": "8b1fb6809b0f1f3f00f0bbf05916428dda73356ff179e843f1641ea35cdd0953"
+    },
+    {
+      "path": "src/types/installation-release-scope.ts",
+      "sha256": "80c1fdda26290822cadd8e4a468b531f843165ccbe86300ee242238e2857d360"
     },
     {
       "path": "src/types/page-info.ts",

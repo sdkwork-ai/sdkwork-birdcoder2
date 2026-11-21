@@ -58,5 +58,8 @@
     },
     {
       "path": "../ui-sdkwork-app-modes"
+    },
+    {
+      "path": "../ui-sdkwork-about"
     }]
 }

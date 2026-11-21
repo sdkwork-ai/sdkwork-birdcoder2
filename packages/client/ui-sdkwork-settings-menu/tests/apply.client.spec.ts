@@ -191,6 +191,32 @@ describe('ui-sdkwork-settings-menu apply', () => {
     expect(b.theme.setTheme).toHaveBeenCalledWith('dark')
   })
 
+  it('opens the About dialog through the provided service, and hides the row without it', async () => {
+    const b = await bench()
+    declare(b.slots)
+    const open = vi.fn()
+    b.ctx.provide('about', { open, close: vi.fn(), refresh: vi.fn() })
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const entry = b.slots.entries('mode.rail.settings')[0]!
+    const injected = (entry.inject as never as () => {
+      aboutAvailable: boolean
+      openAbout: () => void
+    })()
+    expect(injected.aboutAvailable).toBe(true)
+    injected.openAbout()
+    expect(open).toHaveBeenCalledTimes(1)
+
+    const without = await bench()
+    declare(without.slots)
+    await without.ctx.plugin({ inject: [...inject], apply }).await()
+    const bare = (without.slots.entries('mode.rail.settings')[0]!.inject as never as () => {
+      aboutAvailable: boolean
+      openAbout: () => void
+    })()
+    expect(bare.aboutAvailable).toBe(false)
+    expect(() => { bare.openAbout() }).not.toThrow()
+  })
+
   it('provides the persona seam, projects an installed source into the shell hook, and restores the default on unload', async () => {
     const b = await bench()
     declare(b.slots)

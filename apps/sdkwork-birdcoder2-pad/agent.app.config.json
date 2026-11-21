@@ -287,5 +287,10 @@
         "updatedAt": "2026-11-13T14:14:21.225Z"
       }
     }
+  },
+  "environments": {
+    "production": {
+      "accessUrl": "https://sdkwork-birdcoder2-pad.production.sdkwork.com/"
+    }
   }
 }

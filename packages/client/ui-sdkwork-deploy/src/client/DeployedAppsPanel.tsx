@@ -76,14 +76,27 @@ export function DeployedAppsPanel({ clients, t }: DeployedAppsPanelProps): React
     let active = true
     setBusy(true)
     setError(undefined)
-    void loadOwnedApps(page => service.listApps({
+    const scopes = ['USER', 'TENANT', 'ORGANIZATION'] as const
+    void Promise.allSettled(scopes.map(scope => loadOwnedApps(page => service.listApps({
       page,
       pageSize: OWNED_APPS_PAGE_SIZE,
-      scope: 'USER',
-    })).then((snapshot) => {
+      scope,
+    })))).then((settled) => {
       if (!active) return
-      setApps(snapshot.items)
-      setTruncated(snapshot.truncated)
+      const fulfilled = settled.filter((entry): entry is PromiseFulfilledResult<Awaited<ReturnType<typeof loadOwnedApps>>> => entry.status === 'fulfilled')
+      if (fulfilled.length === 0) {
+        const rejected = settled.find(entry => entry.status === 'rejected')
+        setError(messageOf(rejected?.status === 'rejected' ? rejected.reason : undefined))
+        return
+      }
+      const byId = new Map<string, (typeof fulfilled)[number]['value']['items'][number]>()
+      for (const entry of fulfilled) {
+        for (const item of entry.value.items) {
+          byId.set(item.id, item)
+        }
+      }
+      setApps([...byId.values()])
+      setTruncated(fulfilled.some(entry => entry.value.truncated))
     }).catch((cause) => {
       if (active) setError(messageOf(cause))
     }).finally(() => {

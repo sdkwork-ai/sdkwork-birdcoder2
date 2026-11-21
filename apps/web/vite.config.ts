@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
-import { join, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { resolveSdkworkLaunchProfile, type SdkworkLaunchProfile } from '@deepseek-ai/dsh-sdkwork-env-bootstrap'
 import { createLaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
@@ -338,12 +338,20 @@ function sdkworkEnvInjection(deploymentProfile: DeploymentProfile, environment: 
   }
   let loaded: Record<string, string>
   try {
-    const tracked = join(repoRoot, `.env.${deploymentProfile}.${environment}`)
+    const profileId = `${deploymentProfile}.${environment}`
+    // The Web application owns its own surface env (`apps/web/.env.<profile>`);
+    // the repository-root file remains the fallback for a checkout that has not
+    // materialized the Web surface yet. Desktop packaging exports its own anchor,
+    // which still outranks the file and re-anchors the token to the Desktop app.
+    const surfaceEnv = join(fileURLToPath(new URL('.', import.meta.url)), `.env.${profileId}`)
+    const tracked = existsSync(surfaceEnv)
+      ? surfaceEnv
+      : join(repoRoot, `.env.${profileId}`)
     if (!existsSync(tracked)) {
       throw new Error(`apps/web: missing ${tracked}; every build names its deployment env file `
         + `(DSH_WEB_DEPLOYMENT_PROFILE=${deploymentProfile}, mode=${environment})`)
     }
-    loaded = loadEnv(`${deploymentProfile}.${environment}`, repoRoot, '') as Record<string, string>
+    loaded = loadEnv(profileId, dirname(tracked), '') as Record<string, string>
   } finally {
     for (const [name, value] of inherited) {
       if (value !== undefined) process.env[name] = value

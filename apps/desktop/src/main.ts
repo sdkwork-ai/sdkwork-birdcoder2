@@ -45,6 +45,7 @@ import { installMicrophonePermissions } from './microphone-permissions.ts'
 import { DesktopBackendController } from './backend-controller.ts'
 import { DESKTOP_IPC, SCHEME, assertDesktopSender, type DesktopSignInOutcome, type DesktopUpdateState } from './ipc.ts'
 import { createIamDeepLinkBridge, findIamDeepLink, matchesIamRedirectUri } from './iam-deep-links.ts'
+import { createAboutCommand } from './about-command.ts'
 import { createIamDeepLinkRelay, type IamDeepLinkRelay } from './iam-deep-link-relay.ts'
 import { IAM_LOOPBACK_BRIDGE } from './iam-loopback-protocol.ts'
 import { loopbackLoginEnabled } from './iam-loopback-policy.ts'
@@ -684,13 +685,19 @@ async function main(): Promise<void> {
     }
     finally { ordinaryDialogs.delete(controller) }
   }
-  // Copy comes from the same locale as the update prompts so the dialog
-  // chrome and its content never mix languages.
-  const showAbout = async (): Promise<void> => {
-    await ordinaryMessageBox({ type: 'info', title: locale.messages.aboutMenu, message: locale.messages.aboutProduct,
-      detail: formatDesktopMessage(locale.messages.aboutVersion, { version: app.getVersion() }),
-      buttons: [locale.messages.updateAcknowledge], cancelId: 0 })
-  }
+  // The About command opens the web client's About dialog (ui-sdkwork-about)
+  // instead of a native message box: only the page carries the deployment
+  // profile and the client build metadata, and the dialog renders the product's
+  // registered app id and links. The application menu label still comes from the
+  // shell locale, while the dialog body is localized by the page's dictionaries.
+  // A command issued before the page listens stays pending until the plugin
+  // mounts.
+  const aboutCommand = createAboutCommand({
+    ipcMain,
+    getWindow: () => mainWindow,
+    assertSender: (event) => { assertProductSender(event) },
+  })
+  const showAbout = (): void => { aboutCommand.show() }
   const commandManager = new DesktopCommandManager({
     resources: process.resourcesPath,
     isPackaged: app.isPackaged,
@@ -1537,6 +1544,7 @@ async function main(): Promise<void> {
     updateSchedule.dispose()
     powerMonitor.off('resume', automaticCheck)
     updates.dispose()
+    aboutCommand.dispose()
   })
 
   const applicationIconPath = development ? join(app.getAppPath(), 'resources', 'icon-windows.png')
@@ -1588,12 +1596,12 @@ async function main(): Promise<void> {
       { role: 'unhide', label: currentDesktopLocale().messages.showAllApplications }, { type: 'separator' }]
     : []
   const applicationItems = (): MenuItemConstructorOptions[] => [
-    // Windows has no system About panel; Electron's fallback is a plain
-    // message box, so the shell shows its own dimmed dialog instead.
-    process.platform === 'win32'
-      ? { label: currentDesktopLocale().messages.aboutMenu,
-        click: () => { void showAbout().catch((error: unknown) => { console.error(error) }) } }
-      : { label: currentDesktopLocale().messages.aboutMenu, role: 'about' },
+    // Every platform opens the in-app About dialog: the native panel (macOS) and
+    // Electron's fallback message box (Windows) cannot show the installation
+    // identity, the registered app id, or the product links, and the page owns
+    // the one About design the settings section renders too.
+    { label: currentDesktopLocale().messages.aboutMenu,
+      click: () => { showAbout() } },
     { type: 'separator' },
     { label: currentDesktopLocale().messages.checkUpdatesMenu, click: () => { void openUpdatePrompt(true) } },
     ...process.platform === 'darwin' || process.platform === 'win32'

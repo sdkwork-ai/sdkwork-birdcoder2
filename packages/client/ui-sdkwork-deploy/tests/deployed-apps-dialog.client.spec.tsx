@@ -105,10 +105,12 @@ describe('DeployedAppsPanel', () => {
     expect(screen.getByText(zh['deployments.shownCount'].replace('{shown}', '2').replace('{total}', '2'))).toBeTruthy()
   })
 
-  it('reads only the caller-owned scope', async () => {
+  it('reads every reachable ownership scope', async () => {
     const { view, list } = panel({ items: [app()] })
     await view.findByText('Store')
-    expect(list).toHaveBeenCalledWith(expect.objectContaining({ scope: 'USER', page: 1, pageSize: OWNED_APPS_PAGE_SIZE }))
+    for (const scope of ['USER', 'TENANT', 'ORGANIZATION']) {
+      expect(list).toHaveBeenCalledWith(expect.objectContaining({ scope, page: 1, pageSize: OWNED_APPS_PAGE_SIZE }))
+    }
   })
 
   it('narrows by application kind and clears the facet', async () => {
@@ -415,7 +417,7 @@ describe('DeployedAppsDialog', () => {
     expect(screen.queryByRole('tabpanel', { name: zh['deployments.tab.templates'] })).toBeNull()
     expect(screen.getByText('Store')).toBeTruthy()
     // Neither ledger reloaded: switching only changes which panel is hidden.
-    expect(drawer.listApps).toHaveBeenCalledTimes(1)
+    expect(drawer.listApps).toHaveBeenCalledTimes(3)
     expect(drawer.listTemplates).toHaveBeenCalledTimes(1)
   })
 
@@ -433,7 +435,7 @@ describe('DeployedAppsDialog', () => {
     view.rerender(<DeployedAppsDialog {...composedProps(true, () => drawer.clients)} />)
     expect(await screen.findByText('Store')).toBeTruthy()
     expect(screen.getByRole('tab', { name: zh['deployments.tab.apps'] }).getAttribute('aria-selected')).toBe('true')
-    expect(drawer.listApps).toHaveBeenCalledTimes(2)
+    expect(drawer.listApps).toHaveBeenCalledTimes(6)
     expect(drawer.listTemplates).toHaveBeenCalledTimes(1)
   })
 

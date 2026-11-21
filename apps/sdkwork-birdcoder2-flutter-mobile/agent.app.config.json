@@ -239,5 +239,10 @@
         "signed-production-artifact-evidence-missing"
       ]
     }
+  },
+  "environments": {
+    "production": {
+      "accessUrl": "https://sdkwork-birdcoder2-flutter-mobile.production.sdkwork.com/"
+    }
   }
 }

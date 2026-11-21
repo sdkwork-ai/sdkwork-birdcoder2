@@ -1,0 +1,17 @@
+[package]
+name = "sdkwork-birdcoder2-installation-service"
+version = "0.1.0"
+edition = "2021"
+rust-version.workspace = true
+description = "BirdCoder2 installation application identity: the product profile and the release identity an access token names."
+
+[lints]
+workspace = true
+
+[lib]
+name = "sdkwork_birdcoder2_installation_service"
+path = "src/lib.rs"
+
+[dependencies]
+serde = { workspace = true }
+thiserror = { workspace = true }

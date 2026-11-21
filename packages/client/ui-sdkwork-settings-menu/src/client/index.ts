@@ -33,6 +33,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: pulls ctx.theme + theme/change into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
+// Type-only: pulls the About service declaration (`ctx.about`) into this program.
+import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-about/client'
 import { AccountRuntime } from './account.ts'
 import { FeedbackRuntime } from './feedback.ts'
 import { PersonaRuntime } from './persona.ts'
@@ -238,6 +240,8 @@ export function apply(ctx: ClientContext): void {
     logout: () => { void account.logout() },
     openFeedback: () => { feedback.open() },
     openPersona: () => { persona.open() },
+    openAbout: () => { ctx.get('about')?.open() },
+    aboutAvailable: ctx.get('about') !== undefined,
     checkForUpdates: () => {
       const updates = updatesOf()
       if (updates === undefined) return

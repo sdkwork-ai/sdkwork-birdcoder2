@@ -1,0 +1,24 @@
+﻿[package]
+name = "sdkwork-routes-birdcoder2-installation-app-api"
+version = "0.1.0"
+edition = "2021"
+rust-version.workspace = true
+description = "BirdCoder2 installation App API routes: the application identity an access token names."
+
+[lints]
+workspace = true
+
+[lib]
+name = "sdkwork_routes_birdcoder2_installation_app_api"
+path = "src/lib.rs"
+
+[dependencies]
+axum = { workspace = true }
+serde = { workspace = true }
+sdkwork-birdcoder2-installation-service = { workspace = true }
+sdkwork-utils-rust = { workspace = true }
+sdkwork-web-contract = { workspace = true }
+sdkwork-web-core = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

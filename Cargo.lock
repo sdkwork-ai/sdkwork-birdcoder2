@@ -2095,7 +2095,9 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "sdkwork-birdcoder2-host-runtime-service",
+ "sdkwork-birdcoder2-installation-service",
  "sdkwork-routes-birdcoder2-app-api",
+ "sdkwork-routes-birdcoder2-installation-app-api",
  "sdkwork-routes-birdcoder2-internal-api",
  "sdkwork-web-bootstrap",
  "sdkwork-web-core",
@@ -2123,6 +2125,14 @@ dependencies = [
  "sdkwork-iam-embedded-application-bootstrap",
  "sqlx",
  "tokio",
+]
+
+[[package]]
+name = "sdkwork-birdcoder2-installation-service"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "thiserror",
 ]
 
 [[package]]
@@ -2348,6 +2358,19 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "sdkwork-birdcoder2-host-runtime-service",
+ "sdkwork-utils-rust",
+ "sdkwork-web-contract",
+ "sdkwork-web-core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "sdkwork-routes-birdcoder2-installation-app-api"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "sdkwork-birdcoder2-installation-service",
  "sdkwork-utils-rust",
  "sdkwork-web-contract",
  "sdkwork-web-core",

@@ -4,18 +4,22 @@ import type { AuthTokenManager } from '@sdkwork/sdk-common';
 
 import { HostsApi, createHostsApi } from './api/hosts';
 import { AgentApi, createAgentApi } from './api/agent';
+import { InstallationApi, createInstallationApi } from './api/installation';
 
 export class SdkworkBirdcoder2AppClient {
   private httpClient: HttpClient;
 
   public readonly hosts: HostsApi;
   public readonly agent: AgentApi;
+  public readonly installation: InstallationApi;
 
   constructor(config: SdkworkAppConfig) {
     this.httpClient = createHttpClient(config);
     this.hosts = createHostsApi(this.httpClient);
 
     this.agent = createAgentApi(this.httpClient);
+
+    this.installation = createInstallationApi(this.httpClient);
   }
   setAuthToken(token: string): this {
     this.httpClient.setAuthToken(token);

@@ -30,7 +30,8 @@ import {
   IconAgentPresetOutlineRegular, IconAppsAddOutlineRegular, IconCloseOutlineRegular,
   IconDarkOutlineRegular, IconDataOutlineRegular, IconEditOutlineRegular,
   IconFollowsystemOutlineRegular, IconGlobeOutlineRegular, IconLayersOutlineRegular, IconLightOutlineRegular,
-  IconLinkOutlineRegular, IconPanelLeftOutlineRegular, IconPersonalizationOutlineRegular, IconQuestionOutlineRegular,
+  IconLinkOutlineRegular, IconInfoOutlineRegular, IconPanelLeftOutlineRegular, IconPersonalizationOutlineRegular,
+  IconQuestionOutlineRegular,
   IconRefreshOutlineRegular, IconShieldOutlineRegular,
   IconSettingsOutlineRegular, IconSkillOutlineRegular, IconUserOutlineRegular, IconUsersOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -43,6 +44,9 @@ import css from './SettingsMenuRoot.module.css'
 
 /** Nav glyph by section id; unknown ids fall back to the settings gear. */
 function navIcon(id: string) {
+  // The About page (`ui-sdkwork-about`): the info glyph separates reference
+  // material from the configuration pages above it.
+  if (id === 'about') return <IconInfoOutlineRegular className={css.navIcon} size={16} />
   // The sidebar's own page (`ui-sdkwork-sidebar`) draws the column's glyph.
   if (id === 'sidebar-layout') return <IconPanelLeftOutlineRegular className={css.navIcon} size={16} />
   // The account's own page (`ui-sdkwork-profile`): the person glyph matches
@@ -146,7 +150,8 @@ function SettingsPanel({ rows, renderSlot, activeId, focusProvider, onSelect, on
 export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
   const {
     useSections, useOnboardingSteps, useTheme, useAccount, useSessions, useFeedback, usePersona,
-    renderSlot, setTheme, signIn, logout, checkForUpdates, openFeedback, openPersona, updatesAvailable,
+    renderSlot, setTheme, signIn, logout, checkForUpdates, openFeedback, openPersona, openAbout, aboutAvailable,
+    updatesAvailable,
     openDesktopPlugins, desktopPluginsAvailable, desktopPluginsUsable, quitApp, quitAvailable, t,
     useStore, actions,
   } = props
@@ -306,6 +311,13 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
     if (feedback.available) {
       entries.push({ id: 'feedback', label: t('menu.feedback'), icon: <IconEditOutlineRegular size={14} /> })
     }
+    // The desktop application menu's About command in the web surface: the row
+    // opens the same About dialog ui-sdkwork-about seats on the shell overlay
+    // layer, so the settings page and the app menu share one design. Absent
+    // without the plugin.
+    if (aboutAvailable) {
+      entries.push({ id: 'about', label: t('menu.about'), icon: <IconInfoOutlineRegular size={16} /> })
+    }
     // The desktop shell group: the entries the native application menu owned
     // before the shell dropped its menu bar (Windows/Linux). Each row is
     // gated on its bridge face, so web compositions render neither the rows
@@ -330,7 +342,7 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
     return entries
   }, [
     account.membership, account.points, account.signInAvailable, account.signedIn, account.username,
-    feedback.available, persona.available, persona.roleLabel, t, renderSlot, closeMenu, openPointsRecharge,
+    feedback.available, aboutAvailable, persona.available, persona.roleLabel, t, renderSlot, closeMenu, openPointsRecharge,
     updatesAvailable, desktopPluginsAvailable, desktopPluginsUsable, quitAvailable,
   ])
 
@@ -368,6 +380,8 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
       setHelpToastSeq(seq => seq + 1)
     } else if (id === 'feedback') {
       openFeedback()
+    } else if (id === 'about') {
+      openAbout()
     } else if (id === 'check-updates') {
       checkForUpdates()
     } else if (id === 'desktop-plugins') {
@@ -379,7 +393,7 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
     } else if (id === 'logout') {
       logout()
     }
-  }, [setTheme, signIn, logout, checkForUpdates, openFeedback, openPersona, openDesktopPlugins, quitApp, actions])
+  }, [setTheme, signIn, logout, checkForUpdates, openFeedback, openPersona, openAbout, openDesktopPlugins, quitApp, actions])
 
   return (
     <>

@@ -1,12 +1,17 @@
 /**
  * Preload half of the SDKWork desktop bridge: exposes the
- * `deepLinks` / `shellOpen` surface under `window.sdkworkDesktop` (matching
- * `@sdkwork/iam-desktop-auth`'s `SdkworkDesktopBridgeShape`, so the hosted IAM
- * desktop-login runtime is host-agnostic) plus the product-owned
+ * `deepLinks` / `shellOpen` / `about` surface under `window.sdkworkDesktop`
+ * (matching `@sdkwork/iam-desktop-auth`'s `SdkworkDesktopBridgeShape`, so the
+ * hosted IAM desktop-login runtime is host-agnostic) plus the product-owned
  * `iamSession` slice that mirrors the committed session into `<DSH_HOME>`.
+ *
+ * `about` is the product's own addition beside the IAM contract: the application
+ * menu's About command announces itself there, and a page that mounted after the
+ * click takes the pending request once.
  */
 
 import type { IpcRenderer } from 'electron'
+import { ABOUT_BRIDGE } from './about-command.ts'
 import { SDKWORK_DESKTOP_BRIDGE, SDKWORK_DESKTOP_PRELOAD_KEY } from './iam-deep-links.ts'
 import { IAM_LOOPBACK_BRIDGE } from './iam-loopback-protocol.ts'
 import { IAM_SESSION_BRIDGE, type IamSessionRecord } from './iam-session-protocol.ts'
@@ -34,6 +39,11 @@ export function exposeSdkworkDesktopBridge(contextBridge: IamPreloadContextBridg
     for (const listener of [...loopbackListeners]) listener(payload)
   }
   ipcRenderer.on(IAM_LOOPBACK_BRIDGE.callback, forwardLoopback)
+  const aboutListeners = new Set<() => void>()
+  const forwardAbout = (): void => {
+    for (const listener of [...aboutListeners]) listener()
+  }
+  ipcRenderer.on(ABOUT_BRIDGE.openEvent, forwardAbout)
 
   contextBridge.exposeInMainWorld(SDKWORK_DESKTOP_PRELOAD_KEY, {
     deepLinks: {
@@ -67,6 +77,16 @@ export function exposeSdkworkDesktopBridge(contextBridge: IamPreloadContextBridg
     shellOpen: {
       open: async (url: string): Promise<void> => {
         await ipcRenderer.invoke(SDKWORK_DESKTOP_BRIDGE.shellOpen, url)
+      },
+    },
+    about: {
+      onOpen: (handler: () => void): (() => void) => {
+        aboutListeners.add(handler)
+        return () => { aboutListeners.delete(handler) }
+      },
+      takePending: async (): Promise<boolean> => {
+        const value: unknown = await ipcRenderer.invoke(ABOUT_BRIDGE.takePending)
+        return value === true
       },
     },
     iamSession: {

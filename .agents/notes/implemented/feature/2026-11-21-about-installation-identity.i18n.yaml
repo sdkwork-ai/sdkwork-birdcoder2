@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-21-about-installation-identity.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-21-about-installation-identity.md
+/agent-note-the-about-surface-reads-its-installation-identity-from-the-app-api:
+  en: 63b33cb4e1f5142d
+  zh: c347da2e53394244
+/agent-note-the-about-surface-reads-its-installation-identity-from-the-app-api/problem:
+  en: 0f7b61fa56d9c4a8
+  zh: 303054d9b3cdbe90
+/agent-note-the-about-surface-reads-its-installation-identity-from-the-app-api/decision:
+  en: aaa83d4c6444757e
+  zh: 2c5e0d3305b9c4f5
+/agent-note-the-about-surface-reads-its-installation-identity-from-the-app-api/alternatives-considered:
+  en: 375579682ffcb966
+  zh: c87556735740a8ea
+/agent-note-the-about-surface-reads-its-installation-identity-from-the-app-api/consequences:
+  en: 1ad35943570dbfd0
+  zh: 085dc5c74cf77289

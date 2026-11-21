@@ -1,8 +1,12 @@
 [package]
 name = "sdkwork-api-birdcoder2-assembly"
+rust-version.workspace = true
 edition.workspace = true
 version = "0.1.0"
 description = "Generated API assembly for sdkwork-birdcoder2 application HTTP plane."
+
+[lints]
+workspace = true
 
 [lib]
 name = "sdkwork_api_birdcoder2_assembly"
@@ -14,5 +18,7 @@ tokio.workspace = true
 sdkwork-web-bootstrap.workspace = true
 sdkwork-web-core.workspace = true
 sdkwork-birdcoder2-host-runtime-service = { workspace = true }
+sdkwork-birdcoder2-installation-service = { workspace = true }
 sdkwork-routes-birdcoder2-app-api.workspace = true
+sdkwork-routes-birdcoder2-installation-app-api.workspace = true
 sdkwork-routes-birdcoder2-internal-api.workspace = true

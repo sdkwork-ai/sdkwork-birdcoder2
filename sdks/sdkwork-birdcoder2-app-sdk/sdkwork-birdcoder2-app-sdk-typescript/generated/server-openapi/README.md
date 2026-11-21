@@ -27,11 +27,7 @@ client.setAuthToken('your-auth-token');
 client.setAccessToken('your-access-token');
 
 // Use the SDK
-const params = {
-  cursor: 'cursor',
-  page_size: 2,
-};
-const result = await client.hosts.list(params);
+const result = await client.installation.retrieve();
 ```
 
 ## Authentication
@@ -60,6 +56,7 @@ const client = new SdkworkBirdcoder2AppClient({
 
 - `client.hosts` - hosts API
 - `client.agent` - agent API
+- `client.installation` - installation API
 
 ## Usage Examples
 
@@ -82,17 +79,20 @@ const sessionId = '1';
 const result = await client.agent.agentSessions.retrieve(sessionId);
 ```
 
+### installation
+
+```typescript
+// Get the caller's installation application
+const result = await client.installation.retrieve();
+```
+
 ## Error Handling
 
 ```typescript
 import { SdkworkBirdcoder2AppClient, NetworkError, TimeoutError, AuthenticationError } from '@sdkwork/birdcoder2-app-sdk';
 
 try {
-  const params = {
-    cursor: 'cursor',
-    page_size: 2,
-  };
-  const result = await client.hosts.list(params);
+  const result = await client.installation.retrieve();
 } catch (error) {
   if (error instanceof AuthenticationError) {
     console.error('Authentication failed:', error.message);

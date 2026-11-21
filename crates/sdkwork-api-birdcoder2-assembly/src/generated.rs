@@ -1,9 +1,10 @@
 //! Generated route inventory. Do not edit by hand; run pnpm api:assembly:materialize.
 
-pub const ROUTE_CRATE_COUNT: usize = 2;
+pub const ROUTE_CRATE_COUNT: usize = 3;
 
 #[allow(dead_code)]
 pub const ROUTE_CRATE_PACKAGES: &[&str] = &[
     "sdkwork-routes-birdcoder2-app-api",
+    "sdkwork-routes-birdcoder2-installation-app-api",
     "sdkwork-routes-birdcoder2-internal-api",
 ];

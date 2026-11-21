@@ -419,6 +419,8 @@
       "@deepseek-ai/dsh-client-ui-sdkwork-im-contacts/client": ["./packages/client/ui-sdkwork-im-contacts/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-token-plan": ["./packages/client/ui-sdkwork-token-plan/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-token-plan/client": ["./packages/client/ui-sdkwork-token-plan/src/client"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-about": ["./packages/client/ui-sdkwork-about/src"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-about/client": ["./packages/client/ui-sdkwork-about/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-profile": ["./packages/client/ui-sdkwork-profile/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-profile/client": ["./packages/client/ui-sdkwork-profile/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-env": ["./packages/client/ui-sdkwork-env/src"],
