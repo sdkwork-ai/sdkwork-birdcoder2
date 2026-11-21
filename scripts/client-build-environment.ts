@@ -264,6 +264,31 @@ export function assertClientBuildEnvironment(
 }
 
 /**
+ * Compare a local build record with the repository while treating the Git dirty
+ * marker as build-time provenance rather than a live invariant.
+ *
+ * `DSH_CLIENT_GIT_DIRTY` is sampled before a build's gates run and is embedded in
+ * the artifacts. A gate or a packaging predecessor can change the worktree after
+ * that sample; re-sampling it at pack time must not invalidate the record. Every
+ * other public value — including the commit, version, and build profile — stays
+ * exact, so an actually different build environment still fails closed.
+ *
+ * @param environment - public environment from a build record or build process.
+ * @param expected - complete public environment required by the artifact profile.
+ */
+export function assertClientBuildEnvironmentIgnoringGitDirty(
+  environment: Readonly<Record<string, string | undefined>>,
+  expected: Readonly<Record<`DSH_CLIENT_${string}`, string>>,
+): void {
+  const withoutDirty = (values: Readonly<Record<string, string | undefined>>) =>
+    Object.fromEntries(Object.entries(values).filter(([name]) => name !== 'DSH_CLIENT_GIT_DIRTY'))
+  assertClientBuildEnvironment(
+    withoutDirty(environment),
+    withoutDirty(expected) as Record<`DSH_CLIENT_${string}`, string>,
+  )
+}
+
+/**
  * Create bundler substitutions for public client build environment variables.
  *
  * The empty `process.env` fallback makes an unset static property read

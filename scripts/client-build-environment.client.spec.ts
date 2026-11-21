@@ -6,6 +6,7 @@ import yaml from 'js-yaml'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   assertClientBuildEnvironment,
+  assertClientBuildEnvironmentIgnoringGitDirty,
   clientBuildEnvironmentDefines,
   clientBuildProcessEnvironment,
   clientBuildValueDefines,
@@ -93,6 +94,30 @@ describe('client build environment', () => {
     expect(() => { assertClientBuildEnvironment({ DSH_CLIENT_TITLE: 'Other' }, expected) }).toThrow(/DSH_CLIENT_TITLE/)
     expect(() => {
       assertClientBuildEnvironment({ ...expected, DSH_CLIENT_UNDECLARED: 'value' }, expected)
+    }).toThrow(/DSH_CLIENT_UNDECLARED/)
+  })
+
+  it('treats the Git dirty marker as build-time provenance for local packs', () => {
+    const expected = {
+      DSH_CLIENT_BUILD_PROFILE: 'local',
+      DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
+      DSH_CLIENT_VERSION: '1.2.3-rc.4',
+    } as const
+
+    expect(() => {
+      assertClientBuildEnvironmentIgnoringGitDirty({ ...expected, DSH_CLIENT_GIT_DIRTY: 'true' }, expected)
+    }).not.toThrow()
+    expect(() => {
+      assertClientBuildEnvironmentIgnoringGitDirty(expected, { ...expected, DSH_CLIENT_GIT_DIRTY: 'true' })
+    }).not.toThrow()
+    expect(() => {
+      assertClientBuildEnvironmentIgnoringGitDirty(
+        { ...expected, DSH_CLIENT_GIT_DIRTY: 'true', DSH_CLIENT_TITLE: 'Other' },
+        expected,
+      )
+    }).toThrow(/DSH_CLIENT_TITLE/)
+    expect(() => {
+      assertClientBuildEnvironmentIgnoringGitDirty({ ...expected, DSH_CLIENT_UNDECLARED: 'value' }, expected)
     }).toThrow(/DSH_CLIENT_UNDECLARED/)
   })
 
