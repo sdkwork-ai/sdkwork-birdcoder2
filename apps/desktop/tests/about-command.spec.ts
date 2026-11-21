@@ -1,9 +1,10 @@
 /** The desktop About command bridge: one pending request, one renderer announcement. */
+import type { IpcMainInvokeEvent } from 'electron'
 import { describe, expect, it, vi } from 'vitest'
 import { ABOUT_BRIDGE, createAboutCommand, type AboutCommandWindow } from '../src/about-command.ts'
 
 interface Handler {
-  (event: unknown): unknown
+  (event: IpcMainInvokeEvent): unknown
 }
 
 function harness(options: { window?: () => AboutCommandWindow | undefined } = {}) {
@@ -36,7 +37,7 @@ function harness(options: { window?: () => AboutCommandWindow | undefined } = {}
 function takePending(handlers: Map<string, Handler>): unknown {
   const handler = handlers.get(ABOUT_BRIDGE.takePending)
   if (handler === undefined) throw new Error('About command registered no pending handler')
-  return handler({})
+  return handler({} as IpcMainInvokeEvent)
 }
 
 describe('desktop About command', () => {
