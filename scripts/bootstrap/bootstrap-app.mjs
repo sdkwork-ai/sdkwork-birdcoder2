@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * `admin:bootstrap:app` — IAM application bootstrap for this product root:
- * register the application template, provision and enable the tenant
- * application, and issue the access credential, reusing
- * `@sdkwork/iam-application-bootstrap` (register → provision → enable →
+ * provision the installation from the deploy application it serves,
+ * enable it, and issue the access credential, reusing
+ * `@sdkwork/iam-application-bootstrap` (provision → enable →
  * access-credential orchestration per IAM_APPLICATION_BOOTSTRAP_SPEC.md).
  * The issued credential is projected into the user-private bundle
  * `~/.sdkwork/<application-code>/credentials/<profile-id>.json`
@@ -19,7 +19,12 @@
  * may be stored there (development often uses the platform super-admin account).
  * Environment overrides: `SDKWORK_IAM_BOOTSTRAP_OPERATOR_USERNAME`,
  * `SDKWORK_IAM_BOOTSTRAP_OPERATOR_PASSWORD`, `SDKWORK_BACKEND_BASE_URL`.
- * @module scripts/sdkwork-app-bootstrap
+ *
+ * The deploy application anchor defaults to the manifest
+ * (`backend.deployApplicationId`, else `backend.appId`). A deployment whose own
+ * application id differs — the identity its access tokens must carry — passes
+ * `--deploy-application-id <id>` or exports `SDKWORK_DEPLOY_APPLICATION_ID`.
+ * @module scripts/bootstrap/bootstrap-app
  */
 
 import { readFileSync } from 'node:fs'
@@ -125,12 +130,18 @@ async function main() {
   const client = createFetchIamApplicationBootstrapClient({
     baseUrl: environment.backendApiBaseUrl,
   })
+  // The deployment's own application id wins over the manifest fallback: the
+  // access token's `app_id` claim is this anchor, not the IAM runtime id.
+  const deployApplicationId = (flags['deploy-application-id']
+    ?? process.env.SDKWORK_DEPLOY_APPLICATION_ID
+    ?? '').trim()
   const result = await bootstrapApplicationFromManifest({
     manifest,
     manifestHash: hashManifestContent(raw),
     environment,
     auth,
     client,
+    ...(deployApplicationId === '' ? {} : { provision: { deployApplicationId } }),
     profile: bootstrapAuthProfile?.profile ?? null,
   })
 
@@ -162,7 +173,8 @@ async function main() {
   const appKey = typeof manifest?.app?.key === 'string' ? manifest.app.key : 'app'
   process.stdout.write(
     `${NAME}: registered ${appKey} for ${environment.environment} at ${environment.backendApiBaseUrl}; `
-    + `tenant application ${result.tenantApplicationId}; wrote ${bundlePath}\n`,
+    + `installation ${result.installationId}; deploy application ${result.deployApplicationId}; `
+    + `wrote ${bundlePath}\n`,
   )
 }
 

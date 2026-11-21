@@ -40,15 +40,19 @@ async function settle(): Promise<void> {
 }
 
 function sessionBody(): string {
+  // The V3 create envelope the current IAM app-api returns for
+  // `oauth.desktopSessions.create`: the session is nested under `data.item`.
   return JSON.stringify({
     code: 0,
     traceId: 'trace',
     data: {
-      accessToken: 'access',
-      authToken: 'auth',
-      refreshToken: 'refresh',
-      sessionId: 'session',
-      user: { id: 'user-1' },
+      item: {
+        accessToken: 'access',
+        authToken: 'auth',
+        refreshToken: 'refresh',
+        sessionId: 'session',
+        user: { id: 'user-1' },
+      },
     },
   })
 }
@@ -125,6 +129,50 @@ describe('desktop redeem transport', () => {
     expect(fetchStub).toHaveBeenCalledTimes(1)
     expect(onSession).toHaveBeenCalledTimes(1)
     expect(onSession.mock.calls[0][0]).toMatchObject({ accessToken: 'access', authToken: 'auth' })
+    login.dispose()
+  })
+
+  it('keeps the server rejection reason on a failed exchange', async () => {
+    const onError = vi.fn()
+    const onSession = vi.fn()
+    const login = createIamDesktopLogin({
+      clientId: 'birdcoder',
+      redirectUri: REDIRECT,
+      authorizeBaseUrl: 'https://platform.example.test',
+      baseUrl: 'https://api.example.test',
+      tokenManager: {} as never,
+      bridge: installBridge(),
+      onSession,
+      onError,
+    })
+
+    // The IAM server's fail-closed answer when the OAuth client's installation
+    // has no deploy-application anchor: every redeem is refused before the
+    // single-use code is read.
+    const serverReason = 'installation is not bound to a deploy application '
+      + '(安装未绑定部署应用): the OAuth client\'s installation has no deployApplicationId'
+    const fetchStub = vi.fn(async () => new Response(JSON.stringify({
+      type: 'https://docs.sdkwork.com/problems/40001',
+      title: 'Validation failed',
+      status: 400,
+      detail: serverReason,
+      code: 40001,
+      traceId: 'trace-400',
+    }), { status: 400, headers: { 'content-type': 'application/problem+json' } }))
+    vi.stubGlobal('fetch', fetchStub)
+
+    await login.begin()
+    const state = new URL(opened[0]!).searchParams.get('state')
+    emitDeepLink(`${REDIRECT}?code=sdkwork-oauth_code-rejected&state=${state}`)
+    await settle()
+
+    expect(fetchStub).toHaveBeenCalledTimes(1)
+    expect(onSession).not.toHaveBeenCalled()
+    expect(onError).toHaveBeenCalledTimes(1)
+    expect(onError.mock.calls[0][0]).toMatchObject({
+      code: 'exchange-failed',
+      detail: serverReason,
+    })
     login.dispose()
   })
 })

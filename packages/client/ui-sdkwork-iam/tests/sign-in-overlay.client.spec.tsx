@@ -165,6 +165,24 @@ describe('SignInOverlay', () => {
       .toBe('browser.failureDetailOAuth authorization code is invalid or expired')
   })
 
+  it('reports the transport reason rather than the runtime summary for a failed exchange', () => {
+    overlay({
+      open: true,
+      step: 'browser',
+      browserFailed: true,
+      browserFailure: {
+        code: 'exchange-failed',
+        message: 'The desktop session exchange failed. Start the browser login again.',
+        detail: 'installation is not bound to a deploy application (安装未绑定部署应用)',
+      },
+    })
+    const dialog = screen.getByRole('dialog')
+    // The summary only says "start again"; the server's rejection is what a
+    // support report can act on, so it owns the diagnostics line.
+    expect(within(dialog).getByTestId('iam-browser-failure-detail').textContent)
+      .toBe('browser.failureDetailinstallation is not bound to a deploy application (安装未绑定部署应用)')
+  })
+
   it('offers the in-app sign-in from a failed browser hand-off', () => {
     const { onStartInAppLogin } = overlay({ open: true, step: 'browser', browserFailed: true })
     const dialog = screen.getByRole('dialog')

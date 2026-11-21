@@ -154,7 +154,9 @@ describe('createIamDesktopLogin', () => {
       method: 'POST',
       contentType: 'application/json',
       skipAuth: true,
-      sdkworkUnwrapKind: 'data',
+      // The generated operation unwraps the create envelope's `data.item`;
+      // the hand-written at-most-once caller must request the same shape.
+      sdkworkUnwrapKind: 'item',
       retry: { maxRetries: 0 },
       body: command,
     })

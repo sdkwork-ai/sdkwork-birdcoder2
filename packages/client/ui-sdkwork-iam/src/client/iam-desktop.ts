@@ -52,7 +52,12 @@ function createAtMostOnceRedeemClient(client: SdkworkAppClient): RedeemSdkClient
             method: 'POST',
             contentType: 'application/json',
             skipAuth: true,
-            sdkworkUnwrapKind: 'data',
+            // The V3 create envelope nests the session under `data.item`
+            // (`{"code":0,"data":{"item":{...}}}`), exactly like the generated
+            // `oauth.desktopSessions.create` this call replaces. Asking for
+            // `data` would hand `{ item: session }` to the session validator,
+            // which then rejects a successful redeem as an incomplete session.
+            sdkworkUnwrapKind: 'item',
             retry: { maxRetries: 0 },
             body,
           })

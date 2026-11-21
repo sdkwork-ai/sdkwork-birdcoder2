@@ -1409,7 +1409,10 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     const failure = browserFailureOf(error)
     this.desktopFailure = failure
     this.desktopFailed = true
-    console.error('ui-sdkwork-iam: browser login failed', failure)
+    // The failure keeps the product-facing reason; the rejected step itself
+    // carries the transport status, problem code, and trace id a support
+    // report needs to correlate the attempt with the IAM server's logs.
+    console.error('ui-sdkwork-iam: browser login failed', failure, error)
     this.notifyDesktop()
   }
 

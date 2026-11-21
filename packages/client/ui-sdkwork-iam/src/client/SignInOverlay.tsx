@@ -155,7 +155,10 @@ function SignInOverlayContent(props: SignInOverlayProps) {
   const colorScheme = theme.active.colorScheme
   // The step's localized line explains which part of the login broke; the
   // host's own reason is the detail a support report needs, so both are shown.
-  const browserDetail = browserFailure?.message ?? browserFailure?.detail
+  // The host reason wins when it exists: for a failed exchange the runtime's
+  // own message is a fixed "start again" summary, while `detail` carries the
+  // rejection the server or transport actually reported.
+  const browserDetail = browserFailure?.detail ?? browserFailure?.message
   const titleId = useId()
   const headingId = useId()
   const descriptionId = useId()
