@@ -136,7 +136,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   sessionController: 'session.md',
   sessionStatus: 'web-client.md',
   sessionSkillCatalog: 'skills.md',
-  sessions: 'session.md',
+
   sessionLogDeepSeek: 'session.md',
   settings: 'settings.md',
   sessionTitle: 'session-title.md',
@@ -199,6 +199,13 @@ export const SERVICE_PAGE: Record<string, string> = {
  * to a model as `cordis_runtime_inspect what:"client"`).
  */
 export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
+  sessions: 'client-side session cache and list face; packages/api/session-controller/README.md owns the ClientSessions API',
+  about: 'client-side About settings section and dialog; packages/client/ui-sdkwork-about/README.md owns the API',
+  accessTokenInitializer: 'client-side access-token settings contribution; packages/client/ui-sdkwork-access-token/README.md owns the API',
+  dshImClient: 'client-side IM host adapter mounted from an external embed bundle; packages/client/ui-sdkwork-im-connector/README.md owns the API',
+  im: 'client-side IM host adapter and mode page; packages/client/ui-sdkwork-im/README.md owns the API',
+  settingsMenu: 'client-side settings-menu contribution contract; packages/client/ui-sdkwork-settings-menu/README.md owns the API',
+  sdkworkSidebar: 'client-side sidebar contribution contract; packages/client/ui-sdkwork-sidebar/README.md owns the API',
   timeline: 'experimental session data service internal to the bundle — packages/experimental/timeline/README.md owns its behavior',
   contextMenus: 'client-side interface-typed menu registry — packages/client/ui-context-menu/README.md owns the API',
   fileActions: 'client-side interface-typed file actions — packages/client/ui-file-actions/README.md owns the API',
@@ -324,6 +331,7 @@ export const EVENT_SCOPE_PAGE: Record<string, string> = {
  * exemption cannot mask another declaration in that scope.
  */
 export const EVENT_WALK_EXEMPTIONS: Record<string, string> = {
+  'conversation/input-accepted': 'client-face composer acknowledgment event; packages/client/ui-conversation/README.md owns the API',
   'account-ui/change': 'client-side account lifecycle signal — packages/client/ui-settings-account/README.md owns the API',
   'account-ui/refresh': 'client-side account refresh signal — packages/client/ui-settings-account/README.md owns the API',
   'workspace/archive-notice': 'client-face archive follow-up copy — packages/client/ui-workspace/README.md owns the API',
@@ -1257,6 +1265,10 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   SdkworkGitPushValue: 'owned by packages/api/sdkwork-git-controller/README.md',
   SdkworkScaffoldInstallWriteRequest: 'owned by packages/api/sdkwork-scaffold-install-controller/README.md',
   SdkworkScaffoldInstallWriteValue: 'owned by packages/api/sdkwork-scaffold-install-controller/README.md',
+  SdkworkScaffoldListFilesRequest: 'owned by packages/api/sdkwork-scaffold-install-controller/README.md',
+  SdkworkScaffoldListFilesValue: 'owned by packages/api/sdkwork-scaffold-install-controller/README.md',
+  SdkworkScaffoldReadFilesRequest: 'owned by packages/api/sdkwork-scaffold-install-controller/README.md',
+  SdkworkScaffoldReadFilesValue: 'owned by packages/api/sdkwork-scaffold-install-controller/README.md',
   WorkspaceFileScope: 'Host workspace file lookup contract is owned by packages/api/workspace-files/README.md',
   WorkspaceByteReadOptions: 'Host workspace file endpoint contract is owned by packages/api/workspace-files/README.md',
   WorkspaceByteRange: 'Host workspace file endpoint contract is owned by packages/api/workspace-files/README.md',

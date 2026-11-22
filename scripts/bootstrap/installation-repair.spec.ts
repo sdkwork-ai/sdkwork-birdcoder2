@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildReconcileBody,
+  buildUpdateBody,
   parseFlags,
   renderReconcileReport,
+  renderUpdateReport,
   resolveDeployApplicationId,
 } from './installation-repair.ts'
 
@@ -11,10 +13,21 @@ const DESKTOP_ANCHOR = '382429273660592128'
 
 describe('parseFlags', () => {
   it('reads space-separated and inline values', () => {
-    const flags = parseFlags(['--installation-id', INSTALLATION, '--dry-run=x', '--no-enable'])
+    const flags = parseFlags(['--installation-id', INSTALLATION, '--dry-run=x'])
     expect(flags['installation-id']).toBe(INSTALLATION)
     expect(flags['dry-run']).toBe('x')
-    expect(flags['no-enable']).toBeUndefined()
+  })
+
+  it('records a bare switch as true, including as the last argument', () => {
+    expect(parseFlags(['--installation-id', INSTALLATION, '--no-enable'])).toEqual({
+      'installation-id': INSTALLATION,
+      'no-enable': 'true',
+    })
+    expect(parseFlags(['--verify-only'])).toEqual({ 'verify-only': 'true' })
+    expect(parseFlags(['--dry-run', '--no-enable'])).toEqual({
+      'dry-run': 'true',
+      'no-enable': 'true',
+    })
   })
 
   it('ignores positional arguments', () => {
@@ -95,6 +108,42 @@ describe('buildReconcileBody', () => {
       tenantId: '100001',
       auth: { email: 'admin@sdkwork.com' },
     })).toThrow(/no bootstrap credential/u)
+  })
+})
+
+describe('buildUpdateBody and renderUpdateReport', () => {
+  it('carries the anchor and the credential through installations.update', () => {
+    const body = buildUpdateBody({
+      tenantId: '100001',
+      auth: { authToken: 'token' },
+      deployApplicationId: DESKTOP_ANCHOR,
+    })
+    expect(body).toEqual({
+      tenantId: '100001',
+      authToken: 'token',
+      deployApplicationId: DESKTOP_ANCHOR,
+    })
+  })
+
+  it('refuses a body without a credential', () => {
+    expect(() => buildUpdateBody({ tenantId: '100001', auth: {} })).toThrow(/no bootstrap credential/u)
+  })
+
+  it('reports the anchor the write produced and flags an unexpected one', () => {
+    const lines = renderUpdateReport(
+      { installationId: INSTALLATION, deployApplicationId: DESKTOP_ANCHOR, status: 'pending_config' },
+      { deployApplicationId: DESKTOP_ANCHOR },
+    )
+    expect(lines[0]).toContain('installations.update repaired')
+    expect(lines[1]).toContain(DESKTOP_ANCHOR)
+    expect(lines[1]).not.toContain('unexpected anchor')
+
+    const mismatched = renderUpdateReport(
+      { installationId: INSTALLATION, deployApplicationId: '999' },
+      { deployApplicationId: DESKTOP_ANCHOR },
+    )
+    expect(mismatched[1]).toContain('unexpected anchor')
+    expect(renderUpdateReport(null, { deployApplicationId: DESKTOP_ANCHOR })).toEqual([])
   })
 })
 

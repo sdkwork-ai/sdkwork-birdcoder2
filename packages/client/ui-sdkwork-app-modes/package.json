@@ -38,9 +38,6 @@
         "@deepseek-ai/dsh-client-ui-layout",
         "@deepseek-ai/dsh-client-ui-settings"
       ],
-      "external": [
-        "@deepseek-ai/dsh-client-ui-conversation/client"
-      ],
       "platform": "web"
     }
   },

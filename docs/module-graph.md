@@ -129,7 +129,7 @@ flowchart TD
     pkg_api_remotes["api-remotes"]
     pkg_api_sdkwork_app_build_controller["api-sdkwork-app-build-controller"]
     pkg_api_sdkwork_git_controller["api-sdkwork-git-controller"]
-    pkg_api_sdkwork_template_install_controller["api-sdkwork-scaffold-install-controller"]
+    pkg_api_sdkwork_scaffold_install_controller["api-sdkwork-scaffold-install-controller"]
     pkg_api_session_controller["api-session-controller"]
     pkg_api_settings_controller["api-settings-controller"]
     pkg_api_terminal_controller["api-terminal-controller"]
@@ -209,6 +209,8 @@ flowchart TD
     pkg_client_ui_reference["client-ui-reference"]
     pkg_client_ui_renderer["client-ui-renderer"]
     pkg_client_ui_schedule["client-ui-schedule"]
+    pkg_client_ui_sdkwork_about["client-ui-sdkwork-about"]
+    pkg_client_ui_sdkwork_access_token["client-ui-sdkwork-access-token"]
     pkg_client_ui_sdkwork_apikey["client-ui-sdkwork-apikey"]
     pkg_client_ui_sdkwork_app_modes["client-ui-sdkwork-app-modes"]
     pkg_client_ui_sdkwork_appstore["client-ui-sdkwork-appstore"]
@@ -439,7 +441,7 @@ flowchart TD
     pkg_sdkwork_directory_picker_composed["sdkwork-directory-picker-composed"]
     pkg_sdkwork_git["sdkwork-git"]
     pkg_sdkwork_oem["sdkwork-oem"]
-    pkg_sdkwork_template_install["sdkwork-scaffold-install"]
+    pkg_sdkwork_scaffold_install["sdkwork-scaffold-install"]
   end
   subgraph group_identity["packages/identity"]
     pkg_anonymous_user_id["anonymous-user-id"]
@@ -619,8 +621,8 @@ flowchart TD
   pkg_api_sdkwork_app_build_controller --> pkg_typert_protocol
   pkg_api_sdkwork_git_controller --> pkg_sdkwork_git
   pkg_api_sdkwork_git_controller --> pkg_typert_protocol
-  pkg_api_sdkwork_template_install_controller --> pkg_sdkwork_template_install
-  pkg_api_sdkwork_template_install_controller --> pkg_typert_protocol
+  pkg_api_sdkwork_scaffold_install_controller --> pkg_sdkwork_scaffold_install
+  pkg_api_sdkwork_scaffold_install_controller --> pkg_typert_protocol
   pkg_api_terminal_controller --> pkg_subprocess
   pkg_attachment_local --> pkg_attachment
   pkg_attachment_local --> pkg_home_paths
@@ -1795,6 +1797,8 @@ flowchart TD
 | [`client-ui-reference`](../packages/client/ui-reference) | `client` | — |
 | [`client-ui-renderer`](../packages/client/ui-renderer) | `client` | — |
 | [`client-ui-schedule`](../packages/client/ui-schedule) | `client` | — |
+| [`client-ui-sdkwork-about`](../packages/client/ui-sdkwork-about) | `client` | — |
+| [`client-ui-sdkwork-access-token`](../packages/client/ui-sdkwork-access-token) | `client` | — |
 | [`client-ui-sdkwork-apikey`](../packages/client/ui-sdkwork-apikey) | `client` | — |
 | [`client-ui-sdkwork-app-modes`](../packages/client/ui-sdkwork-app-modes) | `client` | — |
 | [`client-ui-sdkwork-appstore`](../packages/client/ui-sdkwork-appstore) | `client` | — |

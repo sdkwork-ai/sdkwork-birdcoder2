@@ -17,11 +17,7 @@
   "files": [
     "lib/*.js",
     "config",
-    "lib/types/*.d.ts",
-    "lib/*.js.map",
-    "lib/types/*.d.ts.map",
-    "docs",
-    "src"
+    "lib/types/*.d.ts"
   ],
   "license": "MIT",
   "dependencies": {

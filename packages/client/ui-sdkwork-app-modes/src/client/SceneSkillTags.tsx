@@ -36,8 +36,6 @@
 import { useCallback, useSyncExternalStore } from 'react'
 import { IconSkillOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
-// Runtime: the phase helper deciding whether the creation flow is still live.
-import { conversationPhase } from '@deepseek-ai/dsh-client-ui-conversation/client'
 // Type-only: pulls ui-conversation's SlotMap merge (the composer dock seat).
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { HeroScene, HeroSceneStore } from './hero-scene-store.ts'
@@ -170,7 +168,12 @@ export function SceneSkillTags({ useSession, useConversation, useInput, inputAct
   // the session otherwise engages (the composer dock also renders for live
   // conversations, where the scene tags have no meaning). The master switch is
   // the second off-state: a user who turned suggestions off never sees a tag.
-  if (!showSceneTags || conversationPhase(session, conversation) !== 'blank') return null
+  // This is the shell's blank-phase test, kept local so the plugin never
+  // runtime-imports another feature plugin.
+  const active = conversation.activeTargets.size > 0
+    || (!session.blank && !session.awaitingFirstTurn)
+    || session.running
+  if (!showSceneTags || active || session.promptAttempted) return null
 
   return <SkillTagStrip staged={staged} hidden={hidden} pinned={pinned} t={t} onPick={insert} />
 }

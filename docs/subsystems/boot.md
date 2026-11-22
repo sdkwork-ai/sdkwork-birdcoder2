@@ -386,7 +386,8 @@ Manage profile files and apply their declared reload lifecycle.
  * find that only SSH can read it. A run
  * that fails, is cancelled, or adds a package without a bundle patch restores
  * `package.json` and `pnpm-lock.yaml` as they were; downloaded files can stay.
- * @param spec One package spec, including local paths relative to the invocation directory.
+ * @param spec One package spec, including local paths and the archive or
+ * Drive forms the manager downloads and unpacks itself.
  * @param options Whether to activate the installed bundle (defaults to true), the request id a cancellation names,
  * the pending build scripts to allow, whether to save an exact dependency, and the registry asked first.
  * @returns Package-manager diagnostics, the registries asked, and the observed activation outcome.

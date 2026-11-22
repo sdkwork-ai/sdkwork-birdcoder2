@@ -71,10 +71,25 @@ export interface ReconcileBodyInput {
   idempotencyKey?: string
 }
 
+/** Inputs of {@link buildUpdateBody}. */
+export interface UpdateBodyInput {
+  tenantId: string
+  auth?: RepairAuth | null
+  deployApplicationId?: string
+  runtimeConfig?: unknown
+}
+
+/** Anonymous authorization bootstrap the hosted page calls before any login. */
+export const AUTHORIZE_BOOTSTRAP_PATH = '/app/v3/api/oauth/authorizations'
+
 const NAME = 'admin:repair:installation'
 
 /**
- * Parses `--key value` pairs.
+ * Parses `--key value` pairs, `--key=value`, and bare switches.
+ *
+ * A switch with no value (the next token is absent or another flag) is recorded
+ * as `'true'`, which is what `--dry-run`, `--no-enable`, and `--verify-only`
+ * rely on.
  * @param argv - the process arguments after the script name.
  * @returns the flag map; a repeated flag keeps its last value.
  */
@@ -87,10 +102,12 @@ export function parseFlags(argv: readonly string[]): RepairFlags {
     const separator = body.indexOf('=')
     const name = separator === -1 ? body : body.slice(0, separator)
     const inlineValue = separator === -1 ? undefined : body.slice(separator + 1)
-    const value = inlineValue ?? argv[index + 1]
+    const next = argv[index + 1]
+    const bare = separator === -1 && (next === undefined || next.startsWith('--'))
+    const value = inlineValue ?? (bare ? 'true' : next)
     if (name !== '' && value !== undefined) {
       flags[name] = value
-      if (inlineValue === undefined) index += 1
+      if (!bare && inlineValue === undefined) index += 1
     }
   }
   return flags
@@ -148,23 +165,7 @@ export function buildReconcileBody(input: ReconcileBodyInput): Record<string, un
   if (tenantId === '') {
     throw new Error(`${NAME}: tenantId is required`)
   }
-  const authToken = typeof input.auth?.authToken === 'string' ? input.auth.authToken.trim() : ''
-  const username = typeof input.auth?.username === 'string' ? input.auth.username.trim() : ''
-  const email = typeof input.auth?.email === 'string' ? input.auth.email.trim() : ''
-  const password = input.auth?.password
-  let credential: Record<string, unknown>
-  if (authToken !== '') {
-    credential = { authToken }
-  } else {
-    const account = username !== '' ? { username } : email !== '' ? { email } : undefined
-    if (account === undefined || typeof password !== 'string' || password === '') {
-      throw new Error(
-        `${NAME}: no bootstrap credential — write ~/.sdkwork/iam-bootstrap/<stem>.json with `
-        + 'username/password, or export SDKWORK_IAM_BOOTSTRAP_OPERATOR_USERNAME/_PASSWORD',
-      )
-    }
-    credential = { ...account, password }
-  }
+  const credential = resolveCredential(input.auth)
   const idempotencyKey = typeof input.idempotencyKey === 'string' ? input.idempotencyKey.trim() : ''
   return {
     tenantId,
@@ -177,6 +178,31 @@ export function buildReconcileBody(input: ReconcileBodyInput): Record<string, un
     enable: input.enable ?? true,
     dryRun: input.dryRun ?? false,
   }
+}
+
+/**
+ * Resolves the bootstrap credential field set.
+ *
+ * `authToken` wins when the profile carries one; otherwise `username`/`email`
+ * plus `password` — the two shapes the bootstrap-body routes accept.
+ * @param auth - the resolved bootstrap auth profile.
+ * @returns the credential fields, ready to spread into a request body.
+ * @throws Error when no usable credential exists.
+ */
+export function resolveCredential(auth?: RepairAuth | null): Record<string, unknown> {
+  const authToken = typeof auth?.authToken === 'string' ? auth.authToken.trim() : ''
+  if (authToken !== '') return { authToken }
+  const username = typeof auth?.username === 'string' ? auth.username.trim() : ''
+  const email = typeof auth?.email === 'string' ? auth.email.trim() : ''
+  const password = auth?.password
+  const account = username !== '' ? { username } : email !== '' ? { email } : undefined
+  if (account === undefined || typeof password !== 'string' || password === '') {
+    throw new Error(
+      `${NAME}: no bootstrap credential — write ~/.sdkwork/iam-bootstrap/<stem>.json with `
+      + 'username/password, or export SDKWORK_IAM_BOOTSTRAP_OPERATOR_USERNAME/_PASSWORD',
+    )
+  }
+  return { ...account, password }
 }
 
 /**
@@ -212,4 +238,52 @@ export function renderReconcileReport(
   }
   lines.push(`  ready: ${String(after.ready)}`)
   return lines
+}
+
+/**
+ * Builds the `installations.update` (PATCH) body used when the deployment has no
+ * reconcile operation yet.
+ *
+ * The update command carries `deployApplicationId` for exactly this repair: it
+ * fills a **missing** anchor and refuses to re-point a bound row, so the weaker
+ * operation is still the same additive write. It has no `dryRun`, so this path
+ * writes on its first call.
+ * @param input - identity, credential, and repair inputs.
+ * @returns the JSON body to PATCH.
+ * @throws Error when the tenant or the credential is missing.
+ */
+export function buildUpdateBody(input: UpdateBodyInput): Record<string, unknown> {
+  const tenantId = typeof input.tenantId === 'string' ? input.tenantId.trim() : ''
+  if (tenantId === '') {
+    throw new Error(`${NAME}: tenantId is required`)
+  }
+  const credential = resolveCredential(input.auth)
+  return {
+    tenantId,
+    ...credential,
+    ...(input.deployApplicationId === undefined
+      ? {}
+      : { deployApplicationId: input.deployApplicationId }),
+    ...(input.runtimeConfig === undefined ? {} : { runtimeConfig: input.runtimeConfig }),
+  }
+}
+
+/**
+ * Renders the installation a PATCH returned.
+ * @param installation - the update response (`deployApplicationId`, `status`).
+ * @param options - the anchor this run asked for.
+ * @returns report lines.
+ */
+export function renderUpdateReport(
+  installation: unknown,
+  options: { deployApplicationId: string },
+): string[] {
+  if (installation === null || typeof installation !== 'object') return []
+  const value = installation as { installationId?: string; deployApplicationId?: string; status?: string }
+  return [
+    `${NAME}: installations.update repaired installation ${value.installationId ?? 'unknown'}`,
+    `  deployApplicationId: ${value.deployApplicationId ?? '(missing)'}`
+    + `${value.deployApplicationId === options.deployApplicationId ? '' : ' — unexpected anchor'}`,
+    `  status: ${value.status ?? '(unknown)'}`,
+  ]
 }

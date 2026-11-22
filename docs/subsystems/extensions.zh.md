@@ -515,11 +515,11 @@ Host service backing the generated `ctx.remote.sdkworkGit` namespace. The compos
 
 Source: [`packages/api/sdkwork-git-controller/src/index.ts`](../../packages/api/sdkwork-git-controller/src/index.ts)
 
-<a id="ctxsdkworktemplateinstall--sdkworktemplateinstallinstaller"></a>
+<a id="ctxsdkworkscaffoldinstall--sdkworkscaffoldinstallinstaller"></a>
 
 ### `ctx.sdkworkScaffoldInstall` — `SdkworkScaffoldInstallInstaller`
 
-The template-install service. Owns every bounded project-file write.
+The scaffold-install service. Owns every bounded project-file read and write.
 
 ```ts cordis-catalog
 /**
@@ -529,11 +529,34 @@ The template-install service. Owns every bounded project-file write.
  * @throws SdkworkScaffoldInstallError with the closed code for every refusal.
  */
 async writeFile(request: SdkworkScaffoldInstallWriteRequest): Promise<SdkworkScaffoldInstallWriteValue>
+
+/**
+ * List every packaging-eligible regular file under one app directory.
+ *
+ * The walk is depth-first over sorted names (deterministic archives), never
+ * follows symlinks, prunes {@link SKIPPED_SOURCE_DIRECTORIES}, and stops at
+ * {@link MAX_LISTED_FILES} / {@link MAX_LIST_DEPTH}, reporting the cut
+ * through `truncated`.
+ * @param request - the absolute app directory.
+ * @returns the regular files with their sizes.
+ * @throws SdkworkScaffoldInstallError `source-unreadable` when the directory
+ *   is missing, not a directory, or not absolute.
+ */
+async listFiles(request: SdkworkScaffoldListFilesRequest): Promise<SdkworkScaffoldListFilesValue>
+
+/**
+ * Read one bounded batch of regular files under an app directory.
+ * @param request - the absolute app directory and the relative paths.
+ * @returns each requested file's base64 bytes, in request order.
+ * @throws SdkworkScaffoldInstallError for an unreadable directory, an unsafe
+ *   name, a symlink, or a file/batch over the byte caps.
+ */
+async readFiles(request: SdkworkScaffoldReadFilesRequest): Promise<SdkworkScaffoldReadFilesValue>
 ```
 
 Source: [`packages/host/sdkwork-scaffold-install/src/index.ts`](../../packages/host/sdkwork-scaffold-install/src/index.ts)
 
-<a id="ctxsdkworktemplateinstallcontroller--sdkworktemplateinstallcontroller"></a>
+<a id="ctxsdkworkscaffoldinstallcontroller--sdkworkscaffoldinstallcontroller"></a>
 
 ### `ctx.sdkworkScaffoldInstallController` — `SdkworkScaffoldInstallController`
 
@@ -546,6 +569,20 @@ Host service backing the generated `ctx.remote.sdkworkScaffoldInstall` namespace
  * @returns the absolute path written and the byte count.
  */
 @Remote('writeFile') async writeFile(request: SdkworkScaffoldInstallWriteRequest): Promise<SdkworkScaffoldInstallWriteValue>
+
+/**
+ * List every packaging-eligible regular file under one app directory.
+ * @param request - the absolute app directory.
+ * @returns the files with sizes plus whether a bound truncated the walk.
+ */
+@Remote('listFiles') async listFiles(request: SdkworkScaffoldListFilesRequest): Promise<SdkworkScaffoldListFilesValue>
+
+/**
+ * Read one bounded batch of regular files under an app directory.
+ * @param request - the absolute app directory and relative paths.
+ * @returns each file's base64 bytes in request order.
+ */
+@Remote('readFiles') async readFiles(request: SdkworkScaffoldReadFilesRequest): Promise<SdkworkScaffoldReadFilesValue>
 ```
 
 Source: [`packages/api/sdkwork-scaffold-install-controller/src/index.ts`](../../packages/api/sdkwork-scaffold-install-controller/src/index.ts)

@@ -1141,6 +1141,17 @@ fileRequestText(ref: FileAttachmentRef): string
 async listModels(provider: string): Promise<LlmModelInfo[]>
 
 /**
+ * Read the models the adapter's shipped catalog documents for one route even
+ * when no credential reaches it. A product that can obtain the credential by
+ * signing in shows these before that sign-in; the returned models are not
+ * routable until the credential resolves, so consumers must not treat this as
+ * availability.
+ * @param provider - registered provider route to inspect.
+ * @returns detached documented model metadata in adapter-preferred order.
+ */
+async documentedModels(provider: string): Promise<LlmModelInfo[]>
+
+/**
  * Resolve and validate all metadata from the adapter that owns one exact
  * route. The result is detached from adapter-owned objects; catalog
  * membership remains advisory and does not control request routing.
