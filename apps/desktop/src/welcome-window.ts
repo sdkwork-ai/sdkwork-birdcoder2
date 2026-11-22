@@ -3,11 +3,12 @@ import type { SignInAttemptId } from '@deepseek-ai/dsh-deepseek-account/types'
 
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { app, BrowserWindow, ipcMain, type BrowserWindowConstructorOptions, type IpcMainInvokeEvent } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, type BrowserWindowConstructorOptions, type IpcMainInvokeEvent } from 'electron'
 import { resolveWindowIcon } from './app-icon.ts'
 import type { DesktopLocale } from './locale.ts'
 import { DESKTOP_DEFAULT_BRAND } from './locale.ts'
 import { WELCOME_IPC, type WelcomeOperations } from './welcome-api.ts'
+import { isWelcomeFooterHref } from './welcome-links.ts'
 
 /**
  * Resolve the fixed-size welcome window's native material and controls.
@@ -105,6 +106,7 @@ export async function openWelcomeWindow(
     for (const channel of [
       WELCOME_IPC.analyticsEnabled, WELCOME_IPC.analytics, WELCOME_IPC.takeNotice, WELCOME_IPC.saveApiKey,
       WELCOME_IPC.skip, WELCOME_IPC.start, WELCOME_IPC.cancel, WELCOME_IPC.copyLink, WELCOME_IPC.iamSignIn,
+      WELCOME_IPC.openExternal,
     ]) {
       ipcMain.removeHandler(channel)
     }
@@ -155,6 +157,16 @@ export async function openWelcomeWindow(
     assertSender(event)
     if (operations.iamSignIn === undefined) throw new Error('desktop welcome: IAM sign-in is unavailable')
     await operations.iamSignIn()
+  })
+  // The landing footer is the window's only navigation. The renderer is
+  // sandboxed and cannot open anything itself, so the main process opens the
+  // shipped product links and rejects every other destination.
+  ipcMain.handle(WELCOME_IPC.openExternal, async (event, href: unknown) => {
+    assertSender(event)
+    if (typeof href !== 'string' || !isWelcomeFooterHref(href)) {
+      throw new Error('desktop welcome: rejected external link')
+    }
+    await shell.openExternal(href)
   })
   window.once('closed', disposeHandlers)
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))

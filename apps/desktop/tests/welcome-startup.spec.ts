@@ -222,6 +222,53 @@ it('opens the startup welcome page over a running workspace for a sign-in demand
   expect(state.focusWorkspace).toHaveBeenCalledOnce()
 })
 
+it.each([
+  [false, true],
+  [true, false],
+])('after an IAM sign-out the shell returns to the landing only without an API key (%s -> welcome %s)', async (hasApiKey, expectsWelcome) => {
+  vi.resetModules()
+  vi.clearAllMocks()
+  state.preference = 'zh'
+  state.hasApiKey = true
+  state.operations = undefined
+  state.welcomeLocale = undefined
+  state.loadWorkspace.mockClear()
+  state.showWorkspace.mockClear()
+  state.closeWelcome.mockClear()
+  vi.useFakeTimers()
+  vi.stubEnv('DSH_CLIENT_VERSION', '1.2.3')
+  vi.stubEnv('DSH_DESKTOP_DEV_PROJECT_DIR', '/development-profile')
+  vi.stubEnv('DSH_DESKTOP_NODE_BINARY', '/runtime/node')
+  vi.stubEnv('DSH_DESKTOP_PNPM_ENTRY', '/runtime/pnpm')
+  vi.stubEnv('DSH_DESKTOP_DSH_DIR', '/runtime/dsh')
+  vi.stubEnv('DSH_DESKTOP_PRIMARY_RUNTIME_DIR', '/runtime/primary-runtime')
+  vi.stubEnv('DSH_DESKTOP_HOST_INSPECT_PORT', undefined)
+  vi.stubEnv('DSH_DESKTOP_OPEN_DEVTOOLS', '0')
+  vi.stubEnv('DSH_DESKTOP_MANDATORY_UPDATE_CONFIG', undefined)
+  vi.stubEnv('DSH_DESKTOP_UPDATE_JOURNAL_DIR', undefined)
+
+  await import('../src/main.ts')
+  // The stored API key let the launch go straight to the workspace.
+  await vi.waitFor(() => { expect(state.showWorkspace).toHaveBeenCalledOnce() })
+  expect(state.operations).toBeUndefined()
+
+  // The workspace ends the signed-in IAM session on the user's confirmation.
+  state.hasApiKey = hasApiKey
+  const contents = state.contents as { mainFrame: { url: string } }
+  const ended = state.handlers.get(DESKTOP_IPC.authSignedOut)!
+  await ended({ sender: contents, senderFrame: contents.mainFrame })
+  await vi.advanceTimersByTimeAsync(0)
+
+  if (expectsWelcome) {
+    // Nothing else can authenticate the workspace, so the signed-out landing
+    // takes over and hides the workspace behind it.
+    await vi.waitFor(() => { expect(state.operations).toBeDefined() })
+    expect(state.welcomeLocale?.id).toBe('zh-CN')
+  } else {
+    expect(state.operations).toBeUndefined()
+  }
+})
+
 it('reloads the preloaded workspace so the startup sign-in request reaches a fresh boot', async () => {
   vi.resetModules()
   vi.clearAllMocks()

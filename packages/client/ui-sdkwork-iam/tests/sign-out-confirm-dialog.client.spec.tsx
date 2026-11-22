@@ -22,7 +22,7 @@ const PROFILE: IamProfileSnapshot = {
   environment: 'production',
   managementCenterUrl: undefined,
   signOutAvailable: true,
-  signOutUrl: undefined,
+  signOutUrl: 'https://platform.birdcoder.com/oauth/sign-out',
 }
 
 function dialog(open = true) {

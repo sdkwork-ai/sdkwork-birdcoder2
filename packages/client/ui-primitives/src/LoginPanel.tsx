@@ -6,6 +6,7 @@
 // other primitive.
 
 import type { ReactNode } from 'react'
+import { Fragment } from 'react'
 import clsx from 'clsx'
 import { StateDot } from './StateDot.tsx'
 import { IconCloseOutlineRegular } from './icons/index.tsx'
@@ -43,6 +44,14 @@ export interface LoginWelcomeCopy {
   description: string
 }
 
+/** One bottom link of the landing presentation, in display order. */
+export interface LoginFooterLink {
+  /** Localized link text. */
+  label: string
+  /** Absolute target the host opens in the system browser. */
+  href: string
+}
+
 /** Props of the shared login surface. */
 export interface LoginPanelProps {
   /** Product name beside the mark, and the mark's default alternative text. */
@@ -61,9 +70,17 @@ export interface LoginPanelProps {
   actions: readonly LoginAction[]
   /**
    * `window` fills a standalone window and reproduces the desktop welcome
-   * layout; `dialog` is the compact form inside a modal card.
+   * layout; `dialog` is the compact form inside a modal card; `landing` is the
+   * signed-out entry — the mark above a large welcome line, a single primary
+   * action, and the product links pinned below.
    */
-  variant?: 'window' | 'dialog' | undefined
+  variant?: 'window' | 'dialog' | 'landing' | undefined
+  /** Landing mark raster; defaults to `logoSrc`. A host may pass a larger cut of the same art. */
+  heroSrc?: string | undefined
+  /** Footer links the landing pins below the action; other variants ignore them. */
+  footerLinks?: readonly LoginFooterLink[] | undefined
+  /** Opens one footer link. Without it the links stay inert instead of navigating the window. */
+  onOpenLink?: ((href: string) => void) | undefined
   /** Id of the welcome heading, for the host's `aria-labelledby`. */
   headingId?: string | undefined
   /** Id of the slogan paragraph, for the host's `aria-describedby`. */
@@ -77,25 +94,31 @@ export interface LoginPanelProps {
 /**
  * Render the unified BirdCoder login surface.
  * @param props - brand art, welcome copy, host content, and the action column.
- * @returns the brand row, the identity/content area, and the actions.
+ * @returns the brand row (or landing hero), the identity/content area, the actions, and the landing footer.
  */
 export function LoginPanel({
   brand, logoSrc, markAlt = brand, welcome, welcomeHidden = false, children, actions, variant = 'window',
-  headingId, descriptionId, close, className,
+  heroSrc, footerLinks, onOpenLink, headingId, descriptionId, close, className,
 }: LoginPanelProps) {
+  const landing = variant === 'landing'
   return (
-    <div className={clsx(css.panel, variant === 'dialog' ? css.dialog : css.window, className)}>
-      <div className={css.brand}>
-        <img className={css.mark} src={logoSrc} alt={markAlt} width={40} height={40} />
-        <span className={css.wordmark} aria-hidden="true">{brand}</span>
-      </div>
+    <div className={clsx(css.panel, css[variant], className)}>
+      {!landing && (
+        <div className={css.brand}>
+          <img className={css.mark} src={logoSrc} alt={markAlt} width={40} height={40} />
+          <span className={css.wordmark} aria-hidden="true">{brand}</span>
+        </div>
+      )}
       <div className={css.middle}>
+        {landing && <img className={css.hero} src={heroSrc ?? logoSrc} alt="" width={112} height={112} />}
         {welcome !== undefined && (
           <div className={css.welcome} hidden={welcomeHidden}>
             <h1 id={headingId} className={css.heading}>
               <span>{welcome.before}</span><em>{welcome.brand}</em><span>{welcome.after}</span>
             </h1>
-            <p id={descriptionId} className={css.description}>{welcome.description}</p>
+            {welcome.description === ''
+              ? null
+              : <p id={descriptionId} className={css.description}>{welcome.description}</p>}
           </div>
         )}
         {children}
@@ -118,6 +141,24 @@ export function LoginPanel({
           </button>
         ))}
       </div>
+      {landing && footerLinks !== undefined && footerLinks.length > 0 && (
+        <div className={css.footer}>
+          {footerLinks.map((link, index) => (
+            <Fragment key={link.href}>
+              {index > 0 && <span className={css.footerDivider} aria-hidden="true">|</span>}
+              <a
+                className={css.footerLink}
+                href={link.href}
+                onClick={onOpenLink === undefined
+                  ? (event) => { event.preventDefault() }
+                  : (event) => { event.preventDefault(); onOpenLink(link.href) }}
+              >
+                {link.label}
+              </a>
+            </Fragment>
+          ))}
+        </div>
+      )}
       {close !== undefined && (
         <button type="button" className={css.close} aria-label={close.label} onClick={close.onClick}>
           <IconCloseOutlineRegular size={14} />

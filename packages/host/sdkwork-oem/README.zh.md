@@ -65,7 +65,7 @@ profile 会按本应用实际运行的品牌校验并补全：Desktop 外壳在�
 | `brand.showApiKeyEntry` | `false` | 是否在桌面欢迎窗口、SDKWork IAM 登录入口与 Web 账号弹窗的“登录”旁显示“添加 API Key”备用入口。该入口配置的是 DeepSeek 官方提供方密钥；产品入口是 SDKWork 账号登录，因此默认隐藏，只有部署显式开启时才显示 |
 | `application.origins` | `["https://birdcoder.com"]` | 本部署对外提供 Web 应用的源；浏览器登录回调必须命中其中之一。回环地址仍供 Desktop 与本地使用 |
 | `sdkwork.iamBaseUrl` | `https://api.birdcoder.com` | SDKWork IAM PC 登录客户端的 app-api 源。生成的路径（`/app/v3/api/auth/...`）与 `X-Platform: pc` 请求头保持不变，只替换域名。非默认值会在所有环境层级替换 `ui-sdkwork-env` profile 的源；默认值则让环境 profile 继续生效 |
-| `sdkwork.iamAuthorizeBaseUrl` | `https://platform.birdcoder.com` | 桌面浏览器登录使用的托管 IAM 授权源。应用打开 `<origin>/iam/v3/oauth/authorize`；登录页保持 `/auth/...` 路径，并通过 `sdkwork.iamRedirectUri` 深链返回 |
+| `sdkwork.iamAuthorizeBaseUrl` | `https://platform.birdcoder.com` | 桌面浏览器登录使用的托管 IAM 授权源。应用打开 `<origin>/iam/v3/oauth/authorize`；登录页保持 `/auth/...` 路径，并通过 `sdkwork.iamRedirectUri` 深链返回。同一 origin 的 OAuth 组负责结束会话——桌面客户端用 `<origin>/oauth/logout?client_id=<iamClientId>`，页面本地会话用 `<origin>/oauth/sign-out` |
 | `sdkwork.iamClientId` | `birdcoder` | 托管授权作为 `client_id` 收到的 OAuth 客户端 id。与 `ui-sdkwork-env` 的 app id（仍是 API 租户键）相互独立。一个品牌注册一个以自身 `desktop.protocol` 命名的公共客户端，因此该值必须等于回调的 scheme；允许小写字母、数字、`.`、`_`、`-`。省略时按外壳报告的 scheme 派生 |
 | `sdkwork.iamRedirectUri` | `birdcoder://auth/callback` | 托管登录返回时使用的已注册深链回调。必须是无凭据、查询与片段的自定义 scheme 绝对 URI，且 scheme 必须是桌面品牌的 `desktop.protocol`。省略时派生为 `<scheme>://auth/callback`；命名了别的品牌客户端或回调的 profile 会启动失败（`DSH_BRAND_PROTOCOL` 报告运行品牌） |
 | `deepseek.platformOrigin` | `https://platform.birdcoder.com` | 登录、账号、用量与充值页面域名 |

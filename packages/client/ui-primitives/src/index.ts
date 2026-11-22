@@ -82,7 +82,7 @@ export type { BirdWordmarkProps } from './BirdWordmark.tsx'
 // dialog render this one component, so every login entry has identical brand,
 // welcome copy, and action layout (AGENTS.md, "BirdCoder brand assets").
 export { LoginPanel } from './LoginPanel.tsx'
-export type { LoginAction, LoginPanelProps, LoginWelcomeCopy } from './LoginPanel.tsx'
+export type { LoginAction, LoginFooterLink, LoginPanelProps, LoginWelcomeCopy } from './LoginPanel.tsx'
 export {
   DEFAULT_BRAND_NAME, DEFAULT_IAM_AUTHORIZE_BASE_URL, DEFAULT_IAM_BASE_URL, DEFAULT_IAM_CLIENT_ID,
   DEFAULT_IAM_REDIRECT_URI, OEM_BOOT_GLOBAL,

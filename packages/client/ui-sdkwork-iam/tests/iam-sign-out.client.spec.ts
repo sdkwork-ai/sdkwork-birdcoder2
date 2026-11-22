@@ -1,10 +1,13 @@
 /**
  * The sign-out gesture the settings surfaces and the 个人主页 section share:
- * confirmation first, then the hosted CloudRouter page in the system browser,
- * then the local clear. The profile snapshot the 个人主页 reads is covered at
- * the same seam — it is the only account data that page exposes.
+ * confirmation first, then the hosted session end on the login origin — the
+ * OAuth logout for a desktop (OAuth public-client) session, the hosted sign-out
+ * page for a page-local one — then the local clear. The profile snapshot the
+ * 个人主页 reads is covered at the same seam — it is the only account data that
+ * page exposes.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { OEM_BOOT_GLOBAL } from '@deepseek-ai/dsh-client-ui-primitives'
 import { IamService } from '../src/client/iam-service.ts'
 import type { SettingsScope } from '@deepseek-ai/dsh-client-runtime/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
@@ -77,6 +80,9 @@ function signedInService(over: EnvOverrides = {}): IamService {
 const originalOpen = Object.getOwnPropertyDescriptor(globalThis, 'open')
 
 afterEach(() => {
+  Reflect.deleteProperty(globalThis, OEM_BOOT_GLOBAL)
+  Reflect.deleteProperty(globalThis, 'sdkworkDesktop')
+  Reflect.deleteProperty(globalThis, 'dshDesktop')
   if (originalOpen === undefined) {
     Reflect.deleteProperty(globalThis, 'open')
   } else {
@@ -89,6 +95,19 @@ function stubWindowOpen(): ReturnType<typeof vi.fn> {
   const open = vi.fn().mockReturnValue(null)
   Object.defineProperty(globalThis, 'open', { value: open, configurable: true, writable: true })
   return open
+}
+
+/**
+ * Expose the preload bridge a desktop shell provides. Its presence is what marks
+ * the session as an OAuth public-client session rather than a page-local one.
+ */
+function stubDesktopBridge(): { open: ReturnType<typeof vi.fn> } {
+  const open = vi.fn(async () => {})
+  Reflect.set(globalThis, 'sdkworkDesktop', {
+    deepLinks: { getInitialUrl: async () => null, onOpenUrl: () => () => {} },
+    shellOpen: { open },
+  })
+  return { open }
 }
 
 describe('IamService sign-out flow', () => {
@@ -110,7 +129,7 @@ describe('IamService sign-out flow', () => {
     expect(openConfirm).not.toHaveBeenCalled()
   })
 
-  it('confirms into the hosted sign-out page and clears the local session', async () => {
+  it('confirms into the hosted sign-out page for a page-local session', async () => {
     const open = stubWindowOpen()
     const service = signedInService()
     const closeConfirm = vi.fn()
@@ -119,22 +138,54 @@ describe('IamService sign-out flow', () => {
     service.confirmSignOut()
     expect(closeConfirm).toHaveBeenCalledTimes(1)
     expect(open).toHaveBeenCalledWith(
-      'https://router.sdkwork.com/auth/sign-out',
+      'https://platform.birdcoder.com/oauth/sign-out',
       '_blank',
       'noopener,noreferrer',
     )
     await vi.waitFor(() => { expect(signOut).toHaveBeenCalledTimes(1) })
   })
 
-  it('still clears the local session when no hosted page is configured', async () => {
+  it('ends a desktop session through the OAuth logout, scoped by its client id', async () => {
+    const bridge = stubDesktopBridge()
     const open = stubWindowOpen()
-    const service = signedInService({ cloudRouterUrl: '' })
+    const service = signedInService()
     service.attachSignOutConfirm({ open: vi.fn(), close: vi.fn() })
     const signOut = vi.spyOn(service.controller, 'signOut').mockResolvedValue(undefined)
-    expect(service.signOutUrl()).toBeUndefined()
+    expect(service.signOutUrl())
+      .toBe('https://platform.birdcoder.com/oauth/logout?client_id=birdcoder')
     service.confirmSignOut()
+    await vi.waitFor(() => {
+      expect(bridge.open).toHaveBeenCalledWith(
+        'https://platform.birdcoder.com/oauth/logout?client_id=birdcoder',
+      )
+    })
+    // The desktop shell owns the system browser; the page never opens its own tab.
     expect(open).not.toHaveBeenCalled()
     await vi.waitFor(() => { expect(signOut).toHaveBeenCalledTimes(1) })
+  })
+
+  it('follows the OEM login origin and OAuth client instead of the CloudRouter portal origin', async () => {
+    const bridge = stubDesktopBridge()
+    Reflect.set(globalThis, OEM_BOOT_GLOBAL, {
+      sdkwork: { iamAuthorizeBaseUrl: 'https://platform-test.birdcoder.com', iamClientId: 'acme' },
+    })
+    const service = signedInService()
+    service.attachSignOutConfirm({ open: vi.fn(), close: vi.fn() })
+    const signOut = vi.spyOn(service.controller, 'signOut').mockResolvedValue(undefined)
+    expect(service.signOutUrl())
+      .toBe('https://platform-test.birdcoder.com/oauth/logout?client_id=acme')
+    service.confirmSignOut()
+    await vi.waitFor(() => {
+      expect(bridge.open).toHaveBeenCalledWith(
+        'https://platform-test.birdcoder.com/oauth/logout?client_id=acme',
+      )
+    })
+    await vi.waitFor(() => { expect(signOut).toHaveBeenCalledTimes(1) })
+  })
+
+  it('keeps the login origin when the deployment names no CloudRouter portal', () => {
+    expect(signedInService({ cloudRouterUrl: '' }).signOutUrl())
+      .toBe('https://platform.birdcoder.com/oauth/sign-out')
   })
 
   it('dismisses without ending the session', () => {
@@ -145,6 +196,38 @@ describe('IamService sign-out flow', () => {
     service.dismissSignOut()
     expect(closeConfirm).toHaveBeenCalledTimes(1)
     expect(signOut).not.toHaveBeenCalled()
+  })
+
+  it('reports the finished sign-out to the desktop shell after revoking the session', async () => {
+    stubWindowOpen()
+    const order: string[] = []
+    const signedOut = vi.fn(async () => { order.push('shell-notified') })
+    Reflect.set(globalThis, 'dshDesktop', {
+      auth: { openSignIn: async () => 'dismissed', signedOut },
+    })
+    const service = signedInService()
+    service.attachSignOutConfirm({ open: vi.fn(), close: vi.fn() })
+    vi.spyOn(service.controller, 'signOut').mockImplementation(async () => { order.push('session-revoked') })
+    service.confirmSignOut()
+    await vi.waitFor(() => { expect(signedOut).toHaveBeenCalledTimes(1) })
+    expect(order).toEqual(['session-revoked', 'shell-notified'])
+  })
+
+  it('still ends the session when the shell cannot be notified', async () => {
+    stubWindowOpen()
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    Reflect.set(globalThis, 'dshDesktop', {
+      auth: {
+        openSignIn: async () => 'dismissed',
+        signedOut: async () => { throw new Error('closed channel') },
+      },
+    })
+    const service = signedInService()
+    service.attachSignOutConfirm({ open: vi.fn(), close: vi.fn() })
+    const signOut = vi.spyOn(service.controller, 'signOut').mockResolvedValue(undefined)
+    service.confirmSignOut()
+    await vi.waitFor(() => { expect(signOut).toHaveBeenCalledTimes(1) })
+    await vi.waitFor(() => { expect(consoleError).toHaveBeenCalled() })
   })
 })
 
@@ -164,7 +247,7 @@ describe('IamService profile snapshot', () => {
       environment: 'production',
       managementCenterUrl: 'https://router.sdkwork.com',
       signOutAvailable: true,
-      signOutUrl: 'https://router.sdkwork.com/auth/sign-out',
+      signOutUrl: 'https://platform.birdcoder.com/oauth/sign-out',
     })
   })
 
@@ -195,10 +278,10 @@ describe('IamService profile snapshot', () => {
     expect(second.signedIn).toBe(false)
   })
 
-  it('omits the management center and sign-out URL without a CloudRouter origin', () => {
+  it('omits the management center without a CloudRouter origin and keeps the session-end URL', () => {
     expect(signedInService({ cloudRouterUrl: '' }).profileSnapshot()).toMatchObject({
       managementCenterUrl: undefined,
-      signOutUrl: undefined,
+      signOutUrl: 'https://platform.birdcoder.com/oauth/sign-out',
     })
   })
 })

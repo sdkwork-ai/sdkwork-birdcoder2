@@ -54,13 +54,13 @@ host 注册会把启动环境投影到命名空间的组合 `base` 层，因此 
 
 ## 消费方
 
-- **ui-sdkwork-iam** 以活动 profile 的 `apiBaseUrl` 作为 IAM app-api origin、`appId` 作为租户应用 id；其自身设置分区只保留展示与登录开关。`cloudRouterUrl` 是托管认证 origin：退出登录流程会在系统浏览器打开 `<cloudRouterUrl>/auth/sign-out`，让共享账号会话也在那里结束；「个人主页」分区的管理中心动作同样指向该 origin。
+- **ui-sdkwork-iam** 以活动 profile 的 `apiBaseUrl` 作为 IAM app-api origin、`appId` 作为租户应用 id；其自身设置分区只保留展示与登录开关。`cloudRouterUrl` 为「个人主页」分区的管理中心链接提供地址。托管认证页——浏览器登录及其退出登录页——属于 OEM profile 的 `iamAuthorizeBaseUrl`，因此二者始终位于同一个 origin。
 - **ui-sdkwork-about** 以 `appId` 作为本次构建所属的已注册部署应用 id，因此平台读取不可用时关于页仍能标识安装实例。每种应用方式（Web、桌面、H5、PC、Pad、小程序、Flutter 移动端）都有各自注册的部署应用，构建的部署锚点决定本页属于哪一个。
 - **ui-sdkwork-feedback** 以 `apiBaseUrl` 作为收集端 origin、`appKey` 用于提交。提交在 profile 配置了 `accessToken` 时使用它（非交互式部署）；否则回退到已挂载 IAM 会话的 token。
 - **ui-sdkwork-appstore** 以 `apiBaseUrl` 作为目录 origin，并让 profile 的 `accessToken` 优先于已挂载 IAM 会话的 token。
 - **ui-sdkwork-im** 以 `imEmbedUrl` 作为每页加载一次的 SDKWork IM 嵌入包地址，以 `imApiBaseUrl`（为空时回退 `apiBaseUrl`）作为交给该嵌入包的 IM 网关 origin。IM SDK 会在其后追加 `/im/v3/api` 并由它派生实时 origin，因此每个环境都走自己的域名。
 
-活动 profile 的 `apiBaseUrl` 为空即「未配置」：反馈行隐藏、IAM 模式栏条目关闭，应用商店显示配置提示；切换到未配置的环境即可关闭 sdkwork 表面，无需逐个插件设置。`imEmbedUrl` 为空同样让聊天页与通讯录页显示不可用提示，而不是挂载一个不存在的嵌入包。`imApiBaseUrl` 为空时复用 `apiBaseUrl`；配置了非空值即可把 IM 指向另一台主机，而不影响 IAM 与 API 网关。`cloudRouterUrl` 为空表示该部署没有托管 SDKWork 认证表面：退出登录仍会结束本地会话，但无法打开托管退出登录页，「个人主页」也不再显示管理中心链接。
+活动 profile 的 `apiBaseUrl` 为空即「未配置」：反馈行隐藏、IAM 模式栏条目关闭，应用商店显示配置提示；切换到未配置的环境即可关闭 sdkwork 表面，无需逐个插件设置。`imEmbedUrl` 为空同样让聊天页与通讯录页显示不可用提示，而不是挂载一个不存在的嵌入包。`imApiBaseUrl` 为空时复用 `apiBaseUrl`；配置了非空值即可把 IM 指向另一台主机，而不影响 IAM 与 API 网关。`cloudRouterUrl` 为空表示该部署不发布 CloudRouter 控制台：「个人主页」分区不再显示管理中心链接，而登录与退出登录仍使用 OEM 的 `iamAuthorizeBaseUrl` origin。
 
 ### 桌面外壳
 

@@ -6,7 +6,6 @@
  */
 
 import {
-  buildSdkworkAuthSignOutUrl,
   createSdkworkIamRuntimeAuthController,
   scheduleSdkworkAuthSessionRefresh,
   type SdkworkAuthAppContext,
@@ -24,6 +23,8 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { isSdkworkDesktopAuthError, type SdkworkDesktopAuthSession } from '@sdkwork/iam-desktop-auth'
 import { createIamDesktopLogin, readSdkworkDesktopBridge, readSdkworkDesktopIamSessionBridge, type IamDesktopLogin } from './iam-desktop.ts'
+import { readServerFailureResponse, type IamServerFailureResponse } from './iam-server-failure.ts'
+import { buildOauthLogoutUrl, buildOauthSignOutUrl } from './oauth-session.ts'
 import { readDesktopSignInPage, type DesktopSignInPage } from './desktop-sign-in-page.ts'
 import {
   DEFAULT_UI_IAM_SETTINGS,
@@ -123,6 +124,8 @@ export interface IamBrowserLoginFailure {
   message?: string
   /** Transport or provider detail that accompanies the code (for example the OAuth `error` value). */
   detail?: string
+  /** What the IAM server answered for the failed step, when the app saw that response itself. */
+  response?: IamServerFailureResponse
 }
 
 /** First non-empty string among the named keys of one identity record. */
@@ -239,18 +242,25 @@ function isRejectedCredentialError(error: unknown): boolean {
 }
 
 /** Project one desktop auth failure onto the card's stable code and diagnostics. */
-function browserFailureOf(error: unknown): IamBrowserLoginFailure {  if (isSdkworkDesktopAuthError(error)) {
-  // The runtime prefixes its message with the error name and code; the card
-  // only needs the reason, and diagnostics keep the raw `detail`.
-  const message = error.message.replace(/^\[SdkworkDesktopAuthError:[a-z-]+\]\s*/u, '')
-  return {
-    code: error.code,
-    ...(message === '' ? {} : { message }),
-    ...(error.detail === undefined ? {} : { detail: error.detail }),
+function browserFailureOf(error: unknown): IamBrowserLoginFailure {
+  const response = readServerFailureResponse(error)
+  if (isSdkworkDesktopAuthError(error)) {
+    // The runtime prefixes its message with the error name and code; the card
+    // only needs the reason, and diagnostics keep the raw `detail`.
+    const message = error.message.replace(/^\[SdkworkDesktopAuthError:[a-z-]+\]\s*/u, '')
+    return {
+      code: error.code,
+      ...(message === '' ? {} : { message }),
+      ...(error.detail === undefined ? {} : { detail: error.detail }),
+      ...(response === undefined ? {} : { response }),
+    }
   }
-}
-const message = error instanceof Error ? error.message : undefined
-return { code: 'unexpected', ...(message === undefined ? {} : { message }) }
+  const message = error instanceof Error ? error.message : undefined
+  return {
+    code: 'unexpected',
+    ...(message === undefined ? {} : { message }),
+    ...(response === undefined ? {} : { response }),
+  }
 }
 
 /**
@@ -324,8 +334,8 @@ export interface IamProfileSnapshot {
   managementCenterUrl: string | undefined
   /** Whether a signed-in session can be ended. */
   signOutAvailable: boolean
-  /** Hosted sign-out page URL the system browser opens, when configured. */
-  signOutUrl: string | undefined
+  /** Hosted session-end URL the system browser opens: OAuth logout or the sign-out page. */
+  signOutUrl: string
 }
 
 /**
@@ -371,6 +381,8 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   private desktopLoginKey: string | undefined
   private desktopFailed = false
   private desktopFailure: IamBrowserLoginFailure | undefined
+  /** The server's report for the redeem of the attempt that is now failing, if any. */
+  private desktopServerFailure: IamServerFailureResponse | undefined
   private readonly desktopListeners = new Set<() => void>()
   private readonly authTokenListeners = new Set<() => void>()
 
@@ -475,6 +487,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     if (login === undefined) throw new Error('ui-sdkwork-iam: desktop browser login is unavailable')
     this.desktopFailed = false
     this.desktopFailure = undefined
+    this.desktopServerFailure = undefined
     try {
       await login.begin()
     } catch (error) {
@@ -499,18 +512,41 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   }
 
   /**
-   * The CloudRouter-hosted sign-out page URL for the active deployment.
+   * The hosted session-end URL for this session's realm.
    *
-   * The page is implemented by the shared IAM auth package and mounted by the
-   * CloudRouter application at `<origin>/auth/sign-out`; the environment
-   * profile supplies the origin. No origin means the deployment has no hosted
-   * auth surface, so the sign-out gesture only ends the local session.
-   * @returns the absolute sign-out URL, or undefined when unconfigured.
+   * The desktop shell signs in as an OAuth public client — the system browser
+   * opens `<iamAuthorizeBaseUrl>/iam/oauth/authorize` — so its sign-out is that
+   * client's OAuth logout, on the same origin and scoped by the same client id.
+   * A page-local session (the in-app account form of a plain browser page) has
+   * no OAuth client binding and hands the browser to the hosted sign-out page on
+   * that origin instead. Either way the URL names the login origin, so the
+   * browser reaches a domain the user signed in on.
+   * @returns the absolute session-end URL.
    */
-  signOutUrl(): string | undefined {
-    const baseUrl = this.env.cloudRouterUrl().trim()
-    if (baseUrl === '') return undefined
-    return buildSdkworkAuthSignOutUrl({ baseUrl })
+  signOutUrl(): string {
+    const origin = this.hostedAuthOrigin()
+    return readSdkworkDesktopBridge() === undefined
+      ? buildOauthSignOutUrl(origin)
+      : buildOauthLogoutUrl(origin, this.oauthClientId())
+  }
+
+  /**
+   * The origin serving the hosted SDKWork auth pages: the one the login opens.
+   * @returns the OEM-projected hosted-auth origin, or the shipped default.
+   */
+  private hostedAuthOrigin(): string {
+    return readOemIamAuthorizeBaseUrl() ?? DEFAULT_IAM_AUTHORIZE_BASE_URL
+  }
+
+  /**
+   * The OAuth public-client id this application signs in as.
+   *
+   * The login presents it to the hosted authorization and the logout scopes
+   * itself by it, so both read the one value the OEM profile supplies.
+   * @returns the OEM-projected client id, or the shipped default.
+   */
+  private oauthClientId(): string {
+    return readOemIamClientId() ?? DEFAULT_IAM_CLIENT_ID
   }
 
   /**
@@ -592,11 +628,12 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     const environment = this.env.currentEnvironment()
     const appId = this.env.appId()
     const cloudRouterUrl = this.env.cloudRouterUrl()
+    const authOrigin = this.hostedAuthOrigin()
     const user = state.user
     const context = state.session?.context as SdkworkAuthAppContext | undefined
     const organizationId = context?.organizationId ?? undefined
     const key = [
-      environment, appId, cloudRouterUrl,
+      environment, appId, cloudRouterUrl, authOrigin,
       state.isAuthenticated ? '1' : '0',
       user?.id ?? '', user?.displayName ?? '', user?.email ?? '', user?.username ?? '',
       organizationId ?? '', context?.tenantId ?? '',
@@ -629,13 +666,12 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
    * End the session: hand the hosted page to the system browser, then clear
    * this page's own session.
    *
-   * The local clear is unconditional — a deployment without a hosted page, or a
-   * browser that refused to open, must still end the session here — while the
-   * remote revoke inside the controller is best-effort.
+   * The local clear is unconditional — a browser that refused to open, or a
+   * deployment whose hosted page could not answer, must still end the session
+   * here — while the remote revoke inside the controller is best-effort.
    */
   private async performSignOut(): Promise<void> {
-    const url = this.signOutUrl()
-    if (url !== undefined) this.openExternalUrl(url)
+    this.openExternalUrl(this.signOutUrl())
     try {
       await this.controller.signOut()
     } catch {
@@ -647,6 +683,20 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
       // profile (or a reopened page) could still dispatch with the previous
       // one's credentials.
       clearEmbeddedSdkworkCredentials()
+      await this.reportDesktopSignOut()
+    }
+  }
+
+  /**
+   * Tell a desktop shell the workspace ended its session on the user's
+   * confirmation, so it can return to its signed-out entry. A browser page has
+   * no such shell; a failure only costs that return, never the sign-out.
+   */
+  private async reportDesktopSignOut(): Promise<void> {
+    try {
+      await readDesktopSignInPage()?.signedOut?.()
+    } catch (error) {
+      console.error('ui-sdkwork-iam: could not report the sign-out to the desktop shell', error)
     }
   }
 
@@ -861,6 +911,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     if (this.isSignedIn()) return
     this.desktopFailed = false
     this.desktopFailure = undefined
+    this.desktopServerFailure = undefined
     this.modal?.openBrowser()
     this.notifyDesktop()
     void this.beginBrowserSignIn().catch(() => {
@@ -1035,6 +1086,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     this.desktopLogin?.dispose()
     this.desktopLogin = undefined
     this.desktopLoginKey = undefined
+    this.desktopServerFailure = undefined
     this.pendingSignIn = undefined
     this.desktopListeners.clear()
   }
@@ -1163,8 +1215,8 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     if (bridge === undefined) return undefined
     const baseUrl = resolveIamBaseUrl(this.env.apiBaseUrl(), readOemIamBaseUrl())
     if (baseUrl === '') return undefined
-    const authorizeBaseUrl = readOemIamAuthorizeBaseUrl() ?? DEFAULT_IAM_AUTHORIZE_BASE_URL
-    const clientId = readOemIamClientId() ?? DEFAULT_IAM_CLIENT_ID
+    const authorizeBaseUrl = this.hostedAuthOrigin()
+    const clientId = this.oauthClientId()
     const redirectUri = readOemIamRedirectUri() ?? DEFAULT_IAM_REDIRECT_URI
     const deviceId = readOrCreateIamDeviceId()
     const key = `${baseUrl}\u0000${authorizeBaseUrl}\u0000${clientId}\u0000${redirectUri}\u0000${deviceId ?? ''}`
@@ -1180,6 +1232,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
         flowTtlMs: IAM_DESKTOP_LOGIN_WINDOW_MS,
         ...(deviceId === undefined ? {} : { deviceId }),
         onSession: session => this.commitDesktopSession(session),
+        onServerFailure: (response) => { this.desktopServerFailure = response },
         onError: (error) => {
           // A callback the controller refused to consume (a stale or foreign
           // deep link) leaves the pending attempt intact. Flipping the card to
@@ -1265,6 +1318,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     this.publishTokens()
     this.desktopFailed = false
     this.desktopFailure = undefined
+    this.desktopServerFailure = undefined
     this.notifyDesktop()
     this.dismissSignIn()
   }
@@ -1407,7 +1461,11 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
    */
   private reportBrowserFailure(error: unknown): void {
     const failure = browserFailureOf(error)
-    this.desktopFailure = failure
+    // The redeem runs inside the desktop auth runtime, which wraps a rejected
+    // request into one message; the transport tap kept the server's own report
+    // for the details view.
+    const response = failure.response ?? this.desktopServerFailure
+    this.desktopFailure = response === undefined ? failure : { ...failure, response }
     this.desktopFailed = true
     // The failure keeps the product-facing reason; the rejected step itself
     // carries the transport status, problem code, and trace id a support

@@ -33,6 +33,8 @@ const ICNS_TYPES = new Map([
 const PNG_SIZE = 512
 /** Welcome-window lockup icon size (40 CSS px at 2x). */
 const WELCOME_MARK_SIZE = 80
+/** Signed-out landing hero size (112 CSS px at 2x). */
+const WELCOME_HERO_SIZE = 224
 /**
  * Side length of the About-panel rasters under `resources/`.
  *
@@ -157,12 +159,14 @@ async function main() {
     writeFileSync(join(RESOURCES_DIR, name), await renderAboutRaster(variant))
   }
 
-  // The welcome window's lockup mark is the same canonical bird, not a
-  // separately maintained copy, so every OEM/build derives it from one raster.
+  // The welcome window's lockup mark and landing hero are the same canonical
+  // bird, not separately maintained copies, so every OEM/build derives them
+  // from one raster.
   mkdirSync(RENDERER_ASSETS_DIR, { recursive: true })
   writeFileSync(join(RENDERER_ASSETS_DIR, 'welcome-bird.png'), await renderPng(WELCOME_MARK_SIZE))
+  writeFileSync(join(RENDERER_ASSETS_DIR, 'welcome-bird-2x.png'), await renderPng(WELCOME_HERO_SIZE))
 
-  console.log(`generated desktop icons in ${OUT_DIR} (icon.ico, icon.icns, icon.png), About rasters in ${RESOURCES_DIR} (icon.png, icon-windows.png, icon-macos.png), and the welcome mark in ${RENDERER_ASSETS_DIR}/welcome-bird.png from ${SOURCE_ICON}`)
+  console.log(`generated desktop icons in ${OUT_DIR} (icon.ico, icon.icns, icon.png), About rasters in ${RESOURCES_DIR} (icon.png, icon-windows.png, icon-macos.png), and the welcome marks in ${RENDERER_ASSETS_DIR} (welcome-bird.png, welcome-bird-2x.png) from ${SOURCE_ICON}`)
 }
 
 await main()

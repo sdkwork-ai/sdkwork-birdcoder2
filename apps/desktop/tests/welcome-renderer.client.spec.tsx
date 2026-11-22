@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { resolveDesktopLocale } from '../src/locale.ts'
 import type { AccountView } from '@deepseek-ai/dsh-deepseek-account/types'
 import type { WelcomeSaveResult, WelcomeNotice } from '../src/welcome-api.ts'
+import { welcomeFooterLinks } from '../src/welcome-links.ts'
 
 const html = readFileSync(join(import.meta.dirname, '../renderer/welcome.html'), 'utf8')
 afterEach(cleanup)
@@ -18,6 +19,7 @@ function mount(
 ) {
   cleanup()
   const stopAccount = vi.fn()
+  const locale = resolveDesktopLocale(language)
   const api = {
     takeNotice,
     analytics: vi.fn(async (_event: string, _attributes: object) => {}),
@@ -27,7 +29,9 @@ function mount(
     cancelSignIn: vi.fn(async (): Promise<AccountView> => ({ links: { usageUrl: 'http://localhost/usage', topUpUrl: 'http://localhost/top_up' }, status: 'signed-out', attempt: null })),
     copySignInLink: vi.fn(async () => undefined),
     showApiKeyEntry: true,
-    ...resolveDesktopLocale(language),
+    footerLinks: welcomeFooterLinks(locale.messages, locale.id),
+    openExternal: vi.fn(async (_href: string) => {}),
+    ...locale,
     saveApiKey: vi.fn<(value: string) => Promise<WelcomeSaveResult>>().mockResolvedValue({ ok: true }),
     skip: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
     ...extra,
@@ -41,9 +45,11 @@ function mount(
   const submit = () => fireEvent.submit(document.querySelector('form')!)
   const copy = () => {
     const heading = document.querySelector('main')!.getAttribute('aria-labelledby')!
+    const description = document.querySelector('#welcome-description')
     return [
       document.title, document.querySelector('img')!.alt, document.getElementById(heading)!.textContent,
-      ...heading === 'welcome-heading' ? [document.querySelector('#welcome-description')!.textContent] : [],
+      ...heading === 'welcome-heading' && description !== null ? [description.textContent] : [],
+      ...[...document.querySelectorAll('a')].map(item => `${item.textContent} ${item.getAttribute('href')}`),
       ...heading === 'key-title' ? [document.querySelector('#key-description')!.textContent, `${input.placeholder} [password]`] : [],
       ...[...document.querySelectorAll('button')].filter(item => item.closest('[hidden]') === null)
         .map(item => `${item.textContent || item.getAttribute('aria-label')}${item.disabled ? ' [disabled]' : ''}`),
@@ -77,15 +83,37 @@ describe('desktop welcome presentation', () => {
     expect(view.document.querySelector('#sign-in')).not.toBeNull()
   })
 
-  it.each(['zh-CN', 'en'])('renders the %s entry and API-key step', async (language) => {    const view = mount(language)
+  it.each(['zh-CN', 'en'])('renders the %s landing and API-key step', async (language) => {
+    const view = mount(language)
     expect(view.document.documentElement.lang).toBe(language)
-    expect(view.document.querySelector('img')!.getAttribute('src')).toBe('assets/welcome-bird.png')
-    expect(view.document.querySelector('img')!.closest('div')!.textContent).toBe('BirdCoder')
+    // The signed-out entry is the landing: one large mark, no brand row, and
+    // the product links pinned below the single primary action.
+    expect(view.document.querySelector('img')!.getAttribute('src')).toBe('assets/welcome-bird-2x.png')
+    expect(view.document.querySelector('img')!.closest('.brand')).toBeNull()
     await expect(view.copy()).toMatchFileSnapshot(`./expected/welcome/${language}.expected.txt`)
     fireEvent.click(view.button('#api-key'))
     expect(view.document.activeElement).toBe(view.input)
     expect(view.input.type).toBe('password')
     await expect(view.copy()).toMatchFileSnapshot(`./expected/welcome/${language}-api-key.expected.txt`)
+  })
+
+  it('opens a footer link through the shell bridge instead of navigating', () => {
+    const view = mount('zh-CN')
+    const [privacy] = view.api.footerLinks
+    expect(privacy).toMatchObject({ label: '隐私政策', href: 'https://sdkwork.com/privacy' })
+    expect(view.document.querySelectorAll('a')).toHaveLength(3)
+    const anchor = screen.getByRole('link', { name: '隐私政策' })
+    fireEvent.click(anchor)
+    expect(view.api.openExternal).toHaveBeenCalledExactlyOnceWith('https://sdkwork.com/privacy')
+  })
+
+  it('offers the English network-proxy guide outside the Chinese window', () => {
+    const view = mount('en')
+    expect(view.api.footerLinks.map(link => link.href)).toEqual([
+      'https://sdkwork.com/privacy',
+      'https://sdkwork.com/terms',
+      'https://docs.sdkwork.com/en/guide/network-proxy',
+    ])
   })
 
   it('sends one trimmed key, prevents competing actions, and clears it after saving', async () => {

@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-22-oauth-session-end-endpoints.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-22-oauth-session-end-endpoints.md
+/agent-note-oauth-session-end-endpoints-for-the-desktop-sign-out:
+  en: 19ad00ed64384219
+  zh: 16ff1148109311f3
+/agent-note-oauth-session-end-endpoints-for-the-desktop-sign-out/problem:
+  en: dc6c97aca2c333b4
+  zh: 50a68af705b06de1
+/agent-note-oauth-session-end-endpoints-for-the-desktop-sign-out/decision:
+  en: e8684cfacce034e3
+  zh: 29a70e440decd505
+/agent-note-oauth-session-end-endpoints-for-the-desktop-sign-out/alternatives-considered:
+  en: ad991034e4600afa
+  zh: 11069d690886fff6
+/agent-note-oauth-session-end-endpoints-for-the-desktop-sign-out/consequences:
+  en: 665d387cfe0bfd2b
+  zh: a70d8d015f0a23be

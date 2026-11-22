@@ -30,11 +30,11 @@ SDKWork 个人主页插件：注册一个设置分区（id `profile`，order `-1
 
 ## 数据
 
-`IamProfileSnapshot`（来自 `ui-sdkwork-iam`）是分区读取的唯一值：昵称、邮箱、用户名、账号 ID、组织/租户 ID、账号类型（`personal` 或 `enterprise`；IAM 登录上下文对个人会话返回 `organizationId: '0'`）、当前环境与 app id、CloudRouter 管理中心地址，以及是否可退出登录。IAM 服务按控制器状态加环境事实缓存该快照，因此 `useProfile` 钩子观察到的是稳定引用，直到某个事实变化。
+`IamProfileSnapshot`（来自 `ui-sdkwork-iam`）是分区读取的唯一值：昵称、邮箱、用户名、账号 ID、组织/租户 ID、账号类型（`personal` 或 `enterprise`；IAM 登录上下文对个人会话返回 `organizationId: '0'`）、当前环境与 app id、CloudRouter 管理中心地址、是否可退出登录，以及登录 origin 上的托管退出登录 URL。IAM 服务按控制器状态加环境事实缓存该快照，因此 `useProfile` 钩子观察到的是稳定引用，直到某个事实变化。
 
 ## 退出登录
 
-页脚按钮调用 `iam.requestSignOut()`，与设置弹层底部退出登录行为使用同一个服务入口。服务弹出确认弹窗；确认后在系统浏览器打开 CloudRouter 托管的退出登录页（`<cloudRouterUrl>/auth/sign-out`，由 `@sdkwork/auth-pc-react` 实现、CloudRouter 应用挂载），并清除本页会话。分区本身不打开浏览器，也不清除令牌。
+页脚按钮调用 `iam.requestSignOut()`，与设置弹层底部退出登录行为使用同一个服务入口。服务弹出确认弹窗；确认后在登录 origin 上结束托管会话——桌面端为该客户端的 OAuth 注销（`<iamAuthorizeBaseUrl>/oauth/logout?client_id=<clientId>`），页面本地会话则为托管退出登录页（`<iamAuthorizeBaseUrl>/oauth/sign-out`）——并清除本页会话。分区本身不打开浏览器，也不清除令牌。
 
 ## 实现说明
 

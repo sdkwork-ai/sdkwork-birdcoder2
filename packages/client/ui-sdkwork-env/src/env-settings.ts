@@ -52,12 +52,11 @@ export interface SdkworkEnvProfile {
    */
   imEmbedUrl: string
   /**
-   * SDKWork CloudRouter portal origin. It serves the hosted IAM pages beside
-   * the console, so signing out hands the browser to
-   * `@sdkwork/auth-pc-react`'s sign-out page mounted there
-   * (`<origin>/auth/sign-out`, a path the CloudRouter application owns).
-   * Empty means the deployment has no hosted auth surface and the sign-out
-   * gesture only ends the local session.
+   * SDKWork CloudRouter console origin. It addresses the management center the
+   * `个人主页` section links to; the hosted auth pages (the browser login and
+   * its sign-out page) come from the OEM profile's `iamAuthorizeBaseUrl`, not
+   * from this origin. Empty means the deployment has no console link and the
+   * profile section omits it.
    */
   cloudRouterUrl: string
   /**
@@ -116,14 +115,13 @@ const DEFAULT_IM_API_BASE_URL: Record<SdkworkEnvironment, string> = {
 }
 
 /**
- * CloudRouter portal origin per environment. The hosted IAM authorization and
- * sign-out pages live there, next to the CloudRouter console, so the sign-out
- * gesture opens that deployment's own sign-out page instead of this
- * application's origin (which serves no such page). The development value
- * mirrors the CloudRouter checkout's
- * `VITE_SDKWORK_CLOUDROUTER_ROUTER_APPLICATION_PUBLIC_HTTP_URL` (its dev portal
- * listens on 3905); a deployment that serves the portal elsewhere sets
- * `cloudRouterUrl` in its own profile.
+ * CloudRouter console origin per environment: the management center the
+ * `个人主页` section links to. The development value mirrors the CloudRouter
+ * checkout's `VITE_SDKWORK_CLOUDROUTER_ROUTER_APPLICATION_PUBLIC_HTTP_URL` (its
+ * dev portal listens on 3905); a deployment that serves the console elsewhere
+ * sets `cloudRouterUrl` in its own profile. The hosted auth pages are not this
+ * value's concern — the OEM profile's `iamAuthorizeBaseUrl` owns them, so the
+ * browser login and its sign-out page stay on one origin.
  */
 const DEFAULT_CLOUD_ROUTER_URL: Record<SdkworkEnvironment, string> = {
   development: 'http://router-dev.sdkwork.com:3905',

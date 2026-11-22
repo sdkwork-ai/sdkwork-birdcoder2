@@ -23,7 +23,7 @@ const PERSONAL: IamProfileSnapshot = {
   environment: 'production',
   managementCenterUrl: 'https://router.sdkwork.com',
   signOutAvailable: true,
-  signOutUrl: 'https://router.sdkwork.com/auth/sign-out',
+  signOutUrl: 'https://platform.birdcoder.com/oauth/sign-out',
 }
 
 interface Overrides {

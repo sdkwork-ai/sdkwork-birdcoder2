@@ -20,6 +20,12 @@ export interface DesktopSignInPage {
    * @returns the gesture the page ended with.
    */
   open(): Promise<DesktopSignInOutcome>
+  /**
+   * Report that the workspace ended its signed-in session on the user's
+   * confirmation. The shell decides whether that returns to its welcome entry
+   * (it keeps a workspace a separately stored API key keeps usable).
+   */
+  signedOut?(): Promise<void>
 }
 
 /** The preload global that carries the product API. */
@@ -42,6 +48,7 @@ export function readDesktopSignInPage(): DesktopSignInPage | undefined {
   if (!isRecord(auth)) return undefined
   const openSignIn = auth.openSignIn
   if (typeof openSignIn !== 'function') return undefined
+  const signedOut = auth.signedOut
   // The page global is foreign input: bind the function to the object that
   // exposed it and narrow the result here rather than trusting the bridge.
   return {
@@ -49,5 +56,10 @@ export function readDesktopSignInPage(): DesktopSignInPage | undefined {
       const value: unknown = await Reflect.apply(openSignIn, auth, [])
       return value === 'login' || value === 'credential' ? value : 'dismissed'
     },
+    // A shell from before the sign-out report ships no such method; the
+    // workspace then ends its session without returning the shell to its entry.
+    ...(typeof signedOut === 'function'
+      ? { signedOut: async () => { await Reflect.apply(signedOut, auth, []) } }
+      : {}),
   }
 }

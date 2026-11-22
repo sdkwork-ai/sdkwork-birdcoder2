@@ -18,6 +18,7 @@
 import { createSdkworkIamDesktopAuthRuntime, type SdkworkDesktopAuthHostPort, type SdkworkDesktopAuthSession, type SdkworkDesktopBridgeShape } from '@sdkwork/iam-desktop-auth'
 import { appApiPath, createClient, type SdkworkAppClient } from '@sdkwork/iam-app-sdk'
 import type { AuthTokenManager } from '@sdkwork/sdk-common'
+import { readServerFailureResponse, type IamServerFailureResponse } from './iam-server-failure.ts'
 
 /** Path of the generated desktop-session redeem operation. */
 const DESKTOP_SESSION_REDEEM_PATH = appApiPath('/oauth/desktop_sessions')
@@ -37,9 +38,15 @@ type RedeemSdkClient = Parameters<typeof createSdkworkIamDesktopAuthRuntime>[0][
  * first one's outcome instead of redeeming again. Recovery from a genuinely
  * failed redeem is the card's retry, which starts a fresh browser login.
  * @param client - generated app client carrying the shared token manager.
+ * @param onServerFailure - receives the server's own report when the redeem is
+ * rejected; the runtime only keeps the message, so the details view would
+ * otherwise lose the status, code, trace id, and problem document.
  * @returns the client slice the desktop runtime redeems through.
  */
-function createAtMostOnceRedeemClient(client: SdkworkAppClient): RedeemSdkClient {
+function createAtMostOnceRedeemClient(
+  client: SdkworkAppClient,
+  onServerFailure: (response: IamServerFailureResponse) => void,
+): RedeemSdkClient {
   let attempted: { code: unknown; result: Promise<unknown> } | undefined
   return {
     oauth: {
@@ -48,7 +55,7 @@ function createAtMostOnceRedeemClient(client: SdkworkAppClient): RedeemSdkClient
           const body = command as Record<string, unknown>
           const code = body.authorizationCode
           if (attempted !== undefined && attempted.code === code) return attempted.result
-          const result = client.http.request<unknown>(DESKTOP_SESSION_REDEEM_PATH, {
+          const requested = client.http.request<unknown>(DESKTOP_SESSION_REDEEM_PATH, {
             method: 'POST',
             contentType: 'application/json',
             skipAuth: true,
@@ -60,6 +67,14 @@ function createAtMostOnceRedeemClient(client: SdkworkAppClient): RedeemSdkClient
             sdkworkUnwrapKind: 'item',
             retry: { maxRetries: 0 },
             body,
+          })
+          const result = requested.catch((error: unknown) => {
+            // A rejected redeem is a server-answered step whenever the request
+            // reached the API; keep that answer before the runtime reduces it
+            // to a message.
+            const response = readServerFailureResponse(error)
+            if (response !== undefined) onServerFailure(response)
+            throw error
           })
           attempted = { code, result }
           return result
@@ -217,6 +232,14 @@ export interface CreateIamDesktopLoginOptions {
   /** Commit the redeemed dual-token session into the product auth runtime. */
   onSession: (session: SdkworkDesktopAuthSession) => void | Promise<void>
   onError?: (error: unknown) => void
+  /**
+   * Receives the server's own report for a rejected redeem.
+   *
+   * The desktop auth runtime wraps a failed exchange into one message, so the
+   * card's details view needs this sink to show the HTTP status, wire code,
+   * trace id, and problem document the IAM endpoint answered with.
+   */
+  onServerFailure?: (response: IamServerFailureResponse) => void
 }
 
 /** The renderer-facing desktop login controls. */
@@ -300,7 +323,7 @@ export function createIamDesktopLogin(options: CreateIamDesktopLoginOptions): Ia
       authorizeBaseUrl: options.authorizeBaseUrl,
       // Only the redeem leg is bound through the client; the runtime never uses
       // the rest of the generated SDK surface.
-      appSdkClient: createAtMostOnceRedeemClient(client),
+      appSdkClient: createAtMostOnceRedeemClient(client, response => options.onServerFailure?.(response)),
       host,
       onSession: async (session) => {
         // The login is settled: the ephemeral port has done its job and must

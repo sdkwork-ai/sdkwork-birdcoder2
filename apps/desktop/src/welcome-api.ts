@@ -3,6 +3,7 @@
 import type { AccountView, SignInAttemptId } from '@deepseek-ai/dsh-deepseek-account/types'
 import type { ProductEventMap } from '@deepseek-ai/dsh-client-product-analytics/types'
 import type { DesktopLocale } from './locale.ts'
+import type { WelcomeFooterLink } from './welcome-links.ts'
 
 /** Private native welcome channels, installed only while its window exists. */
 export const WELCOME_IPC = {
@@ -16,6 +17,7 @@ export const WELCOME_IPC = {
   state: 'dsh-welcome:state',
   takeNotice: 'dsh-welcome:take-notice',
   iamSignIn: 'dsh-welcome:iam-sign-in',
+  openExternal: 'dsh-welcome:open-external',
 } as const
 
 /** Credential writes return a safe outcome without exposing Host diagnostics. */
@@ -67,6 +69,13 @@ export interface WelcomeOperations {
 export type WelcomeApi = DesktopLocale & WelcomeOperations & {
   /** Whether the entry offers the API-key fallback next to Sign in; off unless the deployment opts in. */
   showApiKeyEntry: boolean
+  /** Product links the signed-out landing pins below its action. */
+  footerLinks: readonly WelcomeFooterLink[]
+  /**
+   * Open one footer link in the system browser.
+   * @param href - one of {@link footerLinks}' `href` values.
+   */
+  openExternal(href: string): Promise<void>
   /** @param listener - safe account snapshot recipient. @returns subscription disposer. */
   onAccountState(listener: (state: AccountView) => void): () => void
 }

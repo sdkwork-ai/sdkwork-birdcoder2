@@ -4,6 +4,7 @@ import type { AccountView, SignInAttemptId } from '@deepseek-ai/dsh-deepseek-acc
 import { contextBridge, ipcRenderer } from 'electron'
 import { resolveDesktopLocale } from './locale.ts'
 import { WELCOME_IPC, type WelcomeApi, type WelcomeNotice, type WelcomeSaveResult } from './welcome-api.ts'
+import { welcomeFooterLinks } from './welcome-links.ts'
 
 const prefix = '--dsh-welcome-locale='
 const locale = process.argv.find(argument => argument.startsWith(prefix))?.slice(prefix.length)
@@ -12,9 +13,12 @@ const brandPrefix = '--dsh-welcome-brand='
 const brand = process.argv.find(argument => argument.startsWith(brandPrefix))?.slice(brandPrefix.length)
 const iamSignIn = process.argv.includes('--dsh-welcome-iam-signin=1')
 const showApiKeyEntry = process.argv.includes('--dsh-welcome-api-key=1')
+const resolved = resolveDesktopLocale(locale, brand)
 const api: WelcomeApi = {
-  ...resolveDesktopLocale(locale, brand),
+  ...resolved,
   showApiKeyEntry,
+  footerLinks: welcomeFooterLinks(resolved.messages, resolved.id),
+  openExternal: href => ipcRenderer.invoke(WELCOME_IPC.openExternal, href) as Promise<void>,
   ...(iamSignIn ? {
     iamSignIn: () => ipcRenderer.invoke(WELCOME_IPC.iamSignIn) as Promise<void>,
   } : {}),

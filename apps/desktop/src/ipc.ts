@@ -21,6 +21,7 @@ export const DESKTOP_IPC = {
   boot: 'dsh-desktop:boot',
   enterWorkspace: 'dsh-desktop:enter-workspace',
   authSignInPage: 'dsh-desktop:auth-sign-in-page',
+  authSignedOut: 'dsh-desktop:auth-signed-out',
   onboardingActive: 'dsh-desktop:onboarding-active',
   onboardingApiKey: 'dsh-desktop:onboarding-api-key',
   bootFailed: 'dsh-desktop:boot-failed',
@@ -119,6 +120,12 @@ export interface DshDesktopProductApi {
      * @returns the gesture the page ended with.
      */
     openSignIn(): Promise<DesktopSignInOutcome>
+    /**
+     * Report that the workspace ended the signed-in IAM session on the user's
+     * confirmation. The shell returns to the welcome entry only when no
+     * independently stored API key keeps the workspace usable.
+     */
+    signedOut(): Promise<void>
   }
   readonly updates: {
     readonly channels: DesktopChannelBridge

@@ -133,7 +133,10 @@ export interface OemSdkworkConfig {
   /**
    * Hosted IAM authorization origin for the desktop browser-login flow. The
    * app appends the versionless `/iam/oauth/authorize`; the hosted login pages keep their
-   * `/auth/...` paths and deep-link completion.
+   * `/auth/...` paths and deep-link completion. Its OAuth group also ends the
+   * session — `/oauth/logout` scoped by {@link iamClientId} for a desktop
+   * client, `/oauth/sign-out` for a page-local session — so login and sign-out
+   * both land on the one domain the deployment serves its auth pages from.
    */
   readonly iamAuthorizeBaseUrl: string
   /**

@@ -50,6 +50,115 @@
   }
 }
 
+/* Signed-out landing: one centered identity stack, one primary action, and the
+   product links pinned to the foot. The mark replaces the brand row, so the
+   window opens on the product rather than on a header. */
+.landing {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  width: 100%;
+  height: 100%;
+  padding: 24px 48px 72px;
+}
+
+.landing .middle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  width: 100%;
+  min-width: 0;
+}
+
+.hero {
+  flex: none;
+  width: 112px;
+  height: 112px;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.landing .welcome {
+  color: var(--dsw-alias-label-primary);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 40px;
+}
+
+.landing .heading em {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.landing .actions {
+  flex: none;
+  gap: 12px;
+  width: 208px;
+}
+
+/* The landing's single call to action is an explicit pill; the flow pages keep
+   the shared control curve. */
+.landing .actions button {
+  height: 48px;
+  border-radius: 999px;
+  corner-shape: round;
+  font-size: 15px;
+}
+
+.landing .footer {
+  position: absolute;
+  right: 0;
+  bottom: 14px;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--dsw-alias-label-secondary);
+  font-family: var(--dsw-font-family);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.landing .footerLink {
+  padding: 2px 2px;
+  border-radius: var(--dsw-radius-sm);
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.landing .footerLink:focus-visible {
+  outline: 2px solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 2px;
+}
+
+.landing .footerDivider {
+  color: var(--dsw-alias-label-caption);
+}
+
+@media (hover: hover) {
+  .landing .footerLink:hover {
+    color: var(--dsw-alias-label-primary);
+    text-decoration: underline;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing .footerLink {
+    transition: none;
+  }
+}
+
 .panel [hidden] {
   display: none !important;
 }

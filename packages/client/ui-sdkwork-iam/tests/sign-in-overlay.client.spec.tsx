@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { createSdkworkAuthController, type SdkworkAuthRuntimeConfig } from '@sdkwork/auth-pc-react'
 import { SignInOverlay, type SignInOverlayProps } from '../src/client/SignInOverlay.tsx'
+import type { IamBrowserLoginFailure } from '../src/client/iam-service.ts'
 import type { IamSignInStep } from '../src/client/iam-ui-store.ts'
 
 afterEach(cleanup)
@@ -42,7 +43,7 @@ function overlay({
   configured?: boolean
   startApiKey?: () => void
   browserFailed?: boolean
-  browserFailure?: { code: string; message?: string; detail?: string }
+  browserFailure?: IamBrowserLoginFailure
   browserHandoff?: boolean
   runtimeConfig?: SdkworkAuthRuntimeConfig
 } = { open: true }) {
@@ -63,8 +64,7 @@ function overlay({
     useConfigured: vi.fn((sel: (c: boolean) => boolean) => sel(configured)),
     useBrowserFailed: vi.fn((sel: (failed: boolean) => boolean) => sel(browserFailed)),
     useBrowserFailure: vi.fn(
-      (sel: (failure: { code: string; message?: string; detail?: string } | undefined) => unknown) =>
-        sel(browserFailure)),
+      (sel: (failure: IamBrowserLoginFailure | undefined) => unknown) => sel(browserFailure)),
     useBrowserHandoff: vi.fn((sel: (handoff: boolean) => boolean) => sel(browserHandoff)),
     useTheme: vi.fn((sel: (s: { active: { colorScheme: 'light' | 'dark' } }) => { active: { colorScheme: 'light' | 'dark' } }) =>
       sel({ active: { colorScheme: 'light' } })),
@@ -206,6 +206,131 @@ describe('SignInOverlay', () => {
     // support report can act on, so it owns the diagnostics line.
     expect(within(dialog).getByTestId('iam-browser-failure-detail').textContent)
       .toBe('browser.failureDetailinstallation is not bound to a deploy application (安装未绑定部署应用)')
+  })
+
+  it('keeps the complete failure report behind the details link', () => {
+    overlay({
+      open: true,
+      step: 'browser',
+      browserFailed: true,
+      browserFailure: {
+        code: 'exchange-failed',
+        message: 'The desktop session exchange failed. Start the browser login again.',
+        detail: 'OAuth authorization code is invalid or expired',
+        response: {
+          status: 400,
+          code: '40002',
+          traceId: 'trace-1',
+          body: '{\n  "code": 40002,\n  "detail": "OAuth authorization code is invalid or expired"\n}',
+        },
+      },
+    })
+    const dialog = screen.getByRole('dialog')
+    // Collapsed by default: the card names the step, the details stay one
+    // deliberate click away.
+    const toggle = within(dialog).getByRole('button', { name: 'browser.details.show' })
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(within(dialog).queryByTestId('iam-browser-details')).toBeNull()
+
+    fireEvent.click(toggle)
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    const details = within(dialog).getByTestId('iam-browser-details')
+    // Every fact a support report needs, including the server's own answer.
+    expect(details.textContent).toContain('browser.details.step')
+    expect(details.textContent).toContain('exchange-failed')
+    expect(details.textContent).toContain('browser.details.message')
+    expect(details.textContent).toContain('browser.details.detail')
+    expect(details.textContent).toContain('browser.details.status')
+    expect(details.textContent).toContain('400')
+    expect(details.textContent).toContain('browser.details.code')
+    expect(details.textContent).toContain('40002')
+    expect(details.textContent).toContain('browser.details.trace')
+    expect(details.textContent).toContain('trace-1')
+    expect(details.textContent).toContain('browser.details.body')
+    expect(details.textContent).toContain('OAuth authorization code is invalid or expired')
+
+    fireEvent.click(toggle)
+    expect(within(dialog).queryByTestId('iam-browser-details')).toBeNull()
+  })
+
+  it('keeps one reason line on the card and the whole report in the details', () => {
+    overlay({
+      open: true,
+      step: 'browser',
+      browserFailed: true,
+      browserFailure: {
+        code: 'provider-denied',
+        message: [
+          'The hosted authorization could not be started. Start the login again.',
+          'HTTP 400 · code 40001',
+          'OAuth client birdcoder is registered on an installation that is not bound to a deploy application',
+        ].join('\n'),
+        detail: 'server_error',
+      },
+    })
+    const dialog = screen.getByRole('dialog')
+    // The page's sentence stays the actionable line; the server's report would
+    // otherwise turn the card into a wall of text.
+    expect(within(dialog).getByTestId('iam-browser-failure-detail').textContent)
+      .toBe('browser.failureDetailThe hosted authorization could not be started. Start the login again.')
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'browser.details.show' }))
+    const details = within(dialog).getByTestId('iam-browser-details')
+    expect(details.textContent).toContain('HTTP 400 · code 40001')
+    expect(details.textContent).toContain('not bound to a deploy application')
+    expect(details.textContent).toContain('server_error')
+  })
+
+  it('copies the complete failure report from the expanded details', async () => {
+    const writeText = vi.fn(async (_text: string) => {})
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+    try {
+      overlay({
+        open: true,
+        step: 'browser',
+        browserFailed: true,
+        browserFailure: {
+          code: 'exchange-failed',
+          message: 'The desktop session exchange failed. Start the browser login again.',
+          detail: 'OAuth authorization code is invalid or expired',
+          response: {
+            status: 400,
+            code: '40002',
+            traceId: 'trace-1',
+            body: '{\n  "detail": "OAuth authorization code is invalid or expired"\n}',
+          },
+        },
+      })
+      const dialog = screen.getByRole('dialog')
+      // The copy action belongs to the expanded report: it copies what is shown.
+      expect(within(dialog).queryByRole('button', { name: 'browser.details.copy' })).toBeNull()
+      fireEvent.click(within(dialog).getByRole('button', { name: 'browser.details.show' }))
+      const copy = within(dialog).getByRole('button', { name: 'browser.details.copy' })
+      // The action belongs under the report it copies, not beside the toggle.
+      const panel = within(dialog).getByTestId('iam-browser-details')
+      expect(panel.compareDocumentPosition(copy) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+      fireEvent.click(copy)
+
+      await vi.waitFor(() => { expect(writeText).toHaveBeenCalledOnce() })
+      const report = writeText.mock.calls[0]?.[0]
+      // One paste carries the runtime's codes and the server's own answer.
+      expect(report).toContain('browser.details.step: exchange-failed')
+      expect(report).toContain('browser.details.message: The desktop session exchange failed. Start the browser login again.')
+      expect(report).toContain('browser.details.detail: OAuth authorization code is invalid or expired')
+      expect(report).toContain('browser.details.response:')
+      expect(report).toContain('browser.details.status: 400')
+      expect(report).toContain('browser.details.code: 40002')
+      expect(report).toContain('browser.details.trace: trace-1')
+      expect(report).toContain('"detail": "OAuth authorization code is invalid or expired"')
+
+      // Success feedback replaces the action label and reaches the live region.
+      await vi.waitFor(() => {
+        expect(within(dialog).getByRole('button', { name: 'browser.details.copied' })).not.toBeNull()
+      })
+      expect(within(dialog).getByRole('status').textContent).toBe('browser.details.copied')
+    } finally {
+      Reflect.deleteProperty(navigator, 'clipboard')
+    }
   })
 
   it('offers the in-app sign-in from a failed browser hand-off', () => {

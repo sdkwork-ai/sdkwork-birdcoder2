@@ -30,11 +30,11 @@ The plugin registers one `settings.section` contribution and its dictionary:
 
 ## Data
 
-`IamProfileSnapshot` (`ui-sdkwork-iam`) is the single value the section reads: display name, e-mail, username, account id, organization/tenant ids, account kind (`personal` or `enterprise`; the IAM login context reports `organizationId: '0'` for a personal session), the active environment and app id, the CloudRouter management-center origin, and whether sign-out is available. The IAM service memoizes the snapshot by controller state plus the environment facts, so the `useProfile` hook observes a stable reference until a fact moves.
+`IamProfileSnapshot` (`ui-sdkwork-iam`) is the single value the section reads: display name, e-mail, username, account id, organization/tenant ids, account kind (`personal` or `enterprise`; the IAM login context reports `organizationId: '0'` for a personal session), the active environment and app id, the CloudRouter management-center origin, whether sign-out is available, and the hosted sign-out URL on the login origin. The IAM service memoizes the snapshot by controller state plus the environment facts, so the `useProfile` hook observes a stable reference until a fact moves.
 
 ## Sign-out
 
-The footer button calls `iam.requestSignOut()`, the same service entry the settings popover's footer row uses. The service raises its confirmation dialog; confirming opens the CloudRouter-hosted sign-out page (`<cloudRouterUrl>/auth/sign-out`, implemented by `@sdkwork/auth-pc-react` and mounted by the CloudRouter application) in the system browser and clears this page's session. The section itself never opens a browser or clears tokens.
+The footer button calls `iam.requestSignOut()`, the same service entry the settings popover's footer row uses. The service raises its confirmation dialog; confirming ends the hosted session on the login origin — the desktop's OAuth logout (`<iamAuthorizeBaseUrl>/oauth/logout?client_id=<clientId>`) or, for a page-local session, the hosted sign-out page (`<iamAuthorizeBaseUrl>/oauth/sign-out`) — and clears this page's session. The section itself never opens a browser or clears tokens.
 
 ## Implementation notes
 

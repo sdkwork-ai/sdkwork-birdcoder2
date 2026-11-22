@@ -504,6 +504,36 @@ describe('deeplink login end to end', () => {
     expect(getSdkworkGlobalTokenManager().getTokens()?.authToken).toBeUndefined()
   })
 
+  it('keeps the server report of a rejected code exchange for the details view', async () => {
+    const service = new IamService(scopeOf(), envOf(), layoutOf())
+    await service.beginBrowserSignIn()
+    const state = new URL(openedUrls[0]).searchParams.get('state')
+    // The generated transport rejects with the IAM endpoint's problem document;
+    // the desktop runtime keeps only the message, so the card's details view
+    // depends on the redeem leg reporting the rest itself.
+    const problem = {
+      type: 'https://docs.sdkwork.com/problems/40002',
+      title: 'Validation failed',
+      status: 400,
+      code: 40002,
+      detail: 'installation is not bound to a deploy application (安装未绑定部署应用)',
+      traceId: 'trace-exchange-1',
+    }
+    client.oauth.desktopSessions.create.mockRejectedValueOnce(Object.assign(
+      new Error(problem.detail),
+      { httpStatus: 400, code: 'VALIDATION_ERROR', traceId: problem.traceId, problem },
+    ))
+    emitDeepLink(`${REDIRECT}?code=code-4c&state=${state}`)
+
+    await vi.waitFor(() => { expect(service.browserSignInFailed()).toBe(true) })
+    const failure = service.browserSignInFailure()
+    expect(failure).toMatchObject({ code: 'exchange-failed' })
+    expect(failure?.response).toMatchObject({ status: 400, code: '40002', traceId: 'trace-exchange-1' })
+    expect(failure?.response?.body).toContain('installation is not bound to a deploy application')
+    expect(service.isSignedIn()).toBe(false)
+    expect(durableRecord).toBeNull()
+  })
+
   it('discards a committed session the account endpoint refuses', async () => {
     const service = new IamService(scopeOf(), envOf(), layoutOf())
     await service.beginBrowserSignIn()

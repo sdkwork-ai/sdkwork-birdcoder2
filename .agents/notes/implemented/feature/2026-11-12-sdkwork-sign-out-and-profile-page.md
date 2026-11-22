@@ -27,21 +27,17 @@ this note covers the SDKWork IAM account session only.
 Sign-out is one confirmation-first gesture shared by every entry point — the
 settings popover's footer row, the account mode page's button, and the new
 `个人主页` section. `ctx.iam.requestSignOut()` raises a confirmation dialog
-(`shell.overlay` entry `iam-sign-out`); confirming opens the CloudRouter-hosted
-sign-out page at `<cloudRouterUrl>/auth/sign-out` in the system browser (the
-desktop `sdkworkDesktop.shellOpen` bridge, or a new tab on a plain page) and
-then ends the local session through the auth controller. The browser leg is
-skipped when the environment profile leaves `cloudRouterUrl` empty; the local
-clear always runs.
+(`shell.overlay` entry `iam-sign-out`); confirming ends the hosted session on
+the login origin through the endpoints the
+[OAuth session-end decision](../architecture/2026-11-22-oauth-session-end-endpoints.md)
+owns, and then ends the local session through the auth controller. The local
+clear always runs, whatever the browser leg does.
 
-The hosted page itself is implemented in `sdkwork-iam`
-(`@sdkwork/auth-pc-react`): `auth-sign-out.ts` owns the route segment and the
-path/URL builders, and `SdkworkAuthSignOutPage` is mounted by
-`SdkworkIamAuthRoutes` at `<basePath>/sign-out`. The CloudRouter application owns
-the URL path it serves (`PORTAL_AUTH_SIGN_OUT_PATH = '/auth/sign-out'`) and
-exempts that route from its authenticated-auth-route redirect, because only a
-signed-in visitor can end a session and redirecting them home makes sign-out
-unreachable.
+The hosted session end is not this plugin's page. `ui-sdkwork-iam` builds the
+URL from the OEM profile's hosted auth origin, and the hosted surface serves it
+on the OAuth group — `<iamAuthorizeBaseUrl>/oauth/logout` scoped by the OAuth
+client id for the desktop shell, `<iamAuthorizeBaseUrl>/oauth/sign-out` for a
+page-local session.
 
 `ui-sdkwork-iam` publishes `profileSnapshot()`: one memoized value per
 controller/environment state carrying the display name, e-mail, username,
@@ -66,10 +62,10 @@ alive; the next login silently succeeds and a shared machine stays usable. The
 fork's account is shared across SDKWork products, so "sign out" must mean the
 account, not one window.
 
-**Serve the sign-out page from the BirdCoder origin.** BirdCoder's origins serve
-no IAM auth routes; only the CloudRouter portal mounts the shared auth package.
-Duplicating the page would mean a second copy of the session-clearing logic and a
-second route contract to keep in step.
+**Duplicate the sign-out page inside this application.** The application owns
+its own session locally and ends it through the controller; a second copy of a
+hosted page would duplicate session-clearing logic and split the route contract
+across two owners, so the browser leg stays a hosted-surface concern.
 
 **Put the 个人主页 content in the settings popover.** The popover closes on
 pointer-leave and cannot hold the account, organization, linked-product, and
@@ -78,10 +74,11 @@ in, and the popover keeps its compact account group.
 
 ## Consequences
 
-- The account session now ends in two places by design: the browser (shared
-  session) and the app (local session). A deployment that configures no
-  CloudRouter origin signs out locally only — documented as a limitation rather
-  than silently pretending the account is gone everywhere.
+- The account session now ends in two places by design: the browser (the hosted
+  session end on the login origin) and the app (local session). A deployment
+  whose hosted surface serves no OAuth session-end endpoint signs out in the app
+  and on the server only — documented as a limitation rather than silently
+  pretending the account is gone everywhere.
 - The confirmation dialog is a second `shell.overlay` entry beside the sign-in
   host. It has its own store so a session end cannot inherit sign-in steps, and
   its open state is the only shared member; the account facts it shows come from
@@ -89,7 +86,7 @@ in, and the popover keeps its compact account group.
 - `ui-sdkwork-profile` depends on the `iam` Cordis service, so a composition
   without `ui-sdkwork-iam` has no account page — the section is deliberately not
   a signed-out dead end when the service is absent.
-- The CloudRouter path is published from one place per repository: the IAM
-  package owns the route segment and URL builder, CloudRouter owns the mounted
-  path and the auth-area exception, BirdCoder reads the origin from its
-  environment profile. Tests in each repository pin the shared path.
+- The session-end paths are published from one place: `ui-sdkwork-iam`'s
+  `oauth-session.ts` owns the endpoints and the client-scoped query, the OEM
+  profile supplies the login origin and the OAuth client id, and tests pin the
+  URLs for both realms.

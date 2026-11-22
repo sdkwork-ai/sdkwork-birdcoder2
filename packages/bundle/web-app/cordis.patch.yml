@@ -1203,8 +1203,9 @@
     # (personal and enterprise pages) directly below General, lists the
     # SDKWork products sharing that account, and offers the second sign-out
     # entry point. It reads the account through the ui-sdkwork-iam service and
-    # the hosted sign-out page through the ui-sdkwork-env profile's CloudRouter
-    # origin, so this row owns only the page composition.
+    # the hosted session end through the OEM profile's iamAuthorizeBaseUrl
+    # origin (the OAuth group the browser login opens), so this row owns only
+    # the page composition.
     - id: ui-sdkwork-profile
       name: '@deepseek-ai/dsh-client-ui-sdkwork-profile'
 

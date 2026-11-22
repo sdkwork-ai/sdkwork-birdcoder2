@@ -33,7 +33,7 @@ kind: "package-library"
 
 弹窗自动进入及弹窗、菜单回焦，包括通过 Esc 和应用关闭快捷键触发的回焦，均使用 `focusWithoutRing(element, options?)`，在 Tab 或方向键导航恢复正常焦点样式前抑制外轮廓线。弹窗容器仍不绘制焦点外框。原有边框、阴影和错误状态保持不变。用 `data-modal-autofocus` 标记弹窗的初始控件，让模态层先保存触发控件，再移动焦点。随弹窗挂载的控件不得使用 React `autoFocus`，因为它会在保存触发控件前执行。弹窗容器获得焦点时，Tab 和 Shift+Tab 分别进入第一个和最后一个可聚焦控件。
 
-`LoginPanel` 是产品唯一的登录界面，由桌面欢迎窗（`variant="window"`）和 Web 账号弹窗（`variant="dialog"`）共用。它是 fork 自有的（AGENTS.md，“BirdCoder brand assets”）：上游没有对应组件，因此上游合并无法回退这次统一。宿主把它渲染为自己的入口页，把登录方式页作为 `children` 传入，并用操作描述而不是自行设置按钮样式；进行中的操作是 `busy` 加载器，由 `busyLabel` 命名；弹窗变体的角部关闭控件由 `close` 提供。window 变体保持 40px 品牌带、`minmax(0, 1fr)` 身份区和 104px 操作带，因此桌面布局不变；dialog 变体以间距替代固定操作带，堆叠同样的三条带。
+`LoginPanel` 是产品唯一的登录界面，由桌面欢迎窗（未登录入口为 `variant="landing"`，登录方式页为 `variant="window"`）和 Web 账号弹窗（`variant="dialog"`）共用。它是 fork 自有的（AGENTS.md，“BirdCoder brand assets”）：上游没有对应组件，因此上游合并无法回退这次统一。宿主把它渲染为自己的入口页，把登录方式页作为 `children` 传入，并用操作描述而不是自行设置按钮样式；进行中的操作是 `busy` 加载器，由 `busyLabel` 命名；弹窗变体的角部关闭控件由 `close` 提供。window 变体保持 40px 品牌带、`minmax(0, 1fr)` 身份区和 104px 操作带，因此桌面布局不变；landing 变体用大图标记替代品牌带，并把宿主的产品链接固定在页脚；dialog 变体以间距替代固定操作带，堆叠同样的三条带。
 
 本包是 Web 壳的构建输入。静态 ESM 为 Vite 保留第三方导入，包括 KaTeX 等第三方样式表；本包自身的样式表编译进 `__$dsh_client_module_manifest` 导出，由 renderer 安装；独立消费方自行提供开发依赖（[依赖规则](../AGENTS.md#dependency-declaration)）。
 
@@ -69,7 +69,7 @@ kind: "package-library"
 | `Modal` | 页面遮罩之上的居中对话框。嵌套对话框可通过 `onKeyDownCapture` 在文档级 Escape 处理器之前拦截按键。 色层与弹窗淡入，背景模糊始终完整生效，并遵循减少动态效果偏好。调用方已模糊源页面时设置 `backdropBlur={false}`。`tone="warning"` 在标题中显示橙色警告图标，并移除正文额外的顶部间距；其他弹窗的间距保持不变。 |
 | `WideModal` | 管理类弹窗，宽高各占视口的 90%，居中显示在页面遮罩之上，带共用标题栏、关闭控件与内容列。它 portal 到文档 body，z-index 1120，位于设置面板、普通页面弹窗与菜单之上。内容可为记录的创建／编辑表单打开 `Drawer`；Escape、Tab 与焦点遵循 `useModalLayer`，后打开的对话框接管所有权。 |
 | `Drawer` | 左侧记录表单：全高面板从 inline-start 边缘滑入页面遮罩之上，承载标题、说明行、关闭控件与可滚动内容列。它 portal 到文档 body，z-index 1150，高于 `WideModal`（1120），因此管理弹窗仍打开时表单保持可操作；自行 portal 对话框的内嵌界面需在自己的样式表中把它们抬到两层之上，登录界面（1200）仍占最高层。Escape、Tab、焦点进入与焦点归还遵循 `useModalLayer`；Escape 与 Tab 让位于在抽屉之后 portal 的对话框。 |
-| `LoginPanel` | 唯一的 BirdCoder 登录界面：品牌行、欢迎语与标语，以及操作列。`variant="window"` 填满桌面欢迎窗（品牌带、居中身份区、固定操作带），`variant="dialog"` 是紧凑的弹窗形态。该组件只负责布局与交互：品牌图、欢迎文案和每个操作都通过 props 传入，因此宿主自行负责本地化。`welcomeHidden` 与隐藏的 action 让宿主的页面切换保持挂载，带 `form` 的 action 提交宿主表单而不处理点击。 |
+| `LoginPanel` | 唯一的 BirdCoder 登录界面：品牌行、欢迎语与标语，以及操作列。`variant="window"` 填满桌面欢迎窗（品牌带、居中身份区、固定操作带），`variant="landing"` 是未登录入口（大图标记、欢迎语、单个主操作、底部固定的产品链接），`variant="dialog"` 是紧凑的弹窗形态。该组件只负责布局与交互：品牌图、欢迎文案、页脚链接和每个操作都通过 props 传入，因此宿主自行负责本地化，并通过 `onOpenLink` 打开页脚链接。`welcomeHidden` 与隐藏的 action 让宿主的页面切换保持挂载，带 `form` 的 action 提交宿主表单而不处理点击。 |
 | `RiskConfirmation` | 以显式复选框把关的敏感操作确认，采用共用的警告标题布局。 |
 | `Tooltip` | 锚定在克隆子元素上的悬停与键盘聚焦提示；可选的 `delayMs` 控制悬停延迟，`focusDelayMs` 控制键盘聚焦延迟，均默认为 0 毫秒。可通过 `portal` 渲染到外层，避免被容器裁剪，或受祖先层叠上下文限制其 z-index。 |
 | `HoverCard`、`HoverCardGroup` | 可阅读、可选带复制按钮的悬停预览；物理列表可选择让卡片共享首次显示等待，并互斥显示。紧凑卡片出现在锚点结束一侧；会超出视口结束边缘、而开始一侧放得下时出现在开始一侧，例如窗口末端面板中的行；两侧都放不下时出现在锚点下方，与锚点的开始边缘对齐，下方放不下则出现在上方，因此不会盖住锚点；高到上下都放不下的卡片留在视口内，位于底部结束一角。它由 CSS 锚点定位放置，卡片跟随锚点时不需要脚本测量；Firefox 解析锚点位置时不计入祖先元素的 transform，锚点位于带 transform 的祖先之内时，紧凑卡片在 Firefox 中的位置会偏移。 |

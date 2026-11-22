@@ -1098,6 +1098,18 @@ async function main(): Promise<void> {
     assertProductSender(event)
     return openSignInPage()
   })
+  // The workspace ended its IAM session on the user's confirmation. Return to
+  // the welcome entry — the signed-out landing whose Sign in opens the browser
+  // login — only when no independently stored API key keeps the workspace
+  // usable; the same rule a Platform sign-out follows.
+  ipcMain.handle(DESKTOP_IPC.authSignedOut, async (event) => {
+    assertProductSender(event)
+    if (!enteredWorkspace || quitting) return
+    const state = await readWelcomeState()
+    if (quitting || !needsWelcome(state)) return
+    enteredWorkspace = false
+    await showWelcome()
+  })
 
   ipcMain.handle(DESKTOP_IPC.bootFailed, (event, message: unknown) => {
     assertDesktopSender(event, ['app'])
