@@ -33,7 +33,7 @@ import { textWidthPx } from './measure.ts'
 import {
   ACTIVE_BORDER, CELL_FONT_FAMILY, CELL_FONT_SIZE, CELL_PADDING_LEFT, CELL_PADDING_RIGHT, CELL_TEXT_COLOR,
   FILL_HANDLE_SIZE, FROZEN_PANE_BORDER, GRIDLINE_COLOR, HEADER_ACTIVE_BACKGROUND,
-  HEADER_ACTIVE_LABEL, HEADER_BACKGROUND, HEADER_BORDER, HEADER_HOVER_BACKGROUND, HEADER_LABEL,
+  HEADER_ACTIVE_FILL, HEADER_BACKGROUND, HEADER_BORDER, HEADER_HOVER_BACKGROUND, HEADER_LABEL,
   HEADER_SELECTED_BACKGROUND, HEADER_SIZE, HYPERLINK_COLOR, SELECTION_FILL, SHEET_BACKGROUND,
 } from '../excel.ts'
 import { extendsBounds, isSelected, selectionBounds } from './selection.ts'
@@ -58,7 +58,7 @@ const sheetPalette = {
   '--sheet-header-hover': HEADER_HOVER_BACKGROUND,
   '--sheet-header-selected': HEADER_SELECTED_BACKGROUND,
   '--sheet-header-active': HEADER_ACTIVE_BACKGROUND,
-  '--sheet-header-label-active': HEADER_ACTIVE_LABEL,
+  '--sheet-header-label-active': HEADER_ACTIVE_FILL,
   '--sheet-active': ACTIVE_BORDER,
   '--sheet-selection': SELECTION_FILL,
   '--sheet-frozen': FROZEN_PANE_BORDER,
