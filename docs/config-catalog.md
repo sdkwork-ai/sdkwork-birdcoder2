@@ -514,7 +514,7 @@ export type Config = LocalConfig
 ## `@deepseek-ai/dsh-birdcoder-account`
 
 - `inject`: `credentials` · `settings`
-- `source`: [`packages/credentials/birdcoder-account/src/index.ts:38`](../packages/credentials/birdcoder-account/src/index.ts)
+- `source`: [`packages/credentials/birdcoder-account/src/index.ts:47`](../packages/credentials/birdcoder-account/src/index.ts)
 
 ```ts config-catalog
 export interface Config {
@@ -536,6 +536,31 @@ export interface Config {
   settingsNs?: string
   /** Session poll interval in milliseconds; `0` disables polling. */
   pollIntervalMs?: number
+  /**
+   * Whether to load the operator-authored front-end model configuration that
+   * decides which catalog models the relay exposes. Defaults to `true`; the
+   * loader falls back to the build-time seed whenever the document is not
+   * reachable.
+   */
+  modelCatalogEnabled?: boolean
+  /** Absolute app-api URL; defaults to the BirdCoder gateway's front-end configuration path. */
+  modelCatalogEndpoint?: string
+  /**
+   * Absolute path of a pre-fetched configuration document. A shell that holds
+   * the IAM tokens can project the document here so this Host child process
+   * never needs the access token.
+   */
+  modelCatalogDocumentFile?: string
+  /** Product surface whose exposure drives the relay catalog; defaults to `llm`. */
+  modelCatalogChannelCode?: string
+  /** Refresh interval for the remote document; `0` leaves only the start-up load. */
+  modelCatalogPollIntervalMs?: number
+  /** Per-request timeout for the remote document. */
+  modelCatalogTimeoutMs?: number
+  /** Explicit app-api auth token, for a deployment that provisions it. */
+  modelCatalogAuthToken?: string
+  /** Explicit app-api access token, for a deployment that provisions it. */
+  modelCatalogAccessToken?: string
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-birdcoder-account -->
