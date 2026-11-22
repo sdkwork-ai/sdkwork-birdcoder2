@@ -127,11 +127,15 @@
 * **预览客户端按面分目录**（`refactor(preview): group preview clients and row menus into per-surface directories`）：audio/image/video/pdf/docx/xlsx/pptx 预览与行菜单各自成目录；`xlsx` 表头填充改用活动主题 token（`fix(xlsx-preview): use the active header fill token in the sheet grid`）。
 * **打包与配置**：`fix(pack): treat git dirty marker as build-time provenance`、`fix(build): tolerate vanished files and out-of-tree links when stamping`、重新生成部署 profile 的 env 文件、`mcp-connector` 前移到 0.2.119。
 
-#### 后续项（本轮未做，均不影响合并完整性）
+#### 发布准备（本版本打包前）
+
+* **模型价格分组前置到模型行下方**（`feat(model-menu): place model price group directly under the model row`）：`ui-model-selection` 新增会话级列表插槽 `conversation.input.model.afterModel`，`ModelPicker` 增加 `renderAfterModel` 座位并在 `ModelSelect` 侧从插槽注册表投影；`ui-sdkwork-model-price-group` 的「模型价格分组」摘要从 `options` 迁到 `afterModel`，紧贴它所作用的「模型」行，详情面板（key `model-price-group`）与「仅 `birdcoder` 提供方渲染」不变。`slot-catalog.ts` 随之重生成，并补 `model-price-groups-transport.client.spec.ts` 记录 CloudRouter app API 的请求形状。
+* **子模块指针前移**（`chore(plugins): advance the submodule pins to their current upstream heads`）：`dsh-mcp-connector` 78a2976 → 7d719af（安装连接布局修复与 Registry 连接器数量文档）、`dsh-im` fc2ceab → 0694642（入站转发卡片读取正文）、`dsh-better-sidebar` aa2a058 → 14219fa（Git 详情关闭按钮常驻 Tabs 行、空白会话可从右栏展开底部工作台、原生搜索头部对齐）。三者包版本未变，因此不牵动任何消费者 pin 与 lockfile。
+
+#### 后续项（本轮未做，均不影响发布完整性）
 
 * `gen-cordis-inspect-catalog` 需先给 `packages/client/ui-sdkwork-im/src/client/im-service.ts:335` 的公有属性补显式类型标注（上游 typert 新规则），再重跑生成 `packages/extensions/tool-cordis/src/api-catalog.ts`；当前该文件为上游产物。
-* `scripts/ci-workflow.spec.ts` 尚有六项工作流断言待对齐：worker 并发核算已按合并后的 `ci.yml`（coverage 两分片、`node-24-build`、`node-24-web-snapshot`、bench 两阶段）改成 16 并发与 `linuxActive` 公式，但 coverage 缓存键、必需判定 `needs`、Windows 拆分作业等断言仍按 fork 合并前的 `ci.yml` 形状，需在跑通 CI 后逐项重算。
-* 单测、桌面打包与打包产物验收未在本轮执行（本轮只要求「同步 + 类型门禁」：`build:lib:host` 与客户端测试面 `tsc -b` 已通过）。
+* `scripts/ci-workflow.spec.ts` 尚有六项工作流断言待对齐（worker 活跃上限、必需判定 `needs`、聚合诊断、coverage 缓存键与 runner 池、Windows 拆分作业、Wine 手动套件），全部按 fork 合并前的 `ci.yml` 形状书写，需按合并后的工作流逐项重算。
 * `packages/experimental/client-ui-{action-cards,creation-recommendations,plugin-recommendations}` 三个目录只残留重命名前的未跟踪构建产物（`lib/`、`node_modules/`），不参与 workspace 与类型检查，可在下次清理构建目录时一并删除。
 
 本文件只保留当前版本一节；往期条目随各自版本的提交留在 git 历史里（`git log -p CHANGELOG.md`）。Release notes 就是本节内容。
