@@ -273,8 +273,8 @@ describe('AppFrame', () => {
   it('mounts the shell.leading seat only while the darwin collapse hides the column', () => {
     document.documentElement.dataset.platform = 'darwin'
     const { frame, instance, sidebarOwner, queryByTestId } = mountFrame()
-    // The frame declares no window drag of its own: every chrome row owns its
-    // run (ui-sidebar, ui-dockkit, ui-conversation, ui-plugin-manager).
+    // No frame-wide drag band: every chrome row owns its run (the rail's top
+    // strip, ui-sidebar, ui-dockkit, ui-conversation, ui-plugin-manager).
     expect(frame.querySelector('[data-shell-leading-band]')).toBeNull()
     expect(queryByTestId('shell.leading-content')).toBeNull()
     act(() => { instance.actions.toggleSidebar() })
@@ -284,6 +284,27 @@ describe('AppFrame', () => {
     expect(queryByTestId('shell.leading-content')).toBeTruthy()
     act(() => { instance.actions.toggleSidebar() })
     expect(queryByTestId('shell.leading-content')).toBeNull()
+  })
+
+  it('reserves the macOS window strip above the rail occupant and marks it as window drag', () => {
+    document.documentElement.dataset.platform = 'darwin'
+    const { frame, getByTestId } = mountFrame()
+    const rail = frame.firstElementChild as HTMLElement
+    const strip = rail.firstElementChild as HTMLElement
+    // The traffic lights sit over this track, so the band above the first mode
+    // cell is the rail's own run of the window's drag surface — marked, so
+    // ui-web base.css turns the mark into the darwin drag rule.
+    expect(strip.hasAttribute('data-window-drag')).toBe(true)
+    expect(strip.getAttribute('aria-hidden')).toBe('true')
+    // The strip is the band, not a flow row: the occupant still follows it.
+    expect(strip).not.toBe(getByTestId('mode.rail-content'))
+    expect(rail.querySelector('[data-testid="mode.rail-content"]')).not.toBeNull()
+  })
+
+  it('adds no window strip outside the macOS desktop shell', () => {
+    const { frame } = mountFrame()
+    const rail = frame.firstElementChild as HTMLElement
+    expect(rail.querySelector('[data-window-drag]')).toBeNull()
   })
 
   it('switches only the keyed main outlet when the active panel changes', () => {

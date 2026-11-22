@@ -6,7 +6,7 @@ Status: implemented
 
 ## Problem
 
-macOS 桌面窗口的可拖区域被写了两遍。布局决定 chrome 行在哪——它们多高、装了什么；手写的 app-region 声明决定什么能拖：每个 chrome 行一条行声明（侧栏顶条与 logo 行、ui-dockkit 的 strip 行、会话 header、插件管理的页头、Platform 浮层的返回栏），加上散落在 ui-web、ui-settings-general、ui-sidebar-right 的逐盒减除。两份描述靠人肉保持一致，于是会漂：盒子与 band 不匹配的行，要么有 chrome 落在拖拽面之外（就是反馈里的"header 能拖，但有些空白与控制不能"），要么有内容落进拖拽面（点偏几个像素就变成拖窗口，双击那里还会触发系统标题栏行为）。
+macOS 桌面窗口的可拖区域被写了两遍。布局决定 chrome 行在哪——它们多高、装了什么；手写的 app-region 声明决定什么能拖：每个 chrome 行一条行声明（侧栏顶条与 logo 行、模式栏顶条、ui-dockkit 的 strip 行、会话 header、插件管理的页头、Platform 浮层的返回栏），加上散落在 ui-web、ui-settings-general、ui-sidebar-right 的逐盒减除。两份描述靠人肉保持一致，于是会漂：盒子与 band 不匹配的行，要么有 chrome 落在拖拽面之外（就是反馈里的"header 能拖，但有些空白与控制不能"），要么有内容落进拖拽面（点偏几个像素就变成拖窗口，双击那里还会触发系统标题栏行为）。
 
 ## Decision
 
@@ -45,6 +45,7 @@ macOS 桌面窗口的可拖区域被写了两遍。布局决定 chrome 行在哪
 - `packages/client/web/tests/window-drag-regions.client.spec.ts` —— 合成规则，含顺序敏感与盒子边界。
 - `packages/client/web/tests/base-styles.client.spec.ts` —— base.css 声明模型的交互选择器和控件作用范围、逐元素重置、视口排除、唯一那条 darwin drag 规则，以及 recall 标记的减除。
 - `packages/client/ui-theme/tests/app-region-styles.client.spec.ts` —— 拖拽所有权、行清单与每行的标记；清单之外的标记或行高变化即失败。
+- `packages/client/ui-layout/tests/app-frame-styles.client.spec.ts` —— 模式栏轨道仅在 darwin 上预留发布的下沉量，其打标顶条占据该带。
 - `packages/client/ui-dockkit/tests/app-region-styles.client.spec.ts` —— 面板、strip 末端 chrome、浮动面板和分隔条排除自身矩形；面板的排除矩形覆盖其正文。strip 行的 drag 属于 markup 标记，因此样式表不声明 drag。
 - `packages/client/web/tests/window-drag-recall.client.spec.ts` —— 通过两个 seam 驱动 watcher：什么会重新启动它、什么被它忽略、收敛循环、外壳默认值，以及销毁。
 - `apps/web/tests/window-drag-coverage.e2e.ts` —— 真 Chromium：控件与区域所有者分开探测，被裁剪的转录区与标签内容不能减除页头，含浮动面板的全屏右栏保留预期排除，inert 的保留面板不影响前景行。插件管理页头的紧凑态场景检查标记页头的矩形不会延伸到列表控件上方。逐行探测、详情页正文排除、浮层和右栏 recall 脉冲仍有覆盖。
@@ -61,6 +62,7 @@ macOS 桌面窗口的可拖区域被写了两遍。布局决定 chrome 行在哪
 | 侧栏展开、选中会话、显示视图 tab | 侧栏顶条、侧栏 logo 行、会话标题行、会话 tab 条行，以及这些行里的每个控件 |
 | 侧栏展开、选中会话、单视图（无 tab） | 同上，外加 header 之下的转录区首行 |
 | 侧栏收起 | 覆盖中列的 会话 header、`shell.leading` 座的控件、重新打开与新会话 |
+| 模式栏，两种侧栏状态 | 首个模式单元之上的窗口顶条——红绿灯那一段——以及其下每个模式单元、自定义按钮与底部控件簇 |
 | 右栏 push | 面板 strip 行及其控件、strip 下方的 pane body 段、分栏分隔条的顶部一段 |
 | 右栏 fullscreen | 红绿灯处的面板 strip 行、首格 strip 内边距、其控件，分别检查有无浮动面板 |
 | 入口页（开始页、插件管理、设置） | 含 48px 避让量的页头、它的首个控件行，以及详情页页头行与其正文 |

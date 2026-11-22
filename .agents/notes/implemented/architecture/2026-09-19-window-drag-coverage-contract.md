@@ -6,7 +6,7 @@ English | [中文](2026-09-19-window-drag-coverage-contract.zh.md)
 
 ## Problem
 
-The macOS desktop window's draggable area is authored twice. The layout decides where chrome rows are — their heights and what they contain — while hand-written app-region declarations decide what drags: one row declaration per chrome row (the sidebar's top strip and logo row, ui-dockkit's strip row, the Conversation header, the plugin manager's page heads, the Platform overlay's return bar) plus per-box subtractions spread across ui-web, ui-settings-general and ui-sidebar-right. The two descriptions are kept in step by hand, so they drift: a row whose box does not match the band leaves chrome outside the drag surface (the reported "the header drags, but some blank runs and controls do not") or puts content inside it (a press that misses a control by a few pixels drags the window, and a double click there runs the system's title-bar action).
+The macOS desktop window's draggable area is authored twice. The layout decides where chrome rows are — their heights and what they contain — while hand-written app-region declarations decide what drags: one row declaration per chrome row (the sidebar's top strip and logo row, the mode rail's window strip, ui-dockkit's strip row, the Conversation header, the plugin manager's page heads, the Platform overlay's return bar) plus per-box subtractions spread across ui-web, ui-settings-general and ui-sidebar-right. The two descriptions are kept in step by hand, so they drift: a row whose box does not match the band leaves chrome outside the drag surface (the reported "the header drags, but some blank runs and controls do not") or puts content inside it (a press that misses a control by a few pixels drags the window, and a double click there runs the system's title-bar action).
 
 ## Decision
 
@@ -45,6 +45,7 @@ The native half — whether a press really drags or reaches the page — stays a
 - `packages/client/web/tests/window-drag-regions.client.spec.ts` — the composition rule, including order sensitivity and box edges.
 - `packages/client/web/tests/base-styles.client.spec.ts` — base.css declares the model's interactive selector and control scopes, element-level reset, viewport exclusion, the one darwin drag rule, and the recall mark's subtraction.
 - `packages/client/ui-theme/tests/app-region-styles.client.spec.ts` — drag ownership, the row manifest, and each row's mark; a mark outside the manifest or a changed row height fails.
+- `packages/client/ui-layout/tests/app-frame-styles.client.spec.ts` — the mode rail's track reserves the published top step on darwin only, and its marked strip holds that band.
 - `packages/client/ui-dockkit/tests/app-region-styles.client.spec.ts` — panes, strip-end chrome, floats, and dividers exclude their boxes; a pane's exclusion covers its body. Strip-row drag belongs to the markup mark, so the sheet declares no drag.
 - `packages/client/web/tests/window-drag-recall.client.spec.ts` — the watcher through its two seams: what re-arms it, what it ignores, the settle loop, the shell defaults, and disposal.
 - `apps/web/tests/window-drag-coverage.e2e.ts` — real Chromium: controls are probed separately from region owners, clipped transcript and tab content cannot subtract headers, fullscreen right panels with floating panes retain their intended exclusions, and inert retained panels do not affect foreground rows. The compact plugin-manager header scenario checks that the marked header box does not extend over list controls. Per-row probes, detail-page body exclusion, overlays, and the right-panel recall pulse remain covered.
@@ -61,6 +62,7 @@ Run on the packaged macOS app for any change to this layer. Each cell means both
 | Sidebar expanded, Conversation selected, view tabs shown | sidebar top strip, sidebar logo row, conversation title row, conversation tab-strip row, every control in those rows |
 | Sidebar expanded, Conversation selected, single view (no tabs) | same rows, plus the transcript's first rows below the header |
 | Sidebar collapsed | Conversation header over the centre, `shell.leading` seat controls, reopen and New session |
+| Mode rail, either sidebar state | the window strip above the first mode cell — the traffic-light band — then every mode cell, the customize button and the bottom cluster as controls |
 | Right sidebar pushed | panel strip row and its controls, the pane body run below the strip, the pane divider's top run |
 | Right sidebar fullscreen | panel strip row at the traffic lights, first pane's strip inset, its controls, with and without floating panes |
 | Entry page (guide, plugin manager, settings) | page head with its 48px clearance, its first control row, and a detail page's head row over its body |

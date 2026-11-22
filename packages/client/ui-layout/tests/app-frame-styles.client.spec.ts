@@ -62,3 +62,24 @@ describe('AppFrame.module.css grid placement', () => {
     ])
   })
 })
+
+describe('AppFrame.module.css macOS window strip', () => {
+  // The rail track owns the window's top-left corner, where hiddenInset draws
+  // the traffic lights (16, 18 → 68, 30). Reserving the frame's constant top
+  // step keeps the first mode cell below them instead of under them; the step
+  // is padding so the occupant's `height: 100%` still measures the track.
+  it('reserves the top step above the rail occupant on darwin only', () => {
+    const rail = declarations(css, ":global([data-platform='darwin']) .railCol")
+    expect(rail?.get('padding-top')).toBe('var(--dsh-frame-top-clearance, 0px)')
+    expect(rail?.get('box-sizing')).toBe('border-box')
+    // Windows already starts the rail below its caption through the frame's
+    // padding, and a plain browser has no native chrome to clear.
+    expect(declarations(css, '.railCol')?.get('padding-top')).toBeUndefined()
+  })
+
+  it('lays the drag strip over the reserved band instead of in flow', () => {
+    const strip = declarations(css, '.railWindowStrip')
+    expect(strip?.get('position')).toBe('absolute')
+    expect(strip?.get('height')).toBe('var(--dsh-frame-top-clearance, 0px)')
+  })
+})

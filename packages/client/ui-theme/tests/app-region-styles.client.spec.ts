@@ -46,6 +46,7 @@ const SIDEBAR = 'client/ui-sidebar/src/client/SidebarRoot.module.css'
 // The manifest names authored chrome rows, not mounted ones, so both packages
 // stay listed; a composition mounts exactly one of them.
 const FORK_SIDEBAR = 'client/ui-sdkwork-sidebar/src/client/SidebarRoot.module.css'
+const FRAME = 'client/ui-layout/src/client/AppFrame.module.css'
 const CONVERSATION = 'client/ui-conversation/src/client/skeleton/ConversationRoot.module.css'
 const DOCKKIT = 'client/ui-dockkit/src/components/dockkit.module.css'
 const PLUGIN_MANAGER = 'client/ui-plugin-manager/src/client/PluginManagerPage.module.css'
@@ -100,6 +101,12 @@ const CHROME_ROWS: readonly ChromeRow[] = [
     selector: '.logoRow',
     markup: 'client/ui-sdkwork-sidebar/src/client/SidebarRoot.tsx',
     height: ['height', '60px'],
+  },
+  {
+    file: FRAME,
+    selector: '.railWindowStrip',
+    markup: 'client/ui-layout/src/client/AppFrame.tsx',
+    height: ['height', 'var(--dsh-frame-top-clearance, 0px)'],
   },
   {
     file: CONVERSATION,

@@ -81,10 +81,36 @@
    It never concedes to viewport pressure (AppFrame nets it out before the
    solve), so a plain fixed width is the whole contract. */
 .railCol {
+  position: relative; /* anchors the darwin window strip over the occupant */
   grid-column: 1;
   grid-row: 1;
   width: 56px;
   overflow: hidden;
+}
+
+/* macOS hiddenInset titlebar: the track shares the window's top-left corner
+   with the traffic lights, so it reserves the frame's constant top step above
+   its occupant instead of starting the first mode cell under them. The
+   reservation is padding, not a flex sibling, because the occupant sizes
+   itself to the track's content box (`height: 100%`). Windows already starts
+   the rail below the caption through the frame's own padding, and a plain
+   browser has no native chrome, so both leave the occupant's 12px inset as
+   the whole top gap. The first cell then starts at the step (48px) and centres
+   on the sidebar's brand row, which the expanded sidebar seats at the same
+   step. */
+:global([data-platform='darwin']) .railCol {
+  box-sizing: border-box;
+  padding-top: var(--dsh-frame-top-clearance, 0px);
+}
+
+/* The reserved band itself: the rail's share of the window's top strip, laid
+   over the padding so it never moves the occupant. Marked `data-window-drag`
+   in markup (AppFrame), so ui-web base.css turns it into this column's window
+   drag and the sidebar's top strip continues that run to the right. */
+.railWindowStrip {
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--dsh-frame-top-clearance, 0px);
 }
 
 .frame[data-sidebar-hidden] .sidebarCol {
@@ -232,12 +258,13 @@
   left: 12px;
 }
 
-/* The frame declares no window drag of its own: every chrome row owns the drag
-   over its own box (ui-web base.css holds the one rule; the ui-theme app-region
-   gate lists the rows). The ordering rule that replaces the old "band first"
-   invariant: a surface that covers the window and must stay clickable portals
-   beside #root, which puts it after every drag row in document order. The Windows
-   caption row above is the other platform's chrome and stays. */
+/* No frame-wide drag band: every chrome row owns the drag over its own box
+   (ui-web base.css holds the one rule; the ui-theme app-region gate lists the
+   rows, including this frame's own .railWindowStrip band). The ordering rule
+   that replaces the old "band first" invariant: a surface that covers the
+   window and must stay clickable portals beside #root, which puts it after
+   every drag row in document order. The Windows caption row above is the other
+   platform's chrome and stays. */
 
 /* The seat itself: the two 28px controls centered on the conversation title
    row (10px header inset + 30px row → centre y 25) and level with the traffic

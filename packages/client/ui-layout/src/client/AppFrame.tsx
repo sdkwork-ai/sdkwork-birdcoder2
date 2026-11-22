@@ -372,10 +372,16 @@ export function AppFrame({
       data-animating={animateTracks || undefined}
     >
       {/* No frame-wide drag band: every chrome row owns its own drag region
-          (ui-sidebar, ui-dockkit, ui-conversation, ui-plugin-manager), so the
-          frame must not claim a grid cell of its own — an auto-placed band
-          ahead of the rail would push the rail out of row 1. */}
+          (the rail's top strip, ui-sidebar, ui-dockkit, ui-conversation,
+          ui-plugin-manager), so the frame must not claim a grid cell of its
+          own — an auto-placed band ahead of the rail would push the rail out
+          of row 1. */}
       <div className={css.railCol}>
+        {/* macOS hiddenInset titlebar: the traffic lights sit over this corner,
+            so the track reserves the frame's top step above its occupant and
+            this strip holds that band — the rail's run of the window's drag
+            surface, which the sidebar's top strip continues to the right. */}
+        {darwin && <div className={css.railWindowStrip} data-window-drag aria-hidden="true" />}
         {/* Render-site slot call with the live mode state: the occupant (the
             app-mode rail) receives the active mode and the switch action from
             the frame's store, so it never needs the layout service. */}
