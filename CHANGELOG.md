@@ -1,6 +1,6 @@
 # BirdCoder 更新日志
 
-本文件只记录**当前版本**——`##` 标题就是本次发布打的 tag，不累积历史版本条目；往期条目随各自版本的提交保留在 git 历史里（`git log -p CHANGELOG.md`）。「上游变更」按该 tag 内的实际提交归纳并注明来源（上游尚未发布该版 Release notes 时如此处理）；「BirdCoder 本次更新」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
+本文件只记录**当前版本**——`##` 标题就是本次发布打的 tag，不累积历史版本条目；往期条目随各自版本的提交保留在 git 历史里（`git log -p CHANGELOG.md`）。「上游变更」按该 tag 内的实际提交归纳并注明来源（上游发布该版 Release notes 时以其正文为准并核对仓库落点）；「BirdCoder 本次更新」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
 ## 0.2.3-alpha.2（fork 同步 2026-11-23）
 
@@ -8,48 +8,70 @@
 
 ### 上游变更（deepseek-harness 0.2.3-alpha.2）
 
-上游尚未以 Release 正文形式发布该版说明，以下按 `git log dsh-v0.2.2-rc.5..dsh-v0.2.3-alpha.2` 的实际提交主题归纳。
+上游已发布该版本线的 Release notes（`dsh-v0.2.3-alpha.1` 功能说明 + `dsh-v0.2.3-alpha.2` 收尾说明）。以下按 Release 正文归纳，并逐项核对仓库内落点（包路径 / 生成物 / 配置项），确认合并后确实可运行而不只是文字同步。
 
-#### 企业连接器：新增五个插件
+#### 连接器与插件市场
 
-* 新增 **Feishu（飞书）**、**WeCom（企业微信）**、**DingTalk（钉钉）**、**Tencent Meeting（腾讯会议）**、**Tencent Docs（腾讯文档）** 五个连接器插件（`packages/connector/{feishu,wecom,dingtalk,tencent-meeting,tencent-docs}`），合计 167 个提交；各自随附客户端 UI 包（`ui-feishu` / `ui-wecom` / `ui-tencent-meeting` 等）与 bundle 语言包。
-* 五个插件的 CLI 与账号统一走共享 `ctx.cliAccounts` 与 `ctx.upstreamSkills`：`lark-cli`、`wecom-cli`、`dws`、`tmeet` 按 profile 各自缓存，账号通过共享 connector account registry 在 Host 注册并展示，账号类型不再从插件入口导出（`refactor(feishu|wecom|dingtalk|tencent-meeting): register … with ctx.cliAccounts`、`stop exporting the account types from the plugin entry`）。
-* bundle 折叠进各自插件包（`refactor(…): fold the … bundle into its plugin package`），Plugins 页显示品牌图标与 feature preview（`show … brand icon on the Plugins page`、`show a feature preview on the bundle's Plugins page`），英文标题改为句首大写。
-* 行为修复：企业微信沙箱 `853004` 重跑而非重开授权、钉钉文件沙箱不再读成已登出账号、钉钉可按机构重新登录并给出下载源上限与页面取消、飞书入口技能改为静态 provider 并按退出码报告失败。
+* 新增 **Linear、Notion、腾讯文档、飞书、企业微信、腾讯会议、钉钉** 七个连接器插件（`packages/connector/{linear,notion,tencent-docs,feishu,wecom,tencent-meeting,dingtalk}`），插件页统一管理连接器账号（`packages/client/ui-connector-account`）；账号经共享 registry 在 Host 注册，CLI 与上游技能下载共用 `ctx.cliAccounts` / `ctx.upstreamSkills`（`packages/connector/{cli-account,upstream-skills}`），账号类型不再从插件入口导出。
+* 五个企业连接器（飞书 / 企业微信 / 钉钉 / 腾讯会议 / 腾讯文档）合计 167 个提交：bundle 折叠进各自插件包、Plugins 页显示品牌图标与 feature preview；修复企业微信沙箱 `853004` 重跑、钉钉沙箱账号误判登出、钉钉按机构重新登录与下载源上限、飞书入口技能改静态 provider 等。
+* MCP 支持 OAuth 授权与凭据自动刷新（`plugins/dsh-mcp-connector` 前移到 0.2.119）；新增**可选的 MCP 工具按需加载**模式，降低模型请求的上下文占用。
+* 插件市场可添加 **Git 仓库（含私有仓库）**作为插件来源（`packages/boot/plugin-manager/src/source.ts`、`packages/client/ui-plugin-market`）。
+
+#### 代码审阅
+
+* 新增**代码审阅页**（`packages/experimental/{forge,forge-github,forge-gitlab}`）：集中查看本人相关 GitHub PR、浏览描述与变更、在页内与智能体协作审阅；插件可扩展自定义审阅视图、行注解与工具栏/文件菜单/评论框动作；同时支持评审与合并 GitLab MR。
+
+#### 会话体验
+
+* 新增**会话状态区域**（`packages/client/ui-session-status`）：工作目录、变更请求、子智能体、任务与插件状态集中展示，窄窗口可停靠、拖动调整分区顺序。
+* 会话**已读/未读**：完成后标记未读、菜单或快捷键切换，返回最近会话时保留侧栏状态（`ui-session-status/src/client/acknowledge.ts`）。
+* **跨 Session 消息**：共享的跨会话发消息能力，消息以发送方 Session 为前缀；Web 侧工具默认关闭，启用后按用户要求向同一运行时的其他普通会话发文本并支持跨工作区。
+* 新增实验性 **Timeline** 插件：查看智能体任务树、阻塞事项与进展报告，点击进度条展开任务树，任务与报告语言可选跟随对话（`packages/experimental/timeline`）。
+* 普通会话可从列表拖到右侧栏打开并继续对话；分支会话创建需同时提供完整历史与 `parentSource`（`packages/api/session-controller/src/commands.ts`）。
+* 压缩摘要可在右侧栏预览（手动或自动生成的上下文压缩）；空白输入框按 ↑ 召回本会话已发送文本，↑/↓ 浏览且不覆盖正在编辑的草稿；文件右键菜单「添加到对话」插入引用而不发送；实验性「持久终端」恢复启停与详情入口（安装后默认关闭）。
+* `list_agents` 的返回值增加并发占用、上限与成员列表（成员改从 `agents` 字段读取，guide `list-agents-capacity`）；会话工具提供可选的只读工作区与会话列表；会话存储支持实验性 SQLite 后端（默认仍为 JSONL）。
+
+#### Web 与客户端
+
+* Web 连接模式新增**远程登录**：独立登录链接或设备配对，并提供标准连接鉴权 API 供插件注册 provider（`packages/client/remote-connection`）。
+* 搜索与列表：会话列表与 @ 引用候选加载更快，搜索列表支持模糊与跨语言匹配（输入 `cpt` 命中 `/compact`），新建会话的 workspace picker 可按名称或目录路径搜索。
+* 性能：长会话的流式输出、轮次导航与右侧栏拖动更跟手，大型 Markdown 表格/列表在对话与文档预览中的卡顿减少；侧栏 resize 不再触发无关子树重算。
+* 设置与模型：模型菜单的智能体团队入口收进二级面板（开关与开销说明）；「模型」设置可自定义内置目录模型的推理档位；`DeepSeek` 提供方更名为 **`DeepSeek API`** 以区别 DeepSeek 账号，模型/搜索/网页抓取统一经 `ctx.deepseekAuth` 取授权。
+* 个性化推荐插件默认随包发布并直接显示在回答中（`packages/experimental/personalized-recommendations`，原 `personalized-recommendations` bundle 退役）。
 
 #### CUA（计算机使用）
 
-* **最近活动上报**：模型下一步之前上报最近窗口活动（`feat(cua): report recent window activity before the next model step`、`report recent macOS application activity`），macOS 默认回看窗口缩短到 10 秒且可按连接关闭（`shorten default macOS activity lookback to ten seconds`、`allow disabling macOS recent activity per connection`）；系统睡眠计入活动时长。
-* **显式系统输入统一**：显式系统输入与键盘修饰键合并为一条路径（`feat(cua): unify explicit system input and keyboard modifiers`），按会话事件源归因系统输入、校验系统输入准入、显式查询 WindowServer 窗口 ID 归属输入、只查询输入事件目标窗口；Windows 实现窗口级鼠标按键切换（`feat(cua-windows): implement window-level mouse button toggles`）。
-* **动作 schema 发现**（`feat(cua): add action schema discovery`）、按调用 PTC 提供 object API、工具说明中的程序作用域澄清、原始协议指导仅对 raw 调用方生效；读取期间检测输入、避免等待桌面任务、步骤取消在 helper 查询后复查、提醒按已投递观察过滤。
+* **最近活动上报**：模型下一步前上报最近窗口活动，macOS 默认回看缩短到 10 秒且可按连接关闭，系统睡眠计入活动时长。
+* **显式系统输入统一**：显式系统输入与键盘修饰键合为一条路径，按会话事件源归因、校验准入、经 WindowServer 窗口 ID 归属输入目标；Windows 实现窗口级鼠标按键切换。
+* 动作 schema 发现、按调用提供 PTC object API；新增 `cua-mcp` 让外部以 MCP 服务器形式接入（`packages/experimental/{cua,cua-bundle,cua-mcp,cua-windows,cua-macos}`）。
 
-#### Web、侧栏与客户端
+#### Office、PTC 与 Python
 
-* 个人化推荐默认随包发布（`feat(web): ship personalized recommendations by default`），个人化推荐 bundle 随之退役（upgrade guide `personalized-recommendations-bundle-retired`）；动作卡片独立成包（`independent-action-cards`）。
-* 侧栏性能：resize 信号不再触发无关子树、避免 resize 期间的同步布局读取、长历史避免整文档样式重算（`perf(web): …` ×3）。
-* 拖拽 Session 到右侧栏打开（`feat(web): open a dragged Session in the right sidebar`）；workspace picker 增加搜索（`feat(client): add workspace picker search`）。
-* 计划与压缩内容可独立预览（`feat(client): preview plan and compaction content independently`、upgrade guide `compaction-summary-preview`）。
+* `/office` 统一提供 Word / PowerPoint / Excel 指引（`packages/skill/skill-office/assets/office/SKILL.md`），删除三个格式技能与格式指导文件，改为按需读取的资源文件；内置 Python 提供 `pypdf`，Office 指引说明如何用它处理已有 PDF。
+* Node PTC 默认在调用间保留变量、支持重复声明、用 `inspect` 展示文本/图片/工具结果并截断超限输出；**移除 Python PTC**（`packages/ptc-runtime`），PTC 默认改用 scoped REPL。
+* `node` 引擎区间收紧为 `^24.22.3 || >=26.13.1`（upgrade guide `node-24-22-3`）。
 
-#### 会话与远程连接
+#### Cordis、插件与工具协议
 
-* 新增**跨 Session 消息控制**：共享的跨会话发消息能力，跨会话消息以发送方 Session 为前缀，Web Session 通过 Session controller 投递（`feat(session): add shared cross-session message control`、`prefix cross-Session messages with the sender Session`、`message Web Sessions through the Session controller`）。
-* Session 校验与 header 构建为 `SessionData` 做准备（`refactor(session): prepare Session validation and header building for SessionData`）；`tool-session-query` 的 inspect-session 通道移除（upgrade guide `session-query-inspect-session-removed`）。
-* 远程连接：浏览器通过共享根登录页配对（`feat(remote-connection): pair browsers through the shared root login page`），QR 凭据在根登录页兑换，浏览器认证交由 provider 管理，并新增设置扩展槽（`add settings extension slot`）。
+* vendor 同步到 **cordis 4.2.0-alpha.1 / schemastery 3.20.0-alpha.1 / loader·group·hmr·timer·logger-console 1.2.x / cosmokit 1.10.0 / include 1.2.x**（`vendor/*/package.json`，随上游 `release(vendor)` 提交）。
+* Cordis 检查工具把创造模式的多个工具合并为 `cordis_inspect` 并在标准模式默认启用（`packages/extensions/tool-cordis`）；插件配置由仅后端读取扩展为前端亦可读取，volatile 配置支持实时同步；开启 HMR 时 `--patch` 覆盖文件修改无需重启。
+* 工具失败结果统一携带结构化错误名与错误码；模块导出入口规范（移除仅测试导出与旧子路径，类型改从 `/types` 或包根导入）；客户端插件产物结构改为框架挂载时安装样式（CSS Modules 类名格式变化）。
+* 系统提示词按来源增量更新、压缩后重建；SDK 提示可逐条指定时区，未指定时用可识别的运行时时区。
 
-#### 桌面
+#### 修复
 
-* 应用菜单新增 **Settings…**（`feat(desktop): add Settings to the application menu`），快捷键处理与 `closeBinding` 对齐；安装器参数摘要（`feat(desktop): summarize Windows packaging parameters`）、支持 Windows 预登录打包 runner（`support Windows pre-login packaging runners`）。
+* 会话与模型：切换模型后首个请求超上下文不再卡死（自动恢复与 `/compact` 改用最近回答的模型生成摘要）；恢复旧版会话在单文件运行时（Python wheel）失败；草稿附件在切换会话时丢失；插件管理的重启指引变更为读已生效。
+* 桌面与 Windows：安装完成时拖动导致输入卡住、关闭按钮失效；卸载后残留系统登记与清理失败未上报；「在应用中打开」VS Code / Cursor 失败；打开用量/充值页后 `Cmd+W` 无法关窗；诊断历史因文件身份误判或临时打开失败而漏记。
+* 其他：macOS 输入框 Home/End 误滚动对话（改为行首/行末）、剪贴板写入被拒时复制按钮失效、`read`/`glob` 处理大文件后持续占用内存、不存在的 @ 路径被当作文件引用、手动输入 @ 路径字符顺序错乱、模型菜单点分组标题/空白处误关、多端口登录 Web 后旧登录状态累积导致页面打不开。
 
-#### Office 与 Python 运行时
+#### 破坏性变更与迁移
 
-* Office 技能目录**只保留 `office`**，三个格式技能（`office-docx` / `office-pptx` / `office-xlsx`）与三个格式指导文件删除，格式指导改为按需读取的资源文件（`feat(office): Office 技能目录只保留 office…`、upgrade guide `office-single-skill`）；PDF 支持保留在打包的 Python 与既有路由上。
-* Python 运行时：`node` 引擎区间收紧为 `^24.22.3 || >=26.13.1`（upgrade guide `node-24-22-3`），pi-image 缩放默认值、PTC 默认 scoped REPL、SDK prompt 时区、system-prompt 集成点等随之调整。
+* 新增 **15 个 upgrade guide**（`v0.2.2-rc.5` 14 个 + `v0.2.3-alpha.1` 1 个），合并后全部随仓库提供：`archive-worktrees-without-sandbox-policy`、`compaction-summary-preview`、`cua-activity-helper`、`cua-held-inputs`、`cua-system-input`、`independent-action-cards`、`list-agents-capacity`、`office-single-skill`、`personalized-recommendations-bundle-retired`、`pi-image-resize-defaults`、`ptc-default-scoped-repl`、`sdk-prompt-time-zone`、`session-query-inspect-session-removed`、`system-prompt-integrations`、`node-24-22-3`。
+* 其中要求外部适配的主要几项：会话 `cwd` 迁移后文件视图与 `workspace-write` 边界随之切换，`working_directory` 与委派 `cwd` 参数移除、工作树改用 `enter_worktree` / `exit_worktree`（`packages/experimental/tool-worktree`）；`fileAddressFor` 返回相对地址的插件需适配；会话状态迁到新包 `dsh-client-ui-session-status`，读取方需在 `inject` 声明；SDK 恢复会话接口支持 `permissionMode` 覆盖。
 
-#### Forge、工具与工程
+#### 工程与 CI
 
-* Forge：分支选择器改用共享菜单搜索（`feat(forge): use the shared menu search in the base branch pickers`）、列表徽标改读状态简报并在打开时刷新、push 后与执行工具的轮次结束时轮询、共享状态拉取并在隐藏时暂停。
-* 工具与协议：`ctx.mcpManager` 重命名贯穿客户端与 Host；Linear / Notion 的 `src/copy.ts` 改名为 `src/locales.ts` 并接入 connector account registry；Web 搜索默认模型切到 DeepSeek。
-* 新增 16 个 upgrade guide（`v0.2.2-rc.5` 15 个 + `v0.2.3-alpha.1` 1 个），覆盖 CUA 活动/按键/系统输入、office 单技能、个人化推荐退役、动作卡片独立、PTC scoped REPL、Session 查询通道移除等外部可感知变更；CI 侧 coverage 拆成两个分片并新增 `node-24-coverage-report`、`node-24-build`、`node-24-web-snapshot` 作业，PR 并发上限从 11 提到 16。
+* CI：coverage 拆为两个分片并新增 `node-24-coverage-report`、`node-24-build`、`node-24-web-snapshot` 作业，PR 并发上限 11 → 16；Windows/Python 拆为独立工作流（fork 保持单 `ci.yml`，见下），npm 发布工作流删除。
 
 ### BirdCoder 本次更新
 
@@ -58,16 +80,24 @@
 * 合并基底 `dsh-v0.2.2-rc.5` → `dsh-v0.2.3-alpha.2`（708 个上游提交、3225 个文件变更、+94377/−17784）。**72 个文件**存在文本冲突，按 fork-first 规则逐项解决：SDKWork 自有组件（56 个 `ui-sdkwork-*`、15 个 `sdkwork-*` Host/Bundle）、品牌表面（`BirdLogo` / `BirdWordmark` / `LoginPanel` / `favicon.png` / 图标 / 标语）与 fork 自有 CI 拓扑保留 fork 版本。
 * 关键冲突逐项并集：
   * 根 `package.json` 保留 fork 已重排的依赖清单，并入上游新增的 `dsh-dingtalk` / `dsh-feishu` / `dsh-wecom` / `dsh-tencent-meeting`；`packages/bundle/web-app` 并入 `client-remote-connection`、`action-cards`、`creation-recommendations`、`plugin-recommendations` 及其客户端包；`apps/cli` 采用上游 `node: ^24.22.3 || >=26.13.1` 并保留 fork 的 `@sdkwork/iam-*` 可选依赖与 `prepack`/`postpack`。
-  * `tsconfig.base.json` 同时映射 fork 的 `ui-sdkwork-updater` 与上游 `ui-wecom` / `ui-tencent-meeting`；`tsconfig.client.json` 采纳上游把 `client-ui-{action-cards,creation-recommendations,plugin-recommendations}` 从 `experimental/` 迁到 `client/` 的重命名，去掉 fork 侧的旧路径重复项。
+  * `tsconfig.base.json` 同时映射 fork 的 `ui-sdkwork-updater` 与上游 `ui-wecom` / `ui-tencent-meeting`；`tsconfig.client.json` 采纳上游把 `client-ui-{action-cards,creation-recommendations,plugin-recommendations}` 从 `experimental/` 迁到 `client/` 的重命名，去掉 fork 侧的旧路径重复项，并把同一 `references` 列表等值镜像到 `tsconfig.client.tests.json`。
   * `vitest.config.ts` 保留 fork 的 `tsconfigPaths` + `siblingBareImportFallback` + `forkTestingAliases`（`@xmanrui/dsh-im` 解析到 `plugin-src`），并把上游新增的 `sourceRemotePlugin(…, 'dsh-client-remote-connection')` 折进三处插件数组。
   * `apps/desktop/src/main.ts` 保留 fork 的登出/欢迎页重写（`showWelcome('startup', …)` 与 promise 双分支），并入上游离开工作区时的 `refreshApplicationMenu()`；`locale.ts` 八个语言在 fork 品牌文案上补上游新增的 `settingsMenu` 键；`main-startup.spec.ts` 相应在断言里插入“设置…”项。
   * `packages/api/remotes` 的 remote 清单与 devDependencies 并入 `actionCardsRemote` / `pluginRecommendationsRemote` 与 `dsh-action-cards` / `dsh-plugin-recommendations`；`ui-conversation` 的编辑器 runtime 采用上游 `this.history` 与新增 `afterUpdate()`，保留 fork 的 lexicon 订阅重试监听；`ui-workspace/Rows.tsx` 采用上游 `draggable` / `reorderDraggable` 拆分并保留 fork 的插件菜单双源 open 状态。
   * `ui-chat` / `ui-model-selection` / `ui-settings-models` 的 README 按 fork 品牌并集上游新增段落（压缩进度行、`DeepSeek API` 命名）。`apps/desktop`（fork 应用）README 以 fork 文案为准，并入上游新增事实：Windows 手动卸载移除自有 CLI 注册、应用菜单含“关于/设置/管理命令/开发者工具”、安装器八语言夹具与占用/注册表/接管回归。
   * CI：保留 fork 的单一 `ci.yml` 拓扑（`python-runtime` / `windows-build` 在内）。上游把 Windows/Python 拆成独立工作流、并删除 npm 发布工作流，fork 侧继续只发 GitHub Releases，因此 `ci-python.yml` / `ci-windows.yml` 保持删除、`ci.yml` 并入上游 coverage 分片、`node-24-build`、`node-24-web-snapshot` 与 16 并发注释；`all-checks-passed.needs` 同时列 fork 的 python/windows 作业与上游新作业。
-  * `pnpm-lock.yaml` 保留 fork 的 workspace 与 SDKWork sibling importer 块（重生成留作后续项）。
+  * `pnpm-lock.yaml` 合并提交先保留 fork 的 workspace 与 SDKWork sibling importer 形状，随后用 pnpm 重生成（`6de7066dc6`），补齐上游新增连接器与客户端包的 importer / `link:` 条目。
 * 生成物按源重新生成而非手工合并：`docs/module-graph.md`（+185 行/语言，纳入新连接器与客户端包）、`docs/config-catalog.md`、`packages/extensions/cordis-client-runner/src/client/slot-catalog.ts` 分别由 `gen-module-graph` / `gen-config-catalog` / `gen-client-catalog` 重跑产出。`gen-cordis-inspect-catalog` 因上游 typert 分析器新增「public property 必须显式类型标注」而卡在 fork 自有 `packages/client/ui-sdkwork-im/src/client/im-service.ts:335`，`api-catalog.ts` 暂取上游产物，作为后续项。
-* 翻译配对：19 条配对记录（agent notes、`apps/desktop`、`docs/capability-seams`、`docs/user/guide`、`ui-chat`、`ui-model-selection`、`ui-settings-models`、`ui-primitives`、`ui-conversation`、`plugin-manager`、`client`、`llm`、`llm-pi-ai`）用 `verify-translation-pairing --write` 重新记录，全仓 1642 对复验一致。
+* 翻译配对：19 条配对记录（agent notes、`apps/desktop`、`docs/capability-seams`、`docs/user/guide`、`ui-chat`、`ui-model-selection`、`ui-settings-models`、`ui-primitives`、`ui-conversation`、`plugin-manager`、`client`、`llm`、`llm-pi-ai`）用 `verify-translation-pairing --write` 重新记录，全仓 1642 对复验一致；代码块内的注释保持与英文侧逐字一致（规范不允许翻译代码块）。
 * 品牌契约复核：`FishLogo` 未出现在 fork 表面，三处登录入口（`WelcomePage` / `SignInDialog` / `SignInOverlay`）仍渲染 `LoginPanel`，官方名称槽渲染 `BirdWordmark`，启动页渲染 `createBootBrand()`，canonical 栅格 `apps/web/public/favicon.png` 未被覆盖；上游 PWA 图标集（`icon-192/512`、`icon-maskable-512`、`apple-touch-icon`、`favicon.svg`）与 `render-app-icons.ts`、`app-icons.spec.ts` 继续保持 fork 的删除决定（图标只从 canonical 栅格派生）。
+
+#### 合并校验（本轮复核）
+
+* 祖先关系：`git merge-base --is-ancestor upstream/master HEAD` 为真，`git rev-list --count HEAD..upstream/master` 为 **0**；`git ls-remote upstream refs/heads/master` = `4b399c39a6`（= `refs/tags/dsh-v0.2.3-alpha.2`）。
+* 保真审计（`upstream-merge-fidelity-audit.mjs a316fd4781`）：上游单边改动 **2968 个文件全部与上游一致**（`DROPPED=0`、`fork divergence=0`）；fork 合并前已删除的 188 个路径中 **0 个仍存在于上游**；上游有而 HEAD 无的 35 个路径**全部是 fork 既有删除**（CI 四件套、whale/`favicon*.svg`/PWA 图标集、`render-app-icons.ts`、`app-icons.spec.ts`、`website/public/*.svg`、`scripts/release/publish.*`、agent locale json、postmortem 0003）；冲突标记 0、unmerged 0。
+* 行级保真（`merge-line-fidelity.mjs a316fd4781`）：两侧都改的 257 个文件中，fork 新增行缺失候选 37 个文件（代码 86 行）、上游新增行缺失候选 34 个文件（代码 330 行），逐条核对后**全部为可解释差异**——`*.i18n.yaml` 哈希重录、`slot-catalog.ts` / `docs/config-catalog*` / `docs/module-graph*` 重新生成后的行号位移、`package.json` 依赖块重排、README/断言重写为 fork 品牌措辞、`pnpm-lock.yaml` 重生成、`apps/web/tests/pwa-manifest.e2e.ts` 保持 fork 的 favicon 断言；未发现被丢弃的上游修复或 fork 能力。
+* 能力落点抽查（对应上文各节）：`packages/connector/*` 7 个连接器 + `cli-account` + `upstream-skills`；`packages/experimental/{timeline,forge,forge-github,forge-gitlab,cua,cua-mcp,cua-windows,cua-macos,personalized-recommendations,tool-worktree}`；`packages/client/{remote-connection,ui-session-status,ui-connector-account,ui-plugin-market,ui-action-cards,ui-creation-recommendations,ui-plugin-recommendations}`；`packages/skill/skill-office/assets/office/SKILL.md`（单技能，格式技能已无）；`vendor/*` 版本与上游 `release(vendor)` 一致。
+* 类型门禁：`build:lib:host` 与 `tsc -b tsconfig.client.tests.json` 均通过（pre-push 全绿），客户端测试面引用列表与 `tsconfig.client.json` 等值。
 
 #### 版本与依赖
 
@@ -90,6 +120,8 @@
 * **关于面板：安装身份**（`feat(about): add installation identity about surface and installation app api`、`add deploy anchor, surface profile and installation facts surfaces`）：About 表面新增部署锚点、profile 与安装事实（安装身份、安装位置、应用 id），由安装侧 API 提供；`dsh-desktop` 的 About 命令测试按 `IpcMainInvokeEvent` 补类型。
 * **欢迎窗登录收敛**（`feat(welcome): gate the continue action on a signed-in workspace`、`add welcome links and OAuth session end handling`）：继续动作要求已登录工作区，欢迎页新增链接与 OAuth 会话结束处理；落地页 locale 载荷与渲染夹具随之对齐。
 * **IAM 离屏登录提示**（`feat(iam): surface a sign-in notice when browser login finishes off-surface`）：浏览器侧完成登录而模态已关闭时，`SignInOverlay` 给出可恢复的提示，而不是静默失败。
+* **模型前端配置**（`feat(models): drive the relay catalog from the operator's front-end surface`）：`birdcoder-account` 从 app-api（或外壳投影的 `$DSH_HOME/iam/frontend-model-config.json`）读取运营端「模型前端配置」，经 `llm/model-exposure-policy` 决定中转目录暴露哪些模型；Desktop 用双令牌拉取并投影该文档，access 令牌不进 Host 子进程；`llm-pi-ai` 的 `relay-catalog-policy` 应用策略并在撤回时回落到构建期种子。
+* **macOS 模式栏拖动条**（`fix(layout): let the mode rail carry the darwin window drag strip`）：模式栏轨道在 darwin 上预留顶部步进并挂出 `data-window-drag` 条带，补齐红绿灯下方原本无法拖动窗口的空白。
 * **脚手架动作改名**（`refactor(row-menus): rename template actions to scaffold`、`refactor(deploy): read the template center from the app scaffold SDK namespace`）：模板发布/安装动作统一为 scaffold 语义，部署侧改读 `@sdkwork/*-app-sdk` 的 scaffold 命名空间。
 * **安装修复命令**（`feat(scripts): add admin:repair:installation reconciliation command`）：`scripts/bootstrap/installation-repair.ts` + `repair-installation.mjs` 对齐本地安装记录与应用锚点，附 128 行规格。
 * **预览客户端按面分目录**（`refactor(preview): group preview clients and row menus into per-surface directories`）：audio/image/video/pdf/docx/xlsx/pptx 预览与行菜单各自成目录；`xlsx` 表头填充改用活动主题 token（`fix(xlsx-preview): use the active header fill token in the sheet grid`）。
@@ -97,9 +129,9 @@
 
 #### 后续项（本轮未做，均不影响合并完整性）
 
-* `pnpm-lock.yaml` 未随新增依赖重生成（合并提交保留 fork 的 lockfile）；`pnpm install --frozen-lockfile` 需在下一轮补齐 importer 块。
-* `gen-cordis-inspect-catalog` 需为 `packages/client/ui-sdkwork-im/src/client/im-service.ts` 的公有属性补显式类型标注后重跑；本轮 `api-catalog.ts` 取上游产物。
-* `scripts/ci-workflow.spec.ts` 的六项工作流断言待对齐：worker 并发核算已按合并后的 `ci.yml`（coverage 两分片、`node-24-build`、`node-24-web-snapshot`、bench 两阶段）改成 16 并发与 `linuxActive` 公式，但 coverage 缓存键、必需判定 `needs`、Windows 拆分作业等断言仍按 fork 合并前的 `ci.yml` 形状，需在跑通 CI 后逐项重算。
-* 编译、单测与打包门禁未在本轮执行（按「先完成同步」的要求）。
+* `gen-cordis-inspect-catalog` 需先给 `packages/client/ui-sdkwork-im/src/client/im-service.ts:335` 的公有属性补显式类型标注（上游 typert 新规则），再重跑生成 `packages/extensions/tool-cordis/src/api-catalog.ts`；当前该文件为上游产物。
+* `scripts/ci-workflow.spec.ts` 尚有六项工作流断言待对齐：worker 并发核算已按合并后的 `ci.yml`（coverage 两分片、`node-24-build`、`node-24-web-snapshot`、bench 两阶段）改成 16 并发与 `linuxActive` 公式，但 coverage 缓存键、必需判定 `needs`、Windows 拆分作业等断言仍按 fork 合并前的 `ci.yml` 形状，需在跑通 CI 后逐项重算。
+* 单测、桌面打包与打包产物验收未在本轮执行（本轮只要求「同步 + 类型门禁」：`build:lib:host` 与客户端测试面 `tsc -b` 已通过）。
+* `packages/experimental/client-ui-{action-cards,creation-recommendations,plugin-recommendations}` 三个目录只残留重命名前的未跟踪构建产物（`lib/`、`node_modules/`），不参与 workspace 与类型检查，可在下次清理构建目录时一并删除。
 
 本文件只保留当前版本一节；往期条目随各自版本的提交留在 git 历史里（`git log -p CHANGELOG.md`）。Release notes 就是本节内容。
