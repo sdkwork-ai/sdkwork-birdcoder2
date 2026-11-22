@@ -17,7 +17,7 @@
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
-import { dirname, join, relative, resolve, sep } from 'node:path'
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -54,11 +54,32 @@ const STAMP_FORMAT = 1
 
 /**
  * Read one file's SHA-256.
+ *
+ * A file that vanished between listing and reading is reported as absent rather
+ * than thrown: the trees this hash walks include `lib/` directories that another
+ * build face rewrites in place, so a concurrent rebuild can drop a chunk the walk
+ * already enumerated. The next invocation either sees the replacement chunk or
+ * rebuilds because its inputs changed.
  * @param path - absolute file path.
- * @returns lowercase hex digest.
+ * @returns lowercase hex digest, or undefined when the file is gone.
  */
 function fileDigest(path) {
-  return createHash('sha256').update(readFileSync(path)).digest('hex')
+  try {
+    return createHash('sha256').update(readFileSync(path)).digest('hex')
+  } catch (error) {
+    if (error?.code === 'ENOENT') return undefined
+    throw error
+  }
+}
+
+/**
+ * Report whether one path lies inside the repository.
+ * @param path - absolute path to test.
+ * @returns true when the path is below the repository root.
+ */
+function isInsideRepository(path) {
+  const relativeToRoot = relative(ROOT, path)
+  return relativeToRoot !== '' && relativeToRoot !== '..' && !relativeToRoot.startsWith(`..${sep}`) && !isAbsolute(relativeToRoot)
 }
 
 /**
@@ -97,11 +118,22 @@ function directoryFiles(path) {
  * `@deepseek-ai/dsh` edge exists for that runtime resolution — hashing the
  * CLI's closure would both hash trees the artifacts never ingest and race the
  * host-bundle gate that rebuilds them.
+ *
+ * Links reaching outside the repository are skipped for the same reason: they
+ * resolve into sibling checkouts (the sdkwork application repositories), which
+ * neither participate in this build nor stay stable between invocations.
+ *
+ * Host applications (`apps/*`) are skipped too. They load the plugin at runtime
+ * and are never inlined into it, while their `lib/` is the Host and Client
+ * bundle's own output: its chunk names are content-hashed, so hashing the tree
+ * would invalidate the stamp on every host rebuild and read half-rewritten
+ * directories beside it.
  * @returns absolute paths of hashed manifests and built trees, one per linked package.
  */
 function linkedWorkspaceInputs() {
   const inputs = []
   const visited = new Set()
+  const applications = join(ROOT, 'apps')
   const roots = ['core', 'client'].map(name => join(PLUGIN, 'packages', name, 'node_modules'))
   for (let next = roots.shift(); next !== undefined; next = roots.shift()) {
     if (!existsSync(next)) continue
@@ -121,6 +153,7 @@ function linkedWorkspaceInputs() {
         // npm dependencies resolve into pnpm's virtual store and are covered by
         // the plugin's own lockfile; only workspace links inline repository sources.
         if (visited.has(real) || real.includes(`${sep}.pnpm${sep}`)) continue
+        if (!isInsideRepository(real) || real === applications || real.startsWith(`${applications}${sep}`)) continue
         visited.add(real)
         const manifest = join(real, 'package.json')
         if (!existsSync(manifest)) continue
@@ -148,7 +181,12 @@ function inputDigest() {
     ...linkedWorkspaceInputs(),
   ].sort()
   const digest = createHash('sha256')
-  for (const path of files) digest.update(`${relativePath(path)}\0${fileDigest(path)}\n`)
+  for (const path of files) {
+    const file = fileDigest(path)
+    // A file that vanished mid-walk is no longer an input; see {@link fileDigest}.
+    if (file === undefined) continue
+    digest.update(`${relativePath(path)}\0${file}\n`)
+  }
   return digest.digest('hex')
 }
 
@@ -160,7 +198,9 @@ function artifactDigests() {
   const digests = {}
   for (const path of ARTIFACTS) {
     if (!existsSync(path) || !statSync(path).isFile()) return undefined
-    digests[relativePath(path)] = fileDigest(path)
+    const digest = fileDigest(path)
+    if (digest === undefined) return undefined
+    digests[relativePath(path)] = digest
   }
   return digests
 }

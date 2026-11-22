@@ -458,7 +458,7 @@ type SessionEventInput = {
 
 Each array member keeps its event type paired with its payload and requires surface intent only for message-producing events.
 
-The body-stripped declaration keeps the plain class's detached factory, state accessors, append method, and history projections synchronized with source. Store operations remain in the generated [`ctx.sessions` section](#ctxsessions--sessionstore).
+The body-stripped declaration keeps the plain class's detached factory, state accessors, append method, and history projections synchronized with source. Store operations remain on the `Session` class and `SessionStore`.
 
 ```ts public-api
 /**

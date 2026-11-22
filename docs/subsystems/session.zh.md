@@ -460,7 +460,7 @@ type SessionEventInput = {
 
 数组中的每个成员将事件类型与对应载荷配对，且仅对产生消息的事件要求surface意图。
 
-去除方法体的声明与源码中的普通类保持同步，覆盖其脱离态工厂、状态访问器、append 方法和历史投影。存储操作仍由生成的 [`ctx.sessions` 小节](#ctxsessions--sessionstore)记录。
+去除方法体的声明与源码中的普通类保持同步，覆盖其脱离态工厂、状态访问器、append 方法和历史投影。存储操作仍保留在 `Session` 类与 `SessionStore` 上。
 
 ```ts public-api
 /**
