@@ -26,6 +26,7 @@ import {
 } from '@deepseek-ai/dsh-client-ui-chat/client'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import type { SessionWireEvent } from '@deepseek-ai/dsh-api-session-controller/types'
+import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import { SessionSeq, type SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
 import { createChatStore } from '../src/client/stores.ts'
@@ -505,9 +506,13 @@ describe('Chat inject API', () => {
       await b.runtime.mount({ apply(ctx) { ctx.provide('documentPreviews', {} as never) } })
       await vi.waitFor(() => { expect(row.hooks.compactionPreview.getSnapshot()).toBe(true) })
       const event = { seq: 42, time: 0, type: 'compaction/summary', data: { summary: [{ type: 'text', text: 'summary' }] } }
+      // `exactOptionalPropertyTypes` makes the spread's inferred union carry
+      // `summary?: undefined`, which no JSON object type accepts — type the
+      // malformed payloads as JSON up front so only their runtime shape varies.
+      const malformed: JsonValue[] = [null, {}, { summary: [null] }, { summary: [{}] }, { summary: [{ type: 'text', text: 5 }] },
+        { summary: [{ type: 'image' }, { type: 'text', text: ' ' }] }]
       const records: SessionWireEvent[] = [{ ...event, seq: 41 }, { ...event, type: 'other' },
-        ...[null, {}, { summary: [null] }, { summary: [{}] }, { summary: [{ type: 'text', text: 5 }] },
-          { summary: [{ type: 'image' }, { type: 'text', text: ' ' }] }].map(data => ({ ...event, data }))]
+        ...malformed.map(data => ({ ...event, data }))]
       for (const invalid of records) {
         b.events.mockResolvedValueOnce({ ok: true, value: { cursor: 42, hasMore: false, records: [{ type: 'event', event: invalid }] } })
         expect(await row.openCompaction(42, signal)).toContain('摘要不可用')

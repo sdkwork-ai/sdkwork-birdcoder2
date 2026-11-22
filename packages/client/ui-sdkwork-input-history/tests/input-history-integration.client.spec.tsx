@@ -59,6 +59,7 @@ function harness(arbitrate: () => 'pass' | 'consumed') {
     arbitrate,
     space: () => false,
     dismissPopup: () => {},
+    recallHistory: () => false,
     canSubmit: () => true,
     submit: () => {},
     intakeFiles: () => {},
