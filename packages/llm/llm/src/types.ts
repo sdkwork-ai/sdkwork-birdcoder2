@@ -28,7 +28,37 @@ declare module '@deepseek-ai/cordis' {
      * @param provider - route whose model catalog changed.
      */
     'llm/models-updated'(provider: string): void
+    /**
+     * A deployment published or withdrew the model exposure policy of one
+     * route. An adapter that projects a server-owned surface catalog listens
+     * here instead of polling configuration; adapters that own their catalog
+     * ignore it. The event is advisory: an adapter that cannot honour the
+     * policy keeps serving its own catalog.
+     * @mode emit
+     * @param provider - route whose exposure policy changed.
+     * @param policy - the ordered allow-list, or `null` to withdraw it.
+     */
+    'llm/model-exposure-policy'(provider: string, policy: ModelExposurePolicy | null): void
   }
+}
+
+/**
+ * One deployment-authored exposure policy for an adapter route.
+ *
+ * `catalogKeys` is an ordered allow-list of the route's own model ids: its
+ * order is the presentation order, and a model absent from it is not exposed.
+ * An empty list is an explicit "expose nothing"; withdrawing the policy
+ * restores the adapter's own catalog.
+ */
+export interface ModelExposurePolicy {
+  /** Ordered model ids the route exposes. */
+  readonly catalogKeys: readonly string[]
+  /** Source document revision, for diagnostics. */
+  readonly revision: number
+  /** Observation time (ISO-8601) of the source document. */
+  readonly updatedAt: string
+  /** Where the policy came from, e.g. `birdcoder-account:app-api`. */
+  readonly source: string
 }
 
 export type {

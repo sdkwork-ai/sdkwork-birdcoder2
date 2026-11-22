@@ -37,6 +37,16 @@ Web/桌面 bundle 也随包提供同一份 `birdcoder` 配置档，并把 `agent
     sessionCredentialRef: BIRDCODER_AUTH_TOKEN
     settingsNs: llm-pi-ai
     pollIntervalMs: 2000
+    # Operator-authored front-end model surface projected onto the relay catalog.
+    modelCatalogEnabled: true
+    modelCatalogEndpoint: https://api.birdcoder.com/app/v3/api/ai/frontend_config
+    # Empty means frontend-model-config.json beside the session (shell projection).
+    modelCatalogDocumentFile: ""
+    modelCatalogChannelCode: llm
+    modelCatalogPollIntervalMs: 300000
+    modelCatalogTimeoutMs: 10000
+    modelCatalogAuthToken: ""
+    modelCatalogAccessToken: ""
 ```
 
 `sessionFile` 默认 `<DSH_HOME>/iam/session.json`，`relaySessionFile` 默认与其同目录的 `relay-session.json`，`stateFile` 默认同目录的 `birdcoder-account.json`，`credentialRef` 默认 `BIRDCODER_API_KEY`，`sessionCredentialRef` 默认 `BIRDCODER_AUTH_TOKEN`，`settingsNs` 默认随包挂载的 `llm-pi-ai` 条目。`pollIntervalMs: 0` 关闭轮询，只保留挂载时与凭据事件触发的同步。
@@ -74,6 +84,18 @@ Web/桌面 bundle 也随包提供同一份 `birdcoder` 配置档，并把 `agent
 #### KV Cache effect
 
 不改变任何提示词字节。插件选择 BirdCoder 默认模型后，下一个请求指向另一条提供方路由，因此提供方侧的前缀复用不会跨过这次切换。
+
+### 远程前端模型界面
+
+中转目录不只来自构建期种子。运营端在模型后端的「模型前端配置」（`/admin/model/frontend`）中决定每个产品界面暴露哪些模型，本插件把该文档投影到中转目录：`llm` 界面的可见模型成为有序白名单，供应商下线的模型从选择器中消失，构建之后才发布的模型以最小中转条目出现，无需等待新版本。
+
+文档按以下优先级读取：
+
+1. `<DSH_HOME>/iam/frontend-model-config.json`——桌面外壳用 IAM 双重令牌请求 app-api 并投影到此处，令牌不会进入 Host 子进程；
+2. app-api `GET /app/v3/api/ai/frontend_config`——本进程能读取完整（明文）会话，或部署提供了 `modelCatalogAuthToken` / `modelCatalogAccessToken` 时；
+3. 构建期种子——以上都不可达时。
+
+刷新永远不会清空最近一次可用界面：端点不可达、凭据被拒绝或文档非法时保留上一次暴露，种子是最终离线兜底。加载器把最近一次接受的文档持久化在账户标记旁，限制文档大小、校验形状、支持 `ETag`/304、超时、瞬时失败重试，并在 `llm/adapters-updated` 时重新发布，因此加载顺序不会丢失策略。暴露变化会发出 `llm/models-updated`，模型页与已打开的选择器无需重启即可刷新。`llm` 界面被停用或没有可见模型时表示显式空暴露，而不是回退到种子。
 
 ## 已知限制与后续工作
 

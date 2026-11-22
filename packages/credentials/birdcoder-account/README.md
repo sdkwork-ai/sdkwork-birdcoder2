@@ -37,9 +37,19 @@ The Web/Desktop bundle ships the same `birdcoder` profile and sets `agent-defaul
     sessionCredentialRef: BIRDCODER_AUTH_TOKEN
     settingsNs: llm-pi-ai
     pollIntervalMs: 2000
+    # Operator-authored front-end model surface projected onto the relay catalog.
+    modelCatalogEnabled: true
+    modelCatalogEndpoint: https://api.birdcoder.com/app/v3/api/ai/frontend_config
+    # Empty means frontend-model-config.json beside the session (shell projection).
+    modelCatalogDocumentFile: ""
+    modelCatalogChannelCode: llm
+    modelCatalogPollIntervalMs: 300000
+    modelCatalogTimeoutMs: 10000
+    modelCatalogAuthToken: ""
+    modelCatalogAccessToken: ""
 ```
 
-`sessionFile` defaults to `<DSH_HOME>/iam/session.json`, `relaySessionFile` to `relay-session.json` beside it, `stateFile` to `birdcoder-account.json` beside it, `credentialRef` to `BIRDCODER_API_KEY`, `sessionCredentialRef` to `BIRDCODER_AUTH_TOKEN`, and `settingsNs` to the bundled `llm-pi-ai` entry. `pollIntervalMs: 0` disables polling and leaves the mount-time reconciliation plus the credential-event reconciliation.
+`sessionFile` defaults to `<DSH_HOME>/iam/session.json`, `relaySessionFile` to `relay-session.json` beside it, `stateFile` to `birdcoder-account.json` beside it, `credentialRef` to `BIRDCODER_API_KEY`, `sessionCredentialRef` to `BIRDCODER_AUTH_TOKEN`, and `settingsNs` to the bundled `llm-pi-ai` entry. `pollIntervalMs: 0` disables polling and leaves the mount-time reconciliation plus the credential-event reconciliation. The `modelCatalog*` fields control the remote surface described below; set `modelCatalogEnabled: false` to keep the build-time seed only.
 
 ### Signed-in behavior
 
@@ -74,6 +84,18 @@ None, as the package configures relay credentials and provider settings; it adds
 #### KV Cache effect
 
 No prompt bytes change. When the plugin selects the BirdCoder default, the next request targets a different provider route, so provider-side prefix reuse does not carry across that switch.
+
+### Remote front-end model surface
+
+The relay does not seed only from the build-time catalog. Operators author which catalog models each product surface exposes in the models backend (`/admin/model/frontend`), and this plugin projects that document onto the relay catalog: the visible models of the `llm` surface become the ordered allow-list, a model a vendor retired disappears from the picker, and a model published after this build appears as a minimal relay entry instead of waiting for a release.
+
+The document is read from the first source available:
+
+1. `<DSH_HOME>/iam/frontend-model-config.json` — the desktop shell fetches the app-api document with the IAM session's dual tokens and projects it here, so no token ever reaches the Host child process;
+2. the app-api `GET /app/v3/api/ai/frontend_config` directly, when this process can read a complete (plaintext) session or the deployment provisions `modelCatalogAuthToken` / `modelCatalogAccessToken`;
+3. the build-time seed, when neither is reachable.
+
+A refresh never wipes the last known surface: an unreachable endpoint, a rejected credential, or an invalid document keeps the previous exposure, and the seed is the final offline fallback. The loader persists the last accepted document beside the account marker, bounds document sizes, validates the shape, honours `ETag`/304, times out, retries transient failures, and re-publishes on `llm/adapters-updated` so load order cannot lose a policy published before the adapter mounted. A changed exposure emits `llm/models-updated`, so the Models page and open pickers reload without a restart. An empty or disabled `llm` surface is an explicit empty exposure, not a fallback to the seed.
 
 ## Known Limitations and Deferred Work
 

@@ -82,6 +82,21 @@ import type { StoredModelDiscoveryProfile } from './discovery.ts'
 import { registerPiAiFlows } from './login.ts'
 import { providerDefaultsOf } from './provider-data.ts'
 import type { PiAiRequestHeaderContext } from './types.ts'
+import {
+  clearRelayCatalogPolicy,
+  relayCatalogPolicyVersion,
+  setRelayCatalogPolicy,
+  subscribeRelayCatalogPolicy,
+} from './relay-catalog-policy.ts'
+
+export {
+  clearRelayCatalogPolicy,
+  relayCatalogPolicy,
+  relayCatalogPolicyVersion,
+  setRelayCatalogPolicy,
+  subscribeRelayCatalogPolicy,
+} from './relay-catalog-policy.ts'
+export type { RelayCatalogPolicy } from './relay-catalog-policy.ts'
 
 export { PiAiAdapter } from './adapter.ts'
 export type { PiAiAdapterOptions } from './adapter.ts'
@@ -181,9 +196,30 @@ function directoryEntries(
 /** Register one generic pi-ai adapter for all configured provider routes. */
 export function apply(ctx: Context, config: Config): void {
   ctx.inject(['settings'], (child) => { child.effect(() => child.settings.configure({ auto: false }, ctx.fiber)) })
+  // A deployment may publish the exposure policy for a route instead of
+  // editing configuration. Applying it here (rather than in the loader) keeps
+  // the event contract one-way and lets any deployment theme publish it.
+  ctx.on('llm/model-exposure-policy', (provider, policy) => {
+    if (policy === null) clearRelayCatalogPolicy(provider)
+    else setRelayCatalogPolicy(provider, policy)
+  })
+  // A published relay exposure policy changes what the relay routes advertise
+  // without touching the settings document. Tell catalog-driven surfaces to
+  // reload, exactly as a provider-owned listing change does.
+  ctx.effect(() => subscribeRelayCatalogPolicy((provider) => {
+    ctx.emit('llm/models-updated', provider)
+  }))
   const settingsNs = ctx.fiber.entry?.options.id ?? NS
   let lastRaw: ReturnType<Config['providers']['get']> | undefined
   let memoized: ReadonlyMap<string, ResolvedPiAiProviderProfile> | undefined
+  /**
+   * The published relay exposure policy version the memoized profiles were
+   * built from. A policy publication changes relay catalogs without changing
+   * the settings document, so it must invalidate the same memo a settings edit
+   * does; otherwise an operator's enable/disable would wait for an unrelated
+   * configuration change.
+   */
+  let lastPolicyVersion = relayCatalogPolicyVersion()
   /**
    * The resolved profiles for the current configuration, memoized by the raw
    * snapshot's identity — which is also what makes the adapter's own snapshot
@@ -195,9 +231,11 @@ export function apply(ctx: Context, config: Config): void {
    */
   const profiles = (): ReadonlyMap<string, ResolvedPiAiProviderProfile> => {
     const raw = config.providers.get()
-    if (raw === lastRaw && memoized !== undefined) return memoized
+    const policyVersion = relayCatalogPolicyVersion()
+    if (raw === lastRaw && policyVersion === lastPolicyVersion && memoized !== undefined) return memoized
     const next = resolveProfiles(structuredClone(raw) as import('./config.ts').Options['providers'], 'deferred')
     lastRaw = raw
+    lastPolicyVersion = policyVersion
     memoized = next
     return next
   }

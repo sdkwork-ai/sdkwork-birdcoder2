@@ -36,6 +36,11 @@ import { randomBytes } from 'node:crypto'
 import type { IpcMain, IpcMainInvokeEvent } from 'electron'
 import { dirname, join } from 'node:path'
 import { IAM_SESSION_BRIDGE, IAM_SESSION_VERSION, type IamSessionRecord } from './iam-session-protocol.ts'
+import {
+  DEFAULT_FRONTEND_MODEL_CONFIG_URL,
+  iamFrontendModelConfigPath,
+  writeFrontendModelConfigProjection,
+} from './frontend-model-config.ts'
 
 export { IAM_SESSION_BRIDGE, IAM_SESSION_VERSION, type IamSessionRecord } from './iam-session-protocol.ts'
 
@@ -256,6 +261,15 @@ export interface IamSessionBridgeOptions {
   assertSender: (event: IpcMainInvokeEvent) => void
   /** OS-backed secret storage used to encrypt the durable file at rest. */
   secretStorage?: IamSessionSecretStorage
+  /**
+   * App-api URL of the front-end model configuration projected for the Host.
+   * Defaults to the BirdCoder gateway; an empty value disables the projection.
+   */
+  modelConfigEndpoint?: string
+  /** Projection refresh interval; `0` keeps only the session-commit refresh. */
+  modelConfigRefreshMs?: number
+  /** HTTP implementation, for tests. */
+  modelConfigFetch?: typeof fetch
 }
 
 /** One installed session bridge. */
@@ -275,6 +289,37 @@ export interface IamSessionBridge {
 export function createIamSessionBridge(options: IamSessionBridgeOptions): IamSessionBridge {
   const path = iamSessionPath(options.home)
   const { ipcMain } = options
+  const modelConfigEndpoint = options.modelConfigEndpoint
+    ?? process.env.SDKWORK_FRONTEND_MODEL_CONFIG_URL
+    ?? DEFAULT_FRONTEND_MODEL_CONFIG_URL
+  const modelConfigRefreshMs = options.modelConfigRefreshMs ?? 300_000
+  let modelConfigTimer: ReturnType<typeof setInterval> | undefined
+
+  /**
+   * Refresh the Host-readable front-end model configuration projection with the
+   * session's dual tokens. The shell holds the tokens; the Host reads only the
+   * projected document.
+   */
+  const refreshModelConfig = (record: IamSessionRecord | undefined): void => {
+    if (record === undefined || modelConfigEndpoint === '') return
+    void writeFrontendModelConfigProjection(path, record, {
+      endpoint: modelConfigEndpoint,
+      ...options.modelConfigFetch === undefined ? {} : { fetch: options.modelConfigFetch },
+    })
+  }
+  const stopModelConfigRefresh = (): void => {
+    if (modelConfigTimer === undefined) return
+    clearInterval(modelConfigTimer)
+    modelConfigTimer = undefined
+  }
+  const ensureModelConfigRefresh = (record: IamSessionRecord | undefined): void => {
+    refreshModelConfig(record)
+    if (record === undefined || modelConfigRefreshMs <= 0 || modelConfigTimer !== undefined) return
+    modelConfigTimer = setInterval(() => {
+      refreshModelConfig(readIamSessionFile(path, options.secretStorage))
+    }, modelConfigRefreshMs)
+    modelConfigTimer.unref?.()
+  }
 
   ipcMain.handle(IAM_SESSION_BRIDGE.read, (event) => {
     options.assertSender(event)
@@ -287,11 +332,14 @@ export function createIamSessionBridge(options: IamSessionBridgeOptions): IamSes
       throw new Error('sdkwork iamSession requires a complete authToken + accessToken session')
     }
     writeIamSessionFile(path, record, options.secretStorage)
+    ensureModelConfigRefresh(record)
     return record
   })
   ipcMain.handle(IAM_SESSION_BRIDGE.clear, (event) => {
     options.assertSender(event)
     clearIamSessionFile(path)
+    stopModelConfigRefresh()
+    rmSync(iamFrontendModelConfigPath(path), { force: true })
   })
   // A session restored from a build that predates the projection still has to
   // reach the Host: refresh the projection from the durable file once at
@@ -304,12 +352,14 @@ export function createIamSessionBridge(options: IamSessionBridgeOptions): IamSes
     } catch {
       // A read-only or full home keeps the durable session; the next commit retries.
     }
+    ensureModelConfigRefresh(restored)
   }
 
   return {
     path,
     read: () => readIamSessionFile(path, options.secretStorage),
     dispose: () => {
+      stopModelConfigRefresh()
       ipcMain.removeHandler?.(IAM_SESSION_BRIDGE.read)
       ipcMain.removeHandler?.(IAM_SESSION_BRIDGE.save)
       ipcMain.removeHandler?.(IAM_SESSION_BRIDGE.clear)
