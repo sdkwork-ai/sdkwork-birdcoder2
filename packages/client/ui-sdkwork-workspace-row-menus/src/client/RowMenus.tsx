@@ -259,11 +259,11 @@ export function WorkspaceRowMenu({
     ...(deployPublish !== undefined
       ? [{ id: 'publish', label: t('menu.publishProject'), icon: <IconSendOutlineRegular size={16} /> }]
       : []),
-    ...(typeof deployPublish?.openPublishTemplate === 'function'
-      ? [{ id: 'publishTemplate', label: t('menu.publishTemplate'), icon: <IconLayersOutlineRegular size={16} /> }]
+    ...(typeof deployPublish?.openPublishScaffold === 'function'
+      ? [{ id: 'publishScaffold', label: t('menu.publishScaffold'), icon: <IconLayersOutlineRegular size={16} /> }]
       : []),
-    ...(typeof deployPublish?.openInstallTemplate === 'function'
-      ? [{ id: 'installTemplate', label: t('menu.installTemplate'), icon: <IconDownloadOutlineRegular size={16} /> }]
+    ...(typeof deployPublish?.openInstallScaffold === 'function'
+      ? [{ id: 'installScaffold', label: t('menu.installScaffold'), icon: <IconDownloadOutlineRegular size={16} /> }]
       : []),
     { id: 'separator-path', type: 'separator' },
     { id: 'rename', label: t('rename'), icon: <IconEditOutlineRegular /> },
@@ -292,8 +292,8 @@ export function WorkspaceRowMenu({
       accessToken?.open({ directory: cwd, displayTitle: label })
     }
     if (id === 'publish') deployPublish?.open({ defaultDirectory: cwd })
-    if (id === 'publishTemplate') deployPublish?.openPublishTemplate?.({ defaultDirectory: cwd })
-    if (id === 'installTemplate') deployPublish?.openInstallTemplate?.({ defaultDirectory: cwd })
+    if (id === 'publishScaffold') deployPublish?.openPublishScaffold?.({ defaultDirectory: cwd })
+    if (id === 'installScaffold') deployPublish?.openInstallScaffold?.({ defaultDirectory: cwd })
     if (id === 'rename') actions.rename()
     if (id === 'delete') actions.delete()
   }
@@ -392,11 +392,11 @@ export function SessionRowMenu({
     ...(deployPublish !== undefined
       ? [{ id: 'publish', label: t('menu.publishProject'), icon: <IconSendOutlineRegular size={16} /> }]
       : []),
-    ...(typeof deployPublish?.openPublishTemplate === 'function'
-      ? [{ id: 'publishTemplate', label: t('menu.publishTemplate'), icon: <IconLayersOutlineRegular size={16} /> }]
+    ...(typeof deployPublish?.openPublishScaffold === 'function'
+      ? [{ id: 'publishScaffold', label: t('menu.publishScaffold'), icon: <IconLayersOutlineRegular size={16} /> }]
       : []),
-    ...(typeof deployPublish?.openInstallTemplate === 'function'
-      ? [{ id: 'installTemplate', label: t('menu.installTemplate'), icon: <IconDownloadOutlineRegular size={16} /> }]
+    ...(typeof deployPublish?.openInstallScaffold === 'function'
+      ? [{ id: 'installScaffold', label: t('menu.installScaffold'), icon: <IconDownloadOutlineRegular size={16} /> }]
       : []),
     { id: 'separator-session', type: 'separator' },
     // Pin leads the upstream-native block exactly as it leads upstream's own
@@ -424,8 +424,8 @@ export function SessionRowMenu({
       runAction(() => sessionLogDownload.download(sessionId))
     }
     if (id === 'publish') deployPublish?.open({ defaultDirectory: cwd })
-    if (id === 'publishTemplate') deployPublish?.openPublishTemplate?.({ defaultDirectory: cwd })
-    if (id === 'installTemplate') deployPublish?.openInstallTemplate?.({ defaultDirectory: cwd })
+    if (id === 'publishScaffold') deployPublish?.openPublishScaffold?.({ defaultDirectory: cwd })
+    if (id === 'installScaffold') deployPublish?.openInstallScaffold?.({ defaultDirectory: cwd })
     // One `pin` id carries both directions; the row already read the verb from
     // its state when it built the label, so read the same state to dispatch.
     if (id === 'pin') (pinned ? onUnpin : onPin)(sessionId)

@@ -12,13 +12,13 @@ Status: implemented
 
 ## Decision
 
-发布与安装是相互独立的弹窗（`deployPublish.openPublishTemplate` 与 `openInstallTemplate`）。本笔记拥有共享的规划、打包与执行机制；[独立弹窗笔记](2026-11-13-independent-template-publish-install-dialogs.zh.md)拥有拆分本身。两个方向都是账号作用域。
+发布与安装是相互独立的弹窗（`deployPublish.openPublishScaffold` 与 `openInstallScaffold`）。本笔记拥有共享的规划、打包与执行机制；[独立弹窗笔记](2026-11-13-independent-template-publish-install-dialogs.zh.md)拥有拆分本身。两个方向都是账号作用域。
 
 ### 发布：发现、去重、打包、上传、版本
 
-发布弹窗扫描 `<项目>/apps`（仅当 `apps/` 不存在时才回退到项目根）。子目录携带可解析的 `agent.app.config.json` 才算独立应用根；目录索引标为 `role: common` 的子目录是共享包族，继续忽略，不完整根目录同样忽略。扫描会报告被忽略的数量，而不是静默列出（[`templateApps.ts`](../../../../packages/client/ui-sdkwork-deploy/src/client/templateApps.ts)）。
+发布弹窗扫描 `<项目>/apps`（仅当 `apps/` 不存在时才回退到项目根）。子目录携带可解析的 `agent.app.config.json` 才算独立应用根；目录索引标为 `role: common` 的子目录是共享包族，继续忽略，不完整根目录同样忽略。扫描会报告被忽略的数量，而不是静默列出（[`scaffoldApps.ts`](../../../../packages/client/ui-sdkwork-deploy/src/client/scaffoldApps.ts)）。
 
-第二个来源覆盖不在 `apps/` 下的应用。用户经宿主目录选择器挑任意绝对目录；[`templateCustomApp.ts`](../../../../packages/client/ui-sdkwork-deploy/src/client/templateCustomApp.ts) 用同一套有界宿主遍历列出目录，读取少量标记文件（`agent.app.config.json`、`package.json`、`pubspec.yaml`、各平台工程文件），并构建同一种候选。有效清单优先。没有清单时，项目标记推断类型——Flutter 及其平台目录、React Native/Expo、小程序、Android、iOS、HarmonyOS、Electron/Tauri、Web 框架、静态 HTML 或服务端框架——并展示检测依据，允许从固定词表手动改选。无法识别的目录仍是有效候选，但在用户选择类型前不能继续，下一步与发布会说明原因，而不是打包后才失败。
+第二个来源覆盖不在 `apps/` 下的应用。用户经宿主目录选择器挑任意绝对目录；[`scaffoldCustomApp.ts`](../../../../packages/client/ui-sdkwork-deploy/src/client/scaffoldCustomApp.ts) 用同一套有界宿主遍历列出目录，读取少量标记文件（`agent.app.config.json`、`package.json`、`pubspec.yaml`、各平台工程文件），并构建同一种候选。有效清单优先。没有清单时，项目标记推断类型——Flutter 及其平台目录、React Native/Expo、小程序、Android、iOS、HarmonyOS、Electron/Tauri、Web 框架、静态 HTML 或服务端框架——并展示检测依据，允许从固定词表手动改选。无法识别的目录仍是有效候选，但在用户选择类型前不能继续，下一步与发布会说明原因，而不是打包后才失败。
 
 选中的应用先匹配调用者自己的平台应用——清单链路、治理 key 对服务端 slug/name、展示名——再按模板 key 与调用者的模板列表去重。一次发布随后：
 
@@ -35,7 +35,7 @@ Status: implemented
 
 安装弹窗列出调用者的模板与公开市场。默认目标把归档落到 `<项目>/apps/<模板标识>`；同名目录自动追加 `-2`、`-3`……而不是覆盖本地应用。也支持自定义绝对目录，并覆盖其中的同名文件。
 
-文件落盘后，安装器把模板身份写入安装后的 `agent.app.config.json`（仅当归档携带可解析清单；绝不凭空生成），校验该清单，并按目录后缀与类型卡片推导角色，更新 `apps/README.md` 中的行（[`templateDownload.ts`](../../../../packages/client/ui-sdkwork-deploy/src/client/templateDownload.ts)、[`appsIndex.ts`](../../../../packages/client/ui-sdkwork-deploy/src/client/appsIndex.ts)）。自定义目标不属于项目树，因此不写索引。
+文件落盘后，安装器把模板身份写入安装后的 `agent.app.config.json`（仅当归档携带可解析清单；绝不凭空生成），校验该清单，并按目录后缀与类型卡片推导角色，更新 `apps/README.md` 中的行（[`scaffoldDownload.ts`](../../../../packages/client/ui-sdkwork-deploy/src/client/scaffoldDownload.ts)、[`appsIndex.ts`](../../../../packages/client/ui-sdkwork-deploy/src/client/appsIndex.ts)）。自定义目标不属于项目树，因此不写索引。
 
 ### 宿主能力与产品表面
 
@@ -73,13 +73,13 @@ Status: implemented
 
 ## Verification
 
-- `packages/client/ui-sdkwork-deploy/tests/template-apps.client.spec.ts` 固定 `apps/` 扫描、common 角色排除、根回退与忽略原因。
+- `packages/client/ui-sdkwork-deploy/tests/scaffold-apps.client.spec.ts` 固定 `apps/` 扫描、common 角色排除、根回退与忽略原因。
 - `apps-index.client.spec.ts` 固定目录索引解析与原地更新；`host-archive.client.spec.ts` 固定批处理、敏感文件排除、截断与超限拒绝。
-- `template-publish.client.spec.ts` 固定平台应用匹配、key 去重、语义版本递增、创建/更新/版本链、slug 竞争采用与告警隔离。
-- `template-download.client.spec.ts` 固定目标规划、后缀避让、清单/链路对账与 `apps/README.md` 更新；`template-install-panel.client.spec.tsx` 用桩客户端端到端运行真实 `installTemplateVersion`。
-- `template-publish-dialog.client.spec.tsx` 固定四步单应用导航、单选、语义版本校验、发布运行、重试、重置回选择、语义版本补全、空选择禁用、自定义目录选择/检测/发布（不写清单）、手动类型改选，以及商店资料路径（按应用类型的 Logo/封面/示例页面规范、设备档位、上传、简介持久化、已有素材、类型/体积/数量校验）；`publish-template-flow.client.spec.tsx` 在真实生成式 SDK 栈上固定 IAM 迟到水合。
+- `scaffold-publish.client.spec.ts` 固定平台应用匹配、key 去重、语义版本递增、创建/更新/版本链、slug 竞争采用与告警隔离。
+- `scaffold-download.client.spec.ts` 固定目标规划、后缀避让、清单/链路对账与 `apps/README.md` 更新；`scaffold-install-panel.client.spec.tsx` 用桩客户端端到端运行真实 `installScaffoldVersion`。
+- `scaffold-publish-dialog.client.spec.tsx` 固定四步单应用导航、单选、语义版本校验、发布运行、重试、重置回选择、语义版本补全、空选择禁用、自定义目录选择/检测/发布（不写清单）、手动类型改选，以及商店资料路径（按应用类型的 Logo/封面/示例页面规范、设备档位、上传、简介持久化、已有素材、类型/体积/数量校验）；`publish-scaffold-flow.client.spec.tsx` 在真实生成式 SDK 栈上固定 IAM 迟到水合。
 - `sdkwork-intelligence-deploy-repository-sqlx/tests/template_market_postgres.rs` 经真实仓库固定截图 metadata 与媒体引用；`crates/sdkwork-deploy-archive/tests/archive.rs` 固定可复用的 gitignore 打包/解压组件。
-- `template-custom-app.client.spec.ts` 固定 Flutter/React/小程序/Expo 检测、清单优先、未识别候选、空/不可读拒绝、截断与类型词表；`template-publish.client.spec.ts` 固定打包与上传之间新增的本地压缩阶段。
+- `template-custom-app.client.spec.ts` 固定 Flutter/React/小程序/Expo 检测、清单优先、未识别候选、空/不可读拒绝、截断与类型词表；`scaffold-publish.client.spec.ts` 固定打包与上传之间新增的本地压缩阶段。
 - `packages/host/sdkwork-scaffold-install/tests/template-source.host.spec.ts` 与控制器套件固定有界遍历、批量读取、符号链接拒绝与线上错误投影。
 
 ## Prior art
