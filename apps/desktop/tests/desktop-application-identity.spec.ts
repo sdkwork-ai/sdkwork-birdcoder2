@@ -121,7 +121,7 @@ it('ships the product name Electron reads in the application manifest and the bu
     DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: JSON.stringify({ allowedAuthOrigins: ['https://login.example.com'] }),
   }, 'win32', 'x64')
   expect(config.productName).toBe(DESKTOP_PRODUCT_NAME)
-  expect(config.protocols).toEqual([{ name: DESKTOP_PRODUCT_NAME, schemes: [DESKTOP_PROTOCOL_SCHEME] }])
+  expect(config.protocols).toEqual([{ name: DESKTOP_PRODUCT_NAME, schemes: [DESKTOP_PROTOCOL_SCHEME, 'com.sdkwork.birdcoder'] }])
 })
 
 it('registers its own URL scheme in the shell and in the development bundle', () => {
@@ -131,7 +131,7 @@ it('registers its own URL scheme in the shell and in the development bundle', ()
   expect(main).not.toContain("'dsh://open'")
 
   const development = source('scripts/development-app.ts')
-  expect(development).toContain('CFBundleURLSchemes: [brand.desktop.protocol]')
+  expect(development).toContain('CFBundleURLSchemes: [brand.desktop.protocol, brand.desktop.appId]')
   expect(development).toContain('${brand.desktop.appId}.dev.')
   expect(development).not.toContain('com.deepseek.harness.dev.')
 })

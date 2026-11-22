@@ -136,7 +136,7 @@ it('packages a second brand with its own identity and ships its manifest', async
 
   expect(config.productName).toBe('Acme Harness')
   expect(config.executableName).toBe('acme')
-  expect(config.protocols).toEqual([{ name: 'Acme Harness', schemes: ['acme'] }])
+  expect(config.protocols).toEqual([{ name: 'Acme Harness', schemes: ['acme', 'com.acme.harness'] }])
   expect(config.artifactName).toContain('Acme-Harness-')
   // Electron names the application after the packaged manifest, which electron-builder fills from extraMetadata.
   expect(config.extraMetadata.productName).toBe('Acme Harness')

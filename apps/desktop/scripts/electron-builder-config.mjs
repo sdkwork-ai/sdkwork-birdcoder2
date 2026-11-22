@@ -301,7 +301,12 @@ export function createElectronBuilderConfig(
     // FORK DIVERGENCE (AGENTS.md, "Desktop application identity"): upstream
     // registers `dsh`, the same scheme its own desktop application claims, so the
     // two installed applications overwrite each other's protocol registration.
-    protocols: [{ name: brand.desktop.productName, schemes: [brand.desktop.protocol] }],
+    // Both schemes the brand owns are declared with the operating system: the
+    // short product scheme for product links, and the reverse-domain application
+    // id that RFC 8252 sections 7.1 and 8.4 recommend for the private-use login
+    // redirect. The shell registers the callback the OEM profile names from this
+    // pair, and macOS can only route a scheme its bundle declares.
+    protocols: [{ name: brand.desktop.productName, schemes: [brand.desktop.protocol, appId] }],
     extraMetadata: {
       // Electron names the application after the packaged manifest, and
       // electron-builder merges only `extraMetadata` into it, so an OEM brand's

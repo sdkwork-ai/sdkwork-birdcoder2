@@ -165,10 +165,19 @@ export function findIamDeepLink(candidates: readonly string[], redirectUri: stri
   return null
 }
 
-/** The custom scheme one redirect URI registers, without its trailing colon. */
+/**
+ * The custom scheme one redirect URI registers, without its trailing colon.
+ *
+ * Both private-use forms are accepted (RFC 8252 section 7.1): the
+ * `scheme://authority/path` form, and the authority-less `scheme:/path` form the
+ * RFC uses where there is no naming authority. A URI that names neither an
+ * authority nor a path is not a callback this bridge can match.
+ * @param redirectUri - registered redirect the flow completes on.
+ * @returns the lower-case scheme.
+ */
 function redirectScheme(redirectUri: string): string {
   const shape = deepLinkShape(redirectUri)
-  if (shape === null || shape.host === '' || shape.protocol === 'file:') {
+  if (shape === null || shape.protocol === 'file:' || (shape.host === '' && shape.pathname === '')) {
     throw new Error('sdkwork IAM deep links require an absolute custom-scheme redirect URI')
   }
   return shape.protocol.slice(0, -1)
@@ -216,13 +225,29 @@ export function createIamDeepLinkBridge(options: IamDeepLinkBridgeOptions): IamD
   if (options.registerScheme) app.setAsDefaultProtocolClient(scheme)
 
   /**
+   * Hand one callback to the window, tolerating a renderer that is going away.
+   *
+   * A callback that arrives while the window is closing has no listener left;
+   * the send can throw, and an escaping exception would skip the cross-process
+   * sharing below and lose the URL for the process that owns the flow. The URL
+   * stays in `initialUrl`, so the renderer's take still recovers it.
+   */
+  const deliver = (url: string): void => {
+    try {
+      options.getWindow()?.webContents.send(SDKWORK_DESKTOP_BRIDGE.deepLinksOpenEvent, url)
+    } catch (error) {
+      console.warn(`[sdkwork-iam] callback delivery failed: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+
+  /**
    * Deliver one matching callback to this process: the startup URL (taken once
    * by the renderer), the live IPC event, and the shell's workspace request.
    */
   const accept = (url: string): void => {
     if (disposed || !matchesIamRedirectUri(url, options.redirectUri)) return
     initialUrl = url
-    options.getWindow()?.webContents.send(SDKWORK_DESKTOP_BRIDGE.deepLinksOpenEvent, url)
+    deliver(url)
     options.onIamCallback?.(url)
   }
 

@@ -71,11 +71,30 @@ export interface IamUserPersonaUpdateCommand {
   promptDismissed?: boolean
 }
 
+/** Raw transport request the desktop login binds for its at-most-once legs. */
+export interface SdkworkAppRequestOptions {
+  method?: string
+  contentType?: string
+  skipAuth?: boolean
+  sdkworkUnwrapKind?: 'item' | 'page' | 'command' | 'data' | 'void'
+  retry?: { maxRetries: number }
+  body?: unknown
+}
+
 /** The generated app client face (methods the runtime adapter uses). */
 export interface SdkworkAppClient {
   setAuthToken(token: string): this
   setAccessToken(token: string): this
   setTokenManager(manager: import('./sdk-common').AuthTokenManager): this
+  /**
+   * Raw generated transport. The desktop browser login needs it for the two
+   * anonymous legs that bypass the generated operation wrappers: the
+   * at-most-once redeem (its retries must be disabled) and the diagnostics
+   * probe of the authorization bootstrap.
+   */
+  http: {
+    request<T>(path: string, options?: SdkworkAppRequestOptions): Promise<T>
+  }
   auth: {
     passwordResetRequests: { create(body: AppbaseOperationCommand): Promise<Record<string, unknown>> }
     passwordResets: { create(body: AppbaseOperationCommand): Promise<Record<string, unknown>> }
@@ -142,3 +161,6 @@ export interface SdkworkAppClient {
 }
 
 export function createClient(config: SdkworkAppConfig): SdkworkAppClient
+
+/** Absolute app-api path for one generated operation path. */
+export function appApiPath(path: string): string

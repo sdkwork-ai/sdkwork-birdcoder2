@@ -245,6 +245,12 @@ export function apply(ctx: ClientContext): void {
             getSnapshot: () => service.usesBrowserHandoff(),
             subscribe: listener => service.subscribe(listener),
           },
+          browserLink: {
+            // The waiting attempt's authorize URL for the manual fallback; empty
+            // once the flow settles, so a spent state is never offered again.
+            getSnapshot: () => service.browserSignInUrl() ?? '',
+            subscribe: listener => service.subscribe(listener),
+          },
         },
       }
     },

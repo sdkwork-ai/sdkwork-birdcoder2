@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-22-deeplink-callback-recovery.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-11-22-deeplink-callback-recovery.md
+/agent-note-a-dropped-deep-link-event-still-settles-the-desktop-browser-login:
+  en: 942cce53ecacb937
+  zh: 3035822f952b32b6
+/agent-note-a-dropped-deep-link-event-still-settles-the-desktop-browser-login/problem:
+  en: 55827a0b4173287f
+  zh: d11e50cb9bc6575f
+/agent-note-a-dropped-deep-link-event-still-settles-the-desktop-browser-login/decision:
+  en: 007fb7bb2e12b72c
+  zh: eb3d0039af4b3283
+/agent-note-a-dropped-deep-link-event-still-settles-the-desktop-browser-login/alternatives-considered:
+  en: c8a15bb4984d0950
+  zh: 019143a79a04dc5c
+/agent-note-a-dropped-deep-link-event-still-settles-the-desktop-browser-login/consequences:
+  en: f5a3d24a5946474c
+  zh: 7baea8fee91c68bd
+/agent-note-a-dropped-deep-link-event-still-settles-the-desktop-browser-login/verification:
+  en: e84a4129d703777b
+  zh: 8708d516a4dffa8c

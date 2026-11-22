@@ -52,7 +52,7 @@ describe('desktop macOS release signature', () => {
   it('loads release identifiers from the environment and requires code signing', async () => {
     const { createElectronBuilderConfig } = await import('../electron-builder.config.mjs')
     const config = createElectronBuilderConfig(RELEASE_ENVIRONMENT, 'darwin', 'arm64')
-    expect(config.protocols).toEqual([{ name: 'BirdCoder', schemes: ['birdcoder'] }])
+    expect(config.protocols).toEqual([{ name: 'BirdCoder', schemes: ['birdcoder', 'com.example.desktop'] }])
     expect(portablePath(config.directories.output)).toContain('/.desktop-build/targets/mac-arm64/artifacts')
     expect(config.mac.extendInfo.NSMicrophoneUsageDescription).toContain('microphone')
     expect(config.mac.extendInfo.CFBundleLocalizations).toEqual(SHIPPED_LOCALE_IDS.map(id => id === 'zh' ? 'zh_CN' : id))

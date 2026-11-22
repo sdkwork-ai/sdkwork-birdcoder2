@@ -133,9 +133,11 @@ it('leaves the home alone outside an installed application or the development la
   expect(applyBrandBootstrap({ brand, packaged: false, env, resourcesPath: 'relative-resources', homeDirectory: home }))
     .toEqual({ brand, home: undefined })
   expect(env.DSH_HOME).toBeUndefined()
-  // The scheme is manifest data, not user data: it travels even when this launch
-  // applies no home, so the Host still resolves this brand's OAuth identity.
+  // The scheme and the reverse-domain id are manifest data, not user data: they
+  // travel even when this launch applies no home, so the Host still resolves
+  // this brand's OAuth identity.
   expect(env.DSH_BRAND_PROTOCOL).toBe('birdcoder')
+  expect(env.DSH_BRAND_APP_ID).toBe('com.sdkwork.birdcoder')
 })
 
 it('reads a packaged brand manifest, applies its home, and defaults the OEM profile', () => {
@@ -163,8 +165,9 @@ it('reads a packaged brand manifest, applies its home, and defaults the OEM prof
   expect(env.DSH_HOME).toBe(join(home, '.acme'))
   expect(env.DSH_OEM_CONFIG).toBe(join(resources, 'oem.json'))
   // The Host validates the profile's OAuth identity against the brand this shell
-  // registered, so the scheme travels with the launch.
+  // registered, so the scheme and the reverse-domain id travel with the launch.
   expect(env.DSH_BRAND_PROTOCOL).toBe('acme')
+  expect(env.DSH_BRAND_APP_ID).toBe('com.acme.harness')
 })
 
 it('lets a home oem.json win over the shipped profile', () => {  const home = operatingSystemHome()
@@ -204,21 +207,30 @@ it('gives each brand its own OAuth login identity and refuses the other brand\'s
   const brand = resolveRuntimeBrand({ resourcesPath: resources, env })
   applyBrandBootstrap({ brand, packaged: false, env, resourcesPath: resources, homeDirectory: home })
   expect(env.DSH_BRAND_PROTOCOL).toBe('daxuedazi')
+  expect(env.DSH_BRAND_APP_ID).toBe('com.sdkwork.daxuedazi')
 
   // Without a profile of its own the brand resolves its own public client and
   // callback, so a fork needs no per-brand patch to log in.
   const profilePath = join(home, '.daxuedazi', 'oem.json')
-  expect(readOemConfig(profilePath, 'production', env.DSH_BRAND_PROTOCOL).sdkwork).toMatchObject({
+  expect(readOemConfig(profilePath, 'production', env.DSH_BRAND_PROTOCOL, env.DSH_BRAND_APP_ID).sdkwork).toMatchObject({
     iamClientId: 'daxuedazi',
     iamRedirectUri: 'daxuedazi://auth/callback',
   })
+
+  // RFC 8252 sections 7.1 and 8.4: the brand's reverse-domain application id is
+  // the interoperable callback scheme, and the profile may name it.
+  writeFileSync(profilePath, JSON.stringify({
+    sdkwork: { iamRedirectUri: 'com.sdkwork.daxuedazi://auth/callback' },
+  }))
+  expect(readOemConfig(profilePath, 'production', env.DSH_BRAND_PROTOCOL, env.DSH_BRAND_APP_ID).sdkwork)
+    .toMatchObject({ iamRedirectUri: 'com.sdkwork.daxuedazi://auth/callback' })
 
   // The upstream brand's identity in this home fails the launch instead of
   // opening a login whose deep link this shell can never receive.
   writeFileSync(profilePath, JSON.stringify({
     sdkwork: { iamClientId: 'birdcoder', iamRedirectUri: 'birdcoder://auth/callback' },
   }))
-  expect(() => readOemConfig(profilePath, 'production', env.DSH_BRAND_PROTOCOL))
+  expect(() => readOemConfig(profilePath, 'production', env.DSH_BRAND_PROTOCOL, env.DSH_BRAND_APP_ID))
     .toThrow(/sdkwork\.iamRedirectUri/)
 })
 
@@ -238,6 +250,7 @@ it('renders the installed CLI launchers for a brand command and home', async () 
   expect(windows).toContain('acme.exe')
   expect(windows).toContain('%USERPROFILE%\\.acme')
   expect(windows).toContain('set "DSH_BRAND_PROTOCOL=acme"')
+  expect(windows).toContain('set "DSH_BRAND_APP_ID=com.acme.harness"')
   expect(windows).not.toContain('birdcoder')
 
   prepareDesktopCli(directory, 'darwin', { DSH_BRAND_CONFIG: manifest })
@@ -245,4 +258,5 @@ it('renders the installed CLI launchers for a brand command and home', async () 
   expect(unix).toContain('MacOS/acme')
   expect(unix).toContain('DSH_HOME="$HOME/.acme"')
   expect(unix).toContain('DSH_BRAND_PROTOCOL="acme"')
+  expect(unix).toContain('DSH_BRAND_APP_ID="com.acme.harness"')
 })

@@ -18,6 +18,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { MemoryRouter } from 'react-router-dom'
+import clsx from 'clsx'
 import {
   Button, IconCloseOutlineRegular, LoginPanel, readOemBrandName, useClipboardCopy, type LoginAction,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -113,7 +114,9 @@ function browserFailureReport(failure: IamBrowserLoginFailure, t: SignInOverlayP
   const lines = [
     `${t('browser.details.step')}: ${failure.code}`,
     ...(failure.message === undefined ? [] : [`${t('browser.details.message')}: ${failure.message}`]),
-    ...(failure.detail === undefined ? [] : [`${t('browser.details.detail')}: ${failure.detail}`]),
+    ...(failure.detail === undefined
+      ? []
+      : [`${failure.code === 'provider-denied' ? t('browser.details.oauthError') : t('browser.details.detail')}: ${failure.detail}`]),
   ]
   const response = failure.response
   if (response === undefined) return lines.join('\n')
@@ -135,21 +138,34 @@ function browserFailureReport(failure: IamBrowserLoginFailure, t: SignInOverlayP
  * @param props - the reported failure and the locale seat.
  * @returns the details toggle and, while expanded, the diagnostics list.
  */
-function BrowserFailureDetails({ failure, t }: { failure: IamBrowserLoginFailure; t: SignInOverlayProps['t'] }) {
-  const [expanded, setExpanded] = useState(false)
+function BrowserFailureDetails({ failure, t, expanded, onToggle }: {
+  failure: IamBrowserLoginFailure
+  t: SignInOverlayProps['t']
+  expanded: boolean
+  onToggle: () => void
+}) {
   const detailsId = useId()
   const { copied, onCopy } = useClipboardCopy(browserFailureReport(failure, t))
   const response = failure.response
   const runtimeRows = [
     { label: t('browser.details.step'), value: failure.code },
     ...(failure.message === undefined ? [] : [{ label: t('browser.details.message'), value: failure.message }]),
-    ...(failure.detail === undefined ? [] : [{ label: t('browser.details.detail'), value: failure.detail }]),
+    // A refused hosted authorization carries the OAuth error value in `detail`
+    // (`server_error`), not a description; naming it "detail" misreads it.
+    ...(failure.detail === undefined
+      ? []
+      : [{
+        label: failure.code === 'provider-denied' ? t('browser.details.oauthError') : t('browser.details.detail'),
+        value: failure.detail,
+      }]),
   ]
-  const responseRows = [
-    ...(response?.status === undefined ? [] : [{ label: t('browser.details.status'), value: String(response.status) }]),
-    ...(response?.code === undefined ? [] : [{ label: t('browser.details.code'), value: response.code }]),
-    ...(response?.traceId === undefined ? [] : [{ label: t('browser.details.trace'), value: response.traceId }]),
-  ]
+  // One compact line for the response's identity; the problem document below
+  // it is the answer itself, so it starts as high in the panel as possible.
+  const responseMeta = [
+    ...(response?.status === undefined ? [] : [`${t('browser.details.status')} ${String(response.status)}`]),
+    ...(response?.code === undefined ? [] : [`${t('browser.details.code')} ${response.code}`]),
+    ...(response?.traceId === undefined ? [] : [`${t('browser.details.trace')} ${response.traceId}`]),
+  ].join(' · ')
   return (
     <>
       <button
@@ -159,7 +175,7 @@ function BrowserFailureDetails({ failure, t }: { failure: IamBrowserLoginFailure
         // The panel exists only while expanded, so the relationship is stated
         // exactly when it can be followed.
         aria-controls={expanded ? detailsId : undefined}
-        onClick={() => { setExpanded(current => !current) }}
+        onClick={onToggle}
       >
         {expanded ? t('browser.details.hide') : t('browser.details.show')}
       </button>
@@ -167,39 +183,27 @@ function BrowserFailureDetails({ failure, t }: { failure: IamBrowserLoginFailure
         ? (
           <>
             <div className={css.detailsPanel} id={detailsId} data-testid="iam-browser-details">
-              <dl className={css.detailsList}>
-                {runtimeRows.map(row => (
-                  <div className={css.detailsRow} key={row.label}>
-                    <dt className={css.detailsLabel}>{row.label}</dt>
-                    <dd className={css.detailsValue}>{row.value}</dd>
-                  </div>
-                ))}
-              </dl>
+              {/* The server's answer leads: it is the part that names the
+                  failing call, and the card above already states the step. */}
               {response === undefined
                 ? null
                 : (
                   <section className={css.detailsSection}>
                     <div className={css.detailsSectionLabel}>{t('browser.details.response')}</div>
-                    <dl className={css.detailsList}>
-                      {responseRows.map(row => (
-                        <div className={css.detailsRow} key={row.label}>
-                          <dt className={css.detailsLabel}>{row.label}</dt>
-                          <dd className={css.detailsValue}>{row.value}</dd>
-                        </div>
-                      ))}
-                      {response.body === undefined
-                        ? null
-                        : (
-                          <div className={css.detailsRow}>
-                            <dt className={css.detailsLabel}>{t('browser.details.body')}</dt>
-                            <dd className={css.detailsValue}>
-                              <pre className={css.detailsBody}>{response.body}</pre>
-                            </dd>
-                          </div>
-                        )}
-                    </dl>
+                    {responseMeta === '' ? null : <div className={css.detailsMeta}>{responseMeta}</div>}
+                    {response.body === undefined ? null : <pre className={css.detailsBody}>{response.body}</pre>}
                   </section>
                 )}
+              <section className={css.detailsSection}>
+                <dl className={css.detailsList}>
+                  {runtimeRows.map(row => (
+                    <div className={css.detailsRow} key={row.label}>
+                      <dt className={css.detailsLabel}>{row.label}</dt>
+                      <dd className={css.detailsValue}>{row.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
             </div>
             {/* The copy action sits under the report it copies, so the whole
                 block reads as one unit: expand, read, hand it to support. */}
@@ -214,6 +218,27 @@ function BrowserFailureDetails({ failure, t }: { failure: IamBrowserLoginFailure
         )
         : null}
     </>
+  )
+}
+
+/**
+ * The waiting card's manual fallback: copy the hosted authorize URL so a user
+ * whose system browser reported success without showing a window can still
+ * finish the login in any browser. The URL carries the PKCE challenge and the
+ * one-time state, not the verifier.
+ * @param props - the authorize URL and locale seat.
+ * @returns the localized copy action with its own confirmation.
+ */
+function BrowserLinkCopy({ link, t }: { link: string; t: SignInOverlayProps['t'] }) {
+  const { copied, onCopy } = useClipboardCopy(link)
+  return (
+    <div className={css.detailsActions}>
+      <button type="button" className={css.detailsToggle} onClick={onCopy}>
+        {copied ? t('browser.linkCopied') : t('browser.copyLink')}
+      </button>
+      {/* Announced copy feedback for a control whose visible label also changes. */}
+      <span className={css.copyStatus} role="status">{copied ? t('browser.linkCopied') : ''}</span>
+    </div>
   )
 }
 
@@ -246,6 +271,8 @@ export interface SignInOverlayInjected {
     browserFailure: HostObservable<IamBrowserLoginFailure | undefined>
     /** Whether Sign in hands off to the system browser, so the in-app form needs its own link. */
     browserHandoff: HostObservable<boolean>
+    /** The waiting attempt's hosted authorize URL; empty when none is waiting. */
+    browserLink: HostObservable<string>
   }
 }
 
@@ -277,6 +304,9 @@ export function SignInOverlay(props: SignInOverlayProps) {
   const host = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const node = host.current
+    // The ref is assigned during commit, before effects run; only a torn-down
+    // commit can leave it null, and there is nothing to observe then.
+    /* v8 ignore next -- defensive: the portal host ref exists before this effect runs */
     if (node === null) return
     const clear = (): void => {
       node.removeAttribute('aria-hidden')
@@ -297,7 +327,7 @@ export function SignInOverlay(props: SignInOverlayProps) {
 
 function SignInOverlayContent(props: SignInOverlayProps) {
   const {
-    useStore, useConfigured, useTheme, useBrowserFailed, useBrowserFailure, useBrowserHandoff, onClose,
+    useStore, useConfigured, useTheme, useBrowserFailed, useBrowserFailure, useBrowserHandoff, useBrowserLink, onClose,
     onStartLogin, onStartInAppLogin, onRetryBrowser, startApiKey, locale, runtimeConfig, t,
   } = props
   const modalOpen = useStore(state => state.modalOpen)
@@ -307,6 +337,7 @@ function SignInOverlayContent(props: SignInOverlayProps) {
   const browserFailed = useBrowserFailed(failed => failed)
   const browserFailure = useBrowserFailure(failure => failure)
   const browserHandoff = useBrowserHandoff(handoff => handoff)
+  const browserLink = useBrowserLink(link => link)
   const colorScheme = theme.active.colorScheme
   // The step's localized line explains which part of the login broke; the
   // host's own reason is the detail a support report needs, so both are shown.
@@ -322,6 +353,18 @@ function SignInOverlayContent(props: SignInOverlayProps) {
       : browserFailure.detail ?? browserFailure.message
   // The card keeps one line; the details view below it keeps the reason whole.
   const browserSummary = browserDetail === undefined ? undefined : browserFailureSummary(browserDetail)
+  // The details view's only interaction state. A new failure starts collapsed;
+  // while a report is open the card widens so the server's JSON document fits
+  // without squeezing every other step.
+  const failureIdentity = browserFailure === undefined ? '' : browserFailureIdentity(browserFailure)
+  const [details, setDetails] = useState<{ identity: string; expanded: boolean }>({ identity: '', expanded: false })
+  const detailsExpanded = failureIdentity !== '' && details.identity === failureIdentity && details.expanded
+  const toggleDetails = (): void => {
+    setDetails(current => ({
+      identity: failureIdentity,
+      expanded: !(current.identity === failureIdentity && current.expanded),
+    }))
+  }
   const titleId = useId()
   const headingId = useId()
   const descriptionId = useId()
@@ -353,7 +396,12 @@ function SignInOverlayContent(props: SignInOverlayProps) {
   if (step === 'browser') {
     return (
       <div className={css.mask} role="presentation">
-        <div className={css.panel} role="dialog" aria-modal="true" aria-labelledby={headingId}>
+        <div
+          className={clsx(css.panel, detailsExpanded && css.panelDetails)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={headingId}
+        >
           <button
             type="button"
             aria-label={t('modal.close')}
@@ -368,6 +416,19 @@ function SignInOverlayContent(props: SignInOverlayProps) {
           <p className={css.browserDetail}>
             {browserFailed ? t('browser.failedDetail') : t('browser.detail')}
           </p>
+          {/* A system browser that reported success but showed no window leaves
+              the flow waiting with nothing to look at. The manual fallback
+              copies the same authorize URL so the user can open it elsewhere;
+              it disappears with the attempt, because a spent or expired state
+              must not be offered for reopening. */}
+          {!browserFailed && browserLink !== ''
+            ? (
+              <>
+                <p className={css.browserHint}>{t('browser.copyLinkHint')}</p>
+                <BrowserLinkCopy link={browserLink} t={t} />
+              </>
+            )
+            : null}
           {browserFailed && browserFailure !== undefined
             ? <p className={css.browserReason}>{t(browserFailureKey(browserFailure))}</p>
             : null}
@@ -385,9 +446,11 @@ function SignInOverlayContent(props: SignInOverlayProps) {
           {browserFailed && browserFailure !== undefined
             ? (
               <BrowserFailureDetails
-                key={browserFailureIdentity(browserFailure)}
+                key={failureIdentity}
                 failure={browserFailure}
                 t={t}
+                expanded={detailsExpanded}
+                onToggle={toggleDetails}
               />
             )
             : null}

@@ -11,6 +11,10 @@ if [ -z "${DSH_BRAND_PROTOCOL:-}" ]; then
   DSH_BRAND_PROTOCOL="@BRAND_PROTOCOL@"
   export DSH_BRAND_PROTOCOL
 fi
+if [ -z "${DSH_BRAND_APP_ID:-}" ]; then
+  DSH_BRAND_APP_ID="@BRAND_APP_ID@"
+  export DSH_BRAND_APP_ID
+fi
 launcher=$0
 while [ -L "$launcher" ]; do
   directory=$(CDPATH= cd -- "$(dirname -- "$launcher")" && pwd -P)

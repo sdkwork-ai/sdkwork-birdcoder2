@@ -15,17 +15,17 @@
   en: 3e6c03ac6bc2e4c8
   zh: e916951aca593a75
 /deepseek-ai-dsh-sdkwork-oem/compatibility:
-  en: 1e6f9c47cdf42ac8
-  zh: d96098173b6439f9
+  en: c49e65c17b6570cf
+  zh: 6ebe5cc1d93faaf3
 /deepseek-ai-dsh-sdkwork-oem/configuration:
-  en: 2da356f616f72958
-  zh: ede8e9505f176d9d
+  en: e015af5b2d5b24a8
+  zh: a0409dd34cebe4f8
 /deepseek-ai-dsh-sdkwork-oem/environment-domains:
   en: 247e98e74fd8eb6c
   zh: 195657420e87f1cb
 /deepseek-ai-dsh-sdkwork-oem/merge-contract:
-  en: c031e5eff086b650
-  zh: 0a65dc0d4984b11c
+  en: 54263c7f4de1a6f6
+  zh: 333fd958ed2f7523
 /deepseek-ai-dsh-sdkwork-oem/model-experience:
   en: 8846bcf5f1b01ce9
   zh: c00541f7d0195f9d
@@ -33,8 +33,8 @@
   en: 1372ae594e1a407f
   zh: a098acd07951768f
 /deepseek-ai-dsh-sdkwork-oem/known-limitations-and-deferred-work:
-  en: 48feee82c932d661
-  zh: 5e63788327979971
+  en: 37fd9dbdcad02ea1
+  zh: 3cc2f5e9c2c16b3e
 /deepseek-ai-dsh-sdkwork-oem/known-limitations-and-deferred-work/dev-note:
   en: 77cb87030d02255d
   zh: d50594d4a9800a5e

@@ -6,7 +6,7 @@ Status: implemented
 
 ## 问题
 
-欢迎窗口的「登录」是产品进入 SDKWork IAM 浏览器登录的入口（[决策](2026-11-04-unified-login-surface.md)）。桌面壳的投递方式是：在 workspace 的 boot 响应里放入一次性的 `__DSH_IAM_SIGN_IN__`，然后进入 workspace，由 IAM 服务消费该值并打开托管授权页。
+欢迎窗口的「登录」是产品进入 SDKWork IAM 浏览器登录的入口（[决策](../feature/2026-11-04-unified-login-surface.zh.md)）。桌面壳的投递方式是：在 workspace 的 boot 响应里放入一次性的 `__DSH_IAM_SIGN_IN__`，然后进入 workspace，由 IAM 服务消费该值并打开托管授权页。
 
 这一投递假设 workspace 在欢迎页交接*之后*才启动。事实并非如此：`reconcileBackend` 在启动 Host 之前就把隐藏的主窗口导航到 `dsh-app://app/`，目的正是让文档在后端就绪期间先加载；`openInitialWindow` 则在 Host 应答之后才决定显示欢迎页还是工作区。对未登录的启动来说，这意味着欢迎页出现之前，文档的 `dsh-app://app/` boot 响应就已经应答完毕。`enterWorkspace` 复用了缓存中的导航而不是重新加载文档，于是读取一次性值的 boot 处理不会再运行。点击「登录」关闭欢迎窗口、露出已经加载好的工作区，却没有启动任何东西：既没有系统浏览器页面，也没有交接卡片，更没有报错。
 
@@ -18,7 +18,7 @@ Status: implemented
 
 - **由一次强制启动承载请求。** `navigateMain(url, reload)` 会发起一次全新的文档加载，而不是复用匹配的缓存导航，`enterWorkspace({ reload })` 将其透传。欢迎页在启动场景下的 `iamSignIn` 会置上 `pendingIamSignIn`，并以 `reload: true` 进入工作区；重新加载的文档在 boot 响应中得到 `__DSH_IAM_SIGN_IN__`，IAM 服务随即按配置的登录手势启动浏览器登录并显示交接卡片。工作区内的登录页（`welcomePurpose === 'sign-in'`）仍在不重新加载的前提下解析为 `'login'`，因为在那里由运行中的渲染端自己启动登录，且必须保留其表面状态。
 - **页面不能重复交接。** 欢迎渲染端在点击期间持有一个 starting ref，并把入口的「登录」动作标记为 busy 并显示打开登录的文案，重新加载尚未完成时的第二次点击会被忽略，页面也说明了正在做什么；交接被拒绝时清空该引用，使动作可以重试。
-- **服务只在宿主挂载后呈现。** `IamService.attachModal` 改由 overlay 条目的 inject 工厂传入真实的绑定动作，并推迟一个微任务以避开 React 渲染阶段，不再在 apply 时以转发包装函数调用。`startPendingSignIn` 在挂载之前保留一次性值，挂载时附着动作并重新执行 bootstrap 应答。冷启动失败的记录也从同一时刻回放，而不会发往尚未绑定的表面。
+- **服务在宿主挂载时呈现。** `IamService.attachModal` 改由 overlay 条目的 inject 工厂传入真实的绑定动作，并推迟一个微任务以避开 React 渲染阶段，不再在 apply 时以转发包装函数调用。配置的登录手势不再等待这次挂载（[后续决策](2026-11-22-deeplink-callback-recovery.zh.md)）：在首次渲染之前记录的请求会立即启动登录，挂载时附着动作并呈现它此前缺失的进行中尝试。
 
 ## 备选方案
 
@@ -32,8 +32,8 @@ Status: implemented
 
 ## 后果
 
-首次点击「登录」现在会打开托管授权页，并显示等待深链回来的交接卡片，启动入口与工作区内登录页最终落在同一个表面。代价是启动已预加载的文档会多启动一次；这次启动发生在欢迎页之后，且该文档在入口处没有值得保留的状态（未登录启动，或刚退出登录的工作区）。IAM 服务在 overlay 条目渲染之前没有任何表面，而这正是用户能够看到或点击任何东西的时刻；启动时到达的请求会等待而不是被丢弃。桌面欢迎页 README 与 IAM 包 README 都记录了这两点。
+首次点击「登录」现在会打开托管授权页，并显示等待深链回来的交接卡片，启动入口与工作区内登录页最终落在同一个表面。代价是启动已预加载的文档会多启动一次；这次启动发生在欢迎页之后，且该文档在入口处没有值得保留的状态（未登录启动，或刚退出登录的工作区）。IAM 服务在 overlay 条目渲染之前没有卡片，而这正是用户能够看到或点击任何东西的时刻；启动时到达的请求会立即启动登录，并在该挂载时刻呈现卡片，因此请求既不会被丢弃，也不会被缺失的表面阻塞。桌面欢迎页 README 与 IAM 包 README 都记录了这两点。
 
 ## 验证
 
-`apps/desktop/tests/welcome-startup.spec.ts` 新增启动用例：先断言启动只预加载一次 `dsh-app://app/`，再断言欢迎页的 `iamSignIn` 会第二次加载该文档，且其 boot 处理返回 `__DSH_IAM_SIGN_IN__` 全局值。`apps/desktop/tests/welcome-renderer.client.spec.tsx` 锁定重复点击的防抖。`packages/client/ui-sdkwork-iam/tests/iam-service-browser-login.client.spec.ts` 锁定：没有表面附着时 `startPendingSignIn` 保留请求且不启动任何东西；`attachModal` 之后才打开交接卡片并启动浏览器登录。在桌面 `--online` 开发通道上，重新构建 IAM 客户端 bundle 并在设置 boot 值后重新加载 workspace，`sdkwork.iam.desktopAuthFlow.v1` 中出现新的 PKCE 流程，并出现「已在浏览器中打开登录页」卡片；修复前的 bundle 不会显示该卡片。
+`apps/desktop/tests/welcome-startup.spec.ts` 新增启动用例：先断言启动只预加载一次 `dsh-app://app/`，再断言欢迎页的 `iamSignIn` 会第二次加载该文档，且其 boot 处理返回 `__DSH_IAM_SIGN_IN__` 全局值。`apps/desktop/tests/welcome-renderer.client.spec.tsx` 锁定重复点击的防抖。`packages/client/ui-sdkwork-iam/tests/iam-service-browser-login.client.spec.ts` 锁定：欢迎页请求在登录宿主挂载前就会启动托管登录，挂载时会呈现进行中的尝试。在桌面 `--online` 开发通道上，重新构建 IAM 客户端 bundle 并在设置 boot 值后重新加载 workspace，`sdkwork.iam.desktopAuthFlow.v1` 中出现新的 PKCE 流程，并出现「已在浏览器中打开登录页」卡片；修复前的 bundle 不会显示该卡片。

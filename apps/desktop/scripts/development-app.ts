@@ -48,7 +48,9 @@ export function prepareDevelopmentApp(options: DevelopmentAppOptions): string {
       CFBundleExecutable: 'HarnessDev',
       CFBundleURLTypes: [{
         CFBundleURLName: brand.desktop.productName,
-        CFBundleURLSchemes: [brand.desktop.protocol],
+        // The product scheme and the brand's reverse-domain application id: the
+        // Host may name either as the login callback (RFC 8252 sections 7.1, 8.4).
+        CFBundleURLSchemes: [brand.desktop.protocol, brand.desktop.appId],
         CFBundleTypeRole: 'Viewer',
       }],
     }

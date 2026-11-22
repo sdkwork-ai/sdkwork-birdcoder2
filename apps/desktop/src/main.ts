@@ -1229,6 +1229,17 @@ async function main(): Promise<void> {
     if (!loopbackEnabled()) throw new Error('loopback login is disabled')
     return iamLoopback.start()
   })
+  // A reloaded page adopts the carrier the previous page started, and takes a
+  // callback the shell accepted while no page could hear the event. Both reads
+  // only expose this process's own waiting login.
+  ipcMain.handle(IAM_LOOPBACK_BRIDGE.pending, (event) => {
+    assertProductSender(event)
+    return iamLoopback.pending()
+  })
+  ipcMain.handle(IAM_LOOPBACK_BRIDGE.takeCallback, (event) => {
+    assertProductSender(event)
+    return iamLoopback.takeCallback()
+  })
   ipcMain.handle(IAM_LOOPBACK_BRIDGE.cancel, async (event) => {
     assertProductSender(event)
     await iamLoopback.cancel()
@@ -1236,6 +1247,8 @@ async function main(): Promise<void> {
   app.on('will-quit', () => {
     void iamLoopback.dispose()
     ipcMain.removeHandler(IAM_LOOPBACK_BRIDGE.start)
+    ipcMain.removeHandler(IAM_LOOPBACK_BRIDGE.pending)
+    ipcMain.removeHandler(IAM_LOOPBACK_BRIDGE.takeCallback)
     ipcMain.removeHandler(IAM_LOOPBACK_BRIDGE.cancel)
     void iamDeepLinkRelay.dispose()
     iamDeepLinks.dispose()

@@ -36,7 +36,7 @@ function controller(): ReturnType<typeof createSdkworkAuthController> {
 
 function overlay({
   open, step = 'entry', configured = true, startApiKey, browserFailed = false, browserHandoff = false,
-  browserFailure, runtimeConfig = { leftRailMode: 'highlights-only', loginMethods: ['password'] },
+  browserFailure, browserLink = '', runtimeConfig = { leftRailMode: 'highlights-only', loginMethods: ['password'] },
 }: {
   open: boolean
   step?: IamSignInStep
@@ -45,6 +45,7 @@ function overlay({
   browserFailed?: boolean
   browserFailure?: IamBrowserLoginFailure
   browserHandoff?: boolean
+  browserLink?: string
   runtimeConfig?: SdkworkAuthRuntimeConfig
 } = { open: true }) {
   const onClose = vi.fn()
@@ -66,6 +67,7 @@ function overlay({
     useBrowserFailure: vi.fn(
       (sel: (failure: IamBrowserLoginFailure | undefined) => unknown) => sel(browserFailure)),
     useBrowserHandoff: vi.fn((sel: (handoff: boolean) => boolean) => sel(browserHandoff)),
+    useBrowserLink: vi.fn((sel: (link: string) => string) => sel(browserLink)),
     useTheme: vi.fn((sel: (s: { active: { colorScheme: 'light' | 'dark' } }) => { active: { colorScheme: 'light' | 'dark' } }) =>
       sel({ active: { colorScheme: 'light' } })),
     t: (key: string): string => key,
@@ -137,6 +139,53 @@ describe('SignInOverlay', () => {
     expect(onRetryBrowser).toHaveBeenCalledOnce()
   })
 
+  it('offers the manual sign-in link while the browser hand-off waits', async () => {
+    const writeText = vi.fn(async (_text: string) => {})
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+    const authorizeUrl = 'https://platform.birdcoder.com/iam/oauth/authorize?client_id=birdcoder&state=s'
+    try {
+      overlay({ open: true, step: 'browser', browserLink: authorizeUrl })
+      const dialog = screen.getByRole('dialog')
+      // The waiting card states where the login continues and offers the same
+      // URL for a browser that never showed its window.
+      expect(within(dialog).getByText('browser.copyLinkHint')).not.toBeNull()
+      fireEvent.click(within(dialog).getByRole('button', { name: 'browser.copyLink' }))
+      await vi.waitFor(() => { expect(writeText).toHaveBeenCalledWith(authorizeUrl) })
+      await vi.waitFor(() => {
+        expect(within(dialog).getByRole('button', { name: 'browser.linkCopied' })).not.toBeNull()
+      })
+    } finally {
+      Reflect.deleteProperty(navigator, 'clipboard')
+    }
+  })
+
+  it('keeps the copy action available when the clipboard refuses the write', async () => {
+    const writeText = vi.fn(async (_text: string) => { throw new Error('denied') })
+    const exec = vi.fn(() => false)
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+    Object.defineProperty(document, 'execCommand', { configurable: true, value: exec })
+    try {
+      overlay({ open: true, step: 'browser', browserLink: 'https://platform.example/iam/oauth/authorize?state=s' })
+      const dialog = screen.getByRole('dialog')
+      fireEvent.click(within(dialog).getByRole('button', { name: 'browser.copyLink' }))
+      await vi.waitFor(() => { expect(writeText).toHaveBeenCalled() })
+      // A refused write shows no success state and leaves the control usable.
+      expect(within(dialog).queryByRole('button', { name: 'browser.linkCopied' })).toBeNull()
+      expect(within(dialog).getByRole('button', { name: 'browser.copyLink' })).not.toBeNull()
+    } finally {
+      Reflect.deleteProperty(navigator, 'clipboard')
+      Reflect.deleteProperty(document, 'execCommand')
+    }
+  })
+
+  it('does not offer the manual link once the hand-off failed or has no URL', () => {
+    overlay({ open: true, step: 'browser' })
+    expect(within(screen.getByRole('dialog')).queryByRole('button', { name: 'browser.copyLink' })).toBeNull()
+    cleanup()
+    overlay({ open: true, step: 'browser', browserFailed: true, browserLink: 'https://platform.example/authorize?state=spent' })
+    expect(within(screen.getByRole('dialog')).queryByRole('button', { name: 'browser.copyLink' })).toBeNull()
+  })
+
   it('reports a failed browser hand-off instead of claiming the page opened', () => {
     overlay({ open: true, step: 'browser', browserFailed: true })
     const dialog = screen.getByRole('dialog')
@@ -175,6 +224,14 @@ describe('SignInOverlay', () => {
     // The page's own sentence is actionable; the OAuth error class alone is not.
     expect(within(dialog).getByTestId('iam-browser-failure-detail').textContent)
       .toBe('browser.failureDetailThe hosted authorization could not be started. Start the login again.')
+
+    // `detail` is the OAuth error value here, so the panel names it as one
+    // instead of calling `server_error` a detail.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'browser.details.show' }))
+    const details = within(dialog).getByTestId('iam-browser-details')
+    expect(details.textContent).toContain('browser.details.oauthError')
+    expect(details.textContent).toContain('server_error')
+    expect(details.textContent).not.toContain('browser.details.detail')
   })
 
   it('shows the host reason under the named step', () => {
@@ -246,7 +303,8 @@ describe('SignInOverlay', () => {
     expect(details.textContent).toContain('40002')
     expect(details.textContent).toContain('browser.details.trace')
     expect(details.textContent).toContain('trace-1')
-    expect(details.textContent).toContain('browser.details.body')
+    // The response's own document is rendered whole, not summarized.
+    expect(details.textContent).toContain('"code": 40002')
     expect(details.textContent).toContain('OAuth authorization code is invalid or expired')
 
     fireEvent.click(toggle)

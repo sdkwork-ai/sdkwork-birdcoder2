@@ -111,6 +111,23 @@ describe('sdkwork-oem plugin', () => {
     await expect(mount(configFile)).rejects.toThrow(/sdkwork\.iamRedirectUri/)
   })
 
+  it('accepts the brand application id as the private-use callback scheme', async () => {
+    // The desktop shell reports both brand identities; the profile may name the
+    // reverse-domain one that RFC 8252 sections 7.1 and 8.4 recommend.
+    vi.stubEnv('DSH_BRAND_PROTOCOL', 'birdcoder')
+    vi.stubEnv('DSH_BRAND_APP_ID', 'com.sdkwork.birdcoder')
+    const configFile = await profile(JSON.stringify({
+      sdkwork: { iamRedirectUri: 'com.sdkwork.birdcoder://auth/callback' },
+    }))
+    const ctx = await mount(configFile)
+    expect(ctx.oem.sdkwork.iamClientId).toBe('birdcoder')
+    expect(ctx.oem.sdkwork.iamRedirectUri).toBe('com.sdkwork.birdcoder://auth/callback')
+    // The same profile fails without the reported application id.
+    await ctx.fiber.dispose()
+    vi.unstubAllEnvs()
+    await expect(mount(configFile)).rejects.toThrow(/sdkwork\.iamRedirectUri/)
+  })
+
   it('keeps the shipped defaults when the profile file is absent', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'dsh-oem-plugin-'))
     directories.push(directory)

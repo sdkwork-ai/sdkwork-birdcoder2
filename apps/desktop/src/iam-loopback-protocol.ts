@@ -10,6 +10,8 @@
 /** Channels of the loopback login bridge. */
 export const IAM_LOOPBACK_BRIDGE = {
   start: 'sdkwork:loopback:start',
+  pending: 'sdkwork:loopback:pending',
+  takeCallback: 'sdkwork:loopback:takeCallback',
   cancel: 'sdkwork:loopback:cancel',
   callback: 'sdkwork:loopback:callback',
 } as const
@@ -24,6 +26,16 @@ export interface IamLoopbackStartResult {
 export interface IamLoopbackLoginBridge {
   /** Start a listener; starting again replaces the previous one. */
   start(): Promise<IamLoopbackStartResult>
+  /**
+   * The live listener's redirect URI, or null when none waits. A reloaded page
+   * adopts the carrier the previous page started.
+   */
+  pending(): Promise<IamLoopbackStartResult | null>
+  /**
+   * Take a callback accepted while no page could hear it, or null. Taking is
+   * destructive: the shell never offers the same authorization code twice.
+   */
+  takeCallback(): Promise<string | null>
   /** Stop the pending listener. */
   cancel(): Promise<void>
   /** Subscribe to accepted callback URLs; returns the unsubscribe function. */

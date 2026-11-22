@@ -74,6 +74,16 @@ const IAM_DESKTOP_LOGIN_WINDOW_MS = 270_000
  * identity instead of holding the hand-off card open.
  */
 const IAM_PROFILE_READ_BUDGET_MS = 5_000
+/**
+ * How long the welcome hand-off waits for the IAM settings namespace.
+ *
+ * The request runs at apply time, when the scope still reports `loading`; the
+ * `signInMethod` it carries decides between the browser hand-off and the in-app
+ * form, and the defaults would otherwise pick the browser gesture for a
+ * deployment configured for the other one. The bound keeps a slow or broken
+ * settings document from blocking a login the welcome page already handed over.
+ */
+const IAM_SETTINGS_SETTLE_TIMEOUT_MS = 2_000
 
 /**
  * Read or create the stable opaque device identity used for desktop logins.
@@ -450,6 +460,21 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   }
 
   /**
+   * The hosted authorize URL of the waiting browser login.
+   *
+   * The hand-off card offers it as a manual fallback: a system browser that
+   * reported success but showed no window (or opened on another desktop) leaves
+   * the user with a waiting flow and no visible page. The URL carries the PKCE
+   * challenge and state, never the verifier, so handing it to the clipboard adds
+   * no secret; it disappears as soon as the attempt settles, because a spent or
+   * expired state must not be offered for reopening.
+   * @returns the absolute authorize URL, or undefined when no attempt is waiting.
+   */
+  browserSignInUrl(): string | undefined {
+    return this.desktopLogin?.authorizeUrl()
+  }
+
+  /**
    * Whether the last browser-login attempt failed.
    * @returns true after a begin or callback failure, until the next attempt.
    */
@@ -788,7 +813,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
    */
   sessionTokens(): { accessToken?: string; authToken?: string; refreshToken?: string } {
     const session = this.observedTokens ?? this.controller.getState().session
-    if (session === undefined) return {}
+    if (session === undefined || session === null) return {}
     return {
       ...(session.accessToken ? { accessToken: session.accessToken } : {}),
       ...(session.authToken ? { authToken: session.authToken } : {}),
@@ -1064,17 +1089,19 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
    * Adopt the modal's actions once its host has mounted.
    *
    * The store's bound actions exist only after the overlay entry renders, so a
-   * launch request or a callback failure recorded before that point has no
-   * surface to open. The service only presents through this face, and the
-   * host calls it on mount; a launch callback can fail before the overlay
-   * exists (a cold start redeems as soon as the page boots), so the recorded
-   * failure is presented here: the user who just tried to sign in sees the
-   * reason and the recovery actions instead of an anonymous workspace.
+   * launch request or a callback outcome recorded before that point has no
+   * surface to open. The service only presents through this face, and the host
+   * calls it on mount; the login gesture itself does not depend on it (the
+   * browser hand-off runs without the card), so a mount that happens after the
+   * gesture started raises the card for the attempt already in flight, and a
+   * cold-start callback failure is replayed here: the user who just tried to
+   * sign in sees the reason and the recovery actions instead of an anonymous
+   * workspace.
    * @param actions - the modal controls the overlay registration bound.
    */
   attachModal(actions: IamModalActions): void {
     this.modal = actions
-    if (this.desktopFailed) actions.openBrowser()
+    if (this.desktopFailed || this.browserSignInWaiting()) actions.openBrowser()
   }
 
   /**
@@ -1111,8 +1138,18 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     // the session has settled so the callback can redeem its code. The pending
     // PKCE flow is durable (renderer storage), so a browser login finished
     // after the app exited still completes when the deep link relaunches it.
+    // A loopback attempt outlives a renderer reload the same way: the shell's
+    // listener keeps waiting, so this page adopts it before taking a callback
+    // the shell accepted while no page could hear the event.
     const desktop = this.ensureDesktopLogin()
     if (desktop !== undefined) {
+      if (this.isSignedIn()) {
+        // A restored session has no pending flow to complete; a listener left
+        // by a previous attempt can only hold its port and a stale flow.
+        void this.desktopLogin?.cancel().catch(() => {})
+        return
+      }
+      await desktop.resumePendingLoopback().catch(() => false)
       try {
         await desktop.completePendingCallbackFromLaunch()
       } catch (error) {
@@ -1143,6 +1180,14 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
    * sign-in surface: it runs the configured login gesture (the browser
    * hand-off by default, or the in-app account methods). An existing session
    * needs no surface at all.
+   *
+   * A browser hand-off does not wait for the modal host: the hosted page is the
+   * login surface, so an overlay that has not rendered (or never renders) must
+   * not block the login. The in-app account form has no surface of its own, so
+   * that gesture still waits for the host and is presented by
+   * {@link attachModal} at the mount. The gesture itself comes from the IAM
+   * settings namespace, which may still be loading when this runs, so the choice
+   * waits for it (bounded) instead of using the defaults.
    * @returns after the sign-in surface is raised or the request is consumed.
    */
   async startPendingSignIn(): Promise<void> {
@@ -1153,12 +1198,47 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
       return
     }
     if (!this.isConfigured() && !await this.whenConfigured()) return
-    // The overlay's store actions exist only once its entry rendered; leave
-    // the request for the mount, which answers it after binding the surface.
-    if (this.modal === undefined) return
+    // The gesture comes from the IAM settings namespace. This request runs at
+    // apply time, before the Host settings document necessarily arrives, and the
+    // defaults would pick the browser hand-off for a deployment configured for
+    // the in-app form (or the reverse). A settings document that never arrives
+    // must not block the login, so the wait is bounded.
+    await this.whenSettingsSettled()
+    // The in-app form only exists inside the host; consuming the request without
+    // it would silently drop the login the welcome page handed over.
+    if (this.modal === undefined && !this.usesBrowserHandoff()) return
     // One shot: a later sign-out must not replay this launch request.
     Reflect.deleteProperty(host, IAM_SIGN_IN_GLOBAL)
     this.startSignIn()
+  }
+
+  /**
+   * Wait until the IAM settings namespace resolved, or a short bound elapses.
+   *
+   * The scope reports `loading` until the first accepted Host section; reading
+   * the sign-in method before that returns the defaults, which may be the wrong
+   * gesture for this deployment. The bound keeps a broken or slow settings
+   * document from holding the login the welcome page already handed over.
+   * @returns after the scope left `loading`, or the bound elapsed.
+   */
+  private async whenSettingsSettled(): Promise<void> {
+    const scope = this.scope
+    if (scope.getSnapshot().status !== 'loading') return
+    await new Promise<void>((resolve) => {
+      let settled = false
+      let off = (): void => {}
+      const finish = (): void => {
+        if (settled) return
+        settled = true
+        off()
+        clearTimeout(timer)
+        resolve()
+      }
+      const timer = setTimeout(finish, IAM_SETTINGS_SETTLE_TIMEOUT_MS)
+      off = scope.subscribe(() => {
+        if (scope.getSnapshot().status !== 'loading') finish()
+      })
+    })
   }
 
   /**
@@ -1221,7 +1301,19 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     const deviceId = readOrCreateIamDeviceId()
     const key = `${baseUrl}\u0000${authorizeBaseUrl}\u0000${clientId}\u0000${redirectUri}\u0000${deviceId ?? ''}`
     if (this.desktopLogin === undefined || this.desktopLoginKey !== key) {
-      this.desktopLogin?.dispose()
+      const previous = this.desktopLogin
+      if (previous !== undefined) {
+        // A changed identity (app-api origin, hosted origin, client, or
+        // callback) makes the previous attempt's PKCE flow unanswerable: its
+        // redirect and its redeem target no longer describe this page. Drop
+        // the durable flow instead of leaving a callback from the old
+        // authorization server redeemable against the new one (RFC 8252
+        // section 8.10 keeps the redirect URI bound to its authorization
+        // server; our one registered callback cannot express that, so the
+        // attempt is abandoned instead).
+        void previous.cancel().catch(() => {})
+        previous.dispose()
+      }
       const login = createIamDesktopLogin({
         clientId,
         redirectUri,
@@ -1232,7 +1324,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
         flowTtlMs: IAM_DESKTOP_LOGIN_WINDOW_MS,
         ...(deviceId === undefined ? {} : { deviceId }),
         onSession: session => this.commitDesktopSession(session),
-        onServerFailure: (response) => { this.desktopServerFailure = response },
+        onServerFailure: (response) => { this.recordServerFailure(response) },
         onError: (error) => {
           // A callback the controller refused to consume (a stale or foreign
           // deep link) leaves the pending attempt intact. Flipping the card to
@@ -1470,7 +1562,25 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     // The failure keeps the product-facing reason; the rejected step itself
     // carries the transport status, problem code, and trace id a support
     // report needs to correlate the attempt with the IAM server's logs.
-    console.error('ui-sdkwork-iam: browser login failed', failure, error)
+    console.error('ui-sdkwork-iam: browser login failed', this.desktopFailure, error)
+    this.notifyDesktop()
+  }
+
+  /**
+   * Keep the IAM server's own report for the card's details view.
+   *
+   * The redeem leg reports before the failure reaches this service, while the
+   * hosted-page probe reports after it: a late answer is attached to the
+   * failure already on screen and republished, so the details view updates in
+   * place instead of requiring another attempt.
+   * @param response - the status, code, trace id, and problem document one
+   * rejected request answered with.
+   */
+  private recordServerFailure(response: IamServerFailureResponse): void {
+    this.desktopServerFailure = response
+    const reported = this.desktopFailure
+    if (!this.desktopFailed || reported === undefined || reported.response !== undefined) return
+    this.desktopFailure = { ...reported, response }
     this.notifyDesktop()
   }
 

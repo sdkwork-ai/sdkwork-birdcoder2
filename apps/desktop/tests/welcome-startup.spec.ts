@@ -236,7 +236,7 @@ it.each([false, true])('an IAM sign-out returns the shell to the landing (stored
   state.preference = 'zh'
   state.hasApiKey = true
   state.operations = undefined
-  state.welcomeLocale = undefined
+  state.welcomeLocale = undefined as DesktopLocale | undefined
   state.welcomeContinue = undefined
   state.loadWorkspace.mockClear()
   state.showWorkspace.mockClear()

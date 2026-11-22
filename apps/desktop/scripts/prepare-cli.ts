@@ -40,6 +40,7 @@ export function prepareDesktopCli(
   writeFileSync(command, template
     .replaceAll(shipped.desktop.executableName, brand.desktop.executableName)
     .replaceAll('@BRAND_HOME@', home)
-    .replaceAll('@BRAND_PROTOCOL@', brand.desktop.protocol))
+    .replaceAll('@BRAND_PROTOCOL@', brand.desktop.protocol)
+    .replaceAll('@BRAND_APP_ID@', brand.desktop.appId))
   if (platform === 'darwin') chmodSync(command, 0o755)
 }

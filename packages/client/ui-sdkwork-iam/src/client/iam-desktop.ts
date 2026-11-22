@@ -15,7 +15,7 @@
  * reports a failed exchange for a code that was valid.
  */
 
-import { createSdkworkIamDesktopAuthRuntime, type SdkworkDesktopAuthHostPort, type SdkworkDesktopAuthSession, type SdkworkDesktopBridgeShape } from '@sdkwork/iam-desktop-auth'
+import { createSdkworkIamDesktopAuthRuntime, DEFAULT_DESKTOP_LOGIN_SCOPES, type SdkworkDesktopAuthHostPort, type SdkworkDesktopAuthSession, type SdkworkDesktopBridgeShape } from '@sdkwork/iam-desktop-auth'
 import { appApiPath, createClient, type SdkworkAppClient } from '@sdkwork/iam-app-sdk'
 import type { AuthTokenManager } from '@sdkwork/sdk-common'
 import { readServerFailureResponse, type IamServerFailureResponse } from './iam-server-failure.ts'
@@ -23,8 +23,28 @@ import { readServerFailureResponse, type IamServerFailureResponse } from './iam-
 /** Path of the generated desktop-session redeem operation. */
 const DESKTOP_SESSION_REDEEM_PATH = appApiPath('/oauth/desktop_sessions')
 
+/** Path of the anonymous authorization bootstrap the hosted page calls first. */
+const AUTHORIZATION_BOOTSTRAP_PATH = appApiPath('/oauth/authorizations')
+
 /** The generated-client slice the desktop auth runtime binds for its redeem leg. */
 type RedeemSdkClient = Parameters<typeof createSdkworkIamDesktopAuthRuntime>[0]['appSdkClient']
+
+/**
+ * Whether a failure means the hosted page could not start the authorization.
+ *
+ * The hosted page answers the app with `provider-denied` / `server_error`
+ * whenever its own bootstrap call was rejected. The code pair is read
+ * structurally for the same reason as the callback codes: the generated
+ * bundles can inline their own copy of the auth package, so class identity is
+ * not a contract.
+ * @param error - the failure the runtime reported.
+ * @returns true when the hosted page itself failed to start the authorization.
+ */
+function isHostedAuthorizationStartFailure(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false
+  const { code, detail } = error as { code?: unknown; detail?: unknown }
+  return code === 'provider-denied' && detail === 'server_error'
+}
 
 /**
  * Bind the redeem leg to the generated transport with at-most-once delivery.
@@ -32,7 +52,7 @@ type RedeemSdkClient = Parameters<typeof createSdkworkIamDesktopAuthRuntime>[0][
  * The generated transport retries a request up to three times on transport
  * failures and 5xx responses. Both are exactly the cases where the server may
  * already have consumed the code, so the retry can only return "code invalid or
- * expired" while the first attempt succeeded — and a browser hand-off that
+ * expired" while the first attempt succeeded 鈥?and a browser hand-off that
  * auto-fires and a user clicking its link can submit the same code twice.
  * One request per code makes both harmless: the second delivery observes the
  * first one's outcome instead of redeeming again. Recovery from a genuinely
@@ -84,6 +104,22 @@ function createAtMostOnceRedeemClient(
   }
 }
 
+/**
+ * How often a waiting desktop login asks the shell for a callback it may have
+ * missed.
+ *
+ * The shell delivers a running login's callback as an event on the window's
+ * preload bridge, and an event has no backlog: a callback that arrives while
+ * the renderer that owns the pending flow has no listener (the document is
+ * reloading, the plugin has not bootstrapped yet, or the listener was released
+ * with a previous runtime) is dropped, and the attempt then waits until its
+ * deadline even though the shell is holding the URL. The shell keeps the last
+ * accepted callback for `getInitialUrl`, so the waiting flow polls that take
+ * to recover it. The interval stays well under the flow deadline, and each take
+ * returns null after the first delivery.
+ */
+const PENDING_CALLBACK_POLL_MS = 2_000
+
 /** The preload global the desktop shell exposes. */
 interface SdkworkDesktopGlobal {
   readonly sdkworkDesktop?: unknown
@@ -93,6 +129,10 @@ interface SdkworkDesktopGlobal {
 export interface SdkworkDesktopLoopbackPort {
   /** Start a listener and return the per-process redirect URI. */
   start(): Promise<{ redirectUri: string }>
+  /** The live listener's redirect URI, or null when none waits. */
+  pending?(): Promise<{ redirectUri: string } | null>
+  /** Take a callback accepted while no page could hear it, or null. */
+  takeCallback?(): Promise<string | null>
   /** Stop the pending listener. */
   cancel(): Promise<void>
   /** Subscribe to accepted callback URLs; returns the unsubscribe function. */
@@ -153,7 +193,7 @@ export function readSdkworkDesktopBridge(): SdkworkDesktopBridge | undefined {
   }
   const loopback = candidate.loopbackLogin
   if (isRecord(loopback)) {
-    const { start, cancel, onCallback } = loopback
+    const { start, cancel, onCallback, pending, takeCallback } = loopback
     if (typeof start === 'function' && typeof cancel === 'function' && typeof onCallback === 'function') {
       bridge.loopbackLogin = {
         start: async () => {
@@ -168,6 +208,26 @@ export function readSdkworkDesktopBridge(): SdkworkDesktopBridge | undefined {
           const value: unknown = Reflect.apply(onCallback, loopback, [handler])
           return typeof value === 'function' ? value as () => void : () => {}
         },
+        // The resume reads are optional: a shell from before they ship simply
+        // cannot adopt a carrier across a reload.
+        ...(typeof pending === 'function'
+          ? {
+            pending: async (): Promise<{ redirectUri: string } | null> => {
+              const value: unknown = await Reflect.apply(pending, loopback, [])
+              return isRecord(value) && typeof value.redirectUri === 'string' && value.redirectUri !== ''
+                ? { redirectUri: value.redirectUri }
+                : null
+            },
+          }
+          : {}),
+        ...(typeof takeCallback === 'function'
+          ? {
+            takeCallback: async (): Promise<string | null> => {
+              const value: unknown = await Reflect.apply(takeCallback, loopback, [])
+              return typeof value === 'string' && value !== '' ? value : null
+            },
+          }
+          : {}),
       }
     }
   }
@@ -247,6 +307,24 @@ export interface IamDesktopLogin {
   begin(): Promise<void>
   cancel(): Promise<void>
   isWaiting(): boolean
+  /**
+   * Adopt the loopback carrier a previous page started, and take a callback the
+   * shell accepted while no page could hear it.
+   *
+   * A renderer reload destroys the page that began the login while the shell's
+   * listener keeps waiting; the persisted PKCE flow still describes that
+   * carrier, so the reloaded page builds its runtime around it instead of
+   * failing the attempt.
+   * @returns whether a waiting loopback listener was adopted.
+   */
+  resumePendingLoopback(): Promise<boolean>
+  /**
+   * The hosted authorize URL of the waiting attempt, once the browser hand-off
+   * started. Present only while the flow waits: a settled attempt's URL carries
+   * a spent or expired state and must not be offered for manual opening.
+   * @returns the authorize URL, or undefined when no attempt is waiting.
+   */
+  authorizeUrl(): string | undefined
   subscribe(listener: () => void): () => void
   completePendingCallbackFromLaunch(): Promise<boolean>
   dispose(): void
@@ -275,6 +353,20 @@ export function createIamDesktopLogin(options: CreateIamDesktopLoginOptions): Ia
   const notify = (): void => {
     for (const listener of [...listeners]) listener()
   }
+  /** The authorize URL last handed to the system browser, for the waiting card. */
+  let authorizeUrl: string | undefined
+  /**
+   * Hand one authorize URL to the system browser.
+   *
+   * The URL is captured here because it is the only place the flow holds it:
+   * the runtime's `beginLogin` resolves without it, while this host call is the
+   * exact request the browser receives 鈥?so the card can offer the same page
+   * when the browser reports success without showing a window.
+   */
+  const openAuthorizePage = async (url: string): Promise<void> => {
+    authorizeUrl = url
+    await options.bridge.shellOpen.open(url)
+  }
   const standardHost: SdkworkDesktopAuthHostPort = {
     id: 'electron',
     async getInitialUrl() {
@@ -283,12 +375,13 @@ export function createIamDesktopLogin(options: CreateIamDesktopLoginOptions): Ia
     onOpenUrl(handler) {
       return options.bridge.deepLinks.onOpenUrl(handler)
     },
-    async openExternal(url) {
-      await options.bridge.shellOpen.open(url)
-    },
+    openExternal: openAuthorizePage,
   }
   const loopbackHost = (port: SdkworkDesktopLoopbackPort): SdkworkDesktopAuthHostPort => ({
-    id: 'electron-loopback',
+    // A custom native host: the same Electron shell, with a per-attempt
+    // loopback carrier instead of the OS scheme association. `custom` is the
+    // portable id the auth package defines for exactly this case.
+    id: 'custom',
     async getInitialUrl() {
       // A loopback callback cannot arrive before this runtime exists: the
       // listener is started first and the browser opens only afterwards.
@@ -302,9 +395,7 @@ export function createIamDesktopLogin(options: CreateIamDesktopLoginOptions): Ia
         offDeepLinks()
       }
     },
-    async openExternal(url) {
-      await options.bridge.shellOpen.open(url)
-    },
+    openExternal: openAuthorizePage,
   })
   let activeLoopback: SdkworkDesktopLoopbackPort | undefined
   let disposed = false
@@ -316,6 +407,130 @@ export function createIamDesktopLogin(options: CreateIamDesktopLoginOptions): Ia
       void loopback.cancel().catch(() => {})
     }
   }
+  /**
+   * Whether the controller refused a callback the pending flow can ignore.
+   *
+   * The runtime and this module can hold different copies of the auth package
+   * (the generated bundles inline it), so the error's stable `code` contract is
+   * read instead of relying on one class identity.
+   */
+  const isStaleCallback = (error: unknown): boolean => {
+    if (typeof error !== 'object' || error === null) return false
+    const { code } = error as { code?: unknown }
+    return code === 'no-pending-flow' || code === 'state-mismatch'
+  }
+  /**
+   * Random throwaway token in the PKCE challenge shape. A diagnostic probe
+   * never redeems the authorization it starts, so its state and challenge
+   * carry no secret.
+   */
+  const throwawayToken = (): string => {
+    const bytes = new Uint8Array(32)
+    globalThis.crypto.getRandomValues(bytes)
+    return btoa(String.fromCharCode(...bytes)).replace(/\+/gu, '-').replace(/\//gu, '_').replace(/=+$/u, '')
+  }
+  /**
+   * Recover the server's own answer when the hosted page failed to start the
+   * authorization.
+   *
+   * That page owns the bootstrap request, so its response never reaches the
+   * app: it only reports `provider-denied` + `server_error`, and the failure
+   * card would show that one string. Asking the same anonymous endpoint again
+   * recovers the HTTP status, wire code, trace id, and problem document for the
+   * details view. Only a rejected probe is reported as the answer; a probe that
+   * starts an authorization explains nothing about the page's failure.
+   */
+  const probeHostedAuthorizationFailure = async (): Promise<void> => {
+    try {
+      await client.http.request(AUTHORIZATION_BOOTSTRAP_PATH, {
+        method: 'POST',
+        contentType: 'application/json',
+        skipAuth: true,
+        sdkworkUnwrapKind: 'item',
+        retry: { maxRetries: 0 },
+        body: {
+          clientId: options.clientId,
+          responseType: 'code',
+          redirectUri: runtime.descriptor.redirectUri,
+          scope: (runtime.descriptor.scopes ?? DEFAULT_DESKTOP_LOGIN_SCOPES).join(' '),
+          state: throwawayToken(),
+          codeChallenge: throwawayToken(),
+          codeChallengeMethod: 'S256',
+        },
+      })
+    } catch (error) {
+      if (disposed) return
+      const response = readServerFailureResponse(error)
+      if (response !== undefined) options.onServerFailure?.(response)
+    }
+  }
+  let pendingPoll: ReturnType<typeof setTimeout> | undefined
+  /** Whether a login is still waiting for its callback. */
+  const isPending = (): boolean => !disposed && runtime.controller.isWaiting()
+  /** Stop asking the shell for a missed callback. */
+  const stopPendingPoll = (): void => {
+    if (pendingPoll === undefined) return
+    clearTimeout(pendingPoll)
+    pendingPoll = undefined
+  }
+  /**
+   * Release the attempt's carriers once its controller stopped waiting.
+   *
+   * Expiry and a rejected exchange end the flow without a session, so the
+   * ephemeral loopback port and the take must be released here; a stale link
+   * leaves the flow waiting and keeps both.
+   * @param error - the failure the runtime reported.
+   */
+  const releaseSettledAttempt = (error: unknown): void => {
+    if (!runtime.controller.isWaiting()) {
+      stopLoopback()
+      stopPendingPoll()
+      authorizeUrl = undefined
+    }
+    options.onError?.(error)
+    // The hosted page dropped the bootstrap response: ask for it again so the
+    // failure card can show the server's own answer instead of `server_error`.
+    if (!disposed && isHostedAuthorizationStartFailure(error)) void probeHostedAuthorizationFailure()
+  }
+  /** Hand one redeemed session to the commit, dropping the login's carriers. */
+  const deliverSession = async (session: SdkworkDesktopAuthSession): Promise<void> => {
+    // The login is settled: the ephemeral port has done its job and must not
+    // keep accepting local requests for the rest of its timeout, and no take
+    // may still be pending against the shell.
+    stopLoopback()
+    stopPendingPoll()
+    authorizeUrl = undefined
+    await options.onSession(session)
+  }
+  /**
+   * Ask the shell for a callback this runtime did not receive as an event.
+   *
+   * Only a waiting flow polls: the take is destructive, so an idle runtime must
+   * never consume a URL a newer attempt needs.
+   */
+  async function pollPendingCallback(): Promise<void> {
+    pendingPoll = undefined
+    if (!isPending()) return
+    const url = await options.bridge.deepLinks.getInitialUrl().catch(() => null)
+    if (!isPending()) return
+    if (typeof url === 'string' && url.trim() !== '') {
+      try {
+        const session = await runtime.controller.handleOpenUrl(url)
+        await deliverSession(session)
+        return
+      } catch (error) {
+        // A stale link leaves the pending flow running; the recoverable one
+        // still arrives. A settled attempt keeps its own failure report.
+        if (!isStaleCallback(error)) releaseSettledAttempt(error)
+      }
+    }
+    schedulePendingPoll()
+  }
+  /** Schedule the next take unless the flow settled or one is already queued. */
+  function schedulePendingPoll(): void {
+    if (!isPending() || pendingPoll !== undefined) return
+    pendingPoll = setTimeout(() => { void pollPendingCallback() }, PENDING_CALLBACK_POLL_MS)
+  }
   const createRuntime = (redirectUri: string, host: SdkworkDesktopAuthHostPort): Runtime =>
     createSdkworkIamDesktopAuthRuntime({
       appId: options.clientId,
@@ -325,21 +540,17 @@ export function createIamDesktopLogin(options: CreateIamDesktopLoginOptions): Ia
       // the rest of the generated SDK surface.
       appSdkClient: createAtMostOnceRedeemClient(client, response => options.onServerFailure?.(response)),
       host,
-      onSession: async (session) => {
-        // The login is settled: the ephemeral port has done its job and must
-        // not keep accepting local requests for the rest of its timeout.
-        stopLoopback()
-        await options.onSession(session)
-      },
+      onSession: session => deliverSession(session),
+      onError: error => releaseSettledAttempt(error),
       ...(options.deviceId === undefined ? {} : { deviceId: options.deviceId }),
       ...(options.flowTtlMs === undefined ? {} : { flowTtlMs: options.flowTtlMs }),
-      ...(options.onError === undefined ? {} : { onError: options.onError }),
     })
   let runtime = createRuntime(options.redirectUri, standardHost)
   let unsubscribeRuntime = runtime.controller.subscribe(notify)
 
   /** Swap the runtime for one bound to the current callback carrier. */
   const replaceRuntime = (redirectUri: string, host: SdkworkDesktopAuthHostPort): void => {
+    stopPendingPoll()
     unsubscribeRuntime()
     runtime.dispose()
     runtime = createRuntime(redirectUri, host)
@@ -349,6 +560,8 @@ export function createIamDesktopLogin(options: CreateIamDesktopLoginOptions): Ia
   return {
     async begin() {
       if (disposed) throw new Error('the desktop login has been disposed')
+      stopPendingPoll()
+      authorizeUrl = undefined
       const loopback = options.bridge.loopbackLogin
       if (loopback !== undefined) {
         try {
@@ -363,13 +576,51 @@ export function createIamDesktopLogin(options: CreateIamDesktopLoginOptions): Ia
           replaceRuntime(options.redirectUri, standardHost)
         }
       }
-      await runtime.beginLogin()
+      try {
+        await runtime.beginLogin()
+        schedulePendingPoll()
+      } catch (error) {
+        // The browser could not be opened: the controller cleared the flow, so
+        // the listener and the take must not outlive the failed gesture.
+        stopLoopback()
+        stopPendingPoll()
+        authorizeUrl = undefined
+        throw error
+      }
     },
     async cancel() {
       stopLoopback()
+      stopPendingPoll()
+      authorizeUrl = undefined
       await Promise.resolve(runtime.cancelLogin())
     },
     isWaiting: () => runtime.controller.isWaiting(),
+    resumePendingLoopback: async () => {
+      if (disposed) return false
+      const loopback = options.bridge.loopbackLogin
+      if (loopback?.pending === undefined) return false
+      const pending = await loopback.pending().catch(() => null)
+      if (pending === null || disposed) return false
+      activeLoopback = loopback
+      replaceRuntime(pending.redirectUri, loopbackHost(loopback))
+      // A callback accepted while the page was gone has no listener to hear its
+      // event; the shell kept the URL for this page. Taking it is destructive,
+      // so a code is never replayed by a later page.
+      const retained = loopback.takeCallback === undefined
+        ? null
+        : await loopback.takeCallback().catch(() => null)
+      if (retained === null) return true
+      try {
+        const session = await runtime.controller.handleOpenUrl(retained)
+        await deliverSession(session)
+      } catch (error) {
+        // A stale retained URL belongs to a spent attempt; the live flow (if
+        // any) still waits and a later callback can complete it.
+        if (!isStaleCallback(error)) releaseSettledAttempt(error)
+      }
+      return true
+    },
+    authorizeUrl: () => (runtime.controller.isWaiting() ? authorizeUrl : undefined),
     subscribe: (listener) => {
       listeners.add(listener)
       return () => { listeners.delete(listener) }
@@ -378,6 +629,8 @@ export function createIamDesktopLogin(options: CreateIamDesktopLoginOptions): Ia
     dispose: () => {
       disposed = true
       stopLoopback()
+      stopPendingPoll()
+      authorizeUrl = undefined
       unsubscribeRuntime()
       runtime.dispose()
       listeners.clear()

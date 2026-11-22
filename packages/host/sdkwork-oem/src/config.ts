@@ -24,6 +24,15 @@ export const OEM_BOOT_GLOBAL = '__DSH_OEM__'
  * instead of the scheme compiled into the build.
  */
 export const BRAND_PROTOCOL_ENV = 'DSH_BRAND_PROTOCOL'
+/**
+ * Environment variable the packaged shell sets to the running brand's
+ * application id (`desktop.appId` in the brand manifest, for example
+ * `com.sdkwork.birdcoder`). It is the brand's reverse-domain identity, and the
+ * one additional scheme RFC 8252 sections 7.1 and 8.4 recommend for the
+ * private-use login redirect: a profile that wants the interoperable callback
+ * names it as `sdkwork.iamRedirectUri`'s scheme.
+ */
+export const BRAND_APP_ID_ENV = 'DSH_BRAND_APP_ID'
 /** Brand shipped without an OEM profile. */
 export const DEFAULT_BRAND_NAME = 'BirdCoder'
 /** Company shipped without an OEM profile. */
@@ -55,7 +64,9 @@ export const DEFAULT_IAM_CLIENT_ID = 'birdcoder'
  * Deep-link callback the shipped brand's hosted SDKWork IAM login returns
  * through. Its scheme is the desktop application's registered URL scheme
  * (`desktop.protocol` in the brand manifest); a launch that reports its brand
- * derives `<scheme>://auth/callback` from that report instead.
+ * derives `<scheme>://auth/callback` from that report instead. A profile may
+ * name the brand's reverse-domain application id (`desktop.appId`) as the
+ * scheme instead — the form RFC 8252 sections 7.1 and 8.4 recommend.
  */
 export const DEFAULT_IAM_REDIRECT_URI = 'birdcoder://auth/callback'
 
@@ -392,31 +403,53 @@ function iamClientId(value: string | undefined, where: string, expected: string)
 /**
  * Resolve the deep-link redirect the hosted login returns through.
  *
- * It must be a custom-scheme absolute URI with an authority: the desktop shell
- * only receives URLs its operating-system protocol handler delivers, and an
- * HTTP(S) redirect would never reach the app. The scheme itself is build-time
- * identity — it must equal `desktop.protocol` in the selected brand manifest,
- * so a profile that names no callback is resolved to the running brand's
- * `<scheme>://auth/callback`.
+ * It must be a custom-scheme absolute URI the operating-system protocol handler
+ * delivers — an HTTP(S) redirect never reaches the app. Two private-use forms
+ * are accepted (RFC 8252 section 7.1): `scheme://authority/path`, on either
+ * scheme this brand owns, and the single-slash `scheme:/path` form on the
+ * brand's reverse-domain application id. The scheme is build-time brand
+ * identity (the desktop protocol, or the application id — the form sections 7.1
+ * and 8.4 recommend); a scheme belonging to another brand never reaches this
+ * app, so the profile is rejected before any login surface can present it.
  * @param value - declared profile value, or undefined for the running brand's callback.
  * @param where - field path named in validation errors.
- * @param expected - scheme of the brand this application runs as.
+ * @param allowedSchemes - schemes this application's brand owns; the second entry, when present, is the application id.
  * @returns the validated redirect URI, trimmed but otherwise unchanged.
- * @throws Error when the value is not a custom-scheme absolute URI.
+ * @throws Error when the value is not a custom-scheme absolute URI on this brand.
  */
-function iamRedirectUri(value: string | undefined, where: string, expected: string): string {
-  const text = (value ?? `${expected}://auth/callback`).trim()
+function iamRedirectUri(value: string | undefined, where: string, allowedSchemes: readonly string[]): string {
+  const text = (value ?? `${allowedSchemes[0]}://auth/callback`).trim()
   let url: URL
   try {
     url = new URL(text)
   } catch {
-    throw new Error(`oem: ${where} must be an absolute URI such as birdcoder://auth/callback`)
+    throw new Error(`oem: ${where} must be an absolute URI such as ${allowedSchemes[0]}://auth/callback`)
   }
   if (url.protocol === 'http:' || url.protocol === 'https:') {
     throw new Error(`oem: ${where} must use the desktop application's custom URL scheme, not HTTP(S)`)
   }
-  if (url.host === '' || url.username || url.password || url.search || url.hash) {
+  if (url.username || url.password || url.search || url.hash) {
     throw new Error(`oem: ${where} must be scheme://authority/path without credentials, query, or fragment`)
+  }
+  if (url.pathname === '' || url.pathname === '/') {
+    throw new Error(`oem: ${where} must name the login callback path, such as /auth/callback`)
+  }
+  const scheme = url.protocol.replace(/:$/u, '')
+  if (!allowedSchemes.includes(scheme)) {
+    throw new Error(
+      `oem: ${where} is ${JSON.stringify(text)} but this application runs as the `
+      + `${JSON.stringify(allowedSchemes[0])} brand (${allowedSchemes.map(entry => JSON.stringify(entry)).join(' or ')}); `
+      + "a login callback on another brand's URL scheme never reaches the app",
+    )
+  }
+  // The single-slash form has no authority. RFC 8252 section 7.1 uses it for a
+  // private-use scheme, where there is no naming authority to name; only the
+  // reverse-domain application id may present it, and it must still name a path.
+  if (url.host === '' && scheme !== allowedSchemes[1]) {
+    throw new Error(
+      `oem: ${where} must be scheme://authority/path unless it uses this application's reverse-domain id `
+      + `(${JSON.stringify(allowedSchemes[1] ?? allowedSchemes[0])}) in the scheme:/path form`,
+    )
   }
   return text
 }
@@ -441,6 +474,25 @@ function brandProtocol(value: string | undefined): string | undefined {
   if (text === undefined || text === '') return undefined
   if (!/^[a-z][a-z0-9+.-]*$/u.test(text)) {
     throw new Error(`oem: ${BRAND_PROTOCOL_ENV} must be the application brand's URL scheme, such as birdcoder`)
+  }
+  return text
+}
+
+/**
+ * Read the reverse-domain application id the packaged shell reports.
+ *
+ * It is a second scheme this brand owns: RFC 8252 sections 7.1 and 8.4
+ * recommend a private-use login redirect on a scheme based on a domain under
+ * the publisher's control, and the application id is exactly that identity.
+ * @param value - `DSH_BRAND_APP_ID` value, or undefined outside a packaged launch.
+ * @returns the lower-case id, or undefined when the shell reported none.
+ * @throws Error when the value is not a lower-case scheme-shaped identifier.
+ */
+function brandApplicationId(value: string | undefined): string | undefined {
+  const text = value?.trim().toLowerCase()
+  if (text === undefined || text === '') return undefined
+  if (!/^[a-z][a-z0-9+.-]*$/u.test(text)) {
+    throw new Error(`oem: ${BRAND_APP_ID_ENV} must be the application's reverse-domain id, such as com.example.app`)
   }
   return text
 }
@@ -472,6 +524,8 @@ function originList(value: unknown, where: string, allowLoopbackHttp: boolean, a
  *   brand it runs as (`DSH_BRAND_PROTOCOL`); it supplies the default OAuth
  *   client and callback, and is omitted outside a packaged launch, where the
  *   shipped brand's scheme decides.
+ * @param reportedBrandAppId - reverse-domain application id the desktop shell
+ *   reports (`DSH_BRAND_APP_ID`); the callback may use it as its scheme.
  * @returns the validated profile.
  * @throws Error when a field is malformed, the origin pairing is unsafe, or the
  *   OAuth client and callback do not belong to this application's brand.
@@ -481,6 +535,7 @@ export function resolveOemConfig(
   source = 'oem profile',
   environment: OemEnvironment = 'production',
   reportedBrandProtocol?: string,
+  reportedBrandAppId?: string,
 ): OemConfig {
   const defaults = defaultOemConfig(environment)
   const root = raw === undefined ? {} : record(raw, source)
@@ -556,14 +611,20 @@ export function resolveOemConfig(
   const webApiBaseUrl = explicitOrDefault(
     deepseek, 'webApiBaseUrl', 'deepseek.webApiBaseUrl', inferenceIsOfficial ? '' : `${inferenceOrigin}/v1/tools`,
   )
-  // One brand owns one OAuth identity: the client id and the deep-link callback
-  // both name the scheme the packaged shell registered with the operating
-  // system. The running brand therefore supplies the default pair, and a
-  // profile that carries another brand's client or callback into this home is
-  // rejected here, before any login surface can present it. That keeps two
-  // brands built from the same sources (a fork and its upstream, for example)
-  // from needing either a per-brand patch or a per-brand profile.
+  // One brand owns one OAuth identity: the client id names the brand, and the
+  // deep-link callback may use either scheme the brand owns — the desktop
+  // protocol, or the reverse-domain application id RFC 8252 sections 7.1 and
+  // 8.4 recommend for the private-use login redirect. The running brand
+  // supplies the default pair, and a profile that carries another brand's
+  // client or callback into this home is rejected here, before any login
+  // surface can present it. That keeps two brands built from the same sources
+  // (a fork and its upstream, for example) from needing either a per-brand patch
+  // or a per-brand profile.
   const expectedScheme = brandProtocol(reportedBrandProtocol) ?? schemeOf(DEFAULT_IAM_REDIRECT_URI)
+  const applicationScheme = brandApplicationId(reportedBrandAppId)
+  const redirectSchemes = applicationScheme === undefined
+    ? [expectedScheme]
+    : [...new Set([expectedScheme, applicationScheme])]
   const iamClient = iamClientId(
     optionalString(sdkwork, 'iamClientId', 'sdkwork.iamClientId'),
     'sdkwork.iamClientId',
@@ -572,19 +633,13 @@ export function resolveOemConfig(
   const iamRedirect = iamRedirectUri(
     optionalString(sdkwork, 'iamRedirectUri', 'sdkwork.iamRedirectUri'),
     'sdkwork.iamRedirectUri',
-    expectedScheme,
+    redirectSchemes,
   )
   const iamLoopbackRedirect = optionalBoolean(sdkwork, 'iamLoopbackRedirect', 'sdkwork.iamLoopbackRedirect') ?? false
-  if (schemeOf(iamRedirect) !== expectedScheme) {
-    throw new Error(
-      `oem: sdkwork.iamRedirectUri is ${JSON.stringify(iamRedirect)} but this application runs as the `
-      + `${JSON.stringify(expectedScheme)} brand; a login callback on another brand's URL scheme never reaches the app`,
-    )
-  }
   if (iamClient !== expectedScheme) {
     throw new Error(
       `oem: sdkwork.iamClientId is ${JSON.stringify(iamClient)} but this application runs as the `
-      + `${JSON.stringify(expectedScheme)} brand; each brand registers one public OAuth client named after its deep-link scheme`,
+      + `${JSON.stringify(expectedScheme)} brand; each brand registers one public OAuth client named after its brand`,
     )
   }
   return {
@@ -644,6 +699,8 @@ export function resolveOemConfig(
  * @param environment - SDKWork lifecycle whose defaults and `environments` override apply.
  * @param reportedBrandProtocol - URL scheme the desktop shell reports for the
  *   brand it runs as; omitted outside a packaged launch.
+ * @param reportedBrandAppId - reverse-domain application id the desktop shell
+ *   reports; the callback may use it as its scheme.
  * @returns the validated profile.
  * @throws Error when the file exists but cannot be read, parsed, or validated.
  */
@@ -651,16 +708,17 @@ export function readOemConfig(
   filename: string | undefined,
   environment: OemEnvironment = 'production',
   reportedBrandProtocol?: string,
+  reportedBrandAppId?: string,
 ): OemConfig {
   if (filename === undefined || filename.trim() === '') {
-    return resolveOemConfig(undefined, 'oem defaults', environment, reportedBrandProtocol)
+    return resolveOemConfig(undefined, 'oem defaults', environment, reportedBrandProtocol, reportedBrandAppId)
   }
   let text: string
   try {
     text = readFileSync(filename, 'utf8')
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return resolveOemConfig(undefined, filename, environment, reportedBrandProtocol)
+      return resolveOemConfig(undefined, filename, environment, reportedBrandProtocol, reportedBrandAppId)
     }
     throw new Error(`oem: cannot read ${filename}: ${String(error)}`, { cause: error })
   }
@@ -670,7 +728,7 @@ export function readOemConfig(
   } catch (error) {
     throw new Error(`oem: ${filename} is not valid JSON`, { cause: error })
   }
-  return resolveOemConfig(raw, filename, environment, reportedBrandProtocol)
+  return resolveOemConfig(raw, filename, environment, reportedBrandProtocol, reportedBrandAppId)
 }
 
 /**

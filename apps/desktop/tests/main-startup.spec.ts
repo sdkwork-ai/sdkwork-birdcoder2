@@ -11,6 +11,7 @@ import type { MenuItemConstructorOptions, MessageBoxOptions } from 'electron'
 import { DESKTOP_IPC, type DesktopUpdateState } from '../src/ipc.ts'
 import { INSECURE_TLS_ELECTRON_SWITCH } from '../src/tls-trust.ts'
 import { ABOUT_BRIDGE } from '../src/about-command.ts'
+import { IAM_LOOPBACK_BRIDGE } from '../src/iam-loopback-protocol.ts'
 import { MANDATORY_IPC } from '../src/mandatory-update-ipc.ts'
 import { DesktopHostFatalError, DesktopHostUncleanExitError } from '../src/host-process.ts'
 import { en, zh } from '../src/locale.ts'
@@ -1178,7 +1179,14 @@ describe('desktop main startup', () => {
   it('accepts product IPC only from the current application top frame in the owned main window', async () => {
     await readyForUpdate()
     const sender = harness.windows[0]!.webContents
-    for (const channel of [DESKTOP_IPC.updatesStatus, DESKTOP_IPC.updatesChannelGet, DESKTOP_IPC.deviceInfo]) {
+    for (const channel of [
+      DESKTOP_IPC.updatesStatus, DESKTOP_IPC.updatesChannelGet, DESKTOP_IPC.deviceInfo,
+      // The loopback login controls expose this process's waiting redirect and a
+      // once-only retained authorization code, so a foreign renderer must not
+      // read them either. (`start`/`cancel` are async handlers; the same guard
+      // rejects their callers by rejecting the returned promise.)
+      IAM_LOOPBACK_BRIDGE.pending, IAM_LOOPBACK_BRIDGE.takeCallback,
+    ]) {
       const handler = harness.handlers.get(channel)!
       expect(() => handler({ sender, senderFrame: sender.mainFrame })).not.toThrow()
       for (const event of [

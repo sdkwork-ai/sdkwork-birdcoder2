@@ -1,0 +1,25 @@
+# Bilingual-pair consistency record for 2026-11-22-native-app-oauth-conformance.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-22-native-app-oauth-conformance.md
+/agent-note-the-native-app-oauth-surface-rejects-forged-loopback-callbacks-and-offers-a-manual-sign-in-path:
+  en: b3b2f659eeb5b1d5
+  zh: 7085566d156e30bd
+/agent-note-the-native-app-oauth-surface-rejects-forged-loopback-callbacks-and-offers-a-manual-sign-in-path/problem:
+  en: 111d30c327260c96
+  zh: 6b99236617729449
+/agent-note-the-native-app-oauth-surface-rejects-forged-loopback-callbacks-and-offers-a-manual-sign-in-path/decision:
+  en: e257940d0ff917ff
+  zh: b72ea10c5bcd5f5b
+/agent-note-the-native-app-oauth-surface-rejects-forged-loopback-callbacks-and-offers-a-manual-sign-in-path/standards-conformance:
+  en: 89e2eb85dd204dec
+  zh: fb709ecb87970820
+/agent-note-the-native-app-oauth-surface-rejects-forged-loopback-callbacks-and-offers-a-manual-sign-in-path/alternatives-considered:
+  en: 63a9304dea123657
+  zh: 5ae5ab1802f0a175
+/agent-note-the-native-app-oauth-surface-rejects-forged-loopback-callbacks-and-offers-a-manual-sign-in-path/consequences:
+  en: 3a9c5dcc99050308
+  zh: 961bd192c4a7e169
+/agent-note-the-native-app-oauth-surface-rejects-forged-loopback-callbacks-and-offers-a-manual-sign-in-path/verification:
+  en: f88f52f3c1fd6e11
+  zh: cfc8108474c2528e

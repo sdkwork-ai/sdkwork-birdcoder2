@@ -229,6 +229,10 @@ export function applyBrandBootstrap(options: BrandBootstrapOptions): BrandBootst
   // rejects a profile naming another brand's — even when this launch leaves the
   // user's home alone (a bare `electron .` or a unit-test import).
   env.DSH_BRAND_PROTOCOL = options.brand.desktop.protocol
+  // The reverse-domain application id is the brand's second scheme: RFC 8252
+  // sections 7.1 and 8.4 recommend the private-use login redirect on the
+  // publisher's domain identity, and the Host accepts it as the callback scheme.
+  env.DSH_BRAND_APP_ID = options.brand.desktop.appId
   if (!installed && env.DSH_DESKTOP_DEV_APP !== '1') return { brand: options.brand, home: undefined }
   const home = applyBrandHome({
     brand: options.brand,

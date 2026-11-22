@@ -46,6 +46,7 @@
 
 .panel {
   position: relative;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -70,6 +71,13 @@
    the bounded diagnostics report is the one region that scrolls. */
 .panel > * {
   flex-shrink: 0;
+}
+
+/* While the diagnostics are open the card widens: a serialized problem
+   document needs the measure, and the extra width is what keeps the report and
+   the recovery actions together at usual desktop window heights. */
+.panelDetails {
+  width: min(640px, 100%);
 }
 
 .close {
@@ -110,6 +118,16 @@
   margin: 0;
   font-size: 14px;
   line-height: 22px;
+}
+
+/* The manual fallback's hint, under the waiting line: quiet enough to stay
+   secondary to the browser it describes. */
+.browserHint {
+  max-width: 360px;
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
 }
 
 /* The failing step, named under the recovery line: the hand-off card cannot
@@ -197,8 +215,8 @@
   --dsh-scrollbar-width: 7px;
   --dsh-scrollbar-thumb-border: 1px;
   box-sizing: border-box;
-  width: min(360px, 100%);
-  max-height: 200px;
+  width: 100%;
+  max-height: min(600px, 62vh);
   padding: 10px 12px;
   overflow-y: auto;
   border: 1px solid var(--dsw-alias-border-l3);
@@ -214,9 +232,9 @@
   margin: 0;
 }
 
-/* The server's own report, separated from the runtime's codes and messages so a
-   reader can tell which side said what. */
-.detailsSection {
+/* The server's own report leads the panel; the runtime's codes and messages
+   follow it under a hairline, so a reader can tell which side said what. */
+.detailsSection + .detailsSection {
   margin-top: 10px;
   padding-top: 8px;
   border-top: 1px solid var(--dsw-alias-border-l2);
@@ -253,6 +271,15 @@
   line-height: 18px;
   word-break: break-word;
   white-space: pre-wrap;
+}
+
+.detailsMeta {
+  margin-bottom: 6px;
+  color: var(--dsw-alias-label-secondary);
+  font-family: var(--dsw-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  line-height: 18px;
+  word-break: break-word;
 }
 
 .detailsBody {

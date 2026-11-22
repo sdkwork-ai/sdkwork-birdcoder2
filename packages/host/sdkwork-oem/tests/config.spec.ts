@@ -219,6 +219,79 @@ describe('resolveOemConfig', () => {
     expect(config.sdkwork.iamBaseUrl).toBe('https://api.birdcoder.com')
   })
 
+  it('accepts the brand application id as the private-use callback scheme', () => {
+    // RFC 8252 sections 7.1 and 8.4 recommend a private-use scheme based on a
+    // domain under the publisher's control; the brand's reverse-domain
+    // application id is that identity, and the shell declares it with the OS.
+    const config = resolveOemConfig(
+      { sdkwork: { iamRedirectUri: 'com.sdkwork.birdcoder://auth/callback' } },
+      'profile',
+      'production',
+      'birdcoder',
+      'com.sdkwork.birdcoder',
+    )
+    expect(config.sdkwork.iamRedirectUri).toBe('com.sdkwork.birdcoder://auth/callback')
+    // The client id keeps naming the brand, not the callback scheme.
+    expect(config.sdkwork.iamClientId).toBe('birdcoder')
+
+    // Without the reported application id that scheme is not this brand's.
+    expect(() => resolveOemConfig({ sdkwork: { iamRedirectUri: 'com.sdkwork.birdcoder://auth/callback' } }))
+      .toThrow(/sdkwork\.iamRedirectUri/)
+    // Another brand's reverse-domain id is refused even when one is reported.
+    expect(() => resolveOemConfig(
+      { sdkwork: { iamRedirectUri: 'com.acme.harness://auth/callback' } },
+      'profile',
+      'production',
+      'birdcoder',
+      'com.sdkwork.birdcoder',
+    )).toThrow(/sdkwork\.iamRedirectUri/)
+    // Renaming the OAuth client to the application id is not a brand identity.
+    expect(() => resolveOemConfig(
+      { sdkwork: { iamClientId: 'com.sdkwork.birdcoder' } },
+      'profile',
+      'production',
+      'birdcoder',
+      'com.sdkwork.birdcoder',
+    )).toThrow(/sdkwork\.iamClientId/)
+    // The reported id must itself be a scheme-shaped identifier.
+    expect(() => resolveOemConfig(undefined, 'profile', 'production', 'birdcoder', 'Not An Id'))
+      .toThrow(/DSH_BRAND_APP_ID/)
+  })
+
+  it('accepts the authority-less private-use callback form on the application id', () => {
+    // RFC 8252 section 7.1 illustrates `scheme:/path` for a private-use scheme;
+    // only the reverse-domain application id may use that form here.
+    const config = resolveOemConfig(
+      { sdkwork: { iamRedirectUri: 'com.sdkwork.birdcoder:/auth/callback' } },
+      'profile',
+      'production',
+      'birdcoder',
+      'com.sdkwork.birdcoder',
+    )
+    expect(config.sdkwork.iamRedirectUri).toBe('com.sdkwork.birdcoder:/auth/callback')
+    expect(config.sdkwork.iamClientId).toBe('birdcoder')
+
+    // The short product scheme keeps the authority-bearing form.
+    expect(() => resolveOemConfig(
+      { sdkwork: { iamRedirectUri: 'birdcoder:/auth/callback' } },
+      'profile',
+      'production',
+      'birdcoder',
+      'com.sdkwork.birdcoder',
+    )).toThrow(/scheme:\/\/authority\/path/)
+    // The authority-less form still has to name a callback path.
+    expect(() => resolveOemConfig(
+      { sdkwork: { iamRedirectUri: 'com.sdkwork.birdcoder:/' } },
+      'profile',
+      'production',
+      'birdcoder',
+      'com.sdkwork.birdcoder',
+    )).toThrow(/sdkwork\.iamRedirectUri/)
+    // Without the reported application id the form is not this brand's.
+    expect(() => resolveOemConfig({ sdkwork: { iamRedirectUri: 'com.sdkwork.birdcoder:/auth/callback' } }))
+      .toThrow(/sdkwork\.iamRedirectUri/)
+  })
+
   it('derives the OAuth client and callback from the brand the shell reports', () => {
     // Two brands built from the same sources: the fork's upstream and its
     // derivative. Neither needs a profile, and neither can be handed the other's
