@@ -301,9 +301,13 @@ describe('DeployProjectAppFlow', () => {
     expect(gatewayState.created).toHaveLength(1)
     expect(gatewayState.created[0]).toMatchObject({
       name: 'SDKWork 商店',
-      appKind: 'SPA_WEB',
+      // The fixture manifest publishes WEB only, which the card mapping resolves
+      // to `pc-web` → `PC_WEB` (`projectAppCardId`, pinned in project-app.client.spec.ts).
+      appKind: 'PC_WEB',
       // The console derives an ASCII slug; the CJK-only suffix is dropped.
       slug: 'sdkwork',
+      // Personal ownership is what the settings-menu 我的应用 drawer reads.
+      ownerType: 'USER',
     })
     expect(gatewayState.targets).toEqual(['/app/v3/api/apps/app-uuid-1/platform_targets'])
     // The linkage is canonical: no top-level `deploy`, no backend overwrite.

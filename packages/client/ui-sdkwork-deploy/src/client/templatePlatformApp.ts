@@ -41,6 +41,11 @@ export function createPlatformAppRecorder(
         name: input.name,
         slug: input.slug,
         appKind: input.appKind as AppKind,
+        // Account-owned, as this recorder's contract says: the record belongs
+        // to the signed-in user (the app API's `USER` ownership scope), so the
+        // settings-menu 我的应用 drawer lists it and no other tenant member
+        // inherits it.
+        ownerType: 'USER',
         ...(input.description === undefined ? {} : { description: input.description }),
       })
       return { id: created.id, name: created.name, slug: created.slug, appKind: created.appKind }

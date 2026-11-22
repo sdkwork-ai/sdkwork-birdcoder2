@@ -2,14 +2,17 @@
  * Deployed-applications ledger inside the settings-menu drawer's "我的应用"
  * tab.
  *
- * It reads the caller's own `deploy_app` rows through the deployments app API
- * (`listApps` under the `USER` ownership scope — the server's ownership gate
- * remains the authority; the scope only narrows it), and narrows that set by
- * application kind. The kind facet is local because `apps.list` accepts no
- * type parameter, and the whole caller-owned set is loaded first so a chip's
- * count and the rows it selects come from the same set. The list is read-only:
- * publishing and the rest of the app lifecycle stay on the console and the
- * session-header flows.
+ * It reads what the account owns through the deployments app API: `listApps`
+ * under the `USER` scope (the caller's personal apps) and under the
+ * `ORGANIZATION` scope (the apps shared inside the organization the caller
+ * belongs to; the server's owner gate rejects the facet when the caller has no
+ * organization). The tenant level is not read — that ledger belongs to the
+ * console. The server's ownership gate remains the authority; a scope only
+ * narrows it. The merged set is narrowed by application kind locally, because
+ * `apps.list` accepts no type parameter, and every page is loaded first so a
+ * chip's count and the rows it selects come from the same set. The list is
+ * read-only: publishing and the rest of the app lifecycle stay on the console
+ * and the session-header flows.
  */
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -31,6 +34,7 @@ import {
   loadOwnedApps,
   messageOf,
   sortAppsByUpdatedAt,
+  type OwnedAppsSnapshot,
 } from './deployedApps.ts'
 import type { DeployKey } from './locales.ts'
 import css from './DeployedAppsDialog.module.css'
@@ -66,6 +70,7 @@ export function DeployedAppsPanel({ clients, t }: DeployedAppsPanelProps): React
   const [truncated, setTruncated] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | undefined>(undefined)
+  const [partialError, setPartialError] = useState<string | undefined>(undefined)
   const [kinds, setKinds] = useState<ReadonlySet<AppKind>>(() => new Set<AppKind>())
   const [reloadKey, setReloadKey] = useState(0)
 
@@ -76,27 +81,40 @@ export function DeployedAppsPanel({ clients, t }: DeployedAppsPanelProps): React
     let active = true
     setBusy(true)
     setError(undefined)
-    const scopes = ['USER', 'TENANT', 'ORGANIZATION'] as const
+    setPartialError(undefined)
+    // "我的应用" is what this account owns: its personal rows plus the rows of
+    // the organization it belongs to. The tenant level stays out — it is every
+    // app in the workspace, which belongs to the console's ownership ledger.
+    // The caller's organization is deliberately not named here: the server's
+    // owner gate already restricts the ORGANIZATION facet to the caller's own
+    // organization and answers nothing when the caller belongs to none.
+    const scopes = ['USER', 'ORGANIZATION'] as const
     void Promise.allSettled(scopes.map(scope => loadOwnedApps(page => service.listApps({
       page,
       pageSize: OWNED_APPS_PAGE_SIZE,
       scope,
     })))).then((settled) => {
       if (!active) return
-      const fulfilled = settled.filter((entry): entry is PromiseFulfilledResult<Awaited<ReturnType<typeof loadOwnedApps>>> => entry.status === 'fulfilled')
+      const fulfilled = settled.filter(
+        (entry): entry is PromiseFulfilledResult<OwnedAppsSnapshot> => entry.status === 'fulfilled',
+      )
       if (fulfilled.length === 0) {
         const rejected = settled.find(entry => entry.status === 'rejected')
         setError(messageOf(rejected?.status === 'rejected' ? rejected.reason : undefined))
         return
       }
-      const byId = new Map<string, (typeof fulfilled)[number]['value']['items'][number]>()
+      const byId = new Map<string, AppResponse>()
       for (const entry of fulfilled) {
-        for (const item of entry.value.items) {
-          byId.set(item.id, item)
-        }
+        for (const item of entry.value.items) byId.set(item.id, item)
       }
       setApps([...byId.values()])
       setTruncated(fulfilled.some(entry => entry.value.truncated))
+      const rejected = settled.find(entry => entry.status === 'rejected')
+      // One level answered and the other did not: the rows that did load stay on
+      // screen under a note, so a missing organization read is never silent.
+      if (rejected !== undefined && rejected.status === 'rejected') {
+        setPartialError(messageOf(rejected.reason))
+      }
     }).catch((cause) => {
       if (active) setError(messageOf(cause))
     }).finally(() => {
@@ -152,6 +170,9 @@ export function DeployedAppsPanel({ clients, t }: DeployedAppsPanelProps): React
         />
       )}
       {truncated && <p className={css.note}>{t('deployments.truncated', { count: total })}</p>}
+      {partialError !== undefined && (
+        <p className={css.note}>{t('deployments.partialLoadFailed', { message: partialError })}</p>
+      )}
 
       <div className={css.body} aria-busy={busy}>
         {apps === undefined

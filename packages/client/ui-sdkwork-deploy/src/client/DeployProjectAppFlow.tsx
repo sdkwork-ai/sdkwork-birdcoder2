@@ -281,9 +281,15 @@ export function DeployProjectAppFlow({
           if (appKind === undefined) {
             throw new Error(`ui-sdkwork-deploy: no app kind is registered for card "${input.cardId ?? ''}"`)
           }
+          // The record is the signed-in user's personal app: this flow is the
+          // only thing that adds rows to the settings-menu 我的应用 drawer,
+          // which reads the `USER` ownership scope. Leaving the ownership
+          // unstated would register a tenant-wide app that the caller's own
+          // drawer can never list.
           return publishingService.createAppRecord({
             name: input.name,
             appKind,
+            ownerType: 'USER',
             ...(input.description === undefined ? {} : { description: input.description }),
           })
         },

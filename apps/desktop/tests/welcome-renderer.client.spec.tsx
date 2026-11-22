@@ -29,6 +29,7 @@ function mount(
     cancelSignIn: vi.fn(async (): Promise<AccountView> => ({ links: { usageUrl: 'http://localhost/usage', topUpUrl: 'http://localhost/top_up' }, status: 'signed-out', attempt: null })),
     copySignInLink: vi.fn(async () => undefined),
     showApiKeyEntry: true,
+    canContinue: false,
     footerLinks: welcomeFooterLinks(locale.messages, locale.id),
     openExternal: vi.fn(async (_href: string) => {}),
     ...locale,
@@ -95,6 +96,15 @@ describe('desktop welcome presentation', () => {
     expect(view.document.activeElement).toBe(view.input)
     expect(view.input.type).toBe('password')
     await expect(view.copy()).toMatchFileSnapshot(`./expected/welcome/${language}-api-key.expected.txt`)
+  })
+
+  it('offers the way back only while a stored API key keeps the workspace usable', async () => {
+    expect(mount('en').document.querySelector('#continue-without-account')).toBeNull()
+    const keyed = mount('en', undefined, { canContinue: true })
+    const back = keyed.button('#continue-without-account')
+    expect(back.textContent).toBe(keyed.api.messages.welcomeContinueWithout)
+    fireEvent.click(back)
+    await vi.waitFor(() => { expect(keyed.api.skip).toHaveBeenCalledOnce() })
   })
 
   it('opens a footer link through the shell bridge instead of navigating', () => {

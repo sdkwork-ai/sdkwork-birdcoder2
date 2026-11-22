@@ -13,10 +13,12 @@ const brandPrefix = '--dsh-welcome-brand='
 const brand = process.argv.find(argument => argument.startsWith(brandPrefix))?.slice(brandPrefix.length)
 const iamSignIn = process.argv.includes('--dsh-welcome-iam-signin=1')
 const showApiKeyEntry = process.argv.includes('--dsh-welcome-api-key=1')
+const canContinue = process.argv.includes('--dsh-welcome-continue=1')
 const resolved = resolveDesktopLocale(locale, brand)
 const api: WelcomeApi = {
   ...resolved,
   showApiKeyEntry,
+  canContinue,
   footerLinks: welcomeFooterLinks(resolved.messages, resolved.id),
   openExternal: href => ipcRenderer.invoke(WELCOME_IPC.openExternal, href) as Promise<void>,
   ...(iamSignIn ? {

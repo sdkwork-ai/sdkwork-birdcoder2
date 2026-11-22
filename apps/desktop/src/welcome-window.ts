@@ -16,6 +16,7 @@ import { isWelcomeFooterHref } from './welcome-links.ts'
  * @param locale - shell-owned localized copy.
  * @param iamSignIn - offer the workspace's IAM login instead of the account flow.
  * @param showApiKeyEntry - offer the API-key fallback next to Sign in.
+ * @param continueAvailable - offer the quiet "continue without signing in" action.
  * @returns sandboxed window options with a locale-only preload.
  */
 export function welcomeWindowOptions(
@@ -23,6 +24,7 @@ export function welcomeWindowOptions(
   locale: DesktopLocale,
   iamSignIn = false,
   showApiKeyEntry = false,
+  continueAvailable = false,
 ): BrowserWindowConstructorOptions {
   return {
     width: 600,
@@ -56,6 +58,7 @@ export function welcomeWindowOptions(
         ...locale.brand === DESKTOP_DEFAULT_BRAND ? [] : [`--dsh-welcome-brand=${locale.brand}`],
         ...iamSignIn ? ['--dsh-welcome-iam-signin=1'] : [],
         ...showApiKeyEntry ? ['--dsh-welcome-api-key=1'] : [],
+        ...continueAvailable ? ['--dsh-welcome-continue=1'] : [],
       ],
       nodeIntegration: false,
       contextIsolation: true,
@@ -74,6 +77,7 @@ let disposeActiveHandlers: (() => void) | undefined
  * @param operations - credential write and this-launch-only skip actions.
  * @param iamSignIn - offer the workspace's IAM login instead of the account flow.
  * @param showApiKeyEntry - offer the API-key fallback next to Sign in.
+ * @param continueAvailable - offer the quiet "continue without signing in" action.
  * @returns the visible window; a failed load destroys it before rejecting.
  */
 export async function openWelcomeWindow(
@@ -81,8 +85,9 @@ export async function openWelcomeWindow(
   operations: WelcomeOperations,
   iamSignIn = false,
   showApiKeyEntry = false,
+  continueAvailable = false,
 ): Promise<BrowserWindow> {
-  const options = welcomeWindowOptions(process.platform, locale, iamSignIn, showApiKeyEntry)
+  const options = welcomeWindowOptions(process.platform, locale, iamSignIn, showApiKeyEntry, continueAvailable)
   // The Welcome window is the first surface a launch shows, so it must carry
   // the product icon itself rather than inherit whatever the host executable
   // happens to draw: an icon-less window falls back to the default Electron

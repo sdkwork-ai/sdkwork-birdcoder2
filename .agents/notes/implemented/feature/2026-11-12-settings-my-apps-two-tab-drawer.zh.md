@@ -12,7 +12,7 @@ Status: implemented
 
 该行改名为「我的应用」，打开一个双页签宽弹窗：「我的应用」与「我的应用模板」，两者共用同一对宿主构造客户端（`settings.myDeployments` 席位与 `my-deployments` 行 id 不变）。
 
-- 「我的应用」保留原有只读 `deploy_app` 台账：`apps.list` 的 `USER` 作用域，每页 100 行、五页上限，应用类型分面为本地 OR 芯片，按更新时间倒序。
+- 「我的应用」保留原有只读 `deploy_app` 台账：`apps.list` 的 `USER`（当前用户的个人应用）与 `ORGANIZATION`（所属组织内共享的应用）两个作用域并行读取后按 id 合并；租户级不读取，那是 deployments 控制台的归属台账。服务端归属闸门仍是可达性权威，作用域只做收窄；调用者不属于任何组织时 `ORGANIZATION` 请求由闸门直接答空。每个作用域每页 100 行、五页上限，应用类型分面为本地 OR 芯片，按更新时间倒序；一个作用域失败时另一个的行仍渲染，并在台账上方给出部分加载说明。
 - 「我的应用模板」读取 `template.appTemplates.list`（接口本身按账号作用域），分页与上限相同，模板状态分面按「已发布优先」排序；行内展示名称、标识、简介、状态、最新语义版本、安装次数与更新时间。
 - 最新版本是旁路读取。列表行自身的 `version` 字段是乐观锁计数，因此逐行读取版本页并按 `latestVersionUuid` 匹配（回落为该页首行）。读取经四并发工作池执行，并携带抽屉的 `AbortSignal`，关闭页签会取消剩余读取；读取失败只隐藏该行的版本徽标。
 - 两个 panel 元素始终留在 DOM 中，使两个页签的 `aria-controls` 都能解析；但台账在首次访问时才挂载：打开抽屉只读取「我的应用」，模板读取在首次切到该页签时才开始。关闭抽屉会把视图重置回「我的应用」；在抽屉保持打开期间，已访问台账切换后仍保留行、分面选择与版本。
@@ -38,7 +38,7 @@ Status: implemented
 
 - `packages/client/ui-sdkwork-deploy/tests/deployed-templates.client.spec.ts` 固定共享翻页遍历、状态分面、排序、版本匹配/回落/缺失、中止短路与安装次数规则。
 - `deployed-templates-panel.client.spec.tsx` 固定带中止信号的分页账号读取、徽标、分面、加载/空态/失败/截断状态、卸载后才结算的取消，以及刷新失败时保留已有行。
-- `deployed-apps-dialog.client.spec.tsx` 固定就绪门禁、切换页签不重读、两个 `aria-controls` 目标，以及关闭后重开的重置行为。
+- `deployed-apps-dialog.client.spec.tsx` 固定就绪门禁、只读取个人与组织两个作用域（从不读取租户级）、两作用域合并后的分面、单个作用域失败时的部分加载说明、切换页签不重读、两个 `aria-controls` 目标，以及关闭后重开的重置行为。
 - `packages/client/ui-sdkwork-settings-menu/tests/settings-menu-root.client.spec.tsx` 固定改名后的行与席位开关。
 
 ## Prior art

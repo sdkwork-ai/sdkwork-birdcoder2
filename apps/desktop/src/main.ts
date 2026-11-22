@@ -731,6 +731,12 @@ async function main(): Promise<void> {
   let openedAttempt: string | undefined
   let returnedAttempt: string | undefined
   let pendingWelcomeNotice: WelcomeNotice | undefined
+  /**
+   * Whether the open welcome entry offers "continue without signing in": true
+   * when an independently stored API key keeps the workspace usable, so a
+   * sign-out that returns to the entry still has a way back.
+   */
+  let welcomeContinueAvailable = false
   let previousAccountStatus: string | undefined
   const assertProductSender = (event: IpcMainInvokeEvent): BrowserWindow => {
     assertDesktopSender(event, ['app'])
@@ -808,12 +814,19 @@ async function main(): Promise<void> {
           if (state.status === 'credential-stored' && attempt?.phase === 'succeeded' && welcomeWindow !== undefined) void enterWorkspace({ activate: false }).catch(() => undefined)
           if (previousAccountStatus === 'credential-stored' && state.status === 'signed-out') {
             void readWelcomeState().then(async (value) => {
-              if (needsWelcome(value) && !quitting) {
-                enteredWorkspace = false
-                await showWelcome()
-                if (welcomeWindow !== undefined && !welcomeWindow.isDestroyed()) welcomeWindow.webContents.send(WELCOME_IPC.state, state)
-              }
-              return undefined
+              // The user ended the account session: show the signed-out landing
+              // in either case, offering the way back when a stored API key can
+              // still run the workspace.
+              if (quitting) return
+              enteredWorkspace = false
+              await showWelcome('startup', !needsWelcome(value))
+              if (welcomeWindow !== undefined && !welcomeWindow.isDestroyed()) welcomeWindow.webContents.send(WELCOME_IPC.state, state)
+            }, async () => {
+              // The credential read is only the continue action's input; the
+              // sign-out still belongs on the landing when it fails.
+              if (quitting || !enteredWorkspace) return
+              enteredWorkspace = false
+              await showWelcome()
             }).catch(() => undefined)
           }
           previousAccountStatus = state.status
@@ -1098,17 +1111,18 @@ async function main(): Promise<void> {
     assertProductSender(event)
     return openSignInPage()
   })
-  // The workspace ended its IAM session on the user's confirmation. Return to
-  // the welcome entry — the signed-out landing whose Sign in opens the browser
-  // login — only when no independently stored API key keeps the workspace
-  // usable; the same rule a Platform sign-out follows.
+  // The workspace ended its IAM session on the user's confirmation. A sign-out
+  // always returns to the signed-out landing — that is the gesture's meaning —
+  // while a workspace an independently stored API key keeps usable reaches it
+  // again through the entry's "continue without signing in" action. The Host
+  // read only decides that action, so a failed read still switches surfaces.
   ipcMain.handle(DESKTOP_IPC.authSignedOut, async (event) => {
     assertProductSender(event)
     if (!enteredWorkspace || quitting) return
-    const state = await readWelcomeState()
-    if (quitting || !needsWelcome(state)) return
+    const state = await readWelcomeState().catch(() => undefined)
+    if (quitting) return
     enteredWorkspace = false
-    await showWelcome()
+    await showWelcome('startup', state !== undefined && !needsWelcome(state))
   })
 
   ipcMain.handle(DESKTOP_IPC.bootFailed, (event, message: unknown) => {
@@ -1866,8 +1880,9 @@ async function main(): Promise<void> {
     })
     return request
   }
-  const showWelcome = (purpose: 'startup' | 'sign-in' = 'startup'): Promise<void> => {
+  const showWelcome = (purpose: 'startup' | 'sign-in' = 'startup', continueAvailable = false): Promise<void> => {
     welcomePurpose = purpose
+    welcomeContinueAvailable = continueAvailable
     if (quitting) return Promise.resolve()
     if (welcomeWindow !== undefined && !welcomeWindow.isDestroyed()) {
       if (!welcomeWindow.isVisible()) void track('auth_page_view', {})
@@ -1931,7 +1946,7 @@ async function main(): Promise<void> {
           if (welcomePurpose === 'sign-in') finishSignInPage('dismissed')
           else await enterWorkspace()
         },
-      }, true, oem().brand.showApiKeyEntry)
+      }, true, oem().brand.showApiKeyEntry, welcomeContinueAvailable)
       const window = welcomeWindow
       window.once('closed', () => {
         void welcomeBackend?.account.state().then((state) => {

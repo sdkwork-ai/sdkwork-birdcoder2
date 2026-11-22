@@ -61,6 +61,13 @@ describe('desktop welcome window', () => {
     expect(enabled.webPreferences?.additionalArguments).toContain('--dsh-welcome-api-key=1')
   })
 
+  it('offers the continue-without-signing-in action only when a key keeps the workspace usable', () => {
+    const defaults = welcomeWindowOptions('linux', resolveDesktopLocale('en'))
+    expect(defaults.webPreferences?.additionalArguments).not.toContain('--dsh-welcome-continue=1')
+    const enabled = welcomeWindowOptions('linux', resolveDesktopLocale('en'), false, false, true)
+    expect(enabled.webPreferences?.additionalArguments).toContain('--dsh-welcome-continue=1')
+  })
+
   it.each(['darwin', 'win32', 'linux'] as const)('keeps the %s preview fixed-size and sandboxed', (platform) => {
     const options = welcomeWindowOptions(platform, resolveDesktopLocale('zh-CN'))
     expect(options).toMatchObject({
@@ -218,7 +225,7 @@ describe('desktop welcome window', () => {
     expect(electron.handlers.size).toBe(0)
   })
 
-  it('shows the entry after logout only without a separately configured API key', () => {
+  it('opens the startup entry and the expiry notice only without either credential', () => {
     expect(needsWelcome({ loggedIn: true, hasApiKey: false })).toBe(false)
     expect(needsWelcome({ loggedIn: false, hasApiKey: false })).toBe(true)
     expect(needsWelcome({ loggedIn: false, hasApiKey: true })).toBe(false)

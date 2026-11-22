@@ -69,6 +69,12 @@ export interface WelcomeOperations {
 export type WelcomeApi = DesktopLocale & WelcomeOperations & {
   /** Whether the entry offers the API-key fallback next to Sign in; off unless the deployment opts in. */
   showApiKeyEntry: boolean
+  /**
+   * Whether the entry offers "continue without signing in". True when an
+   * independently stored API key keeps the workspace usable, so a sign-out that
+   * returned here still has a way back without another login.
+   */
+  canContinue: boolean
   /** Product links the signed-out landing pins below its action. */
   footerLinks: readonly WelcomeFooterLink[]
   /**

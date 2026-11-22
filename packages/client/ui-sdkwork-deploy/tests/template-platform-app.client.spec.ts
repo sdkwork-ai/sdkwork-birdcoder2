@@ -36,6 +36,9 @@ describe('createPlatformAppRecorder', () => {
       slug: 'sdkwork-demo-h5',
       appKind: 'SPA_WEB',
       description: 'Mobile web app',
+      // The record is the signed-in user's personal app, which is what makes
+      // the settings-menu 我的应用 drawer (USER scope) list it.
+      ownerType: 'USER',
     })
     await recorder.createTarget('app-1', 'h5')
     expect(targets).toHaveLength(1)

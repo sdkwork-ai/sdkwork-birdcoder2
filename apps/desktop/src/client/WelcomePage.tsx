@@ -199,6 +199,14 @@ export function Welcome({ api }: { api: WelcomeApi }) {
         onClick: () => { void api.analytics?.('auth_page_click', { button_name: 'api-key' }); navigate('key') },
       }]
       : [],
+    // A workspace a stored API key keeps usable reaches itself again without
+    // another login; the quiet action sits after the column's buttons.
+    ...api.canContinue
+      ? [{
+        id: 'continue-without-account', label: m.welcomeContinueWithout, kind: 'text' as const, disabled: busy || starting,
+        onClick: () => { void skip() },
+      }]
+      : [],
   ]
   const keyActions: LoginAction[] = [
     { id: 'save-key', label: m.welcomeKeySave, kind: 'primary', form: 'key-form', disabled: busy || draft.trim() === '' },

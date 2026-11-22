@@ -12,7 +12,7 @@ The settings popover had one ledger row, 我的应用部署, that listed only th
 
 The row is 我的应用 and opens one wide modal with two tabs, 我的应用 and 我的应用模板, over the same host-constructed client pair (`settings.myDeployments` seat, `my-deployments` row id unchanged).
 
-- 我的应用 keeps the existing read-only `deploy_app` ledger: `apps.list` under the `USER` scope, 100 rows per page with a five-page ceiling, the application-kind facet as local OR chips, newest first.
+- 我的应用 keeps the read-only `deploy_app` ledger, read under two ownership scopes and merged by id: `USER` (the caller's personal apps) and `ORGANIZATION` (the apps shared inside the caller's organization). The tenant level is not read — that ledger belongs to the deployments console. The server's ownership gate remains the authority for reachability, and the `ORGANIZATION` request answers nothing when the caller belongs to no organization. Each scope loads 100 rows per page with a five-page ceiling, the application-kind facet is local OR chips, and rows are newest first; when one scope fails the other's rows still render under a partial-load note.
 - 我的应用模板 reads `template.appTemplates.list` (already account-scoped) with the same paging and ceiling, a listing-status facet in publish-first order, and rows carrying name, key, summary, status, latest semantic version, install count and update time.
 - The latest version is a side read. The listing's own `version` field is an optimistic-lock counter, so each row's version page is read and matched by `latestVersionUuid` (first row as fallback). Reads run through a four-worker pool with the drawer's `AbortSignal`, so closing the tab cancels the remainder; a failed read hides only that row's badge.
 - Both panel elements stay in the DOM so each tab's `aria-controls` resolves, but a ledger mounts on first visit: opening the drawer reads only 我的应用, and the template read starts when the tab is first opened. The drawer resets to 我的应用 on close; a visited ledger keeps its rows, facet selection and versions across a switch while the drawer stays open.
@@ -38,7 +38,7 @@ The row is 我的应用 and opens one wide modal with two tabs, 我的应用 and
 
 - `packages/client/ui-sdkwork-deploy/tests/deployed-templates.client.spec.ts` pins the shared page walk, status facets, ordering, version matching/fallback/omission, the abort short-circuit, and the install-count rule.
 - `deployed-templates-panel.client.spec.tsx` pins the paged account read with its abort signal, the badges, facets, loading/empty/failure/truncation states, late-settle cancellation, and retained rows on a failed refresh.
-- `deployed-apps-dialog.client.spec.tsx` pins the readiness gates, the tab switch without re-reads, both `aria-controls` targets, and the reset-on-reopen behavior.
+- `deployed-apps-dialog.client.spec.tsx` pins the readiness gates, the personal-plus-organization read (never the tenant level), the merged facet set, the partial-load note when one scope fails, the tab switch without re-reads, both `aria-controls` targets, and the reset-on-reopen behavior.
 - `packages/client/ui-sdkwork-settings-menu/tests/settings-menu-root.client.spec.tsx` pins the renamed row and the seat toggle.
 
 ## Prior art

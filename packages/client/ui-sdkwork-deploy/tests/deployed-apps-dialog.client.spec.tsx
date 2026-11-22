@@ -105,12 +105,57 @@ describe('DeployedAppsPanel', () => {
     expect(screen.getByText(zh['deployments.shownCount'].replace('{shown}', '2').replace('{total}', '2'))).toBeTruthy()
   })
 
-  it('reads every reachable ownership scope', async () => {
+  it('reads the personal and organization ownership scopes, never the tenant level', async () => {
     const { view, list } = panel({ items: [app()] })
     await view.findByText('Store')
-    for (const scope of ['USER', 'TENANT', 'ORGANIZATION']) {
+    for (const scope of ['USER', 'ORGANIZATION']) {
       expect(list).toHaveBeenCalledWith(expect.objectContaining({ scope, page: 1, pageSize: OWNED_APPS_PAGE_SIZE }))
     }
+    // The tenant level is every app in the workspace; it belongs to the
+    // deployments console, and reading it is what made this drawer list
+    // applications the account does not own.
+    for (const other of ['TENANT', 'PLATFORM']) {
+      expect(list).not.toHaveBeenCalledWith(expect.objectContaining({ scope: other }))
+    }
+  })
+
+  it('merges the personal rows with the organization rows under one facet set', async () => {
+    const rowsByScope: Record<string, AppResponse[]> = {
+      USER: [app({ id: 'personal', name: 'Personal App', updatedAt: '2026-03-01T00:00:00Z' })],
+      ORGANIZATION: [app({ id: 'org', name: 'Organization App', appKind: 'ANDROID_APP' })],
+    }
+    const list = vi.fn(async (params: { scope?: string }) => ({
+      items: rowsByScope[params.scope ?? 'USER'] ?? [],
+      pageInfo: { mode: 'offset', hasMore: false },
+    }))
+    const clients = {
+      deployClient: { app: { list } },
+      driveClient: {},
+    } as unknown as DeployHostClients
+    render(<DeployedAppsPanel clients={clients} t={t} />)
+    expect(await screen.findByText('Personal App')).toBeTruthy()
+    expect(screen.getByText('Organization App')).toBeTruthy()
+    expect(screen.getAllByRole('listitem')).toHaveLength(2)
+    // The chips count the merged set, so an organization-only kind is selectable.
+    const androidChip = screen.getByRole('button', { name: new RegExp(zh['deployments.kind.android']) })
+    expect(androidChip.textContent).toContain('1')
+    fireEvent.click(androidChip)
+    expect(screen.queryByText('Personal App')).toBeNull()
+    expect(screen.getByText('Organization App')).toBeTruthy()
+  })
+
+  it('keeps the rows that loaded and reports the scope that failed', async () => {
+    const list = vi.fn(async (params: { scope?: string }) => {
+      if (params.scope === 'ORGANIZATION') throw new Error('org offline')
+      return { items: [app({ name: 'Personal App' })], pageInfo: { mode: 'offset', hasMore: false } }
+    })
+    const clients = {
+      deployClient: { app: { list } },
+      driveClient: {},
+    } as unknown as DeployHostClients
+    render(<DeployedAppsPanel clients={clients} t={t} />)
+    expect(await screen.findByText('Personal App')).toBeTruthy()
+    expect(screen.getByText(zh['deployments.partialLoadFailed'].replace('{message}', 'org offline'))).toBeTruthy()
   })
 
   it('narrows by application kind and clears the facet', async () => {
@@ -417,7 +462,8 @@ describe('DeployedAppsDialog', () => {
     expect(screen.queryByRole('tabpanel', { name: zh['deployments.tab.templates'] })).toBeNull()
     expect(screen.getByText('Store')).toBeTruthy()
     // Neither ledger reloaded: switching only changes which panel is hidden.
-    expect(drawer.listApps).toHaveBeenCalledTimes(3)
+    // One app read is two requests (USER + ORGANIZATION).
+    expect(drawer.listApps).toHaveBeenCalledTimes(2)
     expect(drawer.listTemplates).toHaveBeenCalledTimes(1)
   })
 
@@ -435,7 +481,8 @@ describe('DeployedAppsDialog', () => {
     view.rerender(<DeployedAppsDialog {...composedProps(true, () => drawer.clients)} />)
     expect(await screen.findByText('Store')).toBeTruthy()
     expect(screen.getByRole('tab', { name: zh['deployments.tab.apps'] }).getAttribute('aria-selected')).toBe('true')
-    expect(drawer.listApps).toHaveBeenCalledTimes(6)
+    // Two opens, two scopes each.
+    expect(drawer.listApps).toHaveBeenCalledTimes(4)
     expect(drawer.listTemplates).toHaveBeenCalledTimes(1)
   })
 
