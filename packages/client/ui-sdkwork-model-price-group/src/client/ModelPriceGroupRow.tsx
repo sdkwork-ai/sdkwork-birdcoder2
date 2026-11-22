@@ -15,7 +15,7 @@ import type { NS } from './locales.ts'
 import css from './ModelPriceGroup.module.css'
 
 /** Full props of the model-menu price-group summary. */
-export type ModelPriceGroupRowProps = PropsRuntime<'conversation.input.model.options'>
+export type ModelPriceGroupRowProps = PropsRuntime<'conversation.input.model.afterModel'>
   & InjectFace<ModelPriceGroupInjected> & PropsLocale<typeof NS>
 
 /**
