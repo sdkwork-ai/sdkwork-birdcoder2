@@ -3,9 +3,9 @@
 import { render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup } from '@testing-library/react'
-import { SlideCanvas } from '../src/client/render/SlideCanvas.tsx'
-import { TextFrame } from '../src/client/render/TextFrame.tsx'
-import { TableView } from '../src/client/render/TableView.tsx'
+import { SlideCanvas } from '../src/client/pptx/render/SlideCanvas.tsx'
+import { TextFrame } from '../src/client/pptx/render/TextFrame.tsx'
+import { TableView } from '../src/client/pptx/render/TableView.tsx'
 import type {
   PptxBullet, PptxDeck, PptxParagraph, PptxRun, PptxShape, PptxSlide, PptxTable, PptxTextBody,
 } from '../src/client/pptx/model.ts'

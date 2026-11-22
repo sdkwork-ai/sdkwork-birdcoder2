@@ -6,7 +6,7 @@ import { DocumentPreviewRegistry } from '@deepseek-ai/dsh-client-ui-sidebar-docu
 import type { PagedViewStore } from '@deepseek-ai/dsh-client-sdkwork-office'
 import { DOCX_BODY_ID, DOCX_EXTENSIONS } from '../src/client/definition.ts'
 import { apply } from '../src/client/index.ts'
-import { DocxBody } from '../src/client/DocxBody.tsx'
+import { DocxBody } from '../src/client/docx/DocxBody.tsx'
 import { en, zh } from '../src/client/locales.ts'
 
 describe('Word registration', () => {

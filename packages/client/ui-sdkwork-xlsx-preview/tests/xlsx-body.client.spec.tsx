@@ -7,8 +7,8 @@ import { defineStore } from '@deepseek-ai/dsh-client-store'
 import { pagedViewStore } from '@deepseek-ai/dsh-client-sdkwork-office'
 import type { PagedViewState } from '@deepseek-ai/dsh-client-sdkwork-office'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
-import { XlsxBody } from '../src/client/XlsxBody.tsx'
-import type { XlsxBodyProps } from '../src/client/XlsxBody.tsx'
+import { XlsxBody } from '../src/client/xlsx/XlsxBody.tsx'
+import type { XlsxBodyProps } from '../src/client/xlsx/XlsxBody.tsx'
 import { xlsxFixture } from './xlsx-fixture.client.ts'
 import type { XlsxFixtureOptions } from './xlsx-fixture.client.ts'
 import { zh } from '../src/client/locales.ts'
@@ -26,7 +26,7 @@ const saving = vi.hoisted(() => ({
   refuse: undefined as string | undefined,
 }))
 
-vi.mock('../src/client/save.ts', () => ({
+vi.mock('../src/client/xlsx/save.ts', () => ({
   SAVED_COPY_NAME: 'workbook.xlsx',
   WORKBOOK_MIME: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   saveCopy: (bytes: Uint8Array): void => {

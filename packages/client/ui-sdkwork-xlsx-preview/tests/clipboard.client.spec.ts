@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /** The system clipboard, and how every refusal is absorbed rather than thrown. */
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { readClipboard, writeClipboard } from '../src/client/clipboard.ts'
+import { readClipboard, writeClipboard } from '../src/client/xlsx/clipboard.ts'
 
 /** The clipboard jsdom ships with, restored after every spec that replaces it. */
 const original = Object.getOwnPropertyDescriptor(navigator, 'clipboard')

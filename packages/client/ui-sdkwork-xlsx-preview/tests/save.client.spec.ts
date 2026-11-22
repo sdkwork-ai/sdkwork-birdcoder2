@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /** Handing an edited workbook back through the browser's own download. */
 import { afterEach, describe, expect, it } from 'vitest'
-import { SAVED_COPY_NAME, WORKBOOK_MIME, saveCopy } from '../src/client/save.ts'
+import { SAVED_COPY_NAME, WORKBOOK_MIME, saveCopy } from '../src/client/xlsx/save.ts'
 
 /** What one save asked the browser to do. */
 interface Recorded {

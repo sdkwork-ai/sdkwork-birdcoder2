@@ -14,7 +14,7 @@
  * log rather than an inverse operation, which is what makes the history cheap
  * to keep and impossible to desynchronize.
  */
-import { gridLength, MIN_GRID_COLUMNS, MIN_GRID_ROWS, visibleColumns, visibleRows } from '../render/geometry.ts'
+import { gridLength, MIN_GRID_COLUMNS, MIN_GRID_ROWS, visibleColumns, visibleRows } from './render/geometry.ts'
 import { MAX_COLUMN_COUNT, MAX_ROW_COUNT } from './excel.ts'
 import { dateToSerial, formatCellValue, isDateFormat } from './number-format.ts'
 import { DEFAULT_CELL_FORMAT } from './styles.ts'

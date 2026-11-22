@@ -2,7 +2,7 @@
 /** Editor round trip: edits render in-session and survive packaging. */
 import { describe, expect, it } from 'vitest'
 import { parsePptx } from '../src/client/pptx/deck.ts'
-import { applyTextEdits, buildEditedPackage, textEditKey } from '../src/client/editor.ts'
+import { applyTextEdits, buildEditedPackage, textEditKey } from '../src/client/pptx/editor.ts'
 import { ZipPackage } from '@deepseek-ai/dsh-client-sdkwork-office'
 import { fixtureEntries, storedFixturePackage } from './pptx-fixture.client.ts'
 import { buildZip } from './zip-fixture.client.ts'

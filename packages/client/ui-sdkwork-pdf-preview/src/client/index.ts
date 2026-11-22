@@ -16,11 +16,11 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client'
 import { PDF_BODY_ID, pdfBodyDefinition } from './definition.ts'
-import { PdfBody } from './PdfBody.tsx'
+import { PdfBody } from './pdf/PdfBody.tsx'
 import { en, zh } from './locales.ts'
 import type { SdkworkPdfPreviewKey } from './locales.ts'
 
-export type { PdfBodyProps } from './PdfBody.tsx'
+export type { PdfBodyProps } from './pdf/PdfBody.tsx'
 export type { SdkworkPdfPreviewKey } from './locales.ts'
 export type { PdfFailureKind } from './pdf/runtime.ts'
 export type { PagedView as PdfView, PagedViewStore as PdfStore, PagedViewState as PdfState, PagedZoom as PdfZoom }

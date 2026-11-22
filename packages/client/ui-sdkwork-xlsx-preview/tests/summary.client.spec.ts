@@ -8,8 +8,8 @@
  * over the populated rows rather than over the grid's empty tail.
  */
 import { describe, expect, it } from 'vitest'
-import { formatSummary, selectionSummary } from '../src/client/render/summary.ts'
-import type { GridSelection } from '../src/client/render/selection.ts'
+import { formatSummary, selectionSummary } from '../src/client/xlsx/render/summary.ts'
+import type { GridSelection } from '../src/client/xlsx/render/selection.ts'
 import { DEFAULT_FORMAT, makeCell, makeSheet } from './sheet-fixture.client.ts'
 
 /** A cell selection over one rectangle. */

@@ -40,7 +40,7 @@ Draws `.docx` documents in the right Sidebar's document tab. The package claims 
 - **Numbering** — `numbering.ts` keeps one counter array per numbering instance and renders each level's `lvlText`, so `%1.` becomes a running ordinal, `%2)` a letter, and a bullet stays a bullet.
 - **Content** — paragraphs, hyperlinks, tracked insertions, simple and complex fields, tabs, symbol runs, line and page breaks, and pictures. A `w:sdt` content control is transparent: wrapped paragraphs, tables, and runs read as if bare; `w:del` is skipped and a `w:vanish` run is not drawn. External hyperlinks answer only `http`, `https`, and `mailto`; an in-document link scrolls the stage to the paragraph holding the matching `w:bookmarkStart`.
 - **Pagination** — `paginate.ts` splits a section's blocks into pages from measured heights, honouring explicit breaks, `w:keepNext` chains, and `w:keepLines`. A paragraph that straddles a page boundary divides at a line edge — leaving at least two lines on each side, Word's widow-and-orphan default — and a table divides between rows, repeating its `w:tblHeader` rows on the continuation; a cut a vertical span reaches across moves the table whole. The body performs the measurement in a hidden container of the exact content width.
-- **Tables** — `table.ts` resolves the grid, the merge spans, and nested tables, and `render/` draws a real HTML table so the browser places the cells. A vertically merged continuation is matched by grid column, a continuation with no restart above draws empty, and a cell's own margins and an exact row height (which clips) override the table's.
+- **Tables** — `table.ts` resolves the grid, the merge spans, and nested tables, and `docx/render/` draws a real HTML table so the browser places the cells. A vertically merged continuation is matched by grid column, a continuation with no restart above draws empty, and a cell's own margins and an exact row height (which clips) override the table's.
 
 Media parts become Blob URLs created with the parsed document and revoked with the effect that produced it, so switching files or closing the tab cannot leak them.
 
@@ -81,7 +81,7 @@ No direct effect; what the user reads here never enters a model request.
 <details>
 <summary>Working context for maintainers — click to expand</summary>
 
-The renderer is deliberately a subset, chosen from what ordinary business documents contain rather than from the schema. `render/` and `docx/` are presentation-agnostic: nothing in either imports Cordis, a slot, or another plugin, and the block reader receives the table reader through its context so those two modules never form a cycle. Test fixtures build their ZIP containers in code (`tests/zip-fixture.ts`) so no binary test data is needed and every container variation is expressible as a test input.
+The renderer is deliberately a subset, chosen from what ordinary business documents contain rather than from the schema. `docx/render/` and `docx/` are presentation-agnostic: nothing in either imports Cordis, a slot, or another plugin, and the block reader receives the table reader through its context so those two modules never form a cycle. Test fixtures build their ZIP containers in code (`tests/zip-fixture.ts`) so no binary test data is needed and every container variation is expressible as a test input.
 
 </details>
 

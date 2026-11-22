@@ -13,7 +13,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client'
 import { DOCX_BODY_ID, docxBodyDefinition } from './definition.ts'
-import { DocxBody } from './DocxBody.tsx'
+import { DocxBody } from './docx/DocxBody.tsx'
 import { defineStore } from '@deepseek-ai/dsh-client-store'
 import { pagedViewStore } from '@deepseek-ai/dsh-client-sdkwork-office'
 import { en, zh } from './locales.ts'
@@ -21,7 +21,7 @@ import type { SdkworkDocxPreviewKey } from './locales.ts'
 
 // Values stay package-private unless another package needs them; the plugin
 // surface is `apply`, `inject`, and the types a consumer of the seat names.
-export type { DocxBodyProps } from './DocxBody.tsx'
+export type { DocxBodyProps } from './docx/DocxBody.tsx'
 export type { SdkworkDocxPreviewKey } from './locales.ts'
 export type { PagedView as DocxView, PagedViewStore as DocxStore, PagedViewState as DocxState, PagedZoom as DocxZoom } from '@deepseek-ai/dsh-client-sdkwork-office'
 export type { DocxBlock, DocxDocument, DocxParagraph, DocxSection, DocxTable } from './docx/model.ts'

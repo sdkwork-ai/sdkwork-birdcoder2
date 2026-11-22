@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
-import { WorkspaceRowMenu } from '../src/client/RowMenus.tsx'
+import { WorkspaceRowMenu } from '../src/client/appBuild/RowMenus.tsx'
 import { zh } from '../src/client/locales.ts'
 import type { AppBuildCatalog, AppBuildCommand, AppBuildFamily, AppBuildService } from '../src/client/appBuild/contract.ts'
 

@@ -7,8 +7,8 @@ import { defineStore } from '@deepseek-ai/dsh-client-store'
 import { pagedViewStore } from '@deepseek-ai/dsh-client-sdkwork-office'
 import type { PagedViewState } from '@deepseek-ai/dsh-client-sdkwork-office'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
-import { PdfBody } from '../src/client/PdfBody.tsx'
-import type { PdfBodyProps } from '../src/client/PdfBody.tsx'
+import { PdfBody } from '../src/client/pdf/PdfBody.tsx'
+import type { PdfBodyProps } from '../src/client/pdf/PdfBody.tsx'
 import { zh } from '../src/client/locales.ts'
 
 vi.mock('../src/client/pdf/runtime.ts', () => {

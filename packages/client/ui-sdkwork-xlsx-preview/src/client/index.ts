@@ -16,13 +16,13 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client'
 import { XLSX_BODY_ID, xlsxBodyDefinition } from './definition.ts'
-import { XlsxBody } from './XlsxBody.tsx'
+import { XlsxBody } from './xlsx/XlsxBody.tsx'
 import { en, zh } from './locales.ts'
 import type { SdkworkXlsxPreviewKey } from './locales.ts'
 
 // Values stay package-private unless another package needs them; the plugin
 // surface is `apply`, `inject`, and the types a consumer of the seat names.
-export type { XlsxBodyProps } from './XlsxBody.tsx'
+export type { XlsxBodyProps } from './xlsx/XlsxBody.tsx'
 export type { SdkworkXlsxPreviewKey } from './locales.ts'
 export type { XlsxCell, XlsxCellFormat, XlsxSheet, XlsxWorkbook } from './xlsx/model.ts'
 export type { XlsxFailureCode } from './xlsx/workbook.ts'

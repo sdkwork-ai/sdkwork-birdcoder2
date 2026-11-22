@@ -13,7 +13,7 @@ import {
   ZipFormatError, ZipPackage,
 } from '@deepseek-ai/dsh-client-sdkwork-office'
 import type { Relationship, Theme } from '@deepseek-ai/dsh-client-sdkwork-office'
-import { columnWidthToPx, gridLength, MIN_GRID_COLUMNS, MIN_GRID_ROWS, rowHeightToPx, visibleColumns, visibleRows } from '../render/geometry.ts'
+import { columnWidthToPx, gridLength, MIN_GRID_COLUMNS, MIN_GRID_ROWS, rowHeightToPx, visibleColumns, visibleRows } from './render/geometry.ts'
 import { MAX_COLUMN_COUNT, MAX_ROW_COUNT } from './excel.ts'
 import { formatCellValue, isDateFormat } from './number-format.ts'
 import { DEFAULT_CELL_FORMAT, readStyleTable, styleColorContext } from './styles.ts'

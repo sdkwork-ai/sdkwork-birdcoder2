@@ -2,8 +2,8 @@
 /** The edit log, and the editor the workbook body drives through it. */
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { useSheetEditing } from '../src/client/render/useSheetEditing.ts'
-import { SAVED_COPY_NAME } from '../src/client/save.ts'
+import { useSheetEditing } from '../src/client/xlsx/render/useSheetEditing.ts'
+import { SAVED_COPY_NAME } from '../src/client/xlsx/save.ts'
 import type { XlsxWorkbook } from '../src/client/xlsx/model.ts'
 import { parseXlsx } from '../src/client/xlsx/workbook.ts'
 import { makeCell, makeSheet } from './sheet-fixture.client.ts'

@@ -6,7 +6,7 @@ import { DocumentPreviewRegistry } from '@deepseek-ai/dsh-client-ui-sidebar-docu
 import type { PagedViewStore } from '@deepseek-ai/dsh-client-sdkwork-office'
 import { PPTX_BODY_ID, PPTX_EXTENSIONS } from '../src/client/definition.ts'
 import { apply } from '../src/client/index.ts'
-import { PptxBody } from '../src/client/PptxBody.tsx'
+import { PptxBody } from '../src/client/pptx/PptxBody.tsx'
 import { en, zh } from '../src/client/locales.ts'
 
 describe('PowerPoint registration', () => {

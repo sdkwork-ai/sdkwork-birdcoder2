@@ -7,7 +7,7 @@ import {
   gridLength, lastPositionWithin, lineHeightFor, MIN_GRID_COLUMNS, MIN_GRID_ROWS, MIN_ZOOM, positionAtOffset,
   rowHeightToPx, rowOffsetAt, usedRangeSize, visibleColumnWidth,
   visibleColumns, visibleRange, visibleRowHeight, visibleRows,
-} from '../src/client/render/geometry.ts'
+} from '../src/client/xlsx/render/geometry.ts'
 import { CELL_FONT_SIZE } from '../src/client/xlsx/excel.ts'
 import type { XlsxAlignment, XlsxCellFormat } from '../src/client/xlsx/model.ts'
 

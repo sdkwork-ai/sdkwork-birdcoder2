@@ -13,20 +13,20 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client'
-import { AUDIO_BODY_ID, audioBodyDefinition } from './definition.ts'
-import { AudioPlayer } from './AudioPlayer.tsx'
+import { AUDIO_BODY_ID, audioBodyDefinition } from './audio/definition.ts'
+import { AudioPlayer } from './audio/AudioPlayer.tsx'
 import { audioViewStore } from './store.ts'
 import { en, zh } from './locales.ts'
 import type { SdkworkAudioPreviewKey } from './locales.ts'
 
 // Values stay package-private unless another package needs them; the plugin
 // surface is `apply`, `inject`, and the types a consumer of the seat names.
-export type { AudioPlayerProps } from './AudioPlayer.tsx'
+export type { AudioPlayerProps } from './audio/AudioPlayer.tsx'
 export type { SdkworkAudioPreviewKey } from './locales.ts'
 export type { AudioContainer, AudioDelivery, AudioInfo, AudioSummaryTerms, AudioTags } from './audio/containers.ts'
 export type { AudioView, AudioViewStore, AudioViewState } from './store.ts'
 
-export { AUDIO_BODY_ID, audioBodyDefinition } from './definition.ts'
+export { AUDIO_BODY_ID, audioBodyDefinition } from './audio/definition.ts'
 
 /** This package's copy namespace. */
 const NS = 'sdkworkAudioPreview'

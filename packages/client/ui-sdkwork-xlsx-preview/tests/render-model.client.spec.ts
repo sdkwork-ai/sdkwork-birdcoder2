@@ -3,11 +3,11 @@
 import { describe, expect, it } from 'vitest'
 import { makeCell, makeSheet } from './sheet-fixture.client.ts'
 import type { XlsxCell } from '../src/client/xlsx/model.ts'
-import { buildMergeIndex, cellAt, editorSpan, editorSpillDirection, spillSpan } from '../src/client/render/cells.ts'
+import { buildMergeIndex, cellAt, editorSpan, editorSpillDirection, spillSpan } from '../src/client/xlsx/render/cells.ts'
 import {
   initialSelection, isSelected, selectionBounds, selectionName,
-} from '../src/client/render/selection.ts'
-import type { GridSelection } from '../src/client/render/selection.ts'
+} from '../src/client/xlsx/render/selection.ts'
+import type { GridSelection } from '../src/client/xlsx/render/selection.ts'
 import { columnName, DEFAULT_FORMAT } from './sheet-fixture.client.ts'
 
 /** The reference a column and row pair names. */

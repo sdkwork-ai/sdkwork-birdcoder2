@@ -25,7 +25,7 @@ import type {
   RowMenusAccessTokenPort, RowMenusDeployPublishPort, RowMenusSessionLogDownloadPort,
   RowMenusWorkspacesPort,
 } from './contract/slots.ts'
-import { RowMenusEntry } from './RowMenusEntry.tsx'
+import { RowMenusEntry } from './appBuild/RowMenusEntry.tsx'
 import { en, NS, zh, type SdkworkRowMenusKey } from './locales.ts'
 
 export type {

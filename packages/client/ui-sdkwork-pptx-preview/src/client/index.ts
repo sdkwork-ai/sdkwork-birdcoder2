@@ -13,7 +13,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client'
 import { PPTX_BODY_ID, pptxBodyDefinition } from './definition.ts'
-import { PptxBody } from './PptxBody.tsx'
+import { PptxBody } from './pptx/PptxBody.tsx'
 import { defineStore } from '@deepseek-ai/dsh-client-store'
 import { pagedViewStore } from '@deepseek-ai/dsh-client-sdkwork-office'
 import { en, zh } from './locales.ts'
@@ -21,7 +21,7 @@ import type { SdkworkPptxPreviewKey } from './locales.ts'
 
 // Values stay package-private unless another package needs them; the plugin
 // surface is `apply`, `inject`, and the types a consumer of the seat names.
-export type { PptxBodyProps } from './PptxBody.tsx'
+export type { PptxBodyProps } from './pptx/PptxBody.tsx'
 export type { SdkworkPptxPreviewKey } from './locales.ts'
 export type { PagedView as PptxView, PagedViewStore as PptxStore, PagedViewState as PptxState, PagedZoom as PptxZoom } from '@deepseek-ai/dsh-client-sdkwork-office'
 export type { PptxDeck, PptxShape, PptxSlide } from './pptx/model.ts'

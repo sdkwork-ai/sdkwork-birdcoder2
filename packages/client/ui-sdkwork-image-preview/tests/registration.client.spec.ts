@@ -4,9 +4,9 @@ import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { DocumentPreviewRegistry } from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/src/client/document/registry.ts'
-import { IMAGE_BODY_ID, IMAGE_EXTENSIONS } from '../src/client/definition.ts'
+import { IMAGE_BODY_ID, IMAGE_EXTENSIONS } from '../src/client/image/definition.ts'
 import { apply } from '../src/client/index.ts'
-import { ImageViewer } from '../src/client/ImageViewer.tsx'
+import { ImageViewer } from '../src/client/image/ImageViewer.tsx'
 import { en, zh } from '../src/client/locales.ts'
 
 describe('Image registration', () => {

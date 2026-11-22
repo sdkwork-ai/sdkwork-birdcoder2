@@ -2,11 +2,11 @@
 /** Page presentation: paragraphs, numbered markers, inline nodes, tables, and section stories. */
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
-import { BlockView } from '../src/client/render/BlockView.tsx'
-import { InlineView } from '../src/client/render/InlineView.tsx'
-import { PageCanvas } from '../src/client/render/PageCanvas.tsx'
-import { TableView } from '../src/client/render/TableView.tsx'
-import type { PageContext } from '../src/client/render/InlineView.tsx'
+import { BlockView } from '../src/client/docx/render/BlockView.tsx'
+import { InlineView } from '../src/client/docx/render/InlineView.tsx'
+import { PageCanvas } from '../src/client/docx/render/PageCanvas.tsx'
+import { TableView } from '../src/client/docx/render/TableView.tsx'
+import type { PageContext } from '../src/client/docx/render/InlineView.tsx'
 import type {
   DocxBlock, DocxInline, DocxParagraph, DocxSection, DocxTable, DocxTextStyle,
 } from '../src/client/docx/model.ts'

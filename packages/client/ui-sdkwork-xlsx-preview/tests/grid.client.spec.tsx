@@ -3,9 +3,9 @@
 import { act, cleanup, fireEvent, render, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
-import { SheetGrid, renderRange, selectedFill } from '../src/client/render/SheetGrid.tsx'
-import { useGridSelection, pageSize, pointReference } from '../src/client/render/useGridSelection.ts'
-import type { GridSelectionHandle } from '../src/client/render/useGridSelection.ts'
+import { SheetGrid, renderRange, selectedFill } from '../src/client/xlsx/render/SheetGrid.tsx'
+import { useGridSelection, pageSize, pointReference } from '../src/client/xlsx/render/useGridSelection.ts'
+import type { GridSelectionHandle } from '../src/client/xlsx/render/useGridSelection.ts'
 import { DEFAULT_FORMAT, makeCell, makeSheet } from './sheet-fixture.client.ts'
 import type { SheetOptions } from './sheet-fixture.client.ts'
 

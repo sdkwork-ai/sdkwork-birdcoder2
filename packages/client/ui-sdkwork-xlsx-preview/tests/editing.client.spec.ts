@@ -2,12 +2,12 @@
 /** The pure editing rules: key meanings, the clipboard, and a fill drag. */
 import { describe, expect, it } from 'vitest'
 import type { XlsxEntry } from '../src/client/xlsx/edits.ts'
-import { buildMergeIndex } from '../src/client/render/cells.ts'
+import { buildMergeIndex } from '../src/client/xlsx/render/cells.ts'
 import {
   cellEntryOf, cellText, clearedEntries, editActionFor, editSeed, fillBlock, fillDownEntries,
   fillEntries, fillRightEntries, gridEditCommand, mergeAnchor, occupiedReferences, parseTsv,
   pasteEntries, sameEntry, selectionEntries, selectionToTsv, sheetCommandFor,
-} from '../src/client/render/editing.ts'
+} from '../src/client/xlsx/render/editing.ts'
 import { dateToSerial } from '../src/client/xlsx/number-format.ts'
 import { columnName, makeCell, makeSheet } from './sheet-fixture.client.ts'
 

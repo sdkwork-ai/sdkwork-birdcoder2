@@ -8,7 +8,7 @@ import type { PagedViewStore } from '@deepseek-ai/dsh-client-sdkwork-office'
 import { PDF_BODY_ID, PDF_EXTENSIONS } from '../src/client/definition.ts'
 import { apply } from '../src/client/index.ts'
 import { apply as applyHost } from '../src/index.ts'
-import { PdfBody } from '../src/client/PdfBody.tsx'
+import { PdfBody } from '../src/client/pdf/PdfBody.tsx'
 import { en, zh } from '../src/client/locales.ts'
 
 vi.mock('../src/client/pdf/runtime.ts', () => ({

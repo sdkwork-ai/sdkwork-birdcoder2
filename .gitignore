@@ -260,3 +260,6 @@ build/
 
 # Generated company-signed CUA release record.
 /packages/experimental/cua-macos/cua-helper.json
+
+# Local diagnostic scratch scripts from gateway/DB investigations (never committed)
+/_diag*.sh

@@ -2,10 +2,10 @@
 /** The worksheet surface while it is editable: the field, the keys, and a fill. */
 import { cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { SheetGrid } from '../src/client/render/SheetGrid.tsx'
-import type { GridEditing } from '../src/client/render/SheetGrid.tsx'
-import { extendsBounds } from '../src/client/render/selection.ts'
-import type { GridSelectionHandle } from '../src/client/render/useGridSelection.ts'
+import { SheetGrid } from '../src/client/xlsx/render/SheetGrid.tsx'
+import type { GridEditing } from '../src/client/xlsx/render/SheetGrid.tsx'
+import { extendsBounds } from '../src/client/xlsx/render/selection.ts'
+import type { GridSelectionHandle } from '../src/client/xlsx/render/useGridSelection.ts'
 import { DEFAULT_FORMAT, makeCell, makeSheet } from './sheet-fixture.client.ts'
 import type { SheetOptions } from './sheet-fixture.client.ts'
 

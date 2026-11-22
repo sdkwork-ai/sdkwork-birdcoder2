@@ -539,7 +539,7 @@ describe('parsePptx', () => {
       if (roman?.kind !== 'shape' || roman.text === undefined) throw new Error('expected the roman shape')
       if (alphaShape?.kind !== 'shape' || alphaShape.text === undefined) throw new Error('expected the alpha shape')
       const { createElement } = await import('react')
-      const { TextFrame } = await import('../src/client/render/TextFrame.tsx')
+      const { TextFrame } = await import('../src/client/pptx/render/TextFrame.tsx')
       const { render } = await import('@testing-library/react')
       const romanView = render(createElement(TextFrame, { body: roman.text }))
       // Lowercase roman numerals stay lowercase, and both counters advance.
