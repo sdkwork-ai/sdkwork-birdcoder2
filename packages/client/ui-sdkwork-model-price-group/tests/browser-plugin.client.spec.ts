@@ -25,13 +25,14 @@ async function bench() {
   const model = ctx.slots.register({
     name: 'conversation.input.model',
     children: {
+      'conversation.input.model.afterModel': { kind: 'list', scope: 'session' },
       'conversation.input.model.options': { kind: 'list', scope: 'session' },
       'conversation.input.model.pane': { kind: 'keyed', scope: 'session' },
     },
   } as never, () => null)
   const fiber = ctx.plugin({ inject: [...inject], apply })
   await fiber.await()
-  const row = () => ctx.slots.entries('conversation.input.model.options')
+  const row = () => ctx.slots.entries('conversation.input.model.afterModel')
     .find(candidate => candidate.component === ModelPriceGroupRow)
   const pane = () => ctx.slots.entries('conversation.input.model.pane')
     .find(candidate => candidate.component === ModelPriceGroupPane)
@@ -83,6 +84,7 @@ it('re-registers when the model menu slot is declared again', async () => {
   b.ctx.slots.register({
     name: 'conversation.input.model',
     children: {
+      'conversation.input.model.afterModel': { kind: 'list', scope: 'session' },
       'conversation.input.model.options': { kind: 'list', scope: 'session' },
       'conversation.input.model.pane': { kind: 'keyed', scope: 'session' },
     },

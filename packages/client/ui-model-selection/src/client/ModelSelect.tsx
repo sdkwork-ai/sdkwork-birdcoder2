@@ -118,6 +118,8 @@ export interface ModelPickerInputs {
 interface ModelPickerSeats {
   /** Render the inline model label share (badge aware). */
   renderLabel?: (owner: ModelLabelOwner) => ReactNode
+  /** Render the root menu's rows placed directly below the model row. */
+  renderAfterModel?: (owner: ModelMenuOptions) => ReactNode
   /** Render the root menu's additional option rows. */
   renderOptions?: (owner: ModelMenuOptions) => ReactNode
   /** Render one plugin-owned detail pane selected by `openPane`. */
@@ -141,7 +143,7 @@ export type ModelPickerProps = ModelPickerInputs & ModelPickerSeats & {
 export function ModelPicker(
   {
     state, load, select, available = true, locked, requestSignIn, waitForSignedInModel, resolveText, t,
-    renderLabel, renderOptions, renderPane,
+    renderLabel, renderAfterModel, renderOptions, renderPane,
   }: ModelPickerProps,
 ) {
   const [open, setOpen] = useState(false)
@@ -647,6 +649,7 @@ export function ModelPicker(
                 </span>
                 <IconChevronRightOutlineRegular className={css.cellChevron} />
               </button>
+              {renderAfterModel?.({ ...controls, openPane: (pane) => { drill({ kind: 'detail', pane }) } })}
               {reasoning !== undefined && (
                 <button ref={itemRef()} type="button" role="menuitem" className={css.cell} onClick={() => { drill(EFFORT_PANE) }}>
                   <span className={css.cellLabel}>{t('menu.effort')}</span>
@@ -833,7 +836,10 @@ export function ModelSelect(
   }:
   ModelSelectInjected & Pick<PropsRuntime<'conversation.input.model'>, 'locked'> & PropsLocale<'model'>
     & Omit<PropsRenderSlots<
-      'conversation.input.model.label' | 'conversation.input.model.options' | 'conversation.input.model.pane'
+      | 'conversation.input.model.label'
+      | 'conversation.input.model.afterModel'
+      | 'conversation.input.model.options'
+      | 'conversation.input.model.pane'
     >, 'SessionProvider'>,
 ) {
   const state = useSyncExternalStore(
@@ -854,6 +860,7 @@ export function ModelSelect(
       renderLabel={owner => renderSlot('conversation.input.model.label', owner, {
         fallback: defaultModelLabel(owner, resolveText),
       })}
+      renderAfterModel={owner => renderSlot('conversation.input.model.afterModel', owner)}
       renderOptions={owner => renderSlot('conversation.input.model.options', owner)}
       renderPane={(key, controls) => renderSlot('conversation.input.model.pane', controls, { entryKey: key })}
     />

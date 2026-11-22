@@ -58,8 +58,8 @@ export function apply(ctx: ClientContext): void {
     },
   }
 
-  ctx.slots.inject('conversation.input.model.options', () => ctx.slots.register({
-    name: 'conversation.input.model.options',
+  ctx.slots.inject('conversation.input.model.afterModel', () => ctx.slots.register({
+    name: 'conversation.input.model.afterModel',
     id: 'model-price-group',
     locale: NS,
     inject: () => face,

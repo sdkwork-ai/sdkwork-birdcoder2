@@ -149,6 +149,19 @@ it('shows the loading, failed, and empty states', async () => {
   expect(screen.getByRole('status').textContent).toBe('当前模型没有可选分组。')
 })
 
+it('reloads when the Session switches to another relay model', () => {
+  const props = rowProps()
+  const view = render(<ModelPriceGroupRow {...props} />)
+  const other = 'anthropic/claude-fable-5-1'
+  const next = {
+    ...props,
+    useProjection: () => ({ lastUsed: null, next: { provider: 'birdcoder', model: other } }),
+  }
+  view.rerender(<ModelPriceGroupRow {...next} />)
+  expect(props.load).toHaveBeenNthCalledWith(1, MODEL)
+  expect(props.load).toHaveBeenNthCalledWith(2, other)
+})
+
 it('renders nothing when the Session is outside the relay provider', () => {
   const view = render(<ModelPriceGroupPane {...paneProps(READY, 'deepseek-official')} />)
   expect(view.container.textContent).toBe('')

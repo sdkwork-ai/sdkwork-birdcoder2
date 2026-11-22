@@ -224,6 +224,7 @@ export function apply(ctx: ClientContext): void {
       locale: NS,
       children: {
         'conversation.input.model.label': { kind: 'single', scope: 'session', inline: true },
+        'conversation.input.model.afterModel': { kind: 'list', scope: 'session' },
         'conversation.input.model.options': { kind: 'list', scope: 'session' },
         'conversation.input.model.pane': { kind: 'keyed', scope: 'session' },
       },

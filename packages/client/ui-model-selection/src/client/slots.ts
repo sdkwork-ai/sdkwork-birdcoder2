@@ -57,6 +57,16 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
       owner: ModelMenuOptions
     }
     /**
+     * Session options rendered directly below the model row and above reasoning.
+     * Render each interactive entry as a `button` with role `menuitem`:
+     * Arrow keys and Tab reach only those rows.
+     */
+    'conversation.input.model.afterModel': {
+      kind: 'list'
+      scope: 'session'
+      owner: ModelMenuOptions
+    }
+    /**
      * Plugin-owned content displayed as a model-menu detail pane.
      * The pane places its own initial focus, for example with `autoFocus`; without one,
      * focus stays on the menu surface, where Escape and Shift+Tab still return to the root menu.
