@@ -10,10 +10,19 @@
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { InjectFace } from '@deepseek-ai/dsh-client-ui-slots'
 import { MobileSimulator, type MobileSimulatorProps } from './MobileSimulator.tsx'
+import { en, NS, zh, type MobileSimulatorKey } from './locales.ts'
 import type { DeviceSpec } from './devices.ts'
 
 export type { MobileSimulatorProps, ModalProps } from './MobileSimulator.tsx'
 export type { DeviceSpec } from './devices.ts'
+export type { MobileSimulatorKey } from './locales.ts'
+
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface LocaleNamespaceMap {
+    /** Mobile simulator toolbar, frame, and modal copy. */
+    mobileSimulator: MobileSimulatorKey
+  }
+}
 
 /** Injected face for the simulator slot: the URL and initial device to show. */
 export interface SimulatorSlotInjected extends Pick<MobileSimulatorProps, 'url' | 'initialDeviceId' | 'initialOrientation' | 'mode'> {
@@ -26,15 +35,17 @@ export interface SimulatorSlotInjected extends Pick<MobileSimulatorProps, 'url' 
 /** Full props for the inline simulator slot occupant. */
 export type InlineSimulatorProps =
   import('@deepseek-ai/dsh-client-ui-slots').PropsRuntime<'shell.overlay'>
+  & import('@deepseek-ai/dsh-client-ui-slots').PropsLocale<'mobileSimulator'>
   & InjectFace<SimulatorSlotInjected>
 
 /** Full props for the modal simulator slot occupant. */
 export type ModalSimulatorProps =
   import('@deepseek-ai/dsh-client-ui-slots').PropsRuntime<'shell.overlay'>
+  & import('@deepseek-ai/dsh-client-ui-slots').PropsLocale<'mobileSimulator'>
   & InjectFace<SimulatorSlotInjected>
 
-/** Required services: the slot registry for component contribution. */
-export const inject = ['slots']
+/** Required services: the slot registry and locale dictionaries. */
+export const inject = ['slots', 'locale']
 
 /**
  * Construct the inject face for the simulator slot, pulling URL, device, and
@@ -42,7 +53,7 @@ export const inject = ['slots']
  * @param injected - the slot's injected face.
  * @returns a face consumed by MobileSimulator.
  */
-function simulatorInject(injected: SimulatorSlotInjected): MobileSimulatorProps {
+function simulatorInject(injected: SimulatorSlotInjected): Omit<MobileSimulatorProps, 't'> {
   return {
     url: injected.url,
     initialDeviceId: injected.initialDeviceId,
@@ -70,11 +81,13 @@ function simulatorInject(injected: SimulatorSlotInjected): MobileSimulatorProps 
  * @param ctx - client root context.
  */
 export function apply(ctx: ClientContext): void {
+  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-sdkwork-mobile-simulator: dictionaries')
   // Inline simulator: embeds directly in the host layout.
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay',
     key: 'mobile-simulator-inline',
     order: 50,
+    locale: NS,
     inject: injected => simulatorInject(injected as SimulatorSlotInjected),
   }, MobileSimulator))
 
@@ -83,6 +96,7 @@ export function apply(ctx: ClientContext): void {
     name: 'shell.overlay',
     key: 'mobile-simulator-modal',
     order: 60,
+    locale: NS,
     inject: injected => ({
       ...simulatorInject(injected as SimulatorSlotInjected),
       mode: 'modal' as const,

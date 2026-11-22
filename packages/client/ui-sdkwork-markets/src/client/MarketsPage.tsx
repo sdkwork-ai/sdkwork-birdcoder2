@@ -175,51 +175,51 @@ type MineMarketsTab = Exclude<MarketsTab, 'connectors' | 'plugins'>
  * (official + installed), so the chip row reads as
  * [plugin market] | [this app's plugins].
  */
-const PLUGIN_SUB_TABS: readonly PluginsSubTab[] = ['market', 'official', 'installed']
+const PLUGIN_VIEW_IDS: readonly PluginsSubTab[] = ['market', 'official', 'installed']
 
 /** The Skills tab's sub-tabs, in chip order: the cloud catalog, then the SkillHub market. */
-const SKILL_SUB_TABS: readonly SkillsSubTab[] = ['cloud', 'market']
+const SKILL_VIEW_IDS: readonly SkillsSubTab[] = ['cloud', 'market']
 
 /** The Connectors tab's sub-tabs, in chip order: the cloud catalog, then the connector panel. */
-const CONNECTOR_SUB_TABS: readonly ConnectorsSubTab[] = ['cloud', 'connector']
+const CONNECTOR_VIEW_IDS: readonly ConnectorsSubTab[] = ['cloud', 'connector']
 
 /**
  * The Experts tab's sub-tabs, in chip order: the cloud catalog leads and is the
  * landing view, and the expert market keeps the second chip.
  */
-const EXPERT_SUB_TABS: readonly ExpertsSubTab[] = ['cloud', 'market']
+const EXPERT_VIEW_IDS: readonly ExpertsSubTab[] = ['cloud', 'market']
 
-/** Each Experts sub-tab's chip label, in {@link EXPERT_SUB_TABS} order. */
+/** Each Experts sub-tab's chip label, in {@link EXPERT_VIEW_IDS} order. */
 const EXPERT_SUB_TAB_KEYS = {
   cloud: 'subtab.expertCloud',
   market: 'subtab.expertMarket',
 } as const satisfies Record<ExpertsSubTab, MarketsKey>
 
-/** Each Experts sub-tab's leading glyph, in {@link EXPERT_SUB_TABS} order. */
+/** Each Experts sub-tab's leading glyph, in {@link EXPERT_VIEW_IDS} order. */
 const EXPERT_SUB_TAB_ICONS: Record<ExpertsSubTab, ComponentType<ModeIconProps>> = {
   cloud: MarketsIcon,
   market: ExpertsIcon,
 }
 
-/** Each Skills sub-tab's chip label, in {@link SKILL_SUB_TABS} order. */
+/** Each Skills sub-tab's chip label, in {@link SKILL_VIEW_IDS} order. */
 const SKILL_SUB_TAB_KEYS = {
   cloud: 'subtab.skillCloud',
   market: 'subtab.skillMarket',
 } as const satisfies Record<SkillsSubTab, MarketsKey>
 
-/** Each Skills sub-tab's leading glyph, in {@link SKILL_SUB_TABS} order. */
+/** Each Skills sub-tab's leading glyph, in {@link SKILL_VIEW_IDS} order. */
 const SKILL_SUB_TAB_ICONS: Record<SkillsSubTab, ComponentType<ModeIconProps>> = {
   cloud: MarketsIcon,
   market: SkillsIcon,
 }
 
-/** Each Connectors sub-tab's chip label, in {@link CONNECTOR_SUB_TABS} order. */
+/** Each Connectors sub-tab's chip label, in {@link CONNECTOR_VIEW_IDS} order. */
 const CONNECTOR_SUB_TAB_KEYS = {
   cloud: 'subtab.cloud',
   connector: 'subtab.connector',
 } as const satisfies Record<ConnectorsSubTab, MarketsKey>
 
-/** Each Connectors sub-tab's leading glyph, in {@link CONNECTOR_SUB_TABS} order. */
+/** Each Connectors sub-tab's leading glyph, in {@link CONNECTOR_VIEW_IDS} order. */
 const CONNECTOR_SUB_TAB_ICONS: Record<ConnectorsSubTab, ComponentType<ModeIconProps>> = {
   cloud: MarketsIcon,
   connector: ConnectorsIcon,
@@ -274,14 +274,14 @@ const MINE_KEYS = {
   skills: 'mine.skills',
 } as const satisfies Record<MineMarketsTab, MarketsKey>
 
-/** The Plugins sub-tab's per-scope chip label, in {@link PLUGIN_SUB_TABS} order. */
+/** The Plugins sub-tab's per-scope chip label, in {@link PLUGIN_VIEW_IDS} order. */
 const PLUGIN_SUB_TAB_KEYS = {
   market: 'subtab.market',
   official: 'subtab.official',
   installed: 'subtab.installed',
 } as const satisfies Record<PluginsSubTab, MarketsKey>
 
-/** Each Plugins sub-tab's leading glyph, in {@link PLUGIN_SUB_TABS} order. */
+/** Each Plugins sub-tab's leading glyph, in {@link PLUGIN_VIEW_IDS} order. */
 const PLUGIN_SUB_TAB_ICONS: Record<PluginsSubTab, ComponentType<ModeIconProps>> = {
   market: PluginsIcon,
   official: OfficialIcon,
@@ -671,7 +671,7 @@ export function MarketsPage({
           aria-label={t('subtabs.label')}
           data-plugins-subtabs
         >
-          {PLUGIN_SUB_TABS.map((id) => {
+          {PLUGIN_VIEW_IDS.map((id) => {
             const Icon = PLUGIN_SUB_TAB_ICONS[id]
             return (
               <Fragment key={id}>
@@ -703,7 +703,7 @@ export function MarketsPage({
           aria-label={t('subtabs.experts.label')}
           data-experts-subtabs
         >
-          {EXPERT_SUB_TABS.map((id) => {
+          {EXPERT_VIEW_IDS.map((id) => {
             const Icon = EXPERT_SUB_TAB_ICONS[id]
             return (
               <button
@@ -733,7 +733,7 @@ export function MarketsPage({
           aria-label={t('subtabs.skills.label')}
           data-skills-subtabs
         >
-          {SKILL_SUB_TABS.map((id) => {
+          {SKILL_VIEW_IDS.map((id) => {
             const Icon = SKILL_SUB_TAB_ICONS[id]
             return (
               <button
@@ -762,7 +762,7 @@ export function MarketsPage({
           aria-label={t('subtabs.connectors.label')}
           data-connectors-subtabs
         >
-          {CONNECTOR_SUB_TABS.map((id) => {
+          {CONNECTOR_VIEW_IDS.map((id) => {
             const Icon = CONNECTOR_SUB_TAB_ICONS[id]
             return (
               <button

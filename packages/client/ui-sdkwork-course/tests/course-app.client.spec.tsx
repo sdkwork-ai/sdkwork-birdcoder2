@@ -13,6 +13,9 @@ import {
   type CourseHostLocale,
   type CourseHostTheme,
 } from '../src/client/courseHost.ts'
+import { zh } from '../src/client/locales.ts'
+
+const t = (key: keyof typeof zh) => zh[key]
 
 function fakeServices(overrides: { baseUrl?: string; colorScheme?: 'light' | 'dark' } = {}) {
   let environmentListener: (() => void) | undefined
@@ -53,7 +56,7 @@ describe('CourseApp', () => {
     const services = fakeServices()
     const adapter = configureCourseHost(services)
     try {
-      const { container } = render(<CourseApp labels={labels} />)
+      const { container } = render(<CourseApp labels={labels} t={t} />)
       expect(container.querySelector('[data-sdk-surface="course"]')).not.toBeNull()
       expect(container.querySelector('[data-course-embedded="sdkwork"]')).not.toBeNull()
     } finally {
@@ -62,6 +65,6 @@ describe('CourseApp', () => {
   })
 
   it('fails loud when no host adapter was configured', () => {
-    expect(() => render(<CourseApp labels={labels} />)).toThrow('ui-sdkwork-course: SDKWork host runtime is not configured')
+    expect(() => render(<CourseApp labels={labels} t={t} />)).toThrow('ui-sdkwork-course: SDKWork host runtime is not configured')
   })
 })

@@ -354,7 +354,7 @@ function WorkbookView({ workbook, view, data, ...props }: WorkbookViewProps): Re
           // as Excel's Name Box refuses a reference it cannot jump to.
           onBlur={() => { setNameDraft(undefined) }}
         />
-        <span className={css.fx} aria-hidden="true">fx</span>
+        <span className={css.fx} aria-hidden="true">{t('formulaBarGlyph')}</span>
         <input
           className={css.formulaValue}
           value={editingLive ? editing.open.text : barDraft ?? formulaText}

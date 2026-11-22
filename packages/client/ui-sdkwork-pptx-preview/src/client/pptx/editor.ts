@@ -157,10 +157,10 @@ async function createNotesPart(
   replacements.set(`ppt/notesSlides/_rels/notesSlide${next}.xml.rels`, `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesMaster" Target="../notesMasters/notesMaster1.xml"/></Relationships>`)
   const relsPart = `ppt/slides/_rels/${slidePart.slice('ppt/slides/'.length)}.rels`
-  const relsText = (await pkg.readText(relsPart)) ?? `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  const relsXml = (await pkg.readText(relsPart)) ?? `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`
-  const nextId = 1 + [...relsText.matchAll(/Id="rId(\d+)"/gu)].reduce((max, match) => Math.max(max, Number(match[1])), 0)
-  replacements.set(relsPart, relsText.replace('</Relationships>',
+  const nextId = 1 + [...relsXml.matchAll(/Id="rId(\d+)"/gu)].reduce((max, match) => Math.max(max, Number(match[1])), 0)
+  replacements.set(relsPart, relsXml.replace('</Relationships>',
     `<Relationship Id="rId${nextId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide" Target="../notesSlides/notesSlide${next}.xml"/></Relationships>`))
   const typesName = '[Content_Types].xml'
   const types = (await pkg.readText(typesName)) ?? ''

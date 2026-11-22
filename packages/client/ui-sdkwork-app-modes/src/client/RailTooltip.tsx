@@ -52,7 +52,7 @@ type TooltipLabel = string | (() => string)
  * instance's id; every other instance force-dismisses. Fired on `document`
  * so inlined bundle copies share the bus.
  */
-const RAIL_TOOLTIP_SHOW_EVENT = 'sdkwork:rail-tooltip:show'
+const RAIL_HINT_SHOW = 'sdkwork:rail-tooltip:show'
 
 /** Pointer distance beyond the anchor box that still counts as "on the anchor". */
 const ANCHOR_GRACE_PX = 6
@@ -129,7 +129,7 @@ export function RailTooltip({ label, side = 'right', delayMs = 0, disabled = fal
     setPos({ x: side === 'right' ? r.right + 10 : r.left + r.width / 2, top: r.top, bottom: r.bottom })
     // Defense 3: tell every other instance (in this document, whatever bundle
     // it was inlined into) to stand down — one rail bubble at a time.
-    document.dispatchEvent(new CustomEvent(RAIL_TOOLTIP_SHOW_EVENT, { detail: instanceId }))
+    document.dispatchEvent(new CustomEvent(RAIL_HINT_SHOW, { detail: instanceId }))
   }, [disabled, instanceId, side])
   const showAfterHoverDelay = useCallback(() => {
     cancelShow()
@@ -171,8 +171,8 @@ export function RailTooltip({ label, side = 'right', delayMs = 0, disabled = fal
     const onShow = (event: Event): void => {
       if ((event as CustomEvent<unknown>).detail !== instanceId) forceDismiss()
     }
-    document.addEventListener(RAIL_TOOLTIP_SHOW_EVENT, onShow)
-    return () => { document.removeEventListener(RAIL_TOOLTIP_SHOW_EVENT, onShow) }
+    document.addEventListener(RAIL_HINT_SHOW, onShow)
+    return () => { document.removeEventListener(RAIL_HINT_SHOW, onShow) }
   }, [forceDismiss, instanceId])
 
   // Keep the bubble clear of the viewport edges (long labels near the right

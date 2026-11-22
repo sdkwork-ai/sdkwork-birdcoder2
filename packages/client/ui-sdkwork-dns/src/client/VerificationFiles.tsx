@@ -302,7 +302,7 @@ export function VerificationFilesDrawer({ client, zone, t, onClose }: Verificati
               <span>{t('verification.fileName')}</span>
               <Input
                 value={fileName}
-                placeholder="MP_verify_xxxxxxxx.txt"
+                placeholder={t('verification.fileNamePlaceholder')}
                 onChange={(event) => { setFileName(event.target.value) }}
               />
             </label>

@@ -59,7 +59,7 @@ const SUPPRESSED: SkillInvocationPolicy = { modelInvocable: false, userInvocable
  * suppressed candidate is filtered out of both catalogs, so only the name and
  * the policy are observable.
  */
-const SUPPRESSION_DESCRIPTION = 'Suppressed by the BirdCoder skill manager'
+const SUPPRESSION_REASON = 'Suppressed by the BirdCoder skill manager'
 const SUPPRESSION_CONTENT = 'This skill is suppressed on this device through the BirdCoder skill settings.'
 
 /**
@@ -88,7 +88,7 @@ function suppressedNames(names: unknown): readonly string[] {
 function suppressionCandidate(name: string): SkillCandidate {
   return {
     name,
-    description: SUPPRESSION_DESCRIPTION,
+    description: SUPPRESSION_REASON,
     invocation: SUPPRESSED,
     source: 'runtime',
     provider: SUPPRESSION_PROVIDER,

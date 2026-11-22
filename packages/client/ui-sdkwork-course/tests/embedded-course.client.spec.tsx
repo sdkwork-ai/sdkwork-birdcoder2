@@ -8,6 +8,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { CourseAppSdkClient } from '@sdkwork/sdkwork-course-pc-core'
 import { EmbeddedCourseApp } from '../src/client/EmbeddedCourse.tsx'
+import { zh } from '../src/client/locales.ts'
+
+const t = (key: keyof typeof zh) => zh[key]
 
 /** jsdom has no IntersectionObserver; the stub records the sentinel callback so
  * specs can simulate the feed bottom scrolling into the viewport. */
@@ -104,7 +107,7 @@ describe('EmbeddedCourseApp', () => {
   })
 
   it('renders the discovery surface with its host search bar', async () => {
-    const { container } = render(<EmbeddedCourseApp client={fakeClient()} />)
+    const { container } = render(<EmbeddedCourseApp t={t} client={fakeClient()} />)
     expect(container.querySelector('[data-course-embedded="sdkwork"]')).not.toBeNull()
     expect(screen.getAllByText('课程中心').length).toBeGreaterThan(0)
     expect(await screen.findByText('课程正在准备中')).toBeTruthy()
@@ -116,21 +119,21 @@ describe('EmbeddedCourseApp', () => {
   })
 
   it('opens the full catalog from an empty search', async () => {
-    render(<EmbeddedCourseApp client={fakeClient()} />)
+    render(<EmbeddedCourseApp t={t} client={fakeClient()} />)
     const input = screen.getByLabelText('搜索课程、专栏、合集')
     fireEvent.submit(input.closest('form') as HTMLFormElement)
     await waitFor(() => expect(screen.getAllByText('课程中心').length).toBeGreaterThan(0))
   })
 
   it('offers the UGC upload entry in the embedded surface', async () => {
-    render(<EmbeddedCourseApp client={fakeClient()} />)
+    render(<EmbeddedCourseApp t={t} client={fakeClient()} />)
     await screen.findByText('课程正在准备中')
     expect(screen.getAllByText('上传课程').length).toBeGreaterThan(0)
   })
 
   it('loads further home-feed pages as the sentinel scrolls into view', async () => {
     // 45 courses against the page size of 30: page 2 exists and is not preloaded.
-    render(<EmbeddedCourseApp client={pagedClient(45)} />)
+    render(<EmbeddedCourseApp t={t} client={pagedClient(45)} />)
     expect(await screen.findByText('课程 30')).toBeTruthy()
     expect(screen.queryByText('课程 31')).toBeNull()
 
@@ -140,7 +143,7 @@ describe('EmbeddedCourseApp', () => {
   })
 
   it('drops the creator upload card from the home feed', async () => {
-    render(<EmbeddedCourseApp client={pagedClient(45)} />)
+    render(<EmbeddedCourseApp t={t} client={pagedClient(45)} />)
     await screen.findByText('课程 30')
     expect(screen.queryByText('把你的经验，变成一门课')).toBeNull()
     expect(screen.queryByText('上传封面与课时，编排章节或合集，提交平台审核后发布。')).toBeNull()
@@ -148,7 +151,7 @@ describe('EmbeddedCourseApp', () => {
   })
 
   it('loads further catalog pages as the sentinel scrolls into view', async () => {
-    render(<EmbeddedCourseApp client={pagedClient(24)} initialPath="/courses?category=cat-1" />)
+    render(<EmbeddedCourseApp t={t} client={pagedClient(24)} initialPath="/courses?category=cat-1" />)
     // The list page loads twelve per page; page 2 stays unloaded until the sentinel.
     expect(await screen.findByText('课程 12')).toBeTruthy()
     expect(screen.queryByText('课程 13')).toBeNull()
@@ -160,12 +163,12 @@ describe('EmbeddedCourseApp', () => {
   })
 
   it('renders the host fallback for /admin', () => {
-    render(<EmbeddedCourseApp client={fakeClient()} initialPath="/admin" />)
+    render(<EmbeddedCourseApp t={t} client={fakeClient()} initialPath="/admin" />)
     expect(screen.getByRole('heading', { name: '运营后台' })).toBeTruthy()
   })
 
   it('renders the live classroom entry', async () => {
-    render(<EmbeddedCourseApp client={fakeClient()} initialPath="/live" />)
+    render(<EmbeddedCourseApp t={t} client={fakeClient()} initialPath="/live" />)
     expect(await screen.findByRole('heading', { name: '直播课堂' })).toBeTruthy()
   })
 })

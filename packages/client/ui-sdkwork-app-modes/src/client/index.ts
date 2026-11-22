@@ -129,7 +129,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 const NS = 'appMode'
 
 /** The non-code base modes get placeholder pages; `code` renders the conversation. */
-const PLACEHOLDER_MODES: readonly BaseAppModeId[] = ['work', 'document']
+const RAIL_STUB_MODE_IDS: readonly BaseAppModeId[] = ['work', 'document']
 
 /** Services required by the app-mode surface plugin. */
 export const inject = ['slots', 'locale', 'configForms', 'layout', 'sessions']
@@ -239,7 +239,7 @@ export function apply(ctx: ClientContext): void {
 
   // One placeholder page per non-code base mode, keyed by the mode id so the
   // frame's keyed dispatch (entryKey = active mode) selects it.
-  for (const mode of PLACEHOLDER_MODES) {
+  for (const mode of RAIL_STUB_MODE_IDS) {
     ctx.slots.inject('mode.page', () => ctx.slots.register({
       name: 'mode.page',
       key: mode,

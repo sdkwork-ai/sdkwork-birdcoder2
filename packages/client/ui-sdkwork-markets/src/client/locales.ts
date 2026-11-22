@@ -209,6 +209,9 @@ export const zh = {
   'install.approveAndRetry': '允许这些脚本并重试',
   'install.log.title': '安装输出',
   'install.log.line': '输出行 {line}',
+  'install.log.signal': '信号 {signal}',
+  'install.log.exitCode': '退出码 {code}',
+  'install.log.noExitCode': '无退出码',
   'install.done': '安装完成，插件包已加入列表。',
   'install.done.known': '安装完成：{name}。',
   // ── 引导（对齐上游 Add plugin 弹窗） ──
@@ -588,6 +591,9 @@ export const en = {
   'install.approveAndRetry': 'Allow these scripts and retry',
   'install.log.title': 'Install output',
   'install.log.line': 'Output line {line}',
+  'install.log.signal': 'Signal {signal}',
+  'install.log.exitCode': 'Exit {code}',
+  'install.log.noExitCode': 'No exit code',
   'install.done': 'Installed; the bundle joined the list.',
   'install.done.known': 'Installed: {name}.',
   // ── Guide (mirrors the upstream Add plugin dialog) ──

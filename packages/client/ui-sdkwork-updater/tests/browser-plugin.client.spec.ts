@@ -8,6 +8,7 @@ import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import type { DesktopBridge, DesktopStreamHandle, DesktopUpdates, DesktopUpdateState } from '@deepseek-ai/dsh-client-connection/client'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
+import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { apply, inject } from '../src/client/index.ts'
 import { apply as applyNode } from '../src/index.ts'
 import { UpdateBanner } from '../src/client/UpdateBanner.tsx'
@@ -95,6 +96,9 @@ async function bench() {
   } as never, () => null)
   const configForm = fakeConfigForm()
   ctx.provide('configForms', configForm as never)
+  const locale = new LocaleRuntime(ctx)
+  ctx.provide('locale', locale)
+  ctx.slots.installLocale(locale)
   return { ctx, configForm }
 }
 
@@ -146,7 +150,7 @@ const AVAILABLE_STATE: DesktopUpdateState = {
 
 describe('ui-sdkwork-updater browser half', () => {
   it('declares the services it uses', () => {
-    expect(inject).toEqual(['slots', 'configForms'])
+    expect(inject).toEqual(['slots', 'configForms', 'locale'])
   })
 
   it('registers the banner and the preferences row, and fiber teardown removes them (HMR safety)', async () => {

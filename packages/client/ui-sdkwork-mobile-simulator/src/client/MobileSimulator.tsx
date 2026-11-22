@@ -13,6 +13,7 @@ import {
   type DeviceSpec, type FrameColor, type NotchStyle,
 } from './devices.ts'
 import css from './MobileSimulator.module.css'
+import type { MobileSimulatorKey } from './locales.ts'
 
 /** Display mode: inline embeds in layout; modal floats over a backdrop. */
 export type SimulatorMode = 'inline' | 'modal'
@@ -32,6 +33,8 @@ interface SimulatorCoreProps {
   initialOrientation?: Orientation
   /** Whether the device selector toolbar renders. */
   showToolbar?: boolean
+  /** Locale seat bound to the mobileSimulator namespace. */
+  t: (key: MobileSimulatorKey, params?: Record<string, string>) => string
   /** Invoked when the modal requests to close (backdrop click, Esc, close button). */
   onClose?: () => void
   /** Invoked when the active device changes. */
@@ -181,6 +184,7 @@ function SimulatorToolbar(props: {
   url: string
   showToolbar: boolean
   isModal: boolean
+  t: (key: MobileSimulatorKey, params?: Record<string, string>) => string
   onDeviceSelect: (id: string) => void
   onToggleOrientation: () => void
   onUrlChange: (url: string) => void
@@ -195,8 +199,8 @@ function SimulatorToolbar(props: {
           className={css.deviceSelect}
           value={device.id}
           onChange={(e) => { props.onDeviceSelect(e.target.value) }}
-          aria-label="选择设备"
-          title="选择设备"
+          aria-label={props.t('toolbar.device')}
+          title={props.t('toolbar.device')}
         >
           {ALL_DEVICES.map(d => (
             <option key={d.id} value={d.id}>{d.name}</option>
@@ -206,8 +210,8 @@ function SimulatorToolbar(props: {
           type="button"
           className={css.toolbarBtn}
           onClick={props.onToggleOrientation}
-          aria-label={orientation === 'portrait' ? '切换横屏' : '切换竖屏'}
-          title={orientation === 'portrait' ? '切换横屏' : '切换竖屏'}
+          aria-label={orientation === 'portrait' ? props.t('toolbar.rotateLandscape') : props.t('toolbar.rotatePortrait')}
+          title={orientation === 'portrait' ? props.t('toolbar.rotateLandscape') : props.t('toolbar.rotatePortrait')}
         >
           <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
             {orientation === 'portrait'
@@ -223,8 +227,8 @@ function SimulatorToolbar(props: {
           value={url}
           onChange={(e) => { props.onUrlChange(e.target.value) }}
           onKeyDown={(e) => { if (e.key === 'Enter') props.onUrlChange(e.currentTarget.value) }}
-          aria-label="网址"
-          placeholder="输入网址"
+          aria-label={props.t('toolbar.url')}
+          placeholder={props.t('toolbar.urlPlaceholder')}
         />
       </div>
       <div className={css.toolbarRight}>
@@ -233,8 +237,8 @@ function SimulatorToolbar(props: {
             type="button"
             className={css.closeBtn}
             onClick={props.onClose}
-            aria-label="关闭模拟器"
-            title="关闭 (Esc)"
+            aria-label={props.t('toolbar.close')}
+            title={props.t('toolbar.closeTitle')}
           >
             <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
               <path d="M2 2l12 12M14 2L2 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -259,6 +263,7 @@ function DeviceFrame(props: {
   url: string
   metrics: ScreenMetrics
   scale: number
+  t: (key: MobileSimulatorKey, params?: Record<string, string>) => string
 }): ReactNode {
   const { device, orientation, frameColor, url, metrics } = props
   const frameStyle: CSSProperties = {
@@ -285,7 +290,7 @@ function DeviceFrame(props: {
         <iframe
           className={css.viewport}
           src={url}
-          title={`${device.name} 模拟器`}
+          title={props.t('frame.title', { device: device.name })}
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
           referrerPolicy="no-referrer"
           data-user-agent={ua}
@@ -306,7 +311,7 @@ function DeviceFrame(props: {
 export function MobileSimulator(props: SimulatorCoreProps): ReactNode {
   const {
     url: urlProp, initialDeviceId, mode, initialOrientation = 'portrait',
-    showToolbar = true, onClose, onDeviceChange, onOrientationChange, onUrlChange, className,
+    showToolbar = true, onClose, onDeviceChange, onOrientationChange, onUrlChange, className, t,
   } = props
   const [deviceId, setDeviceId] = useState(initialDeviceId ?? ALL_DEVICES[0].id)
   const [orientation, setOrientation] = useState<Orientation>(initialOrientation)
@@ -348,7 +353,7 @@ export function MobileSimulator(props: SimulatorCoreProps): ReactNode {
   }, [onDeviceChange])
 
   const handleToggleOrientation = useCallback((): void => {
-    setOrientation(prev => {
+    setOrientation((prev) => {
       const next = prev === 'portrait' ? 'landscape' : 'portrait'
       onOrientationChange?.(next)
       return next
@@ -376,6 +381,7 @@ export function MobileSimulator(props: SimulatorCoreProps): ReactNode {
         url={url}
         showToolbar={showToolbar}
         isModal={mode === 'modal'}
+        t={t}
         onDeviceSelect={handleDeviceSelect}
         onToggleOrientation={handleToggleOrientation}
         onUrlChange={handleUrlChange}
@@ -389,6 +395,7 @@ export function MobileSimulator(props: SimulatorCoreProps): ReactNode {
           url={url}
           metrics={metrics}
           scale={scale}
+          t={t}
         />
       </div>
     </div>
@@ -396,7 +403,7 @@ export function MobileSimulator(props: SimulatorCoreProps): ReactNode {
 
   if (mode === 'modal') {
     return (
-      <div className={css.modalBackdrop} onClick={onClose} role="dialog" aria-modal="true" aria-label="移动端模拟器">
+      <div className={css.modalBackdrop} onClick={onClose} role="dialog" aria-modal="true" aria-label={t('modal.aria')}>
         <div className={css.modalContent} onClick={(e) => { e.stopPropagation() }}>
           {core}
         </div>

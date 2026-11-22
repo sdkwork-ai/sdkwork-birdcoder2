@@ -7,7 +7,7 @@
  */
 import type { ReactNode } from 'react'
 import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls the shell.overlay slot declaration.
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { createUpdateBannerStore } from './update-banner-store.ts'
@@ -29,6 +29,7 @@ export interface UpdateBannerInjected {
 export type UpdateBannerProps =
   PropsRuntime<'shell.overlay'>
   & PropsStore<ReturnType<typeof createUpdateBannerStore>>
+  & PropsLocale<'sdkworkUpdater'>
   & UpdateBannerInjected
 
 /**
@@ -38,22 +39,22 @@ export type UpdateBannerProps =
  * @param props - composed slot props.
  * @returns the banner card, or nothing while there is nothing to show.
  */
-export function UpdateBanner({ download, install, openReleasePage, dismiss, useStore }: UpdateBannerProps): ReactNode {
+export function UpdateBanner({ download, install, openReleasePage, dismiss, useStore, t }: UpdateBannerProps): ReactNode {
   const state = useStore(s => s)
   const { phase, canInstall, version, releaseNotes, progressPercent, error, dismissedVersion } = state
   if (phase === 'available' && dismissedVersion !== undefined && dismissedVersion === version) return null
   if (phase !== 'available' && phase !== 'downloading' && phase !== 'downloaded') return null
   const title = phase === 'downloading'
-    ? `正在下载 v${version}…`
+    ? t('banner.downloading', { version: version ?? '' })
     : phase === 'downloaded'
-      ? `v${version} 已就绪，重启后安装`
-      : `发现新版本 v${version}`
+      ? t('banner.ready', { version: version ?? '' })
+      : t('banner.available', { version: version ?? '' })
   return (
     <div className={css.banner} role="status">
       <div className={css.head}>
         <div className={css.title}>{title}</div>
         {phase === 'available' && (
-          <button type="button" className={css.dismiss} aria-label="稍后再说" onClick={dismiss}>×</button>
+          <button type="button" className={css.dismiss} aria-label={t('banner.dismiss')} onClick={dismiss}>×</button>
         )}
       </div>
       {phase === 'downloading' && (
@@ -70,15 +71,15 @@ export function UpdateBanner({ download, install, openReleasePage, dismiss, useS
       )}
       {releaseNotes !== undefined && (
         <details className={css.notes}>
-          <summary>更新内容</summary>
+          <summary>{t('banner.notes')}</summary>
           <MarkdownText text={releaseNotes} />
         </details>
       )}
       {error !== undefined && <div className={css.error}>{error}</div>}
       <div className={css.actions}>
-        {phase === 'available' && canInstall && <button type="button" className={css.primary} onClick={download}>下载更新</button>}
-        {phase === 'downloaded' && canInstall && <button type="button" className={css.primary} onClick={install}>重启并安装</button>}
-        <button type="button" className={css.ghost} onClick={openReleasePage}>查看发布页</button>
+        {phase === 'available' && canInstall && <button type="button" className={css.primary} onClick={download}>{t('banner.download')}</button>}
+        {phase === 'downloaded' && canInstall && <button type="button" className={css.primary} onClick={install}>{t('banner.install')}</button>}
+        <button type="button" className={css.ghost} onClick={openReleasePage}>{t('banner.releasePage')}</button>
       </div>
     </div>
   )

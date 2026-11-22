@@ -990,7 +990,7 @@ function ConfigureStep(props: {
                 </div>
                 <div className={css.publishSummaryItem}>
                   <span className={css.publishSummaryLabel}>{t('scaffoldCenter.field.version')}</span>
-                  <span className={css.publishSummaryValue}>v{values.version}</span>
+                  <span className={css.publishSummaryValue}>{t('scaffoldCenter.versionValue', { version: values.version })}</span>
                 </div>
                 <div className={css.publishSummaryItem}>
                   <span className={css.publishSummaryLabel}>{t('scaffoldCenter.settings.summaryApp')}</span>

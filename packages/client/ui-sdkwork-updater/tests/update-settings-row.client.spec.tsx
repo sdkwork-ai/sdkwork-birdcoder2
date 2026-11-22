@@ -2,12 +2,19 @@
 import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import {
-  CHANNEL_LABELS,
+  channelLabels,
   UpdateSettingsRow,
   updateStatusText,
   type UpdateSettingsRowProps,
 } from '../src/client/UpdateSettingsRow.tsx'
 import type { UpdateSettingsRowState } from '../src/client/update-settings-store.ts'
+import { zh } from '../src/client/locales.ts'
+
+const t = (key: keyof typeof zh, params?: Record<string, string>) => {
+  let text = zh[key]
+  for (const [name, value] of Object.entries(params ?? {})) text = text.split(`{${name}}`).join(value)
+  return text
+}
 
 afterEach(() => {
   cleanup()
@@ -48,6 +55,7 @@ function rowProps(
   const check = over.check ?? vi.fn()
   const props = {
     useStore: <T,>(select: (snapshot: UpdateSettingsRowState) => T): T => select(state),
+    t,
     setAutoCheck,
     setChannel,
     setAutoDownload,
@@ -58,19 +66,19 @@ function rowProps(
 
 describe('updateStatusText', () => {
   it('maps the phases to status labels', () => {
-    expect(updateStatusText({ phase: 'checking' })).toBe('正在检查更新…')
-    expect(updateStatusText({ phase: 'available', version: '0.1.0-rc.10' })).toBe('发现新版本 v0.1.0-rc.10')
-    expect(updateStatusText({ phase: 'downloading', version: '0.1.0-rc.10' })).toBe('发现新版本 v0.1.0-rc.10')
-    expect(updateStatusText({ phase: 'downloaded', version: '0.1.0-rc.10' })).toBe('发现新版本 v0.1.0-rc.10')
+    expect(updateStatusText({ phase: 'checking' }, t)).toBe('正在检查更新…')
+    expect(updateStatusText({ phase: 'available', version: '0.1.0-rc.10' }, t)).toBe('发现新版本 v0.1.0-rc.10')
+    expect(updateStatusText({ phase: 'downloading', version: '0.1.0-rc.10' }, t)).toBe('发现新版本 v0.1.0-rc.10')
+    expect(updateStatusText({ phase: 'downloaded', version: '0.1.0-rc.10' }, t)).toBe('发现新版本 v0.1.0-rc.10')
   })
 
   it('distinguishes check and download failures, and stays quiet otherwise', () => {
-    expect(updateStatusText({ phase: 'idle', error: 'network down' })).toBe('检查更新失败：network down')
-    expect(updateStatusText({ phase: 'available', version: '0.1.0-rc.10', error: 'signature mismatch' }))
+    expect(updateStatusText({ phase: 'idle', error: 'network down' }, t)).toBe('检查更新失败：network down')
+    expect(updateStatusText({ phase: 'available', version: '0.1.0-rc.10', error: 'signature mismatch' }, t))
       .toBe('下载失败：signature mismatch')
-    expect(updateStatusText({ phase: 'idle' })).toBeUndefined()
-    expect(updateStatusText({ phase: 'disabled' })).toBeUndefined()
-    expect(updateStatusText({ phase: 'installing' })).toBeUndefined()
+    expect(updateStatusText({ phase: 'idle' }, t)).toBeUndefined()
+    expect(updateStatusText({ phase: 'disabled' }, t)).toBeUndefined()
+    expect(updateStatusText({ phase: 'installing' }, t)).toBeUndefined()
   })
 })
 
@@ -89,7 +97,7 @@ describe('UpdateSettingsRow', () => {
     expect(screen.getByRole('switch', { name: '自动下载' }).getAttribute('aria-checked')).toBe('false')
     const select = screen.getByRole('combobox') as HTMLSelectElement
     expect(select.value).toBe('follow')
-    expect(screen.getByRole('option', { name: CHANNEL_LABELS.rc })).toBeDefined()
+    expect(screen.getByRole('option', { name: channelLabels(t).rc })).toBeDefined()
     expect(screen.getByRole('button', { name: '检查更新' })).toBeDefined()
   })
 

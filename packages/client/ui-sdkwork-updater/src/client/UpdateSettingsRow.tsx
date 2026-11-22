@@ -11,7 +11,7 @@
  * it cannot read).
  */
 import type { ReactNode } from 'react'
-import type { PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls the settings.general.item slot declaration and the
 // ctx.configForms Context merge (cross-plugin collaboration via services).
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
@@ -19,6 +19,7 @@ import type { DesktopUpdateState } from '@deepseek-ai/dsh-client-connection/clie
 import type { createUpdateSettingsRowStore } from './update-settings-store.ts'
 import type { UpdateChannel } from './update-settings.ts'
 import { UPDATE_CHANNELS } from './update-settings.ts'
+import type { SdkworkUpdaterKey } from './locales.ts'
 import css from './UpdateSettingsRow.module.css'
 
 /** Injected business face: the durable preference writes and the manual check. */
@@ -37,7 +38,10 @@ export interface UpdateSettingsRowInjected {
 export type UpdateSettingsRowProps =
   PropsRuntime<'settings.general.item'>
   & PropsStore<ReturnType<typeof createUpdateSettingsRowStore>>
+  & PropsLocale<'sdkworkUpdater'>
   & UpdateSettingsRowInjected
+
+type Translate = (key: SdkworkUpdaterKey, params?: Record<string, string>) => string
 
 /**
  * The one-line status the row shows under the controls, derived from the
@@ -49,24 +53,28 @@ export function updateStatusText(state: {
   phase: DesktopUpdateState['phase']
   version?: string | undefined
   error?: string | undefined
-}): string | undefined {
+}, t: Translate): string | undefined {
   if (state.error !== undefined) {
-    return state.phase === 'idle' ? `检查更新失败：${state.error}` : `下载失败：${state.error}`
+    return state.phase === 'idle'
+      ? t('status.checkFailed', { error: state.error })
+      : t('status.downloadFailed', { error: state.error })
   }
   switch (state.phase) {
-    case 'checking': return '正在检查更新…'
+    case 'checking': return t('status.checking')
     case 'available':
     case 'downloading':
-    case 'downloaded': return `发现新版本 v${state.version}`
+    case 'downloaded': return t('status.available', { version: state.version ?? '' })
     default: return undefined
   }
 }
 
 /** Human labels for the channel select options. */
-export const CHANNEL_LABELS: Record<UpdateChannel, string> = {
-  follow: '跟随已安装版本',
-  stable: '仅稳定版',
-  rc: '稳定版和预发布',
+export function channelLabels(t: Translate): Record<UpdateChannel, string> {
+  return {
+    follow: t('channel.follow'),
+    stable: t('channel.stable'),
+    rc: t('channel.rc'),
+  }
 }
 
 /**
@@ -74,31 +82,31 @@ export const CHANNEL_LABELS: Record<UpdateChannel, string> = {
  * @param props - composed slot props.
  * @returns the row element tree, or nothing before the scope has a value.
  */
-export function UpdateSettingsRow({ setAutoCheck, setChannel, setAutoDownload, check, useStore }: UpdateSettingsRowProps): ReactNode {
+export function UpdateSettingsRow({ setAutoCheck, setChannel, setAutoDownload, check, useStore, t }: UpdateSettingsRowProps): ReactNode {
   const autoCheckUpdates = useStore(s => s.autoCheckUpdates)
   const updateChannel = useStore(s => s.updateChannel)
   const autoDownload = useStore(s => s.autoDownload)
   const writable = useStore(s => s.writable)
   const canInstall = useStore(s => s.canInstall)
-  const status = useStore(s => updateStatusText(s))
+  const status = useStore(s => updateStatusText(s, t))
   if (autoCheckUpdates === undefined || updateChannel === undefined || autoDownload === undefined) return null
   return (
     <div className={css.row}>
       <div className={css.copy}>
-        <div className={css.title}>自动更新</div>
+        <div className={css.title}>{t('settings.title')}</div>
         <div className={css.description}>
-          {canInstall ? '发现新版本时提示下载；下载完成后重启安装' : '发现新版本时提示；请从发布页手动安装'}
+          {canInstall ? t('settings.description.installable') : t('settings.description.manual')}
         </div>
       </div>
       <div className={css.controls}>
         <label className={css.control}>
-          <span>自动检查更新</span>
+          <span>{t('settings.autoCheck')}</span>
           <button
             type="button"
             role="switch"
             className={css.switch}
             aria-checked={autoCheckUpdates}
-            aria-label="自动检查更新"
+            aria-label={t('settings.autoCheck')}
             disabled={!writable}
             onClick={() => { setAutoCheck(!autoCheckUpdates) }}
           >
@@ -108,7 +116,7 @@ export function UpdateSettingsRow({ setAutoCheck, setChannel, setAutoDownload, c
           </button>
         </label>
         <label className={css.control}>
-          <span>更新通道</span>
+          <span>{t('settings.channel')}</span>
           <select
             className={css.select}
             value={updateChannel}
@@ -116,18 +124,18 @@ export function UpdateSettingsRow({ setAutoCheck, setChannel, setAutoDownload, c
             onChange={(event) => { setChannel(event.target.value as UpdateChannel) }}
           >
             {UPDATE_CHANNELS.map(channel => (
-              <option key={channel} value={channel}>{CHANNEL_LABELS[channel]}</option>
+              <option key={channel} value={channel}>{channelLabels(t)[channel]}</option>
             ))}
           </select>
         </label>
         <label className={css.control}>
-          <span>自动下载</span>
+          <span>{t('settings.autoDownload')}</span>
           <button
             type="button"
             role="switch"
             className={css.switch}
             aria-checked={autoDownload}
-            aria-label="自动下载"
+            aria-label={t('settings.autoDownload')}
             disabled={!writable || !canInstall}
             onClick={() => { setAutoDownload(!autoDownload) }}
           >
@@ -136,7 +144,7 @@ export function UpdateSettingsRow({ setAutoCheck, setChannel, setAutoDownload, c
             </span>
           </button>
         </label>
-        <button type="button" className={css.check} onClick={check}>检查更新</button>
+        <button type="button" className={css.check} onClick={check}>{t('settings.check')}</button>
         {status !== undefined && <div className={css.status}>{status}</div>}
       </div>
     </div>

@@ -9,6 +9,7 @@ import { createElement, useSyncExternalStore, type ReactNode } from 'react'
 import { SdkworkHostThemeSurface, type HostThemeBridge } from './sdkworkHostThemeSurface.tsx'
 import '../../../../../../sdkwork-course/apps/sdkwork-course-pc/src/index.css'
 import { EmbeddedCourseApp } from './EmbeddedCourse.tsx'
+import type { CourseKey } from './locales.ts'
 import { CourseSurfaceBoundary, type CourseSurfaceFailureLabels } from './CourseSurfaceBoundary.tsx'
 import { createClient, type SdkworkAppClient } from '@sdkwork/course-app-sdk'
 import type { AuthTokenManager } from '@sdkwork/sdk-common'
@@ -392,6 +393,8 @@ export type CourseAppLabels = CourseSurfaceFailureLabels
 export interface CourseAppProps {
   /** Failure copy rendered inside the mode page if the embedded surface crashes. */
   readonly labels: CourseAppLabels
+  /** Locale seat bound to the course namespace. */
+  readonly t: (key: CourseKey) => string
 }
 
 /**
@@ -402,13 +405,15 @@ export interface CourseAppProps {
  * @param props - the configured adapter and the environment generation.
  * @returns the embedded course app for that generation.
  */
-function CourseSurface({ adapter, identityKey, revision }: {
+function CourseSurface({ adapter, identityKey, revision, t }: {
   readonly adapter: CourseHostRuntime
   readonly identityKey: string
   readonly revision: number
+  readonly t: (key: CourseKey) => string
 }): ReactNode {
   return createElement(EmbeddedCourseApp, {
     client: adapter.ports().getCourseClient(),
+    t,
     key: `${revision}:${identityKey}`,
   })
 }
@@ -418,7 +423,7 @@ function CourseSurface({ adapter, identityKey, revision }: {
  * @param props - failure copy owned by the host page.
  * @returns the themed course surface, isolated by its failure boundary.
  */
-export function CourseApp({ labels }: CourseAppProps): ReactNode {
+export function CourseApp({ labels, t }: CourseAppProps): ReactNode {
   const adapter = activeAdapter
   if (adapter === undefined) {
     throw new Error('ui-sdkwork-course: SDKWork host runtime is not configured')
@@ -445,7 +450,7 @@ export function CourseApp({ labels }: CourseAppProps): ReactNode {
       children: createElement(
         CourseSurfaceBoundary,
         { key: `${environmentRevision}:${identityKey}`, labels },
-        createElement(CourseSurface, { adapter, identityKey, revision: environmentRevision }),
+        createElement(CourseSurface, { adapter, identityKey, revision: environmentRevision, t }),
       ),
     },
   )

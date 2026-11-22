@@ -20,6 +20,7 @@ import { UpdateBanner, type UpdateBannerInjected } from './UpdateBanner.tsx'
 import { UpdateSettingsRow, type UpdateSettingsRowInjected } from './UpdateSettingsRow.tsx'
 import { createUpdateBannerStore } from './update-banner-store.ts'
 import { createUpdateSettingsRowStore } from './update-settings-store.ts'
+import { en, NS, zh, type SdkworkUpdaterKey } from './locales.ts'
 import {
   AUTO_CHECK_UPDATES_FIELD,
   AUTO_DOWNLOAD_UPDATES_FIELD,
@@ -30,10 +31,18 @@ import {
 
 export type { UpdateBannerInjected, UpdateBannerProps } from './UpdateBanner.tsx'
 export type { UpdateSettingsRowInjected, UpdateSettingsRowProps } from './UpdateSettingsRow.tsx'
-export { CHANNEL_LABELS, updateStatusText } from './UpdateSettingsRow.tsx'
+export type { SdkworkUpdaterKey } from './locales.ts'
+export { channelLabels, updateStatusText } from './UpdateSettingsRow.tsx'
 
-/** Required services: the slot registry and the settings transport. */
-export const inject = ['slots', 'configForms']
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface LocaleNamespaceMap {
+    /** Update banner and preferences-row copy. */
+    sdkworkUpdater: SdkworkUpdaterKey
+  }
+}
+
+/** Required services: the slot registry, the settings transport, and locale. */
+export const inject = ['slots', 'configForms', 'locale']
 
 /** Read the preload's update surface; undefined in the web composition. */
 function updatesOf(): DesktopUpdates | undefined {
@@ -49,12 +58,14 @@ function updatesOf(): DesktopUpdates | undefined {
  * @param ctx - client root context.
  */
 export function apply(ctx: ClientContext): void {
+  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-sdkwork-updater: dictionaries')
   const bannerStore = createUpdateBannerStore()
   let boundBannerActions: BoundActions<typeof bannerStore> | undefined
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay',
     id: 'update-banner',
     store: bannerStore,
+    locale: NS,
     inject: (actions: BoundActions<typeof bannerStore>): UpdateBannerInjected => {
       boundBannerActions = actions
       return {
@@ -92,6 +103,7 @@ export function apply(ctx: ClientContext): void {
     // After the desktop tray row (order 20), before feature rows yet to come.
     order: 30,
     store: settingsStore,
+    locale: NS,
     inject: (actions: BoundActions<typeof settingsStore>): UpdateSettingsRowInjected => {
       boundSettingsActions = actions
       // Re-sync at registration so no snapshot is lost between subscription

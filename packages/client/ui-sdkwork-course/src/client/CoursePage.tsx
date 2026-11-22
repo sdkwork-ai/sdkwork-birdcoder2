@@ -41,6 +41,7 @@ export function CoursePage({ mode, authGate, t }: CoursePageProps) {
       actionLabel={t('auth.required.action')}
     >
       <CourseApp
+        t={t}
         labels={{
           title: t('state.failed.title'),
           detail: t('state.failed.detail'),

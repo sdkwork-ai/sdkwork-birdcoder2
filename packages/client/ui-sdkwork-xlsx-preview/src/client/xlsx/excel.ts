@@ -44,7 +44,7 @@ export const HEADER_SELECTED_BACKGROUND = '#D3E5D5'
 /** The band entry of the active row or column, which Excel tints deeper. */
 export const HEADER_ACTIVE_BACKGROUND = '#C7DFC9'
 /** The label colour of the active row or column, which Excel prints in green. */
-export const HEADER_ACTIVE_LABEL = '#1B5E20'
+export const HEADER_ACTIVE_FILL = '#1B5E20'
 
 /** The active cell's frame, and the colour of the fill handle it carries. */
 export const ACTIVE_BORDER = '#217346'

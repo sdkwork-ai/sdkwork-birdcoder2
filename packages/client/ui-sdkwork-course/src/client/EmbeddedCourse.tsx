@@ -27,6 +27,7 @@ import {
   StudioCourseListPage,
   StudioQueryBoundary,
 } from '@sdkwork/sdkwork-course-pc-studio'
+import type { CourseKey } from './locales.ts'
 
 /** Props for the embedded host surface. */
 export interface EmbeddedCourseAppProps {
@@ -34,6 +35,8 @@ export interface EmbeddedCourseAppProps {
   client: CourseAppSdkClient
   /** Optional deep link used by host tests and future mode entry points. */
   initialPath?: string
+  /** Locale seat bound to the course namespace. */
+  t: (key: CourseKey) => string
 }
 
 function HostUnavailable({ title, detail }: { title: string; detail: string }): ReactNode {
@@ -45,7 +48,7 @@ function HostUnavailable({ title, detail }: { title: string; detail: string }): 
   )
 }
 
-function EmbeddedTopBar(): ReactNode {
+function EmbeddedTopBar({ t }: { t: (key: CourseKey) => string }): ReactNode {
   const navigate = useNavigate()
   const { pathname, search } = useLocation()
   const [searchValue, setSearch] = useState('')
@@ -58,20 +61,20 @@ function EmbeddedTopBar(): ReactNode {
     navigate(query ? `/courses?q=${encodeURIComponent(query)}` : '/courses')
   }
   const navItems = [
-    { label: '首页', to: '/', active: pathname === '/' },
-    { label: '课程中心', to: '/courses', active: courseActive },
-    { label: '专栏', to: '/courses?kind=column', active: kind === 'column' },
-    { label: '合集', to: '/courses?kind=collection', active: kind === 'collection' },
-    { label: '直播', to: '/live', active: pathname === '/live' },
+    { label: t('nav.home'), to: '/', active: pathname === '/' },
+    { label: t('nav.courses'), to: '/courses', active: courseActive },
+    { label: t('nav.columns'), to: '/courses?kind=column', active: kind === 'column' },
+    { label: t('nav.collections'), to: '/courses?kind=collection', active: kind === 'collection' },
+    { label: t('nav.live'), to: '/live', active: pathname === '/live' },
   ]
   return (
     <header className="w-full border-b border-slate-200 bg-white">
       <div className="flex items-center gap-4 px-4 py-3 sm:px-6">
         <Link to="/" className="flex shrink-0 items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 text-sm font-black text-white shadow-sm">
-            课
+            {t('brand.badge')}
           </span>
-          <span className="block text-base font-bold leading-tight text-slate-900">课程中心</span>
+          <span className="block text-base font-bold leading-tight text-slate-900">{t('brand.title')}</span>
         </Link>
         <nav className="hidden shrink-0 items-center gap-1 lg:flex">
           {navItems.map(item => (
@@ -93,13 +96,13 @@ function EmbeddedTopBar(): ReactNode {
           <input
             value={searchValue}
             onChange={event => setSearch(event.target.value)}
-            placeholder="搜索课程、专栏、合集"
-            aria-label="搜索课程、专栏、合集"
+            placeholder={t('search.placeholder')}
+            aria-label={t('search.aria')}
             className="h-9 w-full rounded-full border border-slate-200 bg-slate-100/80 pl-4 pr-10 text-[13px] text-slate-800 placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
           />
           <button
             type="submit"
-            aria-label="搜索"
+            aria-label={t('search.submit')}
             className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full text-slate-400 hover:bg-white hover:text-indigo-600"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
@@ -113,19 +116,19 @@ function EmbeddedTopBar(): ReactNode {
             to="/studio"
             className="inline-flex h-9 items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600"
           >
-            创作者中心
+            {t('studio.entry')}
           </Link>
           <Link
             to="/studio?create=1"
             className="inline-flex h-9 items-center rounded-full bg-[#fb7299] px-4 text-[13px] font-semibold text-white transition hover:bg-[#e55d83]"
           >
-            上传课程
+            {t('studio.upload')}
           </Link>
           <Link
             to="/my"
             className="inline-flex h-9 items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600"
           >
-            我的学习
+            {t('my.learning')}
           </Link>
         </div>
       </div>
@@ -133,14 +136,14 @@ function EmbeddedTopBar(): ReactNode {
   )
 }
 
-function EmbeddedCourseContent(): ReactNode {
+function EmbeddedCourseContent({ t }: { t: (key: CourseKey) => string }): ReactNode {
   const { pathname } = useLocation()
   const fullBleedCourseSurface =
     /^\/courses\/[^/]+(?:\/play|\/learn\/[^/]+)?$/.test(pathname)
 
   return (
     <div className="w-full">
-      <EmbeddedTopBar />
+      <EmbeddedTopBar t={t} />
       <div
         className={
           fullBleedCourseSurface
@@ -180,8 +183,8 @@ function EmbeddedCourseContent(): ReactNode {
             path="/admin"
             element={
               <HostUnavailable
-                title="运营后台"
-                detail="审核与课程治理请使用独立课程工作台的运营后台，避免在宿主内暴露高权限操作。"
+                title={t('admin.title')}
+                detail={t('admin.detail')}
               />
             }
           />
@@ -197,7 +200,7 @@ function EmbeddedCourseContent(): ReactNode {
  * @param props - host SDK client and optional initial route.
  * @returns the embedded course app.
  */
-export function EmbeddedCourseApp({ client, initialPath = '/' }: EmbeddedCourseAppProps): ReactNode {
+export function EmbeddedCourseApp({ client, initialPath = '/', t }: EmbeddedCourseAppProps): ReactNode {
   const queryClient = useMemo(
     () =>
       new QueryClient({
@@ -216,7 +219,7 @@ export function EmbeddedCourseApp({ client, initialPath = '/' }: EmbeddedCourseA
             data-course-embedded="sdkwork"
             className="course-app-surface h-full min-h-0 overflow-y-auto"
           >
-            <EmbeddedCourseContent />
+            <EmbeddedCourseContent t={t} />
           </div>
         </MemoryRouter>
       </QueryClientProvider>

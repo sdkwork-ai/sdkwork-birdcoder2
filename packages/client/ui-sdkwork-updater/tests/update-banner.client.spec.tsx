@@ -3,6 +3,13 @@ import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import { UpdateBanner, type UpdateBannerProps } from '../src/client/UpdateBanner.tsx'
 import type { UpdateBannerState } from '../src/client/update-banner-store.ts'
+import { zh } from '../src/client/locales.ts'
+
+const t = (key: keyof typeof zh, params?: Record<string, string>) => {
+  let text = zh[key]
+  for (const [name, value] of Object.entries(params ?? {})) text = text.split(`{${name}}`).join(value)
+  return text
+}
 
 afterEach(() => {
   cleanup()
@@ -31,6 +38,7 @@ function bannerProps(
   const dismiss = over.dismiss ?? vi.fn()
   const props = {
     useStore: <T,>(select: (snapshot: UpdateBannerState) => T): T => select(state),
+    t,
     download,
     install,
     openReleasePage,

@@ -86,10 +86,13 @@ function fillPercent(track: AppBuildTrack): number | null {
  * @param ms - milliseconds to render.
  * @returns the shortest unambiguous rendering.
  */
-function elapsedText(ms: number): string {
+function elapsedText(ms: number, t: (key: string, params?: Record<string, string>) => string): string {
   const seconds = Math.max(0, Math.round(ms / 1000))
-  if (seconds < 60) return `${String(seconds)}s`
-  return `${String(Math.floor(seconds / 60))}m ${String(seconds % 60).padStart(2, '0')}s`
+  if (seconds < 60) return t('build.elapsed.seconds', { seconds: String(seconds) })
+  return t('build.elapsed.minuteSeconds', {
+    minutes: String(Math.floor(seconds / 60)),
+    seconds: String(seconds % 60).padStart(2, '0'),
+  })
 }
 
 /** Order rows as the operator needs them: live builds first, newest first. */
@@ -115,7 +118,7 @@ function IndicatorRow({ track, now, t }: {
   const elapsed = track.durationMs ?? (live ? now - track.startedAt : null)
   const parts = [t(APP_BUILD_STATUS_KEYS[track.status])]
   if (percent !== null) parts.push(`${String(percent)}%`)
-  if (elapsed !== null) parts.push(elapsedText(elapsed))
+  if (elapsed !== null) parts.push(elapsedText(elapsed, t))
   const fill = fillPercent(track)
   return (
     <span className={css.row} data-tone={toneOf(track.status)}>
