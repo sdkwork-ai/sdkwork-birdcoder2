@@ -1,6 +1,7 @@
 BirdCoder
 
-BirdCoder，我帮你
+BirdCoder
+组装无限可能，共探智能上限
 隐私政策 https://sdkwork.com/privacy
 服务条款 https://sdkwork.com/terms
 网络代理 https://docs.sdkwork.com/guide/network-proxy

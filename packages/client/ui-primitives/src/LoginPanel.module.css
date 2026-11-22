@@ -85,6 +85,10 @@
 }
 
 .landing .welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   color: var(--dsw-alias-label-primary);
   font-size: 28px;
   font-weight: 500;
@@ -97,8 +101,19 @@
   font-weight: inherit;
 }
 
+/* The slogan is supporting copy under the product name, not a second headline. */
+.landing .description {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+/* The container centres every row; the action column carries a stretch
+   alignment from the window layout, which would flush the pill to the left. */
 .landing .actions {
   flex: none;
+  align-self: center;
   gap: 12px;
   width: 208px;
 }

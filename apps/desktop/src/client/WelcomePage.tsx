@@ -238,7 +238,7 @@ export function Welcome({ api }: { api: WelcomeApi }) {
   return <>
     {expiryNotice && <Toast text={m.welcomeSessionExpired} onDone={() => { setExpiryNotice(false) }} />}
     <div className="titlebar" aria-hidden="true" />
-    <main className="welcome" aria-labelledby={heading} aria-describedby={page === 'entry' ? undefined : 'welcome-description'}>
+    <main className="welcome" aria-labelledby={heading} aria-describedby={page === 'entry' ? 'welcome-description' : undefined}>
       {/* The shipped name and mark are BirdCoder; an OEM build replaces
           brand.name and the welcome raster together. The signed-out entry is
           the landing (mark, welcome line, one action, product links); the
@@ -249,7 +249,7 @@ export function Welcome({ api }: { api: WelcomeApi }) {
         logoSrc="assets/welcome-bird.png"
         heroSrc="assets/welcome-bird-2x.png"
         welcome={page === 'entry'
-          ? { before: '', brand: m.welcomeBrand, after: m.welcomeLandingTagline, description: '' }
+          ? { before: '', brand: m.welcomeBrand, after: '', description: m.welcomeDescription }
           : {
             before: m.welcomeTaglineBefore, brand: m.welcomeTaglineBrand,
             after: m.welcomeTaglineAfter, description: m.welcomeDescription,

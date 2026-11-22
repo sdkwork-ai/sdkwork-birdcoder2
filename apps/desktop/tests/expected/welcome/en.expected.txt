@@ -1,6 +1,7 @@
 BirdCoder
 
-BirdCoder, here to help
+BirdCoder
+Build potential. Explore intelligence.
 Privacy policy https://sdkwork.com/privacy
 Terms of service https://sdkwork.com/terms
 Network proxy https://docs.sdkwork.com/en/guide/network-proxy
