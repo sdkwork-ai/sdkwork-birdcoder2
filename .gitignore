@@ -263,3 +263,4 @@ build/
 
 # Local diagnostic scratch scripts from gateway/DB investigations (never committed)
 /_diag*.sh
+/_rev_*.sh
