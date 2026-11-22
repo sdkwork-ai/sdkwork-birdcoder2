@@ -420,6 +420,12 @@ allowBuilds:
   # The Python runtime deploy includes the reviewed workspace postinstall that
   # restores the executable bit on node-pty's macOS spawn helper.
   '@deepseek-ai/dsh-subprocess-local@file:packages/subprocess/subprocess-local': true
+  # The published build of that same helper. `@michengai/dsh-agency-agents`
+  # (`plugins/sdkwork-dsh-agents`) declares the published
+  # `@deepseek-ai/dsh@0.2.2-rc.5` as a dependency, so its tree resolves this
+  # registry copy and pnpm 11 refuses the install when its `postinstall` is
+  # neither approved nor explicitly ignored.
+  '@deepseek-ai/dsh-subprocess-local@0.2.2-rc.5': true
   # The Electron desktop shell (apps/desktop): electron's postinstall downloads
   # the platform binary; electron-winstaller's script is needed for NSIS
   # packaging; sharp rasterizes the app icons in generate-icons.
