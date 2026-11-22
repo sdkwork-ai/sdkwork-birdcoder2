@@ -789,6 +789,13 @@
     - id: ui-sdkwork-apikey
       name: '@deepseek-ai/dsh-client-ui-sdkwork-apikey'
 
+    # Model price group: the composer model menu's 模型价格分组 row and its
+    # group picker. Only the BirdCoder relay provider renders it; the picker
+    # lists the account groups that can serve the selected model through the
+    # CloudRouter app API and pins the signed-in user's per-model group.
+    - id: ui-sdkwork-model-price-group
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-model-price-group'
+
     # Official-account (公众号) management: the settings-menu row above the
     # relay API-key row and the dialog hosting the SDKWork IAM
     # official-account panel (account credentials, follow QR code, and the

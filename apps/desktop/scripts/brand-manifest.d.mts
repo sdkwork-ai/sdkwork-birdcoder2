@@ -21,12 +21,10 @@ export const DEFAULT_BRAND_KEY: 'birdcoder'
 /** Directory holding the repository's brand manifests. */
 export const BRAND_DIRECTORY: string
 
-/** Harness home and legacy-adoption behavior of one brand. */
+/** Harness home of one brand. */
 export interface DesktopBrandHome {
   /** Directory name under the operating-system home; dot-prefixed and lower case so two brands cannot collide. */
   readonly dirName: string
-  /** Whether a first launch may take over the legacy `~/.dsh` data. */
-  readonly adoptLegacyDshHome: boolean
 }
 
 /** Desktop application identity of one brand. */

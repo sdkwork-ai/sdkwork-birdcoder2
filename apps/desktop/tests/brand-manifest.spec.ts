@@ -23,7 +23,7 @@ const ACME = Object.freeze({
   key: 'acme',
   displayName: 'Acme Harness',
   companyName: 'Acme',
-  home: { dirName: '.acme', adoptLegacyDshHome: false },
+  home: { dirName: '.acme' },
   desktop: {
     appId: 'com.acme.harness',
     productName: 'Acme Harness',
@@ -51,7 +51,7 @@ function temporaryDirectory(): string {
 it('ships the BirdCoder brand the fork builds today', () => {
   const brand = shippedBrand()
   expect(brand.key).toBe('birdcoder')
-  expect(brand.home).toEqual({ dirName: '.birdcoder', adoptLegacyDshHome: true })
+  expect(brand.home).toEqual({ dirName: '.birdcoder' })
   expect(brand.desktop).toEqual({
     appId: 'com.sdkwork.birdcoder',
     productName: 'BirdCoder',
@@ -107,7 +107,6 @@ it('rejects malformed fields instead of falling back', () => {
     ['key', (manifest) => { manifest.key = 'Acme' }],
     ['home.dirName', (manifest) => { (manifest.home as Record<string, unknown>).dirName = 'acme' }],
     ['home.dirName', (manifest) => { (manifest.home as Record<string, unknown>).dirName = '.ACME' }],
-    ['home.adoptLegacyDshHome', (manifest) => { (manifest.home as Record<string, unknown>).adoptLegacyDshHome = 'yes' }],
     ['desktop.appId', (manifest) => { (manifest.desktop as Record<string, unknown>).appId = 'acme' }],
     ['desktop.protocol', (manifest) => { (manifest.desktop as Record<string, unknown>).protocol = 'Acme Scheme' }],
     ['desktop.productName', (manifest) => { (manifest.desktop as Record<string, unknown>).productName = 'Acme/Harness' }],
@@ -119,6 +118,13 @@ it('rejects malformed fields instead of falling back', () => {
     corrupt(manifest)
     expect(() => parseBrandManifest(manifest), field).toThrow(/brand:/u)
   }
+})
+
+it('ignores a home key the schema no longer reads', () => {
+  const manifest = acme()
+  const home = manifest.home as Record<string, unknown>
+  home.adoptLegacyDshHome = true
+  expect(parseBrandManifest(manifest).home).toEqual({ dirName: '.acme' })
 })
 
 it('packages a second brand with its own identity and ships its manifest', async () => {

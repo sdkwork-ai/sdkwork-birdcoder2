@@ -1,0 +1,34 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-model-price-group/README.md
+/:
+  en: 56b1a5d38f43aee5
+  zh: a21ad049f223cca7
+/deepseek-ai-dsh-client-ui-sdkwork-model-price-group:
+  en: 59092ea8d3f4b70f
+  zh: a928262729a8940e
+/deepseek-ai-dsh-client-ui-sdkwork-model-price-group/summary:
+  en: e4ea56512c0e61df
+  zh: daff703796534770
+/deepseek-ai-dsh-client-ui-sdkwork-model-price-group/table-of-contents:
+  en: 2fee9973f19f9401
+  zh: 8ab4b55413cb8408
+/deepseek-ai-dsh-client-ui-sdkwork-model-price-group/use-this-package:
+  en: 78eeab79f8f301f1
+  zh: 217e9d1ec35b546a
+/deepseek-ai-dsh-client-ui-sdkwork-model-price-group/understand-the-implementation:
+  en: aaf0de5288c4bdd9
+  zh: 3b3134071092adb1
+/deepseek-ai-dsh-client-ui-sdkwork-model-price-group/build:
+  en: 78d396a54f344ff4
+  zh: d5716738fbbdc16c
+/deepseek-ai-dsh-client-ui-sdkwork-model-price-group/model-experience:
+  en: e001608fae698948
+  zh: cb648edfaa77cd39
+/deepseek-ai-dsh-client-ui-sdkwork-model-price-group/model-experience/kv-cache-effect:
+  en: 9623f1e33bbcceb2
+  zh: 1f81be922072493b
+/deepseek-ai-dsh-client-ui-sdkwork-model-price-group/known-limitations-and-deferred-work:
+  en: 6a0769e902a8d4fb
+  zh: f5a75b57e3945a86

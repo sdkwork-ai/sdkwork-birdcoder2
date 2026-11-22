@@ -33,7 +33,6 @@
 | `displayName` | 直接读取清单的界面所用的产品名 | `BirdCoder` |
 | `companyName` | 打包元数据中的厂商名 | `SDKWork` |
 | `home.dirName` | 用户主目录下的 Harness home 目录名；带点且小写，避免在大小写不敏感的文件系统上互相冲突 | `.birdcoder` |
-| `home.adoptLegacyDshHome` | 打包后的首次启动是否可以接管已存在的 `~/.dsh` | `true` |
 | `desktop.appId` | 反向域名标识；发布通道的 `DSH_DESKTOP_APP_ID` 仍然优先 | `com.sdkwork.birdcoder` |
 | `desktop.productName` | Electron 产品名；决定 userData、单实例锁与日志目录 | `BirdCoder` |
 | `desktop.executableName` | 已安装的可执行文件名与 macOS `MacOS/<name>` | `birdcoder` |
@@ -52,19 +51,15 @@
 启动器在任何插件挂载之前解析 home，并把它导出为 `DSH_HOME`——所有使用方本就读取该变量：
 
 1. 显式 `DSH_HOME` —— 测试、CI、便携安装。
-2. `~/<home.dirName>` —— 品牌自己的 home。
-3. 旧 `~/.dsh`，仅当品牌设置 `home.adoptLegacyDshHome` 且仅在打包启动时：
-   - 首次启动把 `~/.dsh` 重命名为品牌 home（同盘移动，会话、凭据、profile 与工作区随之迁移）；
-   - 重命名被拒时——旧实例可能仍占用文件——改为创建目录联接；
-   - 两者都失败时本次启动继续使用 `~/.dsh` 并报告，应用仍能启动且数据不丢失。
+2. `~/<home.dirName>` —— 品牌自己的 home，不存在时新建。
 
-未设置 `adoptLegacyDshHome` 的品牌永不读取 `~/.dsh`：导入其他产品的凭据与会话，比从空目录开始更糟。源码启动从不重命名；品牌 home 存在就用它，否则继续使用 `~/.dsh`。
+任何品牌都不读取、移动、联接或写入上游 `~/.dsh`，`parseBrandManifest` 也拒绝把它作为 `home.dirName`。已安装的 DeepSeek Harness 与 npm `dsh` CLI 保留放在那里的会话、凭据、profile 与工作区，因此品牌 home 从空目录开始，只保存本品牌创建的内容。裸 Electron 导入（单元测试、误跑的 `electron .`）不应用任何 home，npm CLI 的 `~/.dsh` 默认值仍然支配该进程。
 
 随包提供的 `resources/oem.json` 只有在 home 中没有自己的 `oem.json` 时才成为默认 `DSH_OEM_CONFIG`，因此部署方可以只读地提供端点，用户仍可在 `~/.<brand>/oem.json` 中覆盖。
 
 ## 新增品牌
 
-1. 把 `brands/birdcoder.json` 复制为 `brands/<key>.json`，修改 `key`、`displayName`、`companyName`、`home.dirName` 与每个 `desktop` 值。除非新品牌要替代既有的 `~/.dsh` 安装，`home.adoptLegacyDshHome` 保持 false。
+1. 把 `brands/birdcoder.json` 复制为 `brands/<key>.json`，修改 `key`、`displayName`、`companyName`、`home.dirName` 与每个 `desktop` 值。
 2. 替换该品牌的构建期位图：`build/icon.{ico,icns,png}`、`resources/icon{,-windows,-macos}.png`、安装器品牌图（`pnpm --dir apps/desktop run generate-icons` 与 `generate-installer-brand` 重新生成出厂那一套），以及欢迎页标识。运行时从不替换图片。
 3. 用 `DSH_BRAND=<key>`（以及该通道的 `DSH_DESKTOP_APP_ID`、`DSH_DESKTOP_UNSIGNED`、签名变量）通过 `package:*` 脚本构建。
 4. 校验：`pnpm exec vitest run apps/desktop/tests/brand-manifest.spec.ts apps/desktop/tests/brand-home.spec.ts apps/desktop/tests/desktop-application-identity.spec.ts`，然后并排安装两个品牌，确认两个 home（`~/.birdcoder`、`~/.<key>`）、两个 userData 目录、两个 URL scheme 与两个命令。

@@ -1,6 +1,5 @@
 /**
- * Brand home: which Harness home this application brand owns, and how a first
- * launch moves the legacy `~/.dsh` data into it.
+ * Brand home: which Harness home this application brand owns.
  *
  * Every user-data root — sessions, credentials, profiles, plugins, workspaces —
  * derives from `DSH_HOME`, which the launcher resolves before any plugin mounts.
@@ -10,15 +9,15 @@
  * as `DSH_HOME` so the Electron shell, the Desktop Host and every child process
  * agree without touching the upstream home-paths default.
  *
- * Precedence, highest first: an explicit `DSH_HOME`, the brand's own directory,
- * and — only for a brand that declares `home.adoptLegacyDshHome` and only in a
- * packaged launch — the legacy `~/.dsh` (renamed, or linked when a rename is not
- * possible, or kept in place when neither works).
+ * Precedence, highest first: an explicit `DSH_HOME`, then the brand's own
+ * directory, which this module creates when it is absent. The upstream `~/.dsh`
+ * is never read, moved, linked or written: an installed DeepSeek Harness keeps
+ * its sessions there, and the two products own disjoint data.
  *
  * @module brand
  */
 
-import { existsSync, renameSync, symlinkSync } from 'node:fs'
+import { existsSync, mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { isAbsolute, join } from 'node:path'
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
@@ -31,8 +30,8 @@ import {
   type DesktopBrand,
 } from '#brand-manifest'
 
-/** Directory name of the shared Harness home this fork replaces with a brand home. */
-export const LEGACY_DSH_HOME_DIR_NAME = '.dsh'
+/** Directory name of the upstream Harness home, which no brand reads or writes. */
+export const UPSTREAM_DSH_HOME_DIR_NAME = '.dsh'
 
 /** File name an application may ship beside `brand.json` as its deployment OEM defaults. */
 export const SHIPPED_OEM_FILENAME = 'oem.json'
@@ -41,34 +40,24 @@ export const SHIPPED_OEM_FILENAME = 'oem.json'
 export interface BrandHomeFileSystem {
   /** @returns whether the path exists. */
   exists(path: string): boolean
-  /** Move one directory within its volume. */
-  rename(from: string, to: string): void
-  /** Create a directory link at `path` pointing at `target`. */
-  link(target: string, path: string): void
+  /** Create one directory, including missing parents. */
+  create(path: string): void
 }
 
 const nodeFiles: BrandHomeFileSystem = {
   exists: path => existsSync(path),
-  rename: (from, to) => { renameSync(from, to) },
-  link: (target, path) => { symlinkSync(target, path, process.platform === 'win32' ? 'junction' : 'dir') },
+  create: (path) => { mkdirSync(path, { recursive: true }) },
 }
 
 /** Where one launch's home came from. */
-export type BrandHomeSource = 'env' | 'brand' | 'legacy'
-
-/** What a launch did to the legacy home. */
-export type LegacyAdoption = 'none' | 'renamed' | 'linked' | 'kept-legacy' | 'skipped'
+export type BrandHomeSource = 'env' | 'brand'
 
 /** Resolved home of one launch. */
 export interface BrandHomeResult {
   /** Absolute home this launch and every child process use. */
   readonly home: string
-  /** Absolute legacy `~/.dsh` path considered by this launch. */
-  readonly legacyHome: string
   /** Which input decided {@link home}. */
   readonly source: BrandHomeSource
-  /** What happened to the legacy home. */
-  readonly adoption: LegacyAdoption
 }
 
 /** Inputs for {@link applyBrandHome}. */
@@ -79,8 +68,6 @@ export interface ApplyBrandHomeOptions {
   readonly env: Record<string, string | undefined>
   /** Operating-system home holding the brand directory; defaults to `os.homedir()`. */
   readonly homeDirectory?: string
-  /** Whether this launch may take over a legacy home. */
-  readonly allowAdoption?: boolean
   /** Filesystem facade; defaults to the synchronous `node:fs` operations. */
   readonly files?: BrandHomeFileSystem
   /** Sink for one-line diagnostics; omitted disables them. */
@@ -100,52 +87,35 @@ export function brandHomePath(brand: DesktopBrand, homeDirectory: string = homed
 /**
  * Resolve this launch's home and record it in `DSH_HOME`.
  *
- * A packaged launch of a brand that declares `home.adoptLegacyDshHome` takes over
- * an existing legacy home: it renames it first (a same-volume move keeps every
- * session, credential and plugin in place), falls back to a directory link when
- * the rename is refused — an older instance may still hold one of the files — and
- * finally keeps using the legacy home for this launch so the application still
- * starts. An unconfigured brand never touches another product's home.
+ * An explicit `DSH_HOME` wins untouched. Otherwise the launch uses the brand's
+ * own directory, creating it when it is missing so the first packaged start
+ * begins with an empty home instead of inheriting another product's data. The
+ * upstream `~/.dsh` is never consulted: DeepSeek Harness and the `dsh` CLI keep
+ * every session, credential and workspace it holds, whichever brand is running.
  * @param options - Brand, mutable environment, and optional filesystem facade.
- * @returns the home this launch uses, and what happened to the legacy home.
+ * @returns the home this launch uses, and which input decided it.
  */
 export function applyBrandHome(options: ApplyBrandHomeOptions): BrandHomeResult {
   const { brand, env } = options
   const homeDirectory = options.homeDirectory ?? homedir()
   const files = options.files ?? nodeFiles
-  const legacyHome = join(homeDirectory, LEGACY_DSH_HOME_DIR_NAME)
-  const brandHome = brandHomePath(brand, homeDirectory)
 
   const configured = env.DSH_HOME
   if (configured !== undefined && configured.trim() !== '') {
-    return { home: resolveDshHome(undefined, env), legacyHome, source: 'env', adoption: 'none' }
+    return { home: resolveDshHome(undefined, env), source: 'env' }
   }
-  if (files.exists(brandHome) || !files.exists(legacyHome)) {
-    env.DSH_HOME = brandHome
-    return { home: brandHome, legacyHome, source: 'brand', adoption: 'none' }
+  const brandHome = brandHomePath(brand, homeDirectory)
+  if (!files.exists(brandHome)) {
+    try {
+      files.create(brandHome)
+    } catch (error) {
+      // A home that cannot be created fails at the first write, which names the
+      // file it wanted; refusing to launch here would report less.
+      options.warn?.(`brand home: could not create ${brandHome} (${String(error)}); using it anyway`)
+    }
   }
-  if (!brand.home.adoptLegacyDshHome || options.allowAdoption !== true) {
-    env.DSH_HOME = legacyHome
-    return { home: legacyHome, legacyHome, source: 'legacy', adoption: 'skipped' }
-  }
-  try {
-    files.rename(legacyHome, brandHome)
-    env.DSH_HOME = brandHome
-    options.warn?.(`brand home: moved ${legacyHome} to ${brandHome}`)
-    return { home: brandHome, legacyHome, source: 'brand', adoption: 'renamed' }
-  } catch (error) {
-    options.warn?.(`brand home: could not rename ${legacyHome} (${String(error)}); linking instead`)
-  }
-  try {
-    files.link(legacyHome, brandHome)
-    env.DSH_HOME = brandHome
-    options.warn?.(`brand home: linked ${brandHome} to ${legacyHome}`)
-    return { home: brandHome, legacyHome, source: 'brand', adoption: 'linked' }
-  } catch (error) {
-    options.warn?.(`brand home: could not link ${brandHome} to ${legacyHome} (${String(error)}); using ${legacyHome}`)
-  }
-  env.DSH_HOME = legacyHome
-  return { home: legacyHome, legacyHome, source: 'legacy', adoption: 'kept-legacy' }
+  env.DSH_HOME = brandHome
+  return { home: brandHome, source: 'brand' }
 }
 
 /** Inputs for {@link resolveRuntimeBrand}. */
@@ -210,8 +180,8 @@ export interface BrandBootstrap {
  * Apply a launch's brand home and deployment OEM defaults.
  *
  * Only an installed application and the development launcher apply the brand
- * home; a bare Electron import (unit tests, a stray `electron .`) must not move
- * the user's data. Every launch still reports the brand it runs as through
+ * home; a bare Electron import (unit tests, a stray `electron .`) must not create
+ * or adopt the user's home. Every launch still reports the brand it runs as through
  * `DSH_BRAND_PROTOCOL`, because that is manifest data the Host needs to derive
  * the brand's OAuth identity. A shipped `resources/oem.json` becomes the default
  * `DSH_OEM_CONFIG` when the home carries no `oem.json` of its own, so a
@@ -237,7 +207,6 @@ export function applyBrandBootstrap(options: BrandBootstrapOptions): BrandBootst
   const home = applyBrandHome({
     brand: options.brand,
     env,
-    allowAdoption: installed,
     ...options.homeDirectory === undefined ? {} : { homeDirectory: options.homeDirectory },
     ...options.files === undefined ? {} : { files: options.files },
     ...options.warn === undefined ? {} : { warn: options.warn },

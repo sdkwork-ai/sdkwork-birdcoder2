@@ -141,7 +141,7 @@ export type ModelPickerProps = ModelPickerInputs & ModelPickerSeats & {
 export function ModelPicker(
   {
     state, load, select, available = true, locked, requestSignIn, waitForSignedInModel, resolveText, t,
-    renderLabel, renderOptions,
+    renderLabel, renderOptions, renderPane,
   }: ModelPickerProps,
 ) {
   const [open, setOpen] = useState(false)

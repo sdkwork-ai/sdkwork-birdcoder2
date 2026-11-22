@@ -52,7 +52,6 @@ const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/u
 /**
  * @typedef {object} DesktopBrandHome
  * @property {string} dirName - Directory name under the operating-system home; always dot-prefixed and lower case so two brands cannot collide on a case-insensitive filesystem.
- * @property {boolean} adoptLegacyDshHome - Whether a first launch may take over the legacy `~/.dsh` data.
  */
 
 /**
@@ -104,20 +103,6 @@ function requiredString(source, key, where) {
   if (text === '') throw new Error(`brand: ${where} must not be empty`)
   if (CONTROL_CHARACTERS.test(text)) throw new Error(`brand: ${where} must not contain control characters`)
   return text
-}
-
-/**
- * Read one optional boolean.
- * @param {Record<string, unknown>} source - Manifest object holding the field.
- * @param {string} key - Field name.
- * @param {string} where - Manifest field path used in the message.
- * @returns {boolean | undefined} Declared value, or undefined.
- */
-function optionalBoolean(source, key, where) {
-  const value = source[key]
-  if (value === undefined) return undefined
-  if (typeof value !== 'boolean') throw new Error(`brand: ${where} must be a boolean`)
-  return value
 }
 
 /**
@@ -206,10 +191,7 @@ export function parseBrandManifest(raw, source = 'brand manifest') {
     key,
     displayName: requiredString(root, 'displayName', 'displayName'),
     companyName: requiredString(root, 'companyName', 'companyName'),
-    home: Object.freeze({
-      dirName,
-      adoptLegacyDshHome: optionalBoolean(home, 'adoptLegacyDshHome', 'home.adoptLegacyDshHome') ?? false,
-    }),
+    home: Object.freeze({ dirName }),
     desktop: Object.freeze({
       appId, productName, executableName, protocol, commandName, registryKey, updaterCacheDirName, artifactPrefix,
     }),

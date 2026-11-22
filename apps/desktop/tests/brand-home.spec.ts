@@ -1,10 +1,10 @@
 /**
- * Each brand owns its Harness home, and a first packaged launch moves the
- * legacy `~/.dsh` data into it without ever losing it.
+ * Each brand owns its Harness home: a packaged launch creates an empty
+ * `~/.<home.dirName>` and never reads, moves, links or writes the upstream
+ * `~/.dsh` that DeepSeek Harness keeps using.
  */
 
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { existsSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, it, onTestFinished } from 'vitest'
@@ -15,27 +15,16 @@ import { parseBrandManifest } from '../scripts/brand-manifest.mjs'
 import type { BrandHomeFileSystem } from '../src/brand.ts'
 import { applyBrandBootstrap, applyBrandHome, resolveRuntimeBrand } from '../src/brand.ts'
 
-/** One brand that takes over the legacy home, and one that never touches it. */
-const ADOPTING = parseBrandManifest({
+/** The shipped brand this repository is packaged as. */
+const BIRDCODER = parseBrandManifest({
   schemaVersion: 1,
   key: 'birdcoder',
   displayName: 'BirdCoder',
   companyName: 'SDKWork',
-  home: { dirName: '.birdcoder', adoptLegacyDshHome: true },
+  home: { dirName: '.birdcoder' },
   desktop: {
     appId: 'com.sdkwork.birdcoder', productName: 'BirdCoder', executableName: 'birdcoder', protocol: 'birdcoder',
     commandName: 'birdcoder', registryKey: 'BirdCoder', updaterCacheDirName: 'birdcoder-updater', artifactPrefix: 'BirdCoder',
-  },
-})
-const ISOLATED = parseBrandManifest({
-  schemaVersion: 1,
-  key: 'acme',
-  displayName: 'Acme',
-  companyName: 'Acme',
-  home: { dirName: '.acme', adoptLegacyDshHome: false },
-  desktop: {
-    appId: 'com.acme.harness', productName: 'Acme Harness', executableName: 'acme', protocol: 'acme',
-    commandName: 'acme', registryKey: 'Acme', updaterCacheDirName: 'acme-updater', artifactPrefix: 'Acme',
   },
 })
 
@@ -46,83 +35,78 @@ function operatingSystemHome(): string {
   return directory
 }
 
-/** A filesystem facade whose two mutating operations can fail on demand. */
-function failingFiles(outcomes: { rename?: Error; link?: Error }): BrandHomeFileSystem & { linked: string[] } {
-  const linked: string[] = []
+/** A filesystem facade whose directory creation can fail on demand. */
+function recordingFiles(failure?: Error): BrandHomeFileSystem & { created: string[] } {
+  const created: string[] = []
   return {
-    linked,
+    created,
     exists: path => existsSync(path),
-    rename: () => { throw outcomes.rename ?? new Error('not used') },
-    link: (target, path) => {
-      if (outcomes.link !== undefined) throw outcomes.link
-      linked.push(`${target} -> ${path}`)
+    create: (path) => {
+      if (failure !== undefined) throw failure
+      mkdirSync(path, { recursive: true })
+      created.push(path)
     },
   }
 }
 
-it('keeps an explicit DSH_HOME and never moves data', () => {
+it('keeps an explicit DSH_HOME and creates no home', () => {
   const home = operatingSystemHome()
   mkdirSync(join(home, '.dsh'))
+  const files = recordingFiles()
   const env: Record<string, string | undefined> = { DSH_HOME: join(home, 'elsewhere') }
-  const result = applyBrandHome({ brand: ADOPTING, env, homeDirectory: home })
-  expect(result).toMatchObject({ home: join(home, 'elsewhere'), source: 'env', adoption: 'none' })
-  expect(existsSync(join(home, '.dsh'))).toBe(true)
-})
-
-it('uses the brand home when no legacy home exists', () => {
-  const home = operatingSystemHome()
-  const env: Record<string, string | undefined> = {}
-  const result = applyBrandHome({ brand: ADOPTING, env, homeDirectory: home, allowAdoption: true })
-  expect(result).toMatchObject({ home: join(home, '.birdcoder'), source: 'brand', adoption: 'none' })
-  expect(env.DSH_HOME).toBe(join(home, '.birdcoder'))
-})
-
-it('renames a legacy home into the brand home on a packaged launch', () => {
-  const home = operatingSystemHome()
-  mkdirSync(join(home, '.dsh'))
-  writeFileSync(join(home, '.dsh', 'credentials.yaml'), 'kept')
-  const env: Record<string, string | undefined> = {}
-  const result = applyBrandHome({ brand: ADOPTING, env, homeDirectory: home, allowAdoption: true })
-  expect(result).toMatchObject({ source: 'brand', adoption: 'renamed' })
-  expect(existsSync(join(home, '.dsh'))).toBe(false)
-  expect(readFileSync(join(home, '.birdcoder', 'credentials.yaml'), 'utf8')).toBe('kept')
-  expect(env.DSH_HOME).toBe(join(home, '.birdcoder'))
-})
-
-it('links the brand home when the rename is refused', () => {
-  const home = operatingSystemHome()
-  mkdirSync(join(home, '.dsh'))
-  const files = failingFiles({ rename: Object.assign(new Error('busy'), { code: 'EBUSY' }) })
-  const env: Record<string, string | undefined> = {}
-  const result = applyBrandHome({ brand: ADOPTING, env, homeDirectory: home, allowAdoption: true, files })
-  expect(result).toMatchObject({ home: join(home, '.birdcoder'), source: 'brand', adoption: 'linked' })
-  expect(files.linked).toEqual([`${join(home, '.dsh')} -> ${join(home, '.birdcoder')}`])
-  expect(existsSync(join(home, '.dsh'))).toBe(true)
-})
-
-it('keeps using the legacy home when neither move nor link is possible', () => {
-  const home = operatingSystemHome()
-  mkdirSync(join(home, '.dsh'))
-  const files = failingFiles({ rename: new Error('busy'), link: new Error('denied') })
-  const env: Record<string, string | undefined> = {}
-  const result = applyBrandHome({ brand: ADOPTING, env, homeDirectory: home, allowAdoption: true, files })
-  expect(result).toMatchObject({ home: join(home, '.dsh'), source: 'legacy', adoption: 'kept-legacy' })
-  expect(env.DSH_HOME).toBe(join(home, '.dsh'))
-})
-
-it('leaves a legacy home alone for a brand that does not adopt it, and for unpackaged launches', () => {
-  const home = operatingSystemHome()
-  mkdirSync(join(home, '.dsh'))
-  writeFileSync(join(home, '.dsh', 'session'), 'other product')
-  const isolated: Record<string, string | undefined> = {}
-  expect(applyBrandHome({ brand: ISOLATED, env: isolated, homeDirectory: home, allowAdoption: true }))
-    .toMatchObject({ home: join(home, '.dsh'), source: 'legacy', adoption: 'skipped' })
-
-  const development: Record<string, string | undefined> = {}
-  expect(applyBrandHome({ brand: ADOPTING, env: development, homeDirectory: home }))
-    .toMatchObject({ home: join(home, '.dsh'), source: 'legacy', adoption: 'skipped' })
-  expect(existsSync(join(home, '.dsh', 'session'))).toBe(true)
+  const result = applyBrandHome({ brand: BIRDCODER, env, homeDirectory: home, files })
+  expect(result).toEqual({ home: join(home, 'elsewhere'), source: 'env' })
+  expect(files.created).toEqual([])
   expect(existsSync(join(home, '.birdcoder'))).toBe(false)
+})
+
+it('creates an empty brand home on the first packaged launch and leaves the upstream home alone', () => {
+  const home = operatingSystemHome()
+  mkdirSync(join(home, '.dsh'))
+  writeFileSync(join(home, '.dsh', 'credentials.yaml'), 'upstream')
+  const warnings: string[] = []
+  const env: Record<string, string | undefined> = {}
+  const result = applyBrandHome({
+    brand: BIRDCODER,
+    env,
+    homeDirectory: home,
+    warn: (line) => { warnings.push(line) },
+  })
+  expect(result).toEqual({ home: join(home, '.birdcoder'), source: 'brand' })
+  expect(env.DSH_HOME).toBe(join(home, '.birdcoder'))
+  expect(readdirSync(join(home, '.birdcoder'))).toEqual([])
+  expect(readdirSync(join(home, '.dsh'))).toEqual(['credentials.yaml'])
+  expect(readFileSync(join(home, '.dsh', 'credentials.yaml'), 'utf8')).toBe('upstream')
+  expect(warnings).toEqual([])
+})
+
+it('reuses an existing brand home without rewriting it', () => {
+  const home = operatingSystemHome()
+  mkdirSync(join(home, '.birdcoder'))
+  writeFileSync(join(home, '.birdcoder', 'credentials.yaml'), 'brand')
+  const files = recordingFiles()
+  const env: Record<string, string | undefined> = {}
+  const result = applyBrandHome({ brand: BIRDCODER, env, homeDirectory: home, files })
+  expect(result).toEqual({ home: join(home, '.birdcoder'), source: 'brand' })
+  expect(files.created).toEqual([])
+  expect(readFileSync(join(home, '.birdcoder', 'credentials.yaml'), 'utf8')).toBe('brand')
+})
+
+it('keeps the brand home when it cannot be created, and reports it', () => {
+  const home = operatingSystemHome()
+  const warnings: string[] = []
+  const env: Record<string, string | undefined> = {}
+  const result = applyBrandHome({
+    brand: BIRDCODER,
+    env,
+    homeDirectory: home,
+    files: recordingFiles(new Error('EACCES')),
+    warn: (line) => { warnings.push(line) },
+  })
+  expect(result).toEqual({ home: join(home, '.birdcoder'), source: 'brand' })
+  expect(env.DSH_HOME).toBe(join(home, '.birdcoder'))
+  expect(warnings).toHaveLength(1)
+  expect(warnings[0]).toContain('could not create')
 })
 
 it('leaves the home alone outside an installed application or the development launcher', () => {
@@ -140,7 +124,7 @@ it('leaves the home alone outside an installed application or the development la
   expect(env.DSH_BRAND_APP_ID).toBe('com.sdkwork.birdcoder')
 })
 
-it('reads a packaged brand manifest, applies its home, and defaults the OEM profile', () => {
+it('reads a packaged brand manifest, creates its home, and defaults the OEM profile', () => {
   const home = operatingSystemHome()
   const resources = join(home, 'resources')
   mkdirSync(resources)
@@ -163,6 +147,7 @@ it('reads a packaged brand manifest, applies its home, and defaults the OEM prof
   const bootstrap = applyBrandBootstrap({ brand, packaged: false, env, resourcesPath: resources, homeDirectory: home })
   expect(bootstrap.home).toMatchObject({ home: join(home, '.acme'), source: 'brand' })
   expect(env.DSH_HOME).toBe(join(home, '.acme'))
+  expect(existsSync(join(home, '.acme'))).toBe(true)
   expect(env.DSH_OEM_CONFIG).toBe(join(resources, 'oem.json'))
   // The Host validates the profile's OAuth identity against the brand this shell
   // registered, so the scheme and the reverse-domain id travel with the launch.

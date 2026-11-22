@@ -15,7 +15,7 @@ import { prepareDevelopmentApp } from './development-app.ts'
 import { preparePrimaryRuntime } from './prepare-primary-runtime.ts'
 import { KEEP_INHERITED_SDKWORK_ENV, developmentLaunchEnvironment } from './development-sdkwork-env.ts'
 import { selectDevelopmentHome } from './development-home.ts'
-import { LEGACY_DSH_HOME_DIR_NAME, brandHomePath, resolveRuntimeBrand } from '../src/brand.ts'
+import { UPSTREAM_DSH_HOME_DIR_NAME, brandHomePath, resolveRuntimeBrand } from '../src/brand.ts'
 import { applyDevelopmentGateway, resolveDevelopmentGateway } from './development-gateway.ts'
 import { parseDevelopmentArguments, type DevelopmentArguments } from './development-arguments.ts'
 import { assertDevelopmentLanePortFree } from './development-ports.ts'
@@ -162,13 +162,14 @@ async function runElectron(
 }
 
 /**
- * Harness homes an installed application of this brand may own on this machine:
- * its manifest home, plus the legacy `~/.dsh` an adopting brand can keep using.
+ * Harness homes a source lane must not adopt by inheritance: the installed
+ * application's brand home, and the upstream `~/.dsh` a separately installed
+ * `dsh` keeps writing.
  * @returns absolute home paths a source lane must not adopt by inheritance.
  */
 function installedHarnessHomes(): string[] {
   const brand = resolveRuntimeBrand({ env: process.env })
-  return [brandHomePath(brand), join(homedir(), LEGACY_DSH_HOME_DIR_NAME)]
+  return [brandHomePath(brand), join(homedir(), UPSTREAM_DSH_HOME_DIR_NAME)]
 }
 
 async function launchElectron(

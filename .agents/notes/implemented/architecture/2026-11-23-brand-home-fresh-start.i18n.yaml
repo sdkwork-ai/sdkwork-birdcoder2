@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-23-brand-home-fresh-start.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-23-brand-home-fresh-start.md
+/agent-note-brand-home-starts-empty-and-never-touches-dsh:
+  en: 477de8f32649cee4
+  zh: 1555c267605e6f14
+/agent-note-brand-home-starts-empty-and-never-touches-dsh/problem:
+  en: 5838764a58a421d8
+  zh: 414bda98fef6a857
+/agent-note-brand-home-starts-empty-and-never-touches-dsh/decision:
+  en: 599da9ecd6b34366
+  zh: 9fa457e98403a2dc
+/agent-note-brand-home-starts-empty-and-never-touches-dsh/alternatives-considered:
+  en: fdab84f1978e8c4e
+  zh: 5488da69d7d0894b
+/agent-note-brand-home-starts-empty-and-never-touches-dsh/consequences:
+  en: c4df99b1abb8c3c6
+  zh: ebbec8018d11508d

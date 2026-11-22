@@ -42,7 +42,6 @@ it exists. At runtime the shell reads `resources/brand.json`; a source checkout
 | `displayName` | Product name for surfaces that read the manifest directly | `BirdCoder` |
 | `companyName` | Vendor name for packaging metadata | `SDKWork` |
 | `home.dirName` | Harness home directory under the user's home; dot-prefixed and lower case so two brands cannot collide on a case-insensitive filesystem | `.birdcoder` |
-| `home.adoptLegacyDshHome` | Whether a packaged first launch may take over an existing `~/.dsh` | `true` |
 | `desktop.appId` | Reverse-DNS identifier; `DSH_DESKTOP_APP_ID` still wins for release lanes | `com.sdkwork.birdcoder` |
 | `desktop.productName` | Electron product name; names userData, the single-instance lock and logs | `BirdCoder` |
 | `desktop.executableName` | Installed executable and macOS `MacOS/<name>` | `birdcoder` |
@@ -73,20 +72,14 @@ The launcher resolves the home before any plugin mounts and exports it as
 `DSH_HOME`, which every consumer already reads:
 
 1. An explicit `DSH_HOME` — tests, CI, portable installs.
-2. `~/<home.dirName>` — the brand's own home.
-3. The legacy `~/.dsh`, only for a brand that sets `home.adoptLegacyDshHome` and
-   only in a packaged launch:
-   - the first launch renames `~/.dsh` to the brand home (same-volume move, so
-     sessions, credentials, profiles and workspaces move with it);
-   - when a rename is refused — an older instance may still hold a file — it
-     creates a directory link instead;
-   - when neither works it keeps using `~/.dsh` for that launch and reports it,
-     so the application still starts and no data is lost.
+2. `~/<home.dirName>` — the brand's own home, created when it is missing.
 
-A brand without `adoptLegacyDshHome` never reads `~/.dsh`: importing another
-product's credentials and sessions is worse than starting empty. A source launch
-never renames anything; it uses the brand home when it exists and otherwise
-keeps `~/.dsh`.
+No brand reads, moves, links or writes the upstream `~/.dsh`, and
+`parseBrandManifest` rejects it as a `home.dirName`. An installed DeepSeek Harness
+and the npm `dsh` CLI keep the sessions, credentials, profiles and workspaces
+there, so a brand home starts empty and holds only what this brand creates. A
+bare Electron import (unit tests, a stray `electron .`) applies no home, so the
+npm CLI's `~/.dsh` default still governs that process.
 
 A shipped `resources/oem.json` becomes the default `DSH_OEM_CONFIG` only when the
 home carries no `oem.json` of its own, so a deployment ships its endpoints
@@ -96,8 +89,6 @@ read-only and a user can still override them from `~/.<brand>/oem.json`.
 
 1. Copy `brands/birdcoder.json` to `brands/<key>.json` and change `key`,
    `displayName`, `companyName`, `home.dirName` and every `desktop` value.
-   Leave `home.adoptLegacyDshHome` false unless the new brand replaces an
-   existing `~/.dsh` installation.
 2. Replace the build-time rasters for that brand: `build/icon.{ico,icns,png}`,
    `resources/icon{,-windows,-macos}.png`, the installer brand images
    (`pnpm --dir apps/desktop run generate-icons` and

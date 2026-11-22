@@ -10,6 +10,8 @@ Status: implemented
 
 ## 决策
 
+部分内容已被[品牌 home 从空目录开始，且不再触碰 `~/.dsh`](2026-11-23-brand-home-fresh-start.zh.md)取代：品牌 home 以空目录新建，任何品牌都不再读取、重命名或联接 `~/.dsh`。本文描述的清单身份归属与 `DSH_HOME` 机制仍然有效。
+
 `brands/<key>.json` 成为两个已安装品牌不能共用的每一项身份值的唯一归属：home 目录名、Electron 产品名与可执行文件名、URL scheme、桌面命令及其归属回执名、Windows 注册表键与互斥体名、更新缓存目录、产物前缀。`apps/desktop/scripts/brand-manifest.mjs` 负责校验，并拒绝上游身份（`~/.dsh`、`DeepSeek Harness`、`dsh`、`com.deepseek.harness`）。打包用 `DSH_BRAND`（或 `DSH_BRAND_CONFIG`）选择它，写成 `resources/brand.json`；若存在 `brands/<key>.oem.json`，则同时复制为 `oem.json`。electron-builder 的 `productName`、`extraMetadata.productName`、`executableName`、`artifactName`、协议、appId 兜底与更新缓存都由它派生。
 
 `apps/desktop/src/brand.ts` 在外壳启动时读取该清单，解析出 `~/.<home.dirName>`，并在任何使用方解析 home 之前导出为 `DSH_HOME`——上游包仍然保留 `~/.dsh` 默认值，因为新值通过它们本就读取的环境变量到达。优先级为：显式 `DSH_HOME`、品牌 home、声明了 `home.adoptLegacyDshHome` 的品牌才考虑的旧 `~/.dsh`。打包后的首次启动会重命名旧目录；重命名被拒时退化为目录联接；两者都失败时本次启动继续使用旧 home 并报告。源码启动从不重命名，未声明该标志的品牌从不读取 `~/.dsh`。

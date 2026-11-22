@@ -4,8 +4,7 @@
   "displayName": "BirdCoder",
   "companyName": "SDKWork",
   "home": {
-    "dirName": ".birdcoder",
-    "adoptLegacyDshHome": true
+    "dirName": ".birdcoder"
   },
   "desktop": {
     "appId": "com.sdkwork.birdcoder",
