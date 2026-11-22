@@ -134,11 +134,11 @@
 * **子模块指针前移**（`chore(plugins): advance the submodule pins to their current upstream heads`）：`dsh-mcp-connector` 78a2976 → 7d719af（安装连接布局修复与 Registry 连接器数量文档）、`dsh-im` fc2ceab → 0694642（入站转发卡片读取正文）、`dsh-better-sidebar` aa2a058 → 14219fa（Git 详情关闭按钮常驻 Tabs 行、空白会话可从右栏展开底部工作台、原生搜索头部对齐）。三者包版本未变，因此不牵动任何消费者 pin 与 lockfile。
 * **发布依赖 pin 与 CI 断言**：`sdkwork-deployments` 的 pin 从 `53daa38` 前移到 `74159b66`（`react-router-dom` 回到 `^7.15.0`，与 lockfile 记录一致，此前打包在 `pnpm install --frozen-lockfile` 阶段全线失败）；`windows-build` 恢复丢失的「Verify Desktop updater dependency versions」步骤，`scripts/ci-workflow.spec.ts` 六项断言按合并后的 `ci.yml` 重算（Linux 池 16 并发上限、`windows-coverage` 保持非阻断、`build:official` 去掉已移除的 `--serial`、分片覆盖率缓存键、`refs/heads/main` 推送）。
 * **`@deepseek-ai/dsh` 补齐 `docs` 与 `src` 载荷**（`fix(release): ship the documentation and source the packed manifest promises`）：上游在 `DshFamily.validatePayload` 新增了「已安装入口必须带文档、升级指南索引与源码」的校验，而 fork 的 `apps/cli` 只发 `lib/*.js` / `config` / `lib/types/*.d.ts`，打包在 `pack-local-packages` 阶段报 `@deepseek-ai/dsh packed no documentation`。`files` 补上 `docs`（由既有 `prepack` 的 `stage-dsh-docs` 生成，含 `upgrade-guide/README.md` 索引）与 `src`，`config` 这个 fork 独有条目保留。
+* **容器镜像构建阶段补 `curl`**（`fix(docker): install curl for the lark-cli postinstall`）：新并入的 `@deepseek-ai/dsh-feishu` 依赖 `@larksuite/cli`，它的 postinstall（`scripts/install.js`）用 `curl` 下载平台二进制；`node:22-bookworm-slim` 构建阶段只装了 `g++ make python3 git`，镜像 lane 因此在最后一步 `npm install` 打包 tarball 时报 `Failed to install lark-cli: spawnSync curl ENOENT`。`curl` 是构建期工具而非运行期依赖，运行镜像（`runtime` 阶段）的包清单不变。
 
 #### 后续项（本轮未做，均不影响发布完整性）
 
 * `gen-cordis-inspect-catalog` 需先给 `packages/client/ui-sdkwork-im/src/client/im-service.ts:335` 的公有属性补显式类型标注（上游 typert 新规则），再重跑生成 `packages/extensions/tool-cordis/src/api-catalog.ts`；当前该文件为上游产物。
-* `scripts/ci-workflow.spec.ts` 尚有六项工作流断言待对齐（worker 活跃上限、必需判定 `needs`、聚合诊断、coverage 缓存键与 runner 池、Windows 拆分作业、Wine 手动套件），全部按 fork 合并前的 `ci.yml` 形状书写，需按合并后的工作流逐项重算。
 * `packages/experimental/client-ui-{action-cards,creation-recommendations,plugin-recommendations}` 三个目录只残留重命名前的未跟踪构建产物（`lib/`、`node_modules/`），不参与 workspace 与类型检查，可在下次清理构建目录时一并删除。
 
 本文件只保留当前版本一节；往期条目随各自版本的提交留在 git 历史里（`git log -p CHANGELOG.md`）。Release notes 就是本节内容。
