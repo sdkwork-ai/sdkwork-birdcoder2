@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh",
   "description": "dsh CLI: profile launch, plugin management, and configuration inspection",
-  "version": "0.2.2-rc.5",
+  "version": "0.2.3-alpha.2",
   "publishConfig": {
     "access": "public"
   },
@@ -93,7 +93,7 @@
     "@deepseek-ai/schemastery": "workspace:~",
     "commander": "^15.0.0",
     "js-yaml": "^4.3.2",
-    "node-addon-require-builtin": "^0.1.9",
+    "node-addon-require-builtin": "^0.1.10",
     "@deepseek-ai/dsh-http-proxy": "workspace:*",
     "@deepseek-ai/dsh-sdkwork-env-bootstrap": "workspace:*",
     "@deepseek-ai/dsh-mcp-resources": "workspace:*",
@@ -114,7 +114,6 @@
     "@deepseek-ai/dsh-cua-mcp": "workspace:*",
     "@deepseek-ai/dsh-timeline": "workspace:*",
     "@deepseek-ai/dsh-experimental-plugin-market-bundle": "workspace:*",
-    "@deepseek-ai/dsh-personalized-recommendations": "workspace:*",
     "@deepseek-ai/dsh-experimental-forge-bundle": "workspace:*",
     "@deepseek-ai/dsh-deepseek-chat-import": "workspace:*"
   },
@@ -184,7 +183,7 @@
     "./package.json": "./package.json"
   },
   "engines": {
-    "node": ">=24.9.0"
+    "node": "^24.22.3 || >=26.13.1"
   },
   "optionalDependencies": {
     "@sdkwork/iam-application-bootstrap": "workspace:*",

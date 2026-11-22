@@ -469,7 +469,7 @@ describe('the shipped Web composition', () => {
     try {
       const assembly = await ctx.systemPrompt.assemble({ scope: handle.agent })
       expect(assembly.sections).toEqual([
-        { name: 'deployment:persona-prefix', text: MINIMAL_PROMPT },
+        { name: 'deployment:persona-prefix', order: 0, text: MINIMAL_PROMPT, complete: true },
       ])
       expect(assembly.tools.map(tool => tool.name)).toEqual(['bash', 'read_image', 'team_task_create', 'team_task_get', 'team_task_list', 'team_task_update'])
       expect(assembly.tools.find(tool => tool.name === 'bash')?.description).toBe(MINIMAL_BASH_DESCRIPTION)
@@ -607,6 +607,36 @@ describe('the shipped Web composition', () => {
     }
   })
 
+  it.each(['standard', 'cordis'] as const)('uses the recommendation skills selected by the active %s preset', async (preset) => {
+    const model = `recommendations-${preset}`
+    const unregister = ctx.llm.registerAdapter([model], new MinimalCompactionAdapter())
+    try {
+      const handle = await ctx.agents.create({
+        sessionId: brandString<SessionId>(`${model}-${randomUUID()}`), agentOptions: { provider: model, model },
+        setup: owner => ctx.agentPresets.mount(owner, preset === 'standard' ? 'cordis' : 'standard').then(() => undefined),
+      })
+      try {
+        await ctx.agentPresets.select(handle.agent, preset)
+        handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Reply ready.' }], source: { kind: 'user' } }))
+        await handle.agent.whenIdle()
+        const names = handle.agent.session.snapshotEvents().flatMap(event =>
+          event.type === 'user/message' && event.data.source.kind === 'skill-catalog'
+            ? event.data.source.entries.map(entry => entry.name) : [])
+        expect(names).toContain('dsh-doc')
+        for (const name of ['official-plugins', 'personalized-pages']) {
+          expect(names.includes(name)).toBe(preset === 'standard')
+          const load = await executeToolFixture(ctx, {
+            name: 'skill', arguments: { name }, agent: handle.agent,
+            signal: new AbortController().signal, callId: brandString<ToolCallId>(`${model}-${name}`),
+          })
+          expect(load.isError).toBe(preset === 'cordis')
+          const output = load.content.flatMap(block => block.type === 'text' ? [block.text] : []).join('\n')
+          expect(output).toContain(preset === 'cordis' ? `skill "${name}" is unknown or no longer available` : `<skill_content name="${name}">`)
+        }
+      } finally { await handle.dispose() }
+    } finally { unregister() }
+  })
+
   it('composes the cordis agent with its own toolset', async () => {
     const handle = await ctx.agents.create({
       sessionId: brandString<SessionId>('preset-cordis'),
@@ -723,6 +753,9 @@ describe('the shipped Web composition', () => {
       const sdk = assembly.sections.find(section => section.name === 'tools:sdk')?.text ?? ''
       expect(sdk).not.toContain('str_replace_editor')
       expect(sdk).toContain('web_search')
+      // Like `standard`, PTC manages plugins when the Host provides an editable profile.
+      expect(toolNames(ctx, coded.agent)).toContain('plugin_manager')
+      expect(sdk).toContain('plugin_manager')
 
       // The presentation is this agent's alone: the deployment default is
       // native, and the session composed from `standard` still sees it.
@@ -779,16 +812,16 @@ describe('the shipped Web composition', () => {
       // local discovery moved behind the presets with `skill-filesystem`.
       // What remains is the badge skill, the fork's bundled scene-skill
       // root, whose 35 `birdcoder-*` entries are the ones the composer tag
-      // strip inserts by name, plus upstream's Office skills.
+      // strip inserts by name, plus upstream's `office` skill and the two
+      // recommendation skills the web-app preset enables by default.
       const global = (await ctx.skills.list({ cwd: proj })).map(skill => skill.name)
       expect(global).toContain('dsh-badge')
       expect(global).toContain('birdcoder-video')
       expect(global).toContain('office')
-      expect(global).toContain('office-docx')
-      expect(global).toContain('office-pptx')
-      expect(global).toContain('office-xlsx')
+      expect(global).toContain('official-plugins')
+      expect(global).toContain('personalized-pages')
       expect(global.filter(name => name.startsWith('birdcoder-'))).toHaveLength(35)
-      expect(global).toHaveLength(40)
+      expect(global).toHaveLength(39)
 
       // The standard agent's view merges the global layer with its preset's
       // own local discovery over the session cwd.
@@ -1016,6 +1049,11 @@ describe('the standard preset documentation skill', () => {
         setup: agentCtx => testCtx.agentPresets.mount(agentCtx, 'cordis').then(() => undefined),
       })
       expect((await testCtx.skills.get('dsh-doc', { cwd: root, scope: creator.agent }))?.path).toBe(definition.path)
+      const ptc = await testCtx.agents.create({
+        sessionId: brandString<SessionId>('standard-doc-ptc'), meta: { cwd: root },
+        setup: agentCtx => testCtx.agentPresets.mount(agentCtx, 'ptc').then(() => undefined),
+      })
+      expect((await testCtx.skills.get('dsh-doc', { cwd: root, scope: ptc.agent }))?.path).toBe(definition.path)
       const schemas = testCtx.tools.schemas(standardAgent.agent)
       expect(schemas).toEqual(testCtx.tools.schemas(baseline.agent))
       expect(schemas.map(tool => tool.name)).toContain('cordis_inspect')

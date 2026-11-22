@@ -631,8 +631,8 @@ function SessionTree({
               if (drag === null) return
               commitSessionDrag(drag, { id: node.id, half: normalizeHalf(half) })
             },
-            end: () => {
-              if (drag?.over !== null && drag?.over !== undefined) commitSessionDrag(drag, drag.over)
+            end: (claimed: boolean) => {
+              if (!claimed && drag?.over !== null && drag?.over !== undefined) commitSessionDrag(drag, drag.over)
               else setDrag(null)
               sessionDropCommitted.current = false
             },
@@ -816,8 +816,8 @@ function FlatList({
                 drop: (half) => {
                   if (drag !== null) commitDrag(drag, { id: node.id, half: normalizeHalf(half) })
                 },
-                end: () => {
-                  if (drag?.over !== null && drag?.over !== undefined) commitDrag(drag, drag.over)
+                end: (claimed) => {
+                  if (!claimed && drag?.over !== null && drag?.over !== undefined) commitDrag(drag, drag.over)
                   else setDrag(null)
                   dropCommitted.current = false
                 },

@@ -8,6 +8,7 @@ import { readConfigFile, sys } from 'typescript'
 import { resolvePwshPath } from './packages/shell/pwsh-local/src/resolve.ts'
 import { defineConfig } from 'vitest/config'
 import { standardDecoratorPlugin, vitestExecArgv } from './vitest.shared.ts'
+import { sourceRemotePlugin } from './scripts/vitest-source-remote.ts'
 import { COVERAGE_EXEMPT_ENV, coverageExemptHeavySuites } from './scripts/coverage-exempt.ts'
 import { COVERAGE_PARTITION_MODE_ENV, COVERAGE_TEST_TIMEOUT_ENV, coverageTestTimeoutOptions } from './scripts/coverage-partitions.ts'
 import { LOCAL_TEST_PARALLELISM_CAP, defaultParallelism } from './scripts/parallelism.ts'
@@ -393,7 +394,7 @@ export default defineConfig({
         // built lib/, for module-singleton identity), which is exactly the
         // importerFilter gate; dropping `loose` lets the filter apply.
         importerFilter: (importer) => !path.relative(repoRoot, importer).startsWith('..'),
-      }), standardDecoratorPlugin(), siblingBareImportFallback],
+      }), standardDecoratorPlugin(), sourceRemotePlugin(import.meta.dirname, '@deepseek-ai/dsh-client-remote-connection'), siblingBareImportFallback],
   test: {
     ...localWorkerBudget,
     setupFiles: [
@@ -417,7 +418,7 @@ export default defineConfig({
         // built lib/, for module-singleton identity), which is exactly the
         // importerFilter gate; dropping `loose` lets the filter apply.
         importerFilter: (importer) => !path.relative(repoRoot, importer).startsWith('..'),
-      }), standardDecoratorPlugin(), siblingBareImportFallback],
+      }), standardDecoratorPlugin(), sourceRemotePlugin(import.meta.dirname, '@deepseek-ai/dsh-client-remote-connection'), siblingBareImportFallback],
         test: {
           name: 'thread-safe',
           server: { deps: { external: [] } },
@@ -450,7 +451,7 @@ export default defineConfig({
         // built lib/, for module-singleton identity), which is exactly the
         // importerFilter gate; dropping `loose` lets the filter apply.
         importerFilter: (importer) => !path.relative(repoRoot, importer).startsWith('..'),
-      }), standardDecoratorPlugin(), siblingBareImportFallback],
+      }), standardDecoratorPlugin(), sourceRemotePlugin(import.meta.dirname, '@deepseek-ai/dsh-client-remote-connection'), siblingBareImportFallback],
         test: {
           name: 'process-bound',
           server: { deps: { external: [] } },
@@ -599,9 +600,6 @@ export default defineConfig({
         // The speech entry also imports generated Remote definitions; voice-input.e2e.ts
         // exercises the built entry, while source tests cover mountVoiceInput.
         'packages/experimental/client-ui-voice-input/src/client/index.ts',
-        // Built Web replays cover the generated Remote wiring of the card entries; their mount modules are source-covered.
-        'packages/experimental/client-ui-action-cards/src/client/index.ts',
-        'packages/experimental/client-ui-plugin-recommendations/src/client/index.ts',
         // The permission entry binds generated Remote code; cua-permissions.e2e.ts covers
         // its built entry, while source tests exercise mountCuaPermissions and its UI.
         'packages/experimental/cua/src/client/index.ts',
@@ -641,8 +639,7 @@ export default defineConfig({
         'packages/client/ui-primitives/src/JsonTree.tsx',
         'packages/client/ui-settings-models/src/client/DeepSeekOnboardingDialog.tsx',
         'packages/client/ui-settings-models/src/client/welcome-store.ts',
-        'packages/extensions/*/src/**/*.ts',
-        'packages/extensions/*/src/**/*.tsx',
+        'packages/extensions/{cordis-client-runner,cordis-host-runner,tool-cordis,ui-cordis}/src/**/*.{ts,tsx}',
         // Typert correctness is checked by its uninstrumented suites,
         // including compiler fixtures and byte-for-byte catalog reproduction.
         'packages/typert/*/src/**/*.{ts,tsx}',

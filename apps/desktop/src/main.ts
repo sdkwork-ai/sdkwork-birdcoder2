@@ -818,7 +818,10 @@ async function main(): Promise<void> {
               // in either case, offering the way back when a stored API key can
               // still run the workspace.
               if (quitting) return
-              enteredWorkspace = false
+              if (enteredWorkspace) {
+                enteredWorkspace = false
+                refreshApplicationMenu()
+              }
               await showWelcome('startup', !needsWelcome(value))
               if (welcomeWindow !== undefined && !welcomeWindow.isDestroyed()) welcomeWindow.webContents.send(WELCOME_IPC.state, state)
             }, async () => {
@@ -826,6 +829,7 @@ async function main(): Promise<void> {
               // sign-out still belongs on the landing when it fails.
               if (quitting || !enteredWorkspace) return
               enteredWorkspace = false
+              refreshApplicationMenu()
               await showWelcome()
             }).catch(() => undefined)
           }
@@ -836,7 +840,10 @@ async function main(): Promise<void> {
           void readWelcomeState().then(async (value) => {
             if (!needsWelcome(value) || quitting) return
             pendingWelcomeNotice = 'session-expired'
-            enteredWorkspace = false
+            if (enteredWorkspace) {
+              enteredWorkspace = false
+              refreshApplicationMenu()
+            }
             await showWelcome()
             const state = await accountBackend.state()
             if (welcomeWindow !== undefined && !welcomeWindow.isDestroyed()) welcomeWindow.webContents.send(WELCOME_IPC.state, state)
@@ -1643,6 +1650,9 @@ async function main(): Promise<void> {
     { label: currentDesktopLocale().messages.aboutMenu,
       click: () => { showAbout() } },
     { type: 'separator' },
+    shortcuts.settingsMenuItem(currentDesktopLocale().messages.settingsMenu,
+      enteredWorkspace && !isMandatory(), () => { focusPrimaryWindow() }),
+    { type: 'separator' },
     { label: currentDesktopLocale().messages.checkUpdatesMenu, click: () => { void openUpdatePrompt(true) } },
     ...process.platform === 'darwin' || process.platform === 'win32'
       ? [{ label: currentDesktopLocale().messages.cliCommandMenu, click: () => { void commandManager.show() } }] : [],
@@ -1819,7 +1829,9 @@ async function main(): Promise<void> {
     if (process.platform === 'win32') window.setBackgroundColor(chromeFallbackFill())
     if (activate) window.show()
     else window.showInactive()
+    const wasInWorkspace = enteredWorkspace
     enteredWorkspace = true
+    if (!wasInWorkspace) refreshApplicationMenu()
     if (welcomeWindow !== undefined) {
       welcomeWindow.close()
       window.webContents.send(DESKTOP_IPC.enterWorkspace)
@@ -2124,7 +2136,10 @@ async function main(): Promise<void> {
       }
       mandatoryUI?.sync()
       if (state.blocking && !wasBlocking) void updateSchedule.check(false, true).catch((error: unknown) => { console.error(error) })
-      wasBlocking = state.blocking
+      if (state.blocking !== wasBlocking) {
+        wasBlocking = state.blocking
+        refreshApplicationMenu()
+      }
     }, policyAuth?.request, () => desktopClientMetadata(locale.id))
     const policy = mandatoryPolicy
     mandatoryUI = new DesktopMandatoryUpdateWindow({

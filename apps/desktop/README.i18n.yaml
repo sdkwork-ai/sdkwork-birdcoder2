@@ -18,14 +18,14 @@
   en: 76ecc44f03352d29
   zh: f52412bdddae3056
 /birdcoder-desktop/terminal-command:
-  en: 155f9106a6041f04
-  zh: dfa44b33a56ea7d6
+  en: 7d7f32a89ddd4716
+  zh: 10ca086536c5fc01
 /birdcoder-desktop/closing-the-window-and-quitting:
   en: 20880239d5fcaedf
   zh: 2de0b120cb2b2436
 /birdcoder-desktop/key-technical-decisions:
-  en: 8bc6f07da2bfafde
-  zh: 669b036da5343a5a
+  en: 4038c083dd440f1f
+  zh: 5a3d5ae6d26e2bc8
 /birdcoder-desktop/key-technical-decisions/bundled-workspace-dependencies:
   en: 7c08095e55402bc1
   zh: 0cf7b7e2558b0db7
@@ -33,8 +33,8 @@
   en: f36022d587c86234
   zh: a904bae53006b8b3
 /birdcoder-desktop/installation-ownership:
-  en: f4a00385962b78ba
-  zh: 606763f95cd95f75
+  en: 8f0eda9caf7e4655
+  zh: 9e25087d2e738761
 /birdcoder-desktop/installation-ownership/runtime-and-plugin-activation:
   en: 4951cd3ee659eb33
   zh: 96bdd6358dad587a
@@ -54,8 +54,8 @@
   en: 59a2cd66fab0d654
   zh: 77d19467b2461faa
 /birdcoder-desktop/windows-installer-interface:
-  en: 2bfb534b590af0f5
-  zh: 7ea722fff06eed04
+  en: 52335cf0cfa537c2
+  zh: de66643ea03dbe19
 /birdcoder-desktop/updates:
   en: 92ca7f02df390094
   zh: 7d346679e9f358f2

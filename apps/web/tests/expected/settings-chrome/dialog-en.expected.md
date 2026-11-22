@@ -6,6 +6,7 @@
     - button "Models"
     - button "Plugins"
     - button "Agent presets"
+    - button "Remote connection"
   - button "Open configuration file"
   - button "Close"
   - text: Permission Choose the default permission mode for new sessions

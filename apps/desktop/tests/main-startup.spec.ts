@@ -12,6 +12,7 @@ import { DESKTOP_IPC, type DesktopUpdateState } from '../src/ipc.ts'
 import { INSECURE_TLS_ELECTRON_SWITCH } from '../src/tls-trust.ts'
 import { ABOUT_BRIDGE } from '../src/about-command.ts'
 import { IAM_LOOPBACK_BRIDGE } from '../src/iam-loopback-protocol.ts'
+import { WELCOME_IPC } from '../src/welcome-api.ts'
 import { MANDATORY_IPC } from '../src/mandatory-update-ipc.ts'
 import { DesktopHostFatalError, DesktopHostUncleanExitError } from '../src/host-process.ts'
 import { en, zh } from '../src/locale.ts'
@@ -125,7 +126,11 @@ const harness = await vi.hoisted(async () => {
     isMinimized() { return this.minimized }
     visible = true
     isVisible() { return this.visible }
-    isFocused() { return true }
+    enabled = true
+    isEnabled() { return this.enabled }
+    focused = true
+    isFocused() { return this.focused }
+    async loadFile() {}
     async loadURL(url: string) {
       this.urls.push(url)
       this.webContents.mainFrame.url = url
@@ -461,8 +466,9 @@ function invoke(channel: string, origin = channel === DESKTOP_IPC.boot ? 'app' :
 }
 
 function applicationMenuItems(): MenuItemConstructorOptions[] {
-  const native = harness.menu.mock.calls[0]?.[0][0]?.submenu
-  if (Array.isArray(native)) return native
+  const native = [...harness.menu.mock.calls].reverse().map(call => call[0][0]?.submenu)
+    .find((submenu): submenu is MenuItemConstructorOptions[] => Array.isArray(submenu))
+  if (native !== undefined) return native
   const sender = harness.windows[0]!.webContents
   void harness.handlers.get(DESKTOP_IPC.windowsMenu)!({ sender, senderFrame: sender.mainFrame }, 'application', 0, 0)
   return harness.menu.mock.lastCall![0]
@@ -856,7 +862,7 @@ describe('desktop main startup', () => {
     const menu = applicationMenuItems()
     const visible = menu.filter(item => item.visible !== false)
     expect(visible.map(item => item.role === 'quit' ? 'quit' : item.label ?? item.type)).toEqual([
-      messages.aboutMenu, 'separator', messages.checkUpdatesMenu,
+      messages.aboutMenu, 'separator', messages.settingsMenu, 'separator', messages.checkUpdatesMenu,
       ...platform === 'linux' ? [] : [messages.cliCommandMenu],
       'separator', ...packaged ? [] : [messages.reloadPageMenu, messages.restartAppHostMenu],
       messages.toggleDevToolsMenu, 'separator',
@@ -1461,7 +1467,7 @@ describe('desktop main startup', () => {
     // The CLI-command entry is a Windows-only product surface; Linux shares the
     // rest of the caption's Application menu.
     expect(harness.menu.buildFromTemplate.mock.lastCall![0].map(item => item.label ?? item.role ?? item.type)).toEqual([
-      '关于 BirdCoder', 'separator', '检查更新…',
+      '关于 BirdCoder', 'separator', zh.settingsMenu, 'separator', '检查更新…',
       ...platform === 'win32' ? ['管理 birdcoder 命令…'] : [],
       'separator', zh.toggleDevToolsMenu, 'separator', platform === 'win32' ? '退出' : '退出 BirdCoder',
     ])
@@ -1519,7 +1525,7 @@ describe('desktop main startup', () => {
         [en.speechMenu, [['startSpeaking'], ['stopSpeaking']]]])
     const application = template[0]!.submenu as MenuItemConstructorOptions[]
     expect(application.filter(item => item.visible !== false).map(describeItem)).toEqual(
-      ['About BirdCoder', 'separator', en.checkUpdatesMenu, en.cliCommandMenu, 'separator', 'toggleDevTools', 'separator', 'hide', 'hideOthers', 'unhide', 'separator', 'quit'])
+      ['About BirdCoder', 'separator', en.settingsMenu, 'separator', en.checkUpdatesMenu, en.cliCommandMenu, 'separator', 'toggleDevTools', 'separator', 'hide', 'hideOthers', 'unhide', 'separator', 'quit'])
     expect(harness.menu.setApplicationMenu).toHaveBeenCalledOnce()
   })
 
@@ -1537,6 +1543,73 @@ describe('desktop main startup', () => {
         .toMatchFileSnapshot(`./expected/application-menu-${locale}.json`)
       expect(harness.app.name).toBe('@deepseek-ai/dsh-desktop')
     } finally { harness.app.name = originalName }
+  })
+
+  it.each([
+    ['darwin', 'Command+,'],
+    ['win32', 'Control+,'],
+  ] as const)('gates Settings menu availability across welcome, workspace, window restore, sign-out, and mandatory updates (%s)', async (platform, expectedAccelerator) => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue(platform)
+    harness.embeddedPolicy = { origin: 'https://policy.example.com', allowedPageOrigins: ['https://downloads.example.com'] }
+    const policyFetch = vi.fn<typeof fetch>()
+      .mockImplementation(async () => Response.json({ code: 0, data: { biz_code: 0, biz_data: null } }))
+    vi.stubGlobal('fetch', policyFetch)
+    await import('../src/main.ts')
+    await harness.preparing.promise
+    harness.prepared.resolve()
+    await harness.hostStarted.promise
+    const host = harness.hosts[0]!
+    host.fetch.mockResolvedValueOnce(Response.json({ loggedIn: false, hasApiKey: false, writable: true, localePreference: null, themePreference: 'system' }))
+    host.ready.resolve()
+    await vi.waitFor(() => { expect(harness.windows).toHaveLength(2) })
+    const mainWindow = harness.windows[0]!
+    const welcomeWindow = harness.windows[1]!
+    const registered = await Promise.resolve(invoke(DESKTOP_IPC.shortcutsGet, 'app', [
+      { id: 'settings.open', defaults: { 'desktop:macos': { code: 'Comma', modifiers: ['primary'] }, 'desktop:windows': { code: 'Comma', modifiers: ['primary'] } } },
+    ])) as { revision: string }
+
+    const settingsItem = () => applicationMenuItems().find(item => item.id === 'dsh-settings-open')!
+    expect(settingsItem()).toMatchObject({ label: en.settingsMenu, enabled: false, accelerator: expectedAccelerator })
+    mainWindow.show.mockClear()
+    mainWindow.webContents.send.mockClear()
+    ;(settingsItem().click as () => void)()
+    expect(mainWindow.show).not.toHaveBeenCalled()
+    expect(mainWindow.webContents.send).not.toHaveBeenCalled()
+
+    await harness.handlers.get(WELCOME_IPC.skip)!({ sender: welcomeWindow.webContents, senderFrame: welcomeWindow.webContents.mainFrame })
+    expect(settingsItem()).toMatchObject({ label: en.settingsMenu, enabled: true, accelerator: expectedAccelerator })
+
+    mainWindow.minimized = true
+    mainWindow.visible = false
+    mainWindow.focused = false
+    mainWindow.restore.mockClear()
+    mainWindow.show.mockClear()
+    mainWindow.focus.mockClear().mockImplementationOnce(() => { mainWindow.focused = true })
+    mainWindow.webContents.send.mockClear()
+    ;(settingsItem().click as () => void)()
+    expect(mainWindow.restore).toHaveBeenCalledOnce()
+    expect(mainWindow.show).toHaveBeenCalledOnce()
+    expect(mainWindow.focus).toHaveBeenCalledOnce()
+    expect(mainWindow.webContents.send).toHaveBeenCalledWith(DESKTOP_IPC.shortcutsInput, {
+      kind: 'menu', commandId: 'settings.open', revision: registered.revision,
+    })
+
+    host.fetch.mockResolvedValueOnce(Response.json({ loggedIn: false, hasApiKey: false }))
+    harness.publishAccount({ status: 'credential-stored', attempt: null, links: { usageUrl: '', topUpUrl: '' } })
+    harness.publishAccount({ status: 'signed-out', attempt: null, links: { usageUrl: '', topUpUrl: '' } })
+    await vi.waitFor(() => { expect(settingsItem().enabled).toBe(false) })
+    expect(harness.windows.length).toBeGreaterThanOrEqual(3)
+    const reopenedWelcome = harness.windows[2]!
+    await harness.handlers.get(WELCOME_IPC.skip)!({
+      sender: reopenedWelcome.webContents, senderFrame: reopenedWelcome.webContents.mainFrame,
+    })
+    expect(settingsItem().enabled).toBe(true)
+
+    policyFetch.mockResolvedValueOnce(Response.json({ code: 40005,
+      data: { show_content: { title: 'Update', detail: 'Required' }, desktop_app_link: 'https://downloads.example.com/' } }))
+    await invoke(DESKTOP_IPC.updatesOpen, 'app')
+    await harness.policyBlocked.promise
+    expect(settingsItem().enabled).toBe(false)
   })
 
   it.each(['http:', 'https:'] as const)('passes the %s Host cookie explicitly and attaches socket credentials only to the owned application origin and window', async (protocol) => {

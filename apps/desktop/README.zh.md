@@ -69,7 +69,7 @@ Desktop Host 的 Platform API 请求与更新策略请求用相同的 Platform �
 
 macOS 安装会创建 `/usr/local/bin/birdcoder`；目录权限需要时，系统会请求管理员认证，不会修改 shell 启动文件。Windows 管理对话框将命令注册到当前用户的 PATH，通过 `HKCU\Software\BirdCoder\Command` 记录其 PATH 归属，并用 `Global\BirdCoder.Command.<sid>` 互斥体串行化并发操作。命令名为 `birdcoder`，绝不使用上游的 `dsh`：两个应用各自安装命令，同名会让其中一方修复或移除另一方的注册。切换已有命令前会要求确认；修复当前已选中的 Desktop 命令不会重复要求切换确认。macOS 链接会保留并恢复被替换的启动器；Windows 会保留其他 PATH 条目，包括注册前就已存在的条目。若其他命令的 PATH 优先级更高，对话框会显示其位置。移动应用后，macOS 使用“修复”，Windows 从新位置使用“安装”。“移除”不会改动无关安装。
 
-命令注册是安装 Desktop 后的可选操作。卸载 Desktop 前，请通过**管理 birdcoder 命令… → 移除**删除其 CLI 注册；应用卸载程序不会移除该注册。更新或卸载 Desktop 前请结束 CLI 命令。CLI 运行时版本随已安装的 Desktop 版本变化。Desktop 插件命令与运行时限制见[内置命令运行时](#bundled-command-runtime)。
+命令注册是安装 Desktop 后的可选操作。Windows 手动卸载会移除属于该安装的 CLI 注册；macOS 卸载前请通过**管理 birdcoder 命令… → 移除**删除注册。更新或卸载 Desktop 前请结束 CLI 命令。CLI 运行时版本随已安装的 Desktop 版本变化。Desktop 插件命令与运行时限制见[内置命令运行时](#bundled-command-runtime)。
 
 <a id="closing-the-window-and-quitting"></a>
 
@@ -92,6 +92,10 @@ Windows 在整个运行期间常驻托盘图标。悬停提示为产品名，单
 本包发布的所有图标都源自同一张位图——`apps/web/public/favicon.png`（BirdCoder 规范产品标）。`pnpm --dir apps/desktop run generate-icons` 生成 `build/` 下的应用图标（Windows 应用、安装程序与卸载程序共用的多尺寸 ICO、macOS 的 ICNS、Linux 的 PNG 位图），以及 1024×1024 的 About 面板位图 `resources/icon.png`、`resources/icon-windows.png`、`resources/icon-macos.png`；`extraResources` 会把 Windows 变体复制为 `resources/icon.png`，即打包后 `src/main.ts` 读取 About 面板图标的位置。`pnpm --dir apps/desktop run generate-installer-brand` 生成安装程序自有的 `installer/assets/` 位图。仓库不再保留设计师 SVG 原稿：上游的 `resources/icon*.svg` 是上游图案，留任何一份都可能被一次合并或一次手工导出带回产品。安装程序的欢迎页直接绘制 `installer/assets/brand*.png`；卸载程序的欢迎页与完成页共用 `installer/assets/uninstaller-sidebar.png`，准备阶段转换为 164×314 BMP。需要 ICO 容器是因为 electron-builder 要一个承载全部 Windows 尺寸的图标（[Windows 图标要求](https://learn.microsoft.com/en-us/windows/apps/design/iconography/app-icon-construction)）。
 
 macOS 的 ICNS 包含最高 1024 像素的表示，是扁平图标，并非 Icon Composer 文档。它复用其他平台同一张裁边后的透明方形位图，没有内嵌圆角底板，因此若要做圆角方形外观，需要另做按平台的图案。Apple 的[应用图标指南](https://developer.apple.com/design/human-interface-guidelines/app-icons)要求向 Icon Composer 提供未遮罩的图层；这些输入需要在 macOS 上单独导出，不能复用已扁平化的 ICNS 图案。发布前须在支持的 macOS 版本中验收 Finder 和 Dock 的显示效果。
+
+快捷键覆盖保存在 `app.getPath('userData')/keybindings.json`，与 `DSH_HOME` 分离。主进程校验并串行保存修改后才发布已接受键位。读取失败保留上次接受的键位并阻止编辑，包括全部恢复；不可读和未来版本的文件保持不变。开发时可通过 `DSH_DESKTOP_USER_DATA_DIR` 隔离这些偏好，启动器会输出解析后的路径。格式和冲突语义见[快捷键服务](../../packages/client/shortcuts/README.zh.md)。
+
+应用菜单中的**设置…**在已打开的工作区中切换设置面板并显示已接受的单键绑定；工作区打开前和强制更新期间保持禁用，窗口隐藏或最小化时先恢复窗口。macOS“文件”菜单显示已接受的单键绑定（包括方向键），并通过 Client 页面 owner 路由“关闭页面或窗口”。Windows 和 macOS 在主文档、内嵌 frame 和浏览器 guest 输入之前拦截所有已接受的完整绑定，包括编辑和终端输入。录制和输入法组合状态仍受保护。更新蒙层从创建到最后一个蒙层关闭期间阻挡父窗口及其浏览器 guest 的产品快捷键和编辑按键递送。每次打开或关闭蒙层都会作废待完成的组合键状态。主进程通过显式的创建能力和输入状态读取能力，让更新对话框与快捷键输入共享同一个蒙层管理实例。双键组合会将首键的初次按下事件交给页面，且不拦截其松开事件；完整组合及其重复事件会被消费。渲染进程将可配置绑定的分发交给原生适配器。双键组合不注册原生菜单快捷键。已接受的命令通过可信 preload 转发一次。Linux 通过 DOM 分发主文档快捷键，并将已接受的内嵌 frame 绑定转发给 Client 解析器。关闭最后一个窗口后 macOS 保留应用生命周期；Windows 退出桌面实例并停止其任务。[关窗决策](../../.agents/notes/implemented/architecture/2026-09-21-desktop-page-close-shortcuts.zh.md)记录了这一生命周期选择。
 
 <a id="bundled-workspace-dependencies"></a>
 
@@ -162,7 +166,7 @@ Electron 根据应用语言选择类型化的八种[内置 Client 语言](../../
 
 Windows、macOS 和 Linux 会在原生全屏切换及每次页面加载后向渲染器同步全屏状态，让浮层调整顶栏避让距离。
 
-Windows 和 Linux 使用 40 DIP 顶栏，保留原生窗口按钮，颜色随应用调色板同步。侧栏开关旁的本地化“应用”和“编辑”入口打开原生弹出菜单。仅当应用框架发布 shell overlay 席位后才挂载菜单，启动加载期间不显示。“应用”提供检查更新和退出（Linux 上为“退出 BirdCoder”）；“编辑”向当前编辑器发送对应按键，提供撤销、重做、剪切、复制、粘贴、删除和全选，不受自定义快捷键绑定影响。插件管理使用主应用的“插件”页面。按 Alt 不会出现额外的原生菜单行。macOS 保留原生应用菜单。带系统边框的 Linux 欢迎窗口会移除菜单栏，因此任何窗口都不会出现第二条 header。可编辑区域保留快捷键和不带快捷键标注的右键菜单；命令可用状态由 Chromium 提供，选中的只读文本提供“复制”命令。顶栏菜单保留鼠标和键盘操作，顶栏中的 Web 控件仍可触达。共享 DOM 只约束展示，不构成安全边界：产品脚本可以隐藏蒙层，但不能借此清除主进程策略或授权安装。更新操作与状态通过隔离预加载和壳 frame 之间的私有 MessageChannel 传递。
+Windows 和 Linux 使用 40 DIP 顶栏，保留原生窗口按钮，颜色随应用调色板同步。侧栏开关旁的本地化“应用”和“编辑”入口打开原生弹出菜单。仅当应用框架发布 shell overlay 席位后才挂载菜单，启动加载期间不显示。“应用”提供关于、设置、检查更新、管理 birdcoder 命令、开发者工具和退出（Linux 上为“退出 BirdCoder”）；“编辑”向当前编辑器发送对应按键，提供撤销、重做、剪切、复制、粘贴、删除和全选，不受自定义快捷键绑定影响。插件管理使用主应用的“插件”页面。按 Alt 不会出现额外的原生菜单行。macOS 保留原生应用菜单。带系统边框的 Linux 欢迎窗口会移除菜单栏，因此任何窗口都不会出现第二条 header。可编辑区域保留快捷键和不带快捷键标注的右键菜单；命令可用状态由 Chromium 提供，选中的只读文本提供“复制”命令。顶栏菜单保留鼠标和键盘操作，顶栏中的 Web 控件仍可触达。共享 DOM 只约束展示，不构成安全边界：产品脚本可以隐藏蒙层，但不能借此清除主进程策略或授权安装。更新操作与状态通过隔离预加载和壳 frame 之间的私有 MessageChannel 传递。
 
 macOS 上自定义应用菜单还会声明标准的 File、Edit、Window 和应用菜单，因为替换 Electron 的默认菜单会丢掉 Close Window（⌘W）、Minimize（⌘M）和 Hide（⌘H）。其 Edit 菜单复制 Electron 的默认菜单，把 Paste and Match Style 绑定到 ⇧⌘V，并保留 Electron 默认的 ⌥⇧⌘V 作为隐藏别名；Substitutions 和 Speech 标题取自桌面端语言包，其余条目保留 Electron 的英文标签。Windows 和 Linux 改为在顶栏中画菜单，它们的隐藏应用菜单只注册快捷键；Linux 保留应用菜单和 Edit 菜单。
 
@@ -299,7 +303,7 @@ Windows 打包使用 Visual C++ Build Tools 和 Windows SDK 编译 x86 Win32/GDI
 
 Windows 卸载程序会随应用一起删除本应用的 Electron 用户数据目录（`%APPDATA%\BirdCoder`：浏览器存储与缓存）以及 `%LOCALAPPDATA%` 下的更新下载缓存。它有意保留 `%APPDATA%\@deepseek-ai\dsh-desktop`：那是已安装的上游 BirdCoder 桌面应用据以派生用户数据目录的作用域包名（在本分支声明产品名之前两个应用共用它），删除它会一并删掉另一个应用的 Chromium 配置、日志和单实例锁。Harness 主目录（`~/.dsh` 或 `DSH_HOME`：会话、设置、凭据、插件）不会被触碰；以 Windows 环境变量发布的 `DSH_HOME` 还会保护所有与其重叠的目标。静默卸载删除相同的数据；以 `--updated` 或 `/KEEP_APP_DATA` 启动的卸载程序保留数据，electron-builder 在原地更新和从其他目录替换旧安装时正是这样启动它。删除通过原生辅助程序执行：它拒绝受保护的 Windows 目录以及与安装目录或主目录重叠的路径，要求固定的本地驱动器，链接的根目录或祖先目录原样保留，遇到重解析点只解除链接而不进入目标，清除只读属性，并在遇到被占用文件后继续删除其余兄弟项；残余不会中止卸载，也不会提示。安装时在 Windows 卸载注册项上记录 `InstallLocation` 作为标准的清单元数据；在 Windows 11 上，开始菜单右键菜单中的“卸载”对所有 Win32 应用都会打开已安装应用列表，只有 MSIX 包能从那里直接卸载。卸载程序声明 DPI 感知，中文使用微软雅黑 UI。此行为仅适用于 Windows。
 
-使用 `node apps/desktop/scripts/test-windows-installer.mjs --uninstall-only --compile-only` 以每次运行唯一的产品身份编译独立的中英文夹具；该身份同时写入 `productName` 与 `extraMetadata.productName`，使安装程序与 Electron 读取的清单指向同一个应用。省略 `--compile-only` 可对预置数据运行原生删除器回归，以及交互、静默、`--updated`、`/KEEP_APP_DATA` 和 `DSH_HOME` 位于 Electron 数据内的检查。编译本身不能证明已安装卸载行为。
+使用 `node apps/desktop/scripts/test-windows-installer.mjs --uninstall-only --compile-only` 以每次运行唯一的产品身份编译八种安装语言的独立夹具；该身份同时写入 `productName` 与 `extraMetadata.productName`，使安装程序与 Electron 读取的清单指向同一个应用。省略 `--compile-only` 可对预置数据运行原生删除器回归，以及交互、静默、`--updated`、`/KEEP_APP_DATA`、`DSH_HOME` 位于 Electron 数据内、主程序占用后重试、注册表失败后继续卸载及另一安装接管的检查。安装超时会先终止并等待夹具进程树退出，再清理测试资源；独立回归覆盖成功、非零退出及带存活子进程的父进程超时。编译本身不能证明已安装卸载行为。
 
 <a id="updates"></a>
 

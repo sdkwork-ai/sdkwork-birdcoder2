@@ -267,6 +267,7 @@ describe('viewer session plugin', () => {
             // forwards this ref to its scrollport, so the narrower prop type is satisfied here.
             classNames: {}, editor: null, scrollRef: createRef<HTMLDivElement>() as RefObject<HTMLDivElement>, editable: false,
             editorDisabled: true, phase: 'inert', placeholderText: reason, ariaLabel: reason,
+            placeholderSessionId: undefined, renderSlotChain: (_key, _owner, options) => options?.fallback,
             workspaceTrigger: false, workspacePickerOpen: false, onWorkspaceKeyDown: () => {},
             hint: null, showPlaceholder: true,
           }))
