@@ -202,6 +202,7 @@
     "postinstall": "node scripts/install-lefthook.mjs && node scripts/build-deepseekbot.mjs --optional && node scripts/build-better-sidebar.mjs --optional && node scripts/build-dsh-market.mjs --optional",
     "verify-runtime-source-imports": "tsx scripts/verify-runtime-source-imports.ts",
     "admin:bootstrap:app": "tsx scripts/bootstrap/bootstrap-app.mjs",
+    "admin:repair:installation": "tsx scripts/bootstrap/repair-installation.mjs",
     "iam:ensure": "tsx scripts/ensure-iam-application.mjs",
     "build:desktop": "pnpm --filter @deepseek-ai/dsh-desktop run build",
     "desktop:dev": "pnpm --filter @deepseek-ai/dsh-desktop run dev",
