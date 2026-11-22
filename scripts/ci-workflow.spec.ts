@@ -63,8 +63,12 @@ describe('CI workflow', () => {
     const benchPhases = isRecord(bench.strategy) && isRecord(bench.strategy.matrix)
       && Array.isArray(bench.strategy.matrix.include) ? bench.strategy.matrix.include.length : 0
     expect(workflowJob(ci, 'node-24-bench-report').needs).toBe('node-24-bench')
+    // `python-runtime` calls a reusable workflow, so it owns no matrix of its
+    // own; the fork's native Windows lanes are counted against their own pool
+    // below instead of the Linux one.
     const ordinaryJobs = Object.entries(ci.jobs)
-      .filter(([name]) => !['node-compat', 'all-checks-passed', 'publisher-isolated', 'node-24-web-snapshot', 'node-24-coverage', 'node-24-coverage-report', 'node-24-bench', 'node-24-bench-report'].includes(name))
+      .filter(([name]) => !['node-compat', 'all-checks-passed', 'publisher-isolated', 'node-24-web-snapshot', 'node-24-coverage', 'node-24-coverage-report', 'node-24-bench', 'node-24-bench-report', 'python-runtime'].includes(name))
+      .filter(([name]) => !name.startsWith('windows-'))
     for (const [name, job] of ordinaryJobs) {
       if (!isRecord(job)) throw new TypeError(`${name} must define a job`)
       expect(job).not.toHaveProperty('strategy')
@@ -115,12 +119,17 @@ describe('CI workflow', () => {
     // The build job finishes before its downstream jobs start, so the
     // static count overstates the peak by one. Coverage counts its two
     // shards and the benchmarks their two phases; the coverage and benchmark
-    // report jobs start after them and are not counted.
+    // report jobs start after them and are not counted. `publisher-isolated`
+    // holds one slot (`max-parallel: 1`) and `node-compat` waits behind it, so
+    // the widest Linux overlap is the immediate lanes plus that one slot plus
+    // the compatibility matrix; the runtime targets replace `python-sdk` only
+    // after it finishes. The Windows lanes are a separate pool and are capped
+    // on their own.
     const linuxActive = ordinaryJobs.length + webSnapshotShards + coverageLanes + benchPhases
-    const beforeSdk = linuxActive + compatibilityLimit + windowsActive + 1
-    const afterSdk = linuxActive + compatibilityLimit + windowsActive + Math.max(1, targets.split(',').length)
-    expect(beforeSdk).toBeLessThanOrEqual(16)
-    expect(afterSdk).toBeLessThanOrEqual(16)
+    const linuxPeak = linuxActive + 1 + compatibilityLimit
+    expect(linuxPeak).toBeLessThanOrEqual(16)
+    expect(linuxActive + Math.max(1, targets.split(',').length)).toBeLessThanOrEqual(16)
+    expect(windowsActive).toBeLessThanOrEqual(3)
   })
 
   it('keeps required PR verdicts covering runtime and publisher jobs', () => {
@@ -153,7 +162,9 @@ describe('CI workflow', () => {
     }
     for (const id of workflowJob(ci, 'all-checks-passed').needs as string[]) visit(id)
     // The benchmark report only renders results; node-24-bench owns the verdict.
-    const bookkeeping = ['all-checks-passed', 'node-24-bench-report']
+    // `windows-coverage` stays advisory, as it was before the upstream merge:
+    // the native Windows coverage lane reports but does not gate the verdict.
+    const bookkeeping = ['all-checks-passed', 'node-24-bench-report', 'windows-coverage']
     expect(Object.keys(ci.jobs).filter(id => !bookkeeping.includes(id) && !covered.has(id))).toEqual([])
     expect(blocking).not.toContain('node-24-bench-report')
     expect(blocking).not.toContain('node-24-coverage')
@@ -172,7 +183,6 @@ describe('CI workflow', () => {
       'python-sdk',
       'windows-build',
       'windows-native-tests',
-      'windows-publisher',
     ])
   })
 
@@ -192,7 +202,7 @@ describe('CI workflow', () => {
     // the fork ships GitHub Releases only. The surviving lanes build the same two
     // faces, behind the PR-rehearsal selector asserted by the next case.
     for (const [file, command] of [
-      ['release.yml', 'pnpm run build:official --serial'],
+      ['release.yml', 'pnpm run build:official'],
       ['release-vendor.yml', 'pnpm run build:lib:host'],
     ] as const) {
       const steps = workflowJob(loadWorkflow('.github/workflows/' + file), 'pack').steps as unknown[]
@@ -379,10 +389,10 @@ describe('CI workflow', () => {
     })
   })
 
-  it.each([
-    ['node-24-coverage', 'Linux', 'LINUX', 'pnpm run check:ci:coverage'],
-    ['windows-coverage', 'Windows', 'WINDOWS', 'pnpm run check:ci:coverage'],
-  ])('reuses %s coverage timings only within its platform and runner pool', (jobName, platform, variable, command) => {
+  it.each<[string, string, string, string, boolean]>([
+    ['node-24-coverage', 'Linux', 'LINUX', 'pnpm run check:ci:coverage-shard', true],
+    ['windows-coverage', 'Windows', 'WINDOWS', 'pnpm run check:ci:coverage', false],
+  ])('reuses %s coverage timings only within its platform and runner pool', (jobName, platform, variable, command, sharded) => {
     const job = workflowJob(loadWorkflow('.github/workflows/ci.yml'), jobName)
     if (!Array.isArray(job.steps)) throw new TypeError(`${jobName} must define steps`)
     const steps = job.steps.filter(isRecord)
@@ -395,11 +405,17 @@ describe('CI workflow', () => {
     expect(checkout).toBeGreaterThanOrEqual(0)
     expect(restore).toBeGreaterThan(checkout)
     expect(coverage).toBeGreaterThan(restore)
-    expect(save).toBeGreaterThan(coverage)
     expect(steps[restore]).toMatchObject({
       uses: 'actions/cache/restore@v6.1.0',
       with: { path: '.coverage-times.json', key, 'restore-keys': `${prefix}\n` },
     })
+    // The sharded Linux lane merges its timings in node-24-coverage-report, so a
+    // shard must never save; the unsharded Windows lane saves in place.
+    if (sharded) {
+      expect(save).toBe(-1)
+      return
+    }
+    expect(save).toBeGreaterThan(coverage)
     expect(steps[save]).toMatchObject({
       uses: 'actions/cache/save@v6.1.0',
       if: '${{ !cancelled() }}',
@@ -941,7 +957,7 @@ describe('CI workflow', () => {
     expect(wineGates).toContain('  "$scratch/logs/client-references.log" \\')
   })
 
-  it('runs only Wine for its manual suite and retains master-push scheduling', () => {
+  it('runs only Wine for its manual suite and retains main-push scheduling', () => {
     const master = loadWorkflow('.github/workflows/ci-master.yml')
     if (!isRecord(master.on) || !isRecord(master.on.workflow_dispatch)
       || !isRecord(master.on.workflow_dispatch.inputs) || !isRecord(master.on.workflow_dispatch.inputs.suite)
@@ -952,7 +968,7 @@ describe('CI workflow', () => {
     const wine = workflowJob(master, 'windows')
     if (typeof wine.if !== 'string') throw new TypeError('Wine must define a trigger condition')
     for (const [event, ref, suite, expected] of [
-      ['push', 'refs/heads/master', '', true],
+      ['push', 'refs/heads/main', '', true],
       ['push', 'refs/heads/topic', '', false],
       ['pull_request', 'refs/pull/42/merge', 'wine', false],
       ['workflow_dispatch', 'refs/heads/topic', 'wine', true],
