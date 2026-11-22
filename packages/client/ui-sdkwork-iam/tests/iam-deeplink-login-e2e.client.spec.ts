@@ -344,6 +344,9 @@ describe('deeplink login end to end', () => {
     // 7. The settings-menu account row and a held backend call both see the login.
     expect(createIamAccountSource(service).getSnapshot()).toEqual({ signedIn: true, username: 'Bird Profile' })
     expect(service.browserSignInFailure()).toBeUndefined()
+    // 8. The deep link is the outcome of a login the user may have left running
+    //    after closing the card, so it is announced rather than left silent.
+    expect(service.signInNotice()).toMatchObject({ kind: 'signed-in', accountName: 'Bird Profile' })
   })
 
   it('uses a per-process loopback redirect and redeems its callback', async () => {

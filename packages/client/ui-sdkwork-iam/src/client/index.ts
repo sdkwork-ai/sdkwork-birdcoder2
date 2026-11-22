@@ -224,6 +224,7 @@ export function apply(ctx: ClientContext): void {
           : { startApiKey: () => { void service.openApiKeyPage() } },
         locale: localeOf(),
         runtimeConfig: service.authRuntimeConfig(),
+        dismissSignInNotice: (id) => { service.dismissSignInNotice(id) },
         hooks: {
           configured: {
             getSnapshot: () => service.isConfigured(),
@@ -249,6 +250,12 @@ export function apply(ctx: ClientContext): void {
             // The waiting attempt's authorize URL for the manual fallback; empty
             // once the flow settles, so a spent state is never offered again.
             getSnapshot: () => service.browserSignInUrl() ?? '',
+            subscribe: listener => service.subscribe(listener),
+          },
+          signInNotice: {
+            // A browser login that finished while the dialog was closed: the
+            // host shows the confirmation instead of reopening the surface.
+            getSnapshot: () => service.signInNotice(),
             subscribe: listener => service.subscribe(listener),
           },
         },

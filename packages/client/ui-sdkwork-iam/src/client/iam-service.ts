@@ -138,6 +138,23 @@ export interface IamBrowserLoginFailure {
   response?: IamServerFailureResponse
 }
 
+/**
+ * One transient confirmation the sign-in host shows while its dialog is closed.
+ *
+ * A browser login can finish after the user dismissed the card (or while the
+ * app was in the background): the deep link still commits the session, and
+ * this notice is how that success reaches the user without reopening a modal
+ * they deliberately closed.
+ */
+export interface IamSignInNotice {
+  /** Monotonic identity, so a repeated notice restarts the toast instead of reusing it. */
+  id: number
+  /** What the notice confirms. */
+  kind: 'signed-in'
+  /** Name, e-mail, or username the committed session reported, when known. */
+  accountName?: string
+}
+
 /** First non-empty string among the named keys of one identity record. */
 function identityText(source: Record<string, unknown> | null | undefined, ...keys: string[]): string | undefined {
   if (source === null || source === undefined) return undefined
@@ -393,6 +410,11 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   private desktopFailure: IamBrowserLoginFailure | undefined
   /** The server's report for the redeem of the attempt that is now failing, if any. */
   private desktopServerFailure: IamServerFailureResponse | undefined
+  /** Whether the sign-in dialog is on screen, so a late callback knows how to answer. */
+  private surfaceOpen = false
+  private noticeSeq = 0
+  /** The transient confirmation the sign-in host shows while the dialog is closed. */
+  private notice: IamSignInNotice | undefined
   private readonly desktopListeners = new Set<() => void>()
   private readonly authTokenListeners = new Set<() => void>()
 
@@ -880,7 +902,10 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
    */
   openSignInOverlay(): void {
     if (this.isSignedIn()) return
-    this.modal?.openEntry()
+    const modal = this.modal
+    if (modal === undefined) return
+    modal.openEntry()
+    this.surfaceOpen = true
   }
 
   /**
@@ -895,7 +920,10 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   openSignInMethods(): void {
     if (this.isSignedIn()) return
     if (this.browserSignInWaiting()) this.cancelBrowserSignIn()
-    this.modal?.openLogin()
+    const modal = this.modal
+    if (modal === undefined) return
+    modal.openLogin()
+    this.surfaceOpen = true
   }
 
   /**
@@ -937,7 +965,11 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     this.desktopFailed = false
     this.desktopFailure = undefined
     this.desktopServerFailure = undefined
-    this.modal?.openBrowser()
+    const modal = this.modal
+    if (modal !== undefined) {
+      modal.openBrowser()
+      this.surfaceOpen = true
+    }
     this.notifyDesktop()
     void this.beginBrowserSignIn().catch(() => {
       // `beginBrowserSignIn` already flagged the failure, which the hand-off
@@ -1076,12 +1108,16 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
    * The overlay's own close gesture (auth completed or dismissed). Signing in
    * wins over dismissing: the settle below re-reads the controller, so an
    * auth completion that lands in the same tick as the close still releases
-   * the calls held at the door. Closing the browser hand-off card abandons the
-   * waiting attempt, so a later deep link cannot flip the surface back open.
+   * the calls held at the door.
+   *
+   * Closing the browser hand-off card only hides it: the system browser may
+   * still be signing in, and the deep link that follows commits the session.
+   * That outcome must reach the user — a success notice, or the failure card
+   * raised again — instead of being swallowed because the dialog was gone.
    */
   dismissSignIn(): void {
-    if (this.browserSignInWaiting()) this.cancelBrowserSignIn()
     this.modal?.close()
+    this.surfaceOpen = false
     this.settlePendingSignIn()
   }
 
@@ -1101,7 +1137,11 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
    */
   attachModal(actions: IamModalActions): void {
     this.modal = actions
-    if (this.desktopFailed || this.browserSignInWaiting()) actions.openBrowser()
+    this.surfaceOpen = false
+    if (this.desktopFailed || this.browserSignInWaiting()) {
+      actions.openBrowser()
+      this.surfaceOpen = true
+    }
   }
 
   /**
@@ -1114,6 +1154,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     this.desktopLogin = undefined
     this.desktopLoginKey = undefined
     this.desktopServerFailure = undefined
+    this.notice = undefined
     this.pendingSignIn = undefined
     this.desktopListeners.clear()
   }
@@ -1411,6 +1452,16 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     this.desktopFailed = false
     this.desktopFailure = undefined
     this.desktopServerFailure = undefined
+    // The browser login can finish after the card was closed (or while the app
+    // was in the background): the committed session is the outcome, and a
+    // notice confirms it without forcing a dialog the user dismissed.
+    const accountName = user?.displayName ?? user?.email ?? user?.username
+    this.noticeSeq += 1
+    this.notice = {
+      id: this.noticeSeq,
+      kind: 'signed-in',
+      ...(accountName === undefined ? {} : { accountName }),
+    }
     this.notifyDesktop()
     this.dismissSignIn()
   }
@@ -1559,10 +1610,37 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     const response = failure.response ?? this.desktopServerFailure
     this.desktopFailure = response === undefined ? failure : { ...failure, response }
     this.desktopFailed = true
+    // A real answer from the browser — a refused page, a rejected code — is
+    // raised again when the card is gone, so closing it cannot silence the
+    // failure. A flow that simply timed out while the card was closed is the
+    // user walking away; it must not pop a dialog minutes later.
+    if (!this.surfaceOpen && failure.code !== 'flow-expired' && this.modal !== undefined) {
+      this.modal.openBrowser()
+      this.surfaceOpen = true
+    }
     // The failure keeps the product-facing reason; the rejected step itself
     // carries the transport status, problem code, and trace id a support
     // report needs to correlate the attempt with the IAM server's logs.
     console.error('ui-sdkwork-iam: browser login failed', this.desktopFailure, error)
+    this.notifyDesktop()
+  }
+
+  /**
+   * The transient confirmation the sign-in host shows while its dialog is
+   * closed.
+   * @returns the pending notice, or undefined.
+   */
+  signInNotice(): IamSignInNotice | undefined {
+    return this.notice
+  }
+
+  /**
+   * Drop a notice once its toast finished.
+   * @param id - the notice identity the toast displayed.
+   */
+  dismissSignInNotice(id: number): void {
+    if (this.notice?.id !== id) return
+    this.notice = undefined
     this.notifyDesktop()
   }
 

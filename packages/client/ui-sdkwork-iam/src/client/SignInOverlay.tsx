@@ -20,7 +20,7 @@ import { createPortal } from 'react-dom'
 import { MemoryRouter } from 'react-router-dom'
 import clsx from 'clsx'
 import {
-  Button, IconCloseOutlineRegular, LoginPanel, readOemBrandName, useClipboardCopy, type LoginAction,
+  Button, IconCloseOutlineRegular, LoginPanel, readOemBrandName, Toast, useClipboardCopy, type LoginAction,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import {
   SdkworkSessionAuthLoginModal,
@@ -34,7 +34,7 @@ import type { ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
 // Type-only: pulls ui-layout's SlotMap merge ('shell.overlay' seat).
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { createIamUiStore } from './iam-ui-store.ts'
-import type { IamBrowserLoginFailure } from './iam-service.ts'
+import type { IamBrowserLoginFailure, IamSignInNotice } from './iam-service.ts'
 import type { UiIamKey } from './locales.ts'
 import { sdkworkAuthAppearanceFor } from './auth-appearance.ts'
 import { ConfigureNotice } from './ConfigureNotice.tsx'
@@ -260,6 +260,8 @@ export interface SignInOverlayInjected {
   locale: string
   /** The auth-surface runtime config: the account methods the modal offers. */
   runtimeConfig: SdkworkAuthRuntimeConfig
+  /** Drop a sign-in notice once its toast finished. */
+  dismissSignInNotice: (id: number) => void
   hooks: {
     /** Whether the IAM base URL is configured (false renders the notice). */
     configured: HostObservable<boolean>
@@ -273,6 +275,8 @@ export interface SignInOverlayInjected {
     browserHandoff: HostObservable<boolean>
     /** The waiting attempt's hosted authorize URL; empty when none is waiting. */
     browserLink: HostObservable<string>
+    /** The confirmation a finished background browser login raises, if any. */
+    signInNotice: HostObservable<IamSignInNotice | undefined>
   }
 }
 
@@ -320,8 +324,37 @@ export function SignInOverlay(props: SignInOverlayProps) {
   return createPortal(
     <div ref={host} data-iam-sign-in-host="true" style={{ display: 'contents' }}>
       <SignInOverlayContent {...props} />
+      {/* A browser login can finish while the dialog is closed: its result is
+          announced here instead of reopening a surface the user dismissed. */}
+      <SignInNoticeToast {...props} />
     </div>,
     document.body,
+  )
+}
+
+/**
+ * The confirmation a finished browser login raises, independent of the dialog.
+ *
+ * The deep link is the outcome of a login the user may have left running in the
+ * system browser after closing the card; the toast reports the committed
+ * session (or the card above raises the failure) so that outcome is never
+ * silent.
+ * @param props - the injected notice source, its dismiss gesture, and the locale seat.
+ * @returns the toast while a notice is pending, nothing otherwise.
+ */
+function SignInNoticeToast({ useSignInNotice, dismissSignInNotice, t }: SignInOverlayProps) {
+  const notice = useSignInNotice(value => value)
+  if (notice === undefined) return null
+  const text = notice.accountName === undefined
+    ? t('browser.signedIn')
+    : t('browser.signedInAs', { name: notice.accountName })
+  return (
+    <Toast
+      key={notice.id}
+      tone="success"
+      text={text}
+      onDone={() => { dismissSignInNotice(notice.id) }}
+    />
   )
 }
 

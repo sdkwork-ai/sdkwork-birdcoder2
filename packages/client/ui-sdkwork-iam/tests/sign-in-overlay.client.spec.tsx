@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { createSdkworkAuthController, type SdkworkAuthRuntimeConfig } from '@sdkwork/auth-pc-react'
 import { SignInOverlay, type SignInOverlayProps } from '../src/client/SignInOverlay.tsx'
-import type { IamBrowserLoginFailure } from '../src/client/iam-service.ts'
+import type { IamBrowserLoginFailure, IamSignInNotice } from '../src/client/iam-service.ts'
 import type { IamSignInStep } from '../src/client/iam-ui-store.ts'
 
 afterEach(cleanup)
@@ -36,7 +36,7 @@ function controller(): ReturnType<typeof createSdkworkAuthController> {
 
 function overlay({
   open, step = 'entry', configured = true, startApiKey, browserFailed = false, browserHandoff = false,
-  browserFailure, browserLink = '', runtimeConfig = { leftRailMode: 'highlights-only', loginMethods: ['password'] },
+  browserFailure, browserLink = '', notice, runtimeConfig = { leftRailMode: 'highlights-only', loginMethods: ['password'] },
 }: {
   open: boolean
   step?: IamSignInStep
@@ -46,12 +46,14 @@ function overlay({
   browserFailure?: IamBrowserLoginFailure
   browserHandoff?: boolean
   browserLink?: string
+  notice?: IamSignInNotice
   runtimeConfig?: SdkworkAuthRuntimeConfig
 } = { open: true }) {
   const onClose = vi.fn()
   const onStartLogin = vi.fn()
   const onStartInAppLogin = vi.fn()
   const onRetryBrowser = vi.fn()
+  const onDismissNotice = vi.fn()
   const props = {
     controller: controller(),
     onClose,
@@ -61,6 +63,7 @@ function overlay({
     ...startApiKey === undefined ? {} : { startApiKey },
     locale: 'zh-CN',
     runtimeConfig,
+    dismissSignInNotice: onDismissNotice,
     useStore: vi.fn(<T,>(sel: (s: { modalOpen: boolean; step: IamSignInStep }) => T) => sel({ modalOpen: open, step })),
     useConfigured: vi.fn((sel: (c: boolean) => boolean) => sel(configured)),
     useBrowserFailed: vi.fn((sel: (failed: boolean) => boolean) => sel(browserFailed)),
@@ -68,18 +71,47 @@ function overlay({
       (sel: (failure: IamBrowserLoginFailure | undefined) => unknown) => sel(browserFailure)),
     useBrowserHandoff: vi.fn((sel: (handoff: boolean) => boolean) => sel(browserHandoff)),
     useBrowserLink: vi.fn((sel: (link: string) => string) => sel(browserLink)),
+    useSignInNotice: vi.fn((sel: (value: IamSignInNotice | undefined) => unknown) => sel(notice)),
     useTheme: vi.fn((sel: (s: { active: { colorScheme: 'light' | 'dark' } }) => { active: { colorScheme: 'light' | 'dark' } }) =>
       sel({ active: { colorScheme: 'light' } })),
     t: (key: string): string => key,
   }
   render(<SignInOverlay {...props as unknown as SignInOverlayProps} />)
-  return { onClose, onStartLogin, onStartInAppLogin, onRetryBrowser }
+  return { onClose, onStartLogin, onStartInAppLogin, onRetryBrowser, onDismissNotice }
 }
 
 describe('SignInOverlay', () => {
   it('renders nothing while the modal is closed (the overlay layer stays click-through)', () => {
     overlay({ open: false })
     expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('announces a browser login that finished while the dialog was closed', () => {
+    vi.useFakeTimers()
+    try {
+      const { onDismissNotice } = overlay({
+        open: false,
+        notice: { id: 7, kind: 'signed-in', accountName: 'A User' },
+      })
+      // The card the user closed stays closed; the outcome arrives as a toast.
+      expect(screen.queryByRole('dialog')).toBeNull()
+      const toast = screen.getByRole('alert')
+      expect(toast.textContent).toContain('browser.signedInAs')
+      act(() => { vi.advanceTimersByTime(4_100) })
+      expect(onDismissNotice).toHaveBeenCalledWith(7)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('shows the generic confirmation when the session named no account', () => {
+    overlay({ open: false, notice: { id: 8, kind: 'signed-in' } })
+    expect(screen.getByRole('alert').textContent).toContain('browser.signedIn')
+  })
+
+  it('shows no notice while nothing finished in the background', () => {
+    overlay({ open: false })
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('opens on the product login entry rather than the account method form', () => {

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SdkworkDesktopBridgeShape } from '@sdkwork/iam-desktop-auth'
+import { SdkworkDesktopAuthError } from '@sdkwork/iam-desktop-auth'
 
 const desktop = {
   begin: vi.fn(async () => {}),
@@ -553,9 +554,17 @@ describe('IamService desktop browser login', () => {
     await options.onSession({ accessToken: 'access', authToken: 'auth' })
     expect(service.isSignedIn()).toBe(true)
     expect(close).toHaveBeenCalledTimes(1)
+    // The committed session is announced, so a login finished while the dialog
+    // was closed still shows a result.
+    expect(service.signInNotice()).toMatchObject({ kind: 'signed-in', accountName: 'A User' })
+    const noticeId = service.signInNotice()?.id
+    service.dismissSignInNotice(-1)
+    expect(service.signInNotice()?.id).toBe(noticeId)
+    service.dismissSignInNotice(noticeId ?? -1)
+    expect(service.signInNotice()).toBeUndefined()
   })
 
-  it('abandons a waiting hand-off when the user closes the card', async () => {
+  it('keeps the browser hand-off waiting when the user closes the card', async () => {
     Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
     const service = new IamService(scopeOf(), envOf('https://api.example'), layoutOf())
     const close = vi.fn()
@@ -565,8 +574,56 @@ describe('IamService desktop browser login', () => {
     vi.spyOn(service, 'browserSignInWaiting').mockReturnValue(true)
 
     service.dismissSignIn()
-    expect(desktop.cancel).toHaveBeenCalledTimes(1)
+    // Hiding the card is not abandoning the login: the system browser can still
+    // finish, and that outcome must reach the user.
+    expect(desktop.cancel).not.toHaveBeenCalled()
     expect(close).toHaveBeenCalledTimes(1)
+  })
+
+  it('raises the failure card for a hand-off that fails after the card was closed', async () => {
+    Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
+    const service = new IamService(scopeOf(), envOf('https://api.example'), layoutOf())
+    const openBrowser = vi.fn()
+    service.attachModal({ openEntry: vi.fn(), openLogin: vi.fn(), openBrowser, close: vi.fn() })
+    service.startBrowserSignIn()
+    await vi.waitFor(() => { expect(desktop.begin).toHaveBeenCalledTimes(1) })
+    service.dismissSignIn()
+    openBrowser.mockClear()
+
+    const options = vi.mocked(createIamDesktopLogin).mock.calls.at(-1)?.[0]
+    options?.onError?.(new SdkworkDesktopAuthError(
+      'exchange-failed',
+      'The desktop session exchange failed. Start the browser login again.',
+      'authorization code is invalid or expired',
+    ))
+
+    expect(service.browserSignInFailed()).toBe(true)
+    expect(service.browserSignInFailure()).toMatchObject({ code: 'exchange-failed' })
+    // The user closed the card earlier; a real failure from the browser must not
+    // pass silently, so the recovery surface comes back.
+    expect(openBrowser).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not raise the card for a hand-off that simply expired while closed', async () => {
+    Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
+    const service = new IamService(scopeOf(), envOf('https://api.example'), layoutOf())
+    const openBrowser = vi.fn()
+    service.attachModal({ openEntry: vi.fn(), openLogin: vi.fn(), openBrowser, close: vi.fn() })
+    service.startBrowserSignIn()
+    await vi.waitFor(() => { expect(desktop.begin).toHaveBeenCalledTimes(1) })
+    service.dismissSignIn()
+    openBrowser.mockClear()
+
+    const options = vi.mocked(createIamDesktopLogin).mock.calls.at(-1)?.[0]
+    options?.onError?.(new SdkworkDesktopAuthError(
+      'flow-expired',
+      'The browser login window expired; start the login again.',
+    ))
+
+    // A timeout after the user walked away is not an outcome to interrupt them
+    // with minutes later.
+    expect(openBrowser).not.toHaveBeenCalled()
+    expect(service.browserSignInFailure()).toMatchObject({ code: 'flow-expired' })
   })
 
   it('abandons a waiting hand-off when the user picks the in-app form', async () => {
