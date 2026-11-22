@@ -235,7 +235,7 @@
     {
       "id": "sdkwork-deployments",
       "repository": "sdkwork-ai/sdkwork-deployments",
-      "ref": "53daa38f9fc5f7028d63be25ee7be317985ff7a3",
+      "ref": "74159b6629c36c8e44d5534dcd4144f2d6940676",
       "refInput": "SDKWORK_DEPLOYMENTS_REF",
       "tokenSecret": "SDKWORK_RELEASE_TOKEN"
     },
