@@ -246,20 +246,15 @@ export function parseFrontendModelConfig(value: unknown): FrontendModelConfig {
 /**
  * The ordered catalog keys one surface exposes.
  *
- * An explicit channel that is disabled, or that exposes no visible model,
- * yields an empty list: the operator hid the surface, so the relay must not
- * fall back to the seed. When the named surface is absent, the first enabled
- * surface serves as the answer, and an entirely absent or disabled document
- * still yields the empty list.
+ * Only the named surface answers: the relay is a chat surface, so an absent or
+ * disabled `llm` channel means the operator exposed nothing there. Falling back
+ * to another enabled surface would put video/image models into the chat picker.
  * @param document - validated configuration document.
  * @param channelCode - surface the relay corresponds to.
  * @returns deduplicated catalog keys in presentation order.
  */
 export function selectExposureKeys(document: FrontendModelConfig, channelCode: string): string[] {
-  const named = document.channels.find(channel => channel.channelCode === channelCode)
-  const channel = named ?? [...document.channels]
-    .filter(candidate => candidate.enabled)
-    .sort((left, right) => left.sortOrder - right.sortOrder)[0]
+  const channel = document.channels.find(candidate => candidate.channelCode === channelCode)
   if (channel === undefined || !channel.enabled) return []
   const visible = channel.models
     .filter(model => model.visible)

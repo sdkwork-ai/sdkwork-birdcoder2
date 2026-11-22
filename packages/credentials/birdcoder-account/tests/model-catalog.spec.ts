@@ -1,4 +1,4 @@
-﻿import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -261,5 +261,21 @@ describe('desktop shell projection contract', () => {
     const result = await loader.refresh()
     expect(result).toEqual({ status: 'applied', revision: 44, keyCount: 2 })
     expect(options.applied.at(-1)).toEqual({ keys: ['vendor/a', 'vendor/b'], revision: 44 })
+  })
+})
+
+describe('exposure selection surface binding', () => {
+  it('exposes nothing when the chat surface is absent instead of borrowing another surface', () => {
+    const parsed = parseFrontendModelConfig({
+      revision: 1,
+      channels: [{
+        channelCode: 'video',
+        enabled: true,
+        sortOrder: 10,
+        capabilityCodes: ['video_generation'],
+        models: [{ catalogKey: 'vendor/video-model', visible: true, sortOrder: 10 }],
+      }],
+    })
+    expect(selectExposureKeys(parsed, 'llm')).toEqual([])
   })
 })
