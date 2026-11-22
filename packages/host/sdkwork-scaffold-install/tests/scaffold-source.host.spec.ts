@@ -20,7 +20,7 @@ async function bench(maxFileBytes?: number): Promise<{ installer: SdkworkScaffol
   const ctx = new Context()
   const root = await mkdtemp(join(tmpdir(), 'scaffold-source-'))
   tmpRoots.push(root)
-  return { installer: new SdkworkScaffoldInstallInstaller(ctx, { maxFileBytes }), root }
+  return { installer: new SdkworkScaffoldInstallInstaller(ctx, maxFileBytes === undefined ? {} : { maxFileBytes }), root }
 }
 
 /** Write one file after creating its parent directories. */

@@ -22,7 +22,7 @@ async function bench(maxFileBytes?: number): Promise<{ installer: SdkworkScaffol
   const ctx = new Context()
   const target = await mkdtemp(join(tmpdir(), 'scaffold-install-'))
   tmpRoots.push(target)
-  return { installer: new SdkworkScaffoldInstallInstaller(ctx, { maxFileBytes }), target }
+  return { installer: new SdkworkScaffoldInstallInstaller(ctx, maxFileBytes === undefined ? {} : { maxFileBytes }), target }
 }
 
 const content = (text: string): string => Buffer.from(text, 'utf8').toString('base64')
