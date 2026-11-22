@@ -279,18 +279,18 @@ overrides:
   # when the override equals the member's version, and a stale pin silently
   # resolves the published tarball instead (which drags in a second closure —
   # and a `dsh-subprocess-local` build script the install allowlist refuses).
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh': '0.2.2-rc.5'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh': '0.2.3-alpha.2'
   # The expert-market plugin's Typert edges resolve the published 0.2.2-rc.1
   # pair, whose protocol entry re-exports `TypertRegistryContract` from
   # `./types.ts` — a type alias the registry's `declare module` augmentation
   # cannot reach, so `ctx.typert.register` misses its `register` member and the
-  # plugin's own typecheck gate fails. The workspace carries 0.2.2-rc.5, whose
+  # plugin's own typecheck gate fails. The workspace carries 0.2.3-alpha.2, whose
   # sources declare the contract in place; the scoped pins point the plugin's
   # edges there (linkWorkspacePackages links them instead of fetching), which
   # also drops the second Typert instance the plugin's runtime otherwise
   # carries beside the workspace sources.
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-typert-protocol': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-typert-registry': '0.2.2-rc.5'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-typert-protocol': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-typert-registry': '0.2.3-alpha.2'
   # The plugin is mounted by THIS build, so every remaining @deepseek-ai edge
   # typechecks against the types it actually runs against: this checkout's
   # sources, not the 0.2.2-rc.1 tarballs its manifest pins. The plugin was
@@ -302,31 +302,31 @@ overrides:
   # re-export already proved that).
   '@michengai/dsh-agency-agents>@deepseek-ai/cordis': 'link:vendor/cordis'
   '@michengai/dsh-agency-agents>@deepseek-ai/schemastery': 'link:vendor/schemastery'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-api-remotes': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-connection': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-locale': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-ui-conversation': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-ui-input-trigger': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-ui-primitives': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-ui-settings': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-ui-slots': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-host-webserver': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-llm': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-settings': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-subagent': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-system-prompt': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-tools': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-session': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-agent': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-attachment': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-brand': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-ptc-runtime': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-sandbox': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-sandbox-policy': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-scope': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-session-projection': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-user-approval': '0.2.2-rc.5'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-util-time': '0.2.2-rc.5'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-api-remotes': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-connection': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-locale': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-ui-conversation': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-ui-input-trigger': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-ui-primitives': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-ui-settings': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-ui-slots': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-host-webserver': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-llm': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-settings': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-subagent': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-system-prompt': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-tools': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-session': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-agent': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-attachment': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-brand': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-ptc-runtime': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-sandbox': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-sandbox-policy': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-scope': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-session-projection': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-user-approval': '0.2.3-alpha.2'
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-util-time': '0.2.3-alpha.2'
   # The plugin market (`plugins/dsh-market`) joins the workspace as the fork's
   # own submodule, so its `@deepseek-ai/*` edges resolve to the sources this
   # build actually runs instead of the published line its manifest pins. Two
@@ -338,9 +338,9 @@ overrides:
   # keeps a second harness closure (and its peer graph) out of the lockfile.
   'dshmarket>@deepseek-ai/cordis': 'link:vendor/cordis'
   'dshmarket>@deepseek-ai/schemastery': 'link:vendor/schemastery'
-  'dshmarket>@deepseek-ai/dsh-settings': '0.2.2-rc.5'
-  'dshmarket>@deepseek-ai/dsh-client-runtime': '0.2.2-rc.5'
-  'dshmarket>@deepseek-ai/dsh-client-ui-primitives': '0.2.2-rc.5'
+  'dshmarket>@deepseek-ai/dsh-settings': '0.2.3-alpha.2'
+  'dshmarket>@deepseek-ai/dsh-client-runtime': '0.2.3-alpha.2'
+  'dshmarket>@deepseek-ai/dsh-client-ui-primitives': '0.2.3-alpha.2'
   # Two upstream devDependencies of the fork name packages this checkout no
   # longer carries (`@deepseek-ai/dsh-invariants`,
   # `@deepseek-ai/dsh-client-ui-settings-plugins`). Nothing in the plugin's
@@ -420,12 +420,6 @@ allowBuilds:
   # The Python runtime deploy includes the reviewed workspace postinstall that
   # restores the executable bit on node-pty's macOS spawn helper.
   '@deepseek-ai/dsh-subprocess-local@file:packages/subprocess/subprocess-local': true
-  # The published build of that same helper. `@michengai/dsh-agency-agents`
-  # (`plugins/sdkwork-dsh-agents`) declares the published
-  # `@deepseek-ai/dsh@0.2.2-rc.5` as a dependency, so its tree resolves this
-  # registry copy and pnpm 11 refuses the install when its `postinstall` is
-  # neither approved nor explicitly ignored.
-  '@deepseek-ai/dsh-subprocess-local@0.2.2-rc.5': true
   # The Electron desktop shell (apps/desktop): electron's postinstall downloads
   # the platform binary; electron-winstaller's script is needed for NSIS
   # packaging; sharp rasterizes the app icons in generate-icons.

@@ -129,8 +129,10 @@
 
 #### 发布准备（本版本打包前）
 
+* **版本线收敛到 `0.2.3-alpha.2`**（`chore(release): bump the workspace to 0.2.3-alpha.2`）：上游这次的版本推进只覆盖它自己的成员，fork 自有 82 个 `packages/*/*` 与 `apps/*` 清单仍停在 `0.2.2-rc.5`，而打包的 `DshFamily.verifyVersions` 要求整族同版本，`0.2.2-rc.5` 的 `ui-sdkwork-*`、`sdkwork-*`、`birdcoder-account`、`*-pc/h5/pad/mini-program/flutter-mobile` 等全部随之同步。`pnpm-workspace.yaml` 里两族 scoped `overrides`（`@michengai/dsh-agency-agents>@deepseek-ai/*` 28 条、`dshmarket>@deepseek-ai/*` 3 条）也必须一起改：这个 pin 只有在等于本仓成员版本时才会 link 到工作区源码，落后就会静默改拉已发布 tarball，把第二套 harness 闭包（连同它那个被 allowlist 拒绝的 `dsh-subprocess-local` 构建脚本）拖进 lockfile——lockfile 因此减少约 9.2k 行。
 * **模型价格分组前置到模型行下方**（`feat(model-menu): place model price group directly under the model row`）：`ui-model-selection` 新增会话级列表插槽 `conversation.input.model.afterModel`，`ModelPicker` 增加 `renderAfterModel` 座位并在 `ModelSelect` 侧从插槽注册表投影；`ui-sdkwork-model-price-group` 的「模型价格分组」摘要从 `options` 迁到 `afterModel`，紧贴它所作用的「模型」行，详情面板（key `model-price-group`）与「仅 `birdcoder` 提供方渲染」不变。`slot-catalog.ts` 随之重生成，并补 `model-price-groups-transport.client.spec.ts` 记录 CloudRouter app API 的请求形状。
 * **子模块指针前移**（`chore(plugins): advance the submodule pins to their current upstream heads`）：`dsh-mcp-connector` 78a2976 → 7d719af（安装连接布局修复与 Registry 连接器数量文档）、`dsh-im` fc2ceab → 0694642（入站转发卡片读取正文）、`dsh-better-sidebar` aa2a058 → 14219fa（Git 详情关闭按钮常驻 Tabs 行、空白会话可从右栏展开底部工作台、原生搜索头部对齐）。三者包版本未变，因此不牵动任何消费者 pin 与 lockfile。
+* **发布依赖 pin 与 CI 断言**：`sdkwork-deployments` 的 pin 从 `53daa38` 前移到 `74159b66`（`react-router-dom` 回到 `^7.15.0`，与 lockfile 记录一致，此前打包在 `pnpm install --frozen-lockfile` 阶段全线失败）；`windows-build` 恢复丢失的「Verify Desktop updater dependency versions」步骤，`scripts/ci-workflow.spec.ts` 六项断言按合并后的 `ci.yml` 重算（Linux 池 16 并发上限、`windows-coverage` 保持非阻断、`build:official` 去掉已移除的 `--serial`、分片覆盖率缓存键、`refs/heads/main` 推送）。
 
 #### 后续项（本轮未做，均不影响发布完整性）
 
