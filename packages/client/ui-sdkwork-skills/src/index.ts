@@ -131,10 +131,10 @@ export interface Config {
  * bind a schema to a namespace.
  */
 export const Config = z.object({
-  [DISABLED_SKILLS_FIELD]: UiSkillsSettingsFields[DISABLED_SKILLS_FIELD].volatile(),
-  [HIDDEN_SCENE_TAGS_FIELD]: UiSkillsSettingsFields[HIDDEN_SCENE_TAGS_FIELD].volatile(),
-  [PINNED_SCENE_TAGS_FIELD]: UiSkillsSettingsFields[PINNED_SCENE_TAGS_FIELD].volatile(),
-  [SHOW_SCENE_TAGS_FIELD]: UiSkillsSettingsFields[SHOW_SCENE_TAGS_FIELD].volatile(),
+  disabledSkills: UiSkillsSettingsFields[DISABLED_SKILLS_FIELD].volatile(),
+  hiddenSceneTags: UiSkillsSettingsFields[HIDDEN_SCENE_TAGS_FIELD].volatile(),
+  pinnedSceneTags: UiSkillsSettingsFields[PINNED_SCENE_TAGS_FIELD].volatile(),
+  showSceneTags: UiSkillsSettingsFields[SHOW_SCENE_TAGS_FIELD].volatile(),
 })
 
 /**

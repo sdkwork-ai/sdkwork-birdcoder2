@@ -65,9 +65,9 @@ export interface Config {
  * and only a composition declares it.
  */
 export const Config = z.object({
-  [DEFAULT_PROVIDER_FIELD]: SdkworkMusicModelsFields[DEFAULT_PROVIDER_FIELD].volatile(),
-  [PROVIDERS_FIELD]: SdkworkMusicModelsFields[PROVIDERS_FIELD].volatile(),
-  [WRITE_SECRETS_FIELD]: SdkworkMusicModelsFields[WRITE_SECRETS_FIELD].volatile(),
+  defaultProviderId: SdkworkMusicModelsFields[DEFAULT_PROVIDER_FIELD].volatile(),
+  providers: SdkworkMusicModelsFields[PROVIDERS_FIELD].volatile(),
+  writeSecrets: SdkworkMusicModelsFields[WRITE_SECRETS_FIELD].volatile(),
   directory: z.string().default(''),
 })
 
@@ -193,8 +193,8 @@ export function apply(ctx: Context, config: Config): void {
  */
 function snapshotOf(config: Config): SdkworkMusicModelsSnapshot {
   return {
-    [DEFAULT_PROVIDER_FIELD]: config.defaultProviderId.get(),
-    [PROVIDERS_FIELD]: config.providers.get(),
-    [WRITE_SECRETS_FIELD]: config.writeSecrets.get(),
+    defaultProviderId: config.defaultProviderId.get(),
+    providers: config.providers.get(),
+    writeSecrets: config.writeSecrets.get(),
   }
 }

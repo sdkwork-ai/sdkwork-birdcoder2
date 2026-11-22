@@ -65,9 +65,9 @@ export interface Config {
  * and only a composition declares it.
  */
 export const Config = z.object({
-  [DEFAULT_PROVIDER_FIELD]: SdkworkVideoModelsFields[DEFAULT_PROVIDER_FIELD].volatile(),
-  [PROVIDERS_FIELD]: SdkworkVideoModelsFields[PROVIDERS_FIELD].volatile(),
-  [WRITE_SECRETS_FIELD]: SdkworkVideoModelsFields[WRITE_SECRETS_FIELD].volatile(),
+  defaultProviderId: SdkworkVideoModelsFields[DEFAULT_PROVIDER_FIELD].volatile(),
+  providers: SdkworkVideoModelsFields[PROVIDERS_FIELD].volatile(),
+  writeSecrets: SdkworkVideoModelsFields[WRITE_SECRETS_FIELD].volatile(),
   directory: z.string().default(''),
 })
 
@@ -193,8 +193,8 @@ export function apply(ctx: Context, config: Config): void {
  */
 function snapshotOf(config: Config): SdkworkVideoModelsSnapshot {
   return {
-    [DEFAULT_PROVIDER_FIELD]: config.defaultProviderId.get(),
-    [PROVIDERS_FIELD]: config.providers.get(),
-    [WRITE_SECRETS_FIELD]: config.writeSecrets.get(),
+    defaultProviderId: config.defaultProviderId.get(),
+    providers: config.providers.get(),
+    writeSecrets: config.writeSecrets.get(),
   }
 }

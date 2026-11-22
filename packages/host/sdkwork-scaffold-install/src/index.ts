@@ -118,18 +118,23 @@ interface DecodedWrite {
   readonly bytes: Buffer
 }
 
+/** Composition config for the scaffold-install capability. */
+export interface SdkworkScaffoldInstallConfig {
+  /** Inclusive per-file ceiling; tests shrink it, the deployment default is {@link MAX_FILE_BYTES}. */
+  readonly maxFileBytes?: number
+}
+
 /** The scaffold-install service. Owns every bounded project-file read and write. */
 export class SdkworkScaffoldInstallInstaller extends Service {
   private readonly maxFileBytes: number
 
   /**
    * @param ctx - host context.
-   * @param maxFileBytes - inclusive per-file ceiling; tests shrink it, the
-   *   deployment default is {@link MAX_FILE_BYTES}.
+   * @param config - composition config; the default ceiling is {@link MAX_FILE_BYTES}.
    */
-  constructor(ctx: Context, maxFileBytes: number = MAX_FILE_BYTES) {
+  constructor(ctx: Context, config: SdkworkScaffoldInstallConfig = {}) {
     super(ctx, 'sdkworkScaffoldInstall')
-    this.maxFileBytes = maxFileBytes
+    this.maxFileBytes = config.maxFileBytes ?? MAX_FILE_BYTES
   }
 
   /**

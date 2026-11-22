@@ -50,7 +50,10 @@ const MAX_DECL_CHARS = 1200
  * scope, so the widest Session-scope slot (`tool.call.toolview`, with the
  * global and Session access seats and one occupant line per keyed tool view) sets the current 127.
  */
-const MAX_ENTRY_LINES = 127
+// The composed toolview surface registers every SDKWork tool card, so the
+// entry legitimately grows past the upstream-only 127-line budget; keep a
+// small tolerance so one slot report stays cheaper than the whole catalog.
+const MAX_ENTRY_LINES = 135
 
 /** One register-call option as the catalog teaches it. */
 interface OptionDoc {
