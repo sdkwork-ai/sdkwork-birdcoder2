@@ -4,13 +4,14 @@ import {
   pinnedGroupOf,
   vendorCodeOf,
   type PriceGroupApi,
+  type PriceGroupOption,
 } from '../src/client/model-price-groups.ts'
 
 function api(overrides: Partial<PriceGroupApi> = {}): PriceGroupApi {
   return {
     listGroups: vi.fn(async () => [
-      { groupCode: 'cheap', groupId: '1', groupName: 'Cheap pool', isDefault: true, selected: true },
-      { groupCode: 'premium', groupId: '2', groupName: 'Premium pool', isDefault: false, selected: false },
+      { code: 'cheap', name: 'Cheap pool', isDefault: true, selected: true },
+      { code: 'premium', name: 'Premium pool', isDefault: false, selected: false },
     ]),
     listDefaults: vi.fn(async () => []),
     saveDefault: vi.fn(async () => {}),
@@ -94,25 +95,19 @@ it('clears the saving flag and keeps the failure on a rejected write', async () 
 })
 
 it('drops the result of a superseded model load', async () => {
-  const first = Promise.withResolvers<readonly {
-    groupCode: string
-    groupId: string
-    groupName: string
-    isDefault: boolean
-    selected: boolean
-  }[]>()
+  const first = Promise.withResolvers<readonly PriceGroupOption[]>()
   const service = new ModelPriceGroupService({
     env,
     iam,
     createApi: () => api({
       listGroups: model => model === 'old/model' ? first.promise : Promise.resolve([
-        { groupCode: 'new', groupId: '9', groupName: 'New pool', isDefault: false, selected: true },
+        { code: 'new', name: 'New pool', isDefault: false, selected: true },
       ]),
     }),
   })
   const oldLoad = service.ensure('old/model')
   await service.ensure('new/model')
-  first.resolve([{ groupCode: 'old', groupId: '8', groupName: 'Old pool', isDefault: true, selected: true }])
+  first.resolve([{ code: 'old', name: 'Old pool', isDefault: true, selected: true }])
   await oldLoad
   expect(service.state.getSnapshot()).toMatchObject({ model: 'new/model', status: 'ready', pinned: null })
   expect(service.state.getSnapshot().groups.map(group => group.code)).toEqual(['new'])
@@ -127,7 +122,7 @@ it('surfaces a failed read and retries it', async () => {
       listGroups: async () => {
         calls += 1
         if (calls === 1) throw new Error('offline')
-        return [{ groupCode: 'cheap', groupId: '1', groupName: 'Cheap pool', isDefault: true, selected: true }]
+        return [{ code: 'cheap', name: 'Cheap pool', isDefault: true, selected: true }]
       },
     }),
   })

@@ -67,6 +67,23 @@ async function fakeCloudRouter() {
         send(200, { code: 0, data: { item: { defaults } }, traceId: 'trace-2' })
         return
       }
+      if (request.method === 'GET' && url.pathname.startsWith('/v1/models/') && url.pathname.endsWith('/groups')) {
+        const model = decodeURIComponent(url.pathname.slice('/v1/models/'.length, -'/groups'.length))
+        if (model === 'unknown/model') {
+          send(404, { type: 'about:blank', title: 'Not Found', status: 404, detail: 'model not found' })
+          return
+        }
+        send(200, {
+          object: 'list',
+          data: groups.map(group => ({
+            id: group.groupId,
+            code: group.groupCode,
+            name: group.groupName,
+            defaultForModel: group.selected,
+          })),
+        })
+        return
+      }
       if (request.method === 'PUT' && url.pathname === '/app/v3/api/ai/routing/model_group_defaults') {
         const parsed = JSON.parse(body) as {
           scope?: string
@@ -118,14 +135,17 @@ it('calls the documented app-api operations with the IAM credentials', async () 
   const api = createCloudRouterPriceGroupApi(environment(cloud.origin), iam())
 
   const groups = await api.listGroups(MODEL)
-  expect(groups.map(group => group.groupCode)).toEqual(['cheap', 'premium'])
+  expect(groups.map(group => group.code)).toEqual(['cheap', 'premium'])
   expect(await api.listDefaults()).toEqual([])
 
   await api.saveDefault({ model: MODEL, vendorCode: 'deepseek', accountGroups: ['premium'] })
 
   const [list, defaults, write] = cloud.requests
   expect(list.method).toBe('GET')
-  expect(new URL(list.url!, 'http://127.0.0.1').searchParams.get('model')).toBe(MODEL)
+  // The generated client percent-encodes the vendor slash into one path segment,
+  // which is what the server route expects.
+  expect(list.url).toContain('deepseek%2Fdeepseek-flash')
+  expect(decodeURIComponent(list.url)).toBe(`/v1/models/${MODEL}/groups`)
   expect(list.headers.authorization).toBe('Bearer auth-token-value')
   expect(list.headers['access-token']).toBe('access-token-value')
   expect(defaults.url).toBe('/app/v3/api/ai/routing/model_group_defaults')

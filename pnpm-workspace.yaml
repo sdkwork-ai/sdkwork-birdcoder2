@@ -104,6 +104,10 @@ packages:
   # reaches its type surface through the @sdkwork/* source aliases below.
   - "../sdkwork-aiot/sdks/sdkwork-aiot-app-sdk/sdkwork-aiot-app-sdk-typescript"
   - "../sdkwork-cloudrouter/sdks/cloudrouter-app-sdk/cloudrouter-app-sdk-typescript"
+  # The public open-api SDK: the model price-group picker reads
+  # `/v1/models/{model}/groups` through it (API-key or IAM dual-token channel),
+  # while the user-scoped write still goes through the app SDK above.
+  - "../sdkwork-cloudrouter/sdks/cloudrouter-open-sdk/cloudrouter-open-sdk-typescript"
   - "../sdkwork-mcp/sdks/sdkwork-mcp-app-sdk/sdkwork-mcp-app-sdk-typescript"
   # `sdkwork-cloudroutes-pc-commons` (joined above through the cloudrouter
   # sibling) imports these three backend SDKs; the packages join for resolution

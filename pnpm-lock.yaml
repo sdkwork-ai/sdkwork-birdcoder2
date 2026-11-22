@@ -1825,6 +1825,22 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
 
+  ../sdkwork-cloudrouter/sdks/cloudrouter-open-sdk/cloudrouter-open-sdk-typescript:
+    dependencies:
+      '@sdkwork/sdk-common':
+        specifier: workspace:*
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+    devDependencies:
+      '@types/node':
+        specifier: 20.19.39
+        version: 20.19.39
+      rollup:
+        specifier: 4.60.1
+        version: 4.60.1
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+
   ../sdkwork-comments/sdks/sdkwork-comments-app-sdk/sdkwork-comments-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
@@ -13543,6 +13559,9 @@ importers:
       '@sdkwork/cloudrouter-app-sdk':
         specifier: workspace:^
         version: link:../../../../sdkwork-cloudrouter/sdks/cloudrouter-app-sdk/cloudrouter-app-sdk-typescript
+      '@sdkwork/cloudrouter-open-sdk':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-cloudrouter/sdks/cloudrouter-open-sdk/cloudrouter-open-sdk-typescript
       '@testing-library/react':
         specifier: ^16.3.3
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)

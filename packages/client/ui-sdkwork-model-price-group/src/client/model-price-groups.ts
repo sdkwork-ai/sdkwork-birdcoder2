@@ -18,11 +18,9 @@
  * @module @deepseek-ai/dsh-client-ui-sdkwork-model-price-group/model-price-groups
  */
 
-import type {
-  AppRoutingModelGroupDefault,
-  AppRoutingModelGroupOption,
-} from '@sdkwork/cloudrouter-app-sdk'
-import { createClient } from '@sdkwork/cloudrouter-app-sdk'
+import type { AppRoutingModelGroupDefault } from '@sdkwork/cloudrouter-app-sdk'
+import { createClient as createAppClient } from '@sdkwork/cloudrouter-app-sdk'
+import { createClient as createOpenClient } from '@sdkwork/cloudrouter-open-sdk'
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import {
   getSdkworkGlobalTokenManager,
@@ -84,13 +82,16 @@ export interface PriceGroupIam {
   }
 }
 
-/** The app-api operations the picker needs, separated for tests. */
+/** The app-api and open-api operations the picker needs, separated for tests. */
 export interface PriceGroupApi {
-  /** @returns the account groups that can serve the model. */
-  listGroups(model: string): Promise<readonly AppRoutingModelGroupOption[]>
-  /** @returns every stored rule of the signed-in user. */
+  /**
+   * Groups that can serve the model, read from the public open-api
+   * (`GET /v1/models/{model}/groups`).
+   */
+  listGroups(model: string): Promise<readonly PriceGroupOption[]>
+  /** @returns every stored rule of the signed-in user (app-api). */
   listDefaults(): Promise<readonly AppRoutingModelGroupDefault[]>
-  /** Replace the model scope's ordered group list; an empty list clears it. */
+  /** Replace the model scope's ordered group list; an empty list clears it (app-api). */
   saveDefault(input: { model: string; vendorCode: string; accountGroups: readonly string[] }): Promise<void>
 }
 
@@ -140,22 +141,29 @@ export function createCloudRouterPriceGroupApi(
   const origin = env.apiBaseUrl().trim().replace(/\/+$/u, '')
   if (origin === '') throw new Error('the SDKWork gateway origin is not configured')
   syncSdkworkGlobalTokenManager(iam.controller.getState().session, env.accessToken())
-  const client = createClient({
+  const common = {
     baseUrl: origin,
     platform: 'pc',
     tokenManager: getSdkworkGlobalTokenManager(),
-  })
+  } as const
+  const app = createAppClient(common)
+  const open = createOpenClient(common)
   return {
     async listGroups(model) {
-      const item = await client.ai.routing.modelGroups.retrieve({ model })
-      return item.groups ?? []
+      const list = await open.models.groups.list(model)
+      return (list.data ?? []).map(group => ({
+        code: group.code,
+        name: group.name === '' ? group.code : group.name,
+        isDefault: false,
+        selected: group.defaultForModel === true,
+      }))
     },
     async listDefaults() {
-      const item = await client.ai.routing.modelGroupDefaults.retrieve()
+      const item = await app.ai.routing.modelGroupDefaults.retrieve()
       return item.defaults ?? []
     },
     async saveDefault({ model, vendorCode, accountGroups }) {
-      await client.ai.routing.modelGroupDefaults.update({
+      await app.ai.routing.modelGroupDefaults.update({
         scope: 'model',
         model,
         ...(vendorCode === '' ? {} : { vendorCode }),
@@ -288,11 +296,10 @@ export class ModelPriceGroupService {
       const api = this.#api()
       const [groups, defaults] = await Promise.all([api.listGroups(model), api.listDefaults()])
       if (this.#disposed || generation !== this.#generation) return this.state.getSnapshot()
-      const options = groups.map(toOption)
       this.state.update((state) => {
         state.status = 'ready'
         state.model = model
-        state.groups = options
+        state.groups = [...groups]
         state.pinned = pinnedGroupOf(defaults, model)
       })
       return this.state.getSnapshot()
@@ -309,15 +316,6 @@ export class ModelPriceGroupService {
     } finally {
       if (this.#loading === model) this.#loading = undefined
     }
-  }
-}
-
-function toOption(group: AppRoutingModelGroupOption): PriceGroupOption {
-  return {
-    code: group.groupCode,
-    name: group.groupName === '' ? group.groupCode : group.groupName,
-    isDefault: group.isDefault,
-    selected: group.selected,
   }
 }
 

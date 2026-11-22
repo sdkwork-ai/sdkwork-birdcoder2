@@ -91,4 +91,4 @@ SDKWork 自定义插件统一以 **`sdkwork`** 标识，一眼可辨：
 
 | 包路径 | npm 包名 | 作用 |
 |--------|----------|------|
-| `packages/client/ui-sdkwork-model-price-group` | `@deepseek-ai/dsh-client-ui-sdkwork-model-price-group` | 模型价格分组：选中 `birdcoder` 中转模型时，在输入框模型菜单中贡献「模型价格分组」一级行与二级选择面板；经 CloudRouter app-api SDK（`ai.routing.modelGroups` / `modelGroupDefaults`）列出该模型可用的账号分组、读取用户已存规则并以 `model` 作用域写入选择，写入的列表由 `ai_user_account_group_route` 以有序多分组存储。 |
+| `packages/client/ui-sdkwork-model-price-group` | `@deepseek-ai/dsh-client-ui-sdkwork-model-price-group` | 模型价格分组：选中 `birdcoder` 中转模型时，在输入框模型菜单中贡献「模型价格分组」一级行与二级选择面板；经 CloudRouter 公开 open-api SDK（`models.groups.list`，`GET /v1/models/{model}/groups`）列出该模型可用的账号分组，再经 app-api SDK（`ai.routing.modelGroupDefaults`）读取用户已存规则并以 `model` 作用域写入选择；写入的列表由 `ai_user_account_group_route` 以有序多分组存储。 |
