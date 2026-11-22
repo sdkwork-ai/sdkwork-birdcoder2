@@ -252,6 +252,7 @@ flowchart TD
     pkg_client_ui_sdkwork_markets["client-ui-sdkwork-markets"]
     pkg_client_ui_sdkwork_mini_program_accounts["client-ui-sdkwork-mini-program-accounts"]
     pkg_client_ui_sdkwork_mobile_simulator["client-ui-sdkwork-mobile-simulator"]
+    pkg_client_ui_sdkwork_model_price_group["client-ui-sdkwork-model-price-group"]
     pkg_client_ui_sdkwork_music_models["client-ui-sdkwork-music-models"]
     pkg_client_ui_sdkwork_new_chat["client-ui-sdkwork-new-chat"]
     pkg_client_ui_sdkwork_oem["client-ui-sdkwork-oem"]
@@ -1871,6 +1872,7 @@ flowchart TD
 | [`client-ui-sdkwork-markets`](../packages/client/ui-sdkwork-markets) | `client` | — |
 | [`client-ui-sdkwork-mini-program-accounts`](../packages/client/ui-sdkwork-mini-program-accounts) | `client` | — |
 | [`client-ui-sdkwork-mobile-simulator`](../packages/client/ui-sdkwork-mobile-simulator) | `client` | — |
+| [`client-ui-sdkwork-model-price-group`](../packages/client/ui-sdkwork-model-price-group) | `client` | — |
 | [`client-ui-sdkwork-music-models`](../packages/client/ui-sdkwork-music-models) | `client` | — |
 | [`client-ui-sdkwork-new-chat`](../packages/client/ui-sdkwork-new-chat) | `client` | — |
 | [`client-ui-sdkwork-oem`](../packages/client/ui-sdkwork-oem) | `client` | — |

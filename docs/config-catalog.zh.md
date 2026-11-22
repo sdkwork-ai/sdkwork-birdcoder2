@@ -6226,6 +6226,7 @@ export interface Config {
 | `@deepseek-ai/dsh-client-ui-sdkwork-markets` | — | [`packages/client/ui-sdkwork-markets/src/index.ts`](../packages/client/ui-sdkwork-markets/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-sdkwork-mini-program-accounts` | — | [`packages/client/ui-sdkwork-mini-program-accounts/src/index.ts`](../packages/client/ui-sdkwork-mini-program-accounts/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-sdkwork-mobile-simulator` | — | [`packages/client/ui-sdkwork-mobile-simulator/src/index.ts`](../packages/client/ui-sdkwork-mobile-simulator/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-sdkwork-model-price-group` | — | [`packages/client/ui-sdkwork-model-price-group/src/index.ts`](../packages/client/ui-sdkwork-model-price-group/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-sdkwork-new-chat` | — | [`packages/client/ui-sdkwork-new-chat/src/index.ts`](../packages/client/ui-sdkwork-new-chat/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-sdkwork-oem` | — | [`packages/client/ui-sdkwork-oem/src/index.ts`](../packages/client/ui-sdkwork-oem/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-sdkwork-official-accounts` | — | [`packages/client/ui-sdkwork-official-accounts/src/index.ts`](../packages/client/ui-sdkwork-official-accounts/src/index.ts) |
