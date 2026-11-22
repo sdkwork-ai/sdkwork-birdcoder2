@@ -6,7 +6,7 @@
  */
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { AppTemplateResponse } from '@sdkwork/deployments-app-sdk'
+import type { ApplicationScaffoldResponse } from '@sdkwork/deployments-app-sdk'
 import type { DeployHostClients } from '../src/client/deployHost.ts'
 import { DeployedTemplatesPanel, type DeployedTemplatesPanelProps } from '../src/client/DeployedTemplatesPanel.tsx'
 import { OWNED_TEMPLATES_MAX_PAGES, OWNED_TEMPLATES_PAGE_SIZE } from '../src/client/deployedTemplates.ts'
@@ -24,7 +24,7 @@ const t = ((key: DeployKey, params?: Record<string, unknown>) => {
 }) as DeployedTemplatesPanelProps['t']
 
 /** One owned template listing the panel renders. */
-function template(over: Partial<AppTemplateResponse> = {}): AppTemplateResponse {
+function template(over: Partial<ApplicationScaffoldResponse> = {}): ApplicationScaffoldResponse {
   return {
     id: over.id ?? 'tpl-1',
     templateKey: 'starter-app',
@@ -52,8 +52,8 @@ function template(over: Partial<AppTemplateResponse> = {}): AppTemplateResponse 
 
 /** Listing state the fake generated client answers from. */
 interface Listing {
-  items: AppTemplateResponse[]
-  pageItems?: (page: number) => AppTemplateResponse[]
+  items: ApplicationScaffoldResponse[]
+  pageItems?: (page: number) => ApplicationScaffoldResponse[]
   fail?: boolean
   pageInfo?: { hasMore?: boolean }
   /** Version reads by template id; a throw simulates an unreadable page. */
@@ -79,9 +79,11 @@ function clientsOf(listing: Listing): {
   })
   const clients = {
     deployClient: {
-      template: {
-        appTemplates: { list },
-        appTemplateVersions: { list: listVersions },
+      app: {
+        scaffolds: {
+          list,
+          versions: { list: listVersions },
+        },
       },
     },
     driveClient: {},
@@ -181,7 +183,7 @@ describe('DeployedTemplatesPanel', () => {
   it('renders loading placeholders while the first read is in flight', () => {
     const list = vi.fn(() => new Promise<never>(() => {}))
     const clients = {
-      deployClient: { template: { appTemplates: { list }, appTemplateVersions: { list: vi.fn() } } },
+      deployClient: { app: { scaffolds: { list, versions: { list: vi.fn() } } } },
       driveClient: {},
     } as unknown as DeployHostClients
     render(<DeployedTemplatesPanel clients={clients} t={t} />)
@@ -189,7 +191,7 @@ describe('DeployedTemplatesPanel', () => {
   })
 
   it('renders every listing status with its localized label', async () => {
-    const statuses: AppTemplateResponse['status'][] = [
+    const statuses: ApplicationScaffoldResponse['status'][] = [
       'DRAFT', 'PENDING_REVIEW', 'PUBLISHED', 'REJECTED', 'DISABLED',
     ]
     const { view } = panel({
@@ -224,7 +226,7 @@ describe('DeployedTemplatesPanel', () => {
     let rejectList: ((cause: Error) => void) | undefined
     const list = vi.fn(() => new Promise((_resolve, reject) => { rejectList = reject }))
     const clients = {
-      deployClient: { template: { appTemplates: { list }, appTemplateVersions: { list: vi.fn() } } },
+      deployClient: { app: { scaffolds: { list, versions: { list: vi.fn() } } } },
       driveClient: {},
     } as unknown as DeployHostClients
     const view = render(<DeployedTemplatesPanel clients={clients} t={t} />)
@@ -306,7 +308,7 @@ describe('DeployedTemplatesPanel', () => {
     let resolveList: ((page: unknown) => void) | undefined
     const list = vi.fn(() => new Promise((resolve) => { resolveList = resolve }))
     const clients = {
-      deployClient: { template: { appTemplates: { list }, appTemplateVersions: { list: vi.fn() } } },
+      deployClient: { app: { scaffolds: { list, versions: { list: vi.fn() } } } },
       driveClient: {},
     } as unknown as DeployHostClients
     const view = render(<DeployedTemplatesPanel clients={clients} t={t} />)
@@ -327,23 +329,23 @@ describe('DeployedTemplatesPanel', () => {
     const versionGate = new Promise<void>((resolve) => { settleVersion = resolve })
     const clients = {
       deployClient: {
-        template: {
-          appTemplates: {
+        app: {
+          scaffolds: {
             list: vi.fn(async () => ({
               items: [template({ displayName: 'Versioned Scaffold', latestVersionUuid: 'version-1' })],
               pageInfo: { mode: 'offset', hasMore: false },
             })),
-          },
-          appTemplateVersions: {
-            list: vi.fn(async (
-              _templateId: string,
-              _params: unknown,
-              options?: { signal?: AbortSignal },
-            ) => {
-              versionSignal = options?.signal
-              await versionGate
-              return { items: [{ id: 'version-1', templateVersion: '9.9.9' }] }
-            }),
+            versions: {
+              list: vi.fn(async (
+                _templateId: string,
+                _params: unknown,
+                options?: { signal?: AbortSignal },
+              ) => {
+                versionSignal = options?.signal
+                await versionGate
+                return { items: [{ id: 'version-1', templateVersion: '9.9.9' }] }
+              }),
+            },
           },
         },
       },

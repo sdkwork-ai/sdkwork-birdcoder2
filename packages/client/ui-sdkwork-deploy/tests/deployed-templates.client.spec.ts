@@ -5,7 +5,7 @@
  * spec drives the same functions through the rendered tab.
  */
 import { describe, expect, it, vi } from 'vitest'
-import type { AppTemplateResponse } from '@sdkwork/deployments-app-sdk'
+import type { ApplicationScaffoldResponse } from '@sdkwork/deployments-app-sdk'
 import {
   OWNED_TEMPLATES_MAX_PAGES,
   OWNED_TEMPLATES_PAGE_SIZE,
@@ -20,7 +20,7 @@ import {
 } from '../src/client/deployedTemplates.ts'
 
 /** One listing row as the deployments client returns it. */
-function template(over: Partial<AppTemplateResponse> = {}): AppTemplateResponse {
+function template(over: Partial<ApplicationScaffoldResponse> = {}): ApplicationScaffoldResponse {
   return {
     id: 'tpl-1',
     templateKey: 'starter-app',
@@ -47,7 +47,7 @@ function template(over: Partial<AppTemplateResponse> = {}): AppTemplateResponse 
 }
 
 /** A full page of distinct rows. */
-function fullPage(prefix: string): AppTemplateResponse[] {
+function fullPage(prefix: string): ApplicationScaffoldResponse[] {
   return Array.from(
     { length: OWNED_TEMPLATES_PAGE_SIZE },
     (_unused, index) => template({ id: `${prefix}-${index}`, displayName: `${prefix} ${index}` }),

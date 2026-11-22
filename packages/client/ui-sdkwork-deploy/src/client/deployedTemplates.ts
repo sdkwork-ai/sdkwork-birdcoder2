@@ -1,7 +1,7 @@
 /**
  * Caller-owned app-template inventory for the settings-menu drawer's
  * "我的应用模板" tab: the paged read of the caller's template listings
- * (`template.appTemplates.list`, which is already account-scoped), the latest
+ * (`app.scaffolds.list`, which is already account-scoped), the latest
  * semantic version each listing currently points at, the status facet the tab
  * narrows by, and the recency ordering the rows render in.
  *
@@ -9,7 +9,7 @@
  * shows* is a function here, so it is testable without a rendered tab and the
  * component only composes it.
  */
-import type { AppTemplateResponse } from '@sdkwork/deployments-app-sdk'
+import type { ApplicationScaffoldResponse } from '@sdkwork/deployments-app-sdk'
 import type { DeployKey } from './locales.ts'
 import { walkAccountPages, type AccountListPage, type AccountListSnapshot } from './pagedAccount.ts'
 
@@ -23,10 +23,10 @@ export const OWNED_TEMPLATES_PAGE_SIZE = 100
 export const OWNED_TEMPLATES_MAX_PAGES = 5
 
 /** One page of the template listing, as the generated client returns it. */
-export interface OwnedTemplatesPage extends AccountListPage<AppTemplateResponse> {}
+export interface OwnedTemplatesPage extends AccountListPage<ApplicationScaffoldResponse> {}
 
 /** The caller's complete reachable set, plus whether the ceiling cut it short. */
-export interface OwnedTemplatesSnapshot extends AccountListSnapshot<AppTemplateResponse> {}
+export interface OwnedTemplatesSnapshot extends AccountListSnapshot<ApplicationScaffoldResponse> {}
 
 /**
  * Walk every page of the caller's own template listings.
@@ -43,7 +43,7 @@ export async function loadOwnedTemplates(
 }
 
 /** One template status as the listing contract spells it. */
-export type TemplateStatus = AppTemplateResponse['status']
+export type TemplateStatus = ApplicationScaffoldResponse['status']
 
 /**
  * `app_template.status` → dictionary key for the row badge and the facet chips.
@@ -98,7 +98,7 @@ export interface TemplateStatusFacet {
  * @returns one entry per known status, in {@link TEMPLATE_STATUS_ORDER}.
  */
 export function countTemplateStatusFacets(
-  templates: readonly AppTemplateResponse[],
+  templates: readonly ApplicationScaffoldResponse[],
 ): readonly TemplateStatusFacet[] {
   const counts = new Map<string, number>()
   for (const template of templates) counts.set(template.status, (counts.get(template.status) ?? 0) + 1)
@@ -115,9 +115,9 @@ export function countTemplateStatusFacets(
  * @returns the templates whose status is selected, in the input order.
  */
 export function filterTemplatesByStatus(
-  templates: readonly AppTemplateResponse[],
+  templates: readonly ApplicationScaffoldResponse[],
   statuses: ReadonlySet<TemplateStatus>,
-): AppTemplateResponse[] {
+): ApplicationScaffoldResponse[] {
   return statuses.size === 0 ? [...templates] : templates.filter(template => statuses.has(template.status))
 }
 
@@ -135,8 +135,8 @@ function timestampOf(value: string | undefined): number {
  * @returns a fresh array in descending `updatedAt` order.
  */
 export function sortTemplatesByUpdatedAt(
-  templates: readonly AppTemplateResponse[],
-): AppTemplateResponse[] {
+  templates: readonly ApplicationScaffoldResponse[],
+): ApplicationScaffoldResponse[] {
   return [...templates].sort((left, right) => timestampOf(right.updatedAt) - timestampOf(left.updatedAt))
 }
 
@@ -185,7 +185,7 @@ const TEMPLATE_VERSION_CONCURRENCY = 4
  * @returns template id → semantic version, omitting listings without one.
  */
 export async function resolveTemplateVersions(
-  templates: readonly AppTemplateResponse[],
+  templates: readonly ApplicationScaffoldResponse[],
   loadVersions: (templateId: string, signal?: AbortSignal | undefined) => Promise<TemplateVersionPage>,
   options: { readonly signal?: AbortSignal | undefined } = {},
 ): Promise<Readonly<Record<string, string>>> {

@@ -8,7 +8,7 @@
  */
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { AppKind, AppResponse, AppTemplateResponse, AppStatus } from '@sdkwork/deployments-app-sdk'
+import type { AppKind, AppResponse, ApplicationScaffoldResponse, AppStatus } from '@sdkwork/deployments-app-sdk'
 import type { DeployHost, DeployHostClients } from '../src/client/deployHost.ts'
 import { DeployedAppsDialog, type DeployedAppsDialogProps } from '../src/client/DeployedAppsDialog.tsx'
 import { DeployedAppsPanel, type DeployedAppsPanelProps } from '../src/client/DeployedAppsPanel.tsx'
@@ -295,10 +295,10 @@ function templateRow(over: {
   id?: string
   displayName?: string
   templateKey?: string
-  status?: AppTemplateResponse['status']
+  status?: ApplicationScaffoldResponse['status']
   installCount?: string
   latestVersionUuid?: string
-} = {}): AppTemplateResponse {
+} = {}): ApplicationScaffoldResponse {
   return {
     id: over.id ?? 'tpl-1',
     templateKey: over.templateKey ?? 'starter-app',
@@ -327,7 +327,7 @@ function templateRow(over: {
 /** Clients for both ledgers, with the recorded calls exposed to the assertions. */
 function drawerClients(options: {
   apps?: AppResponse[]
-  templates?: AppTemplateResponse[]
+  templates?: ApplicationScaffoldResponse[]
 } = {}): {
   clients: DeployHostClients
   listApps: ReturnType<typeof vi.fn>
@@ -348,10 +348,12 @@ function drawerClients(options: {
   }))
   const clients = {
     deployClient: {
-      app: { list: listApps },
-      template: {
-        appTemplates: { list: listTemplates },
-        appTemplateVersions: { list: listVersions },
+      app: {
+        list: listApps,
+        scaffolds: {
+          list: listTemplates,
+          versions: { list: listVersions },
+        },
       },
     },
     driveClient: {},

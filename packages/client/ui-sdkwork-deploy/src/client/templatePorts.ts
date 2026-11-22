@@ -86,7 +86,7 @@ export function createTemplatePublishPorts(pair: TemplateClientPair, host: Deplo
     updateTemplate: (templateId, input) => updateTemplateListing(pair.deployClient, templateId, input),
     createVersion: (templateId, input) => createTemplateVersion(pair.deployClient, templateId, input),
     submitTemplate: async (templateId) => {
-      await pair.deployClient.template.appTemplates.submit(templateId)
+      await pair.deployClient.app.scaffolds.submit(templateId)
     },
     packApp: (directory, onProgress) => packTemplateApp(host, directory, maxBytesForPackageType(SCAFFOLD_PACKAGE_TYPE), {
       onReadProgress: (progress) => { onProgress(progress.read, progress.total) },
@@ -130,7 +130,10 @@ export function createTemplateInstallPorts(pair: TemplateClientPair, host: Deplo
     writeTextFile: (path, content) => host.writeTextFile(path, content),
     installInto: async (templateId, targetDirectory, onProgress) => {
       const outcome = await installTemplateVersion({
-        templates: pair.deployClient.template,
+        templates: {
+          appTemplates: pair.deployClient.app.scaffolds,
+          appTemplateVersions: pair.deployClient.app.scaffolds.versions,
+        },
         artifacts: pair.deployClient,
         drive: pair.driveClient,
         writeFile: request => host.writeTemplateFile(request),
@@ -170,7 +173,7 @@ export async function listOwnedPlatformApps(deployClient: SdkworkDeployAppClient
 export async function listOwnedTemplates(deployClient: SdkworkDeployAppClient): Promise<OwnedTemplate[]> {
   const templates: OwnedTemplate[] = []
   for (let page = 1; page <= LISTING_PAGE_CEILING; page += 1) {
-    const result = await deployClient.template.appTemplates.list({ page, pageSize: LISTING_PAGE_SIZE })
+    const result = await deployClient.app.scaffolds.list({ page, pageSize: LISTING_PAGE_SIZE })
     for (const row of result.items) templates.push(toOwnedTemplate(row))
     if (result.pageInfo.hasMore !== true || result.items.length === 0) break
   }
@@ -192,7 +195,7 @@ export async function listTemplateCatalog(
   if (source === 'mine') {
     const rows: TemplateCatalogRow[] = []
     for (let page = 1; page <= LISTING_PAGE_CEILING; page += 1) {
-      const result = await deployClient.template.appTemplates.list({ page, pageSize: LISTING_PAGE_SIZE })
+      const result = await deployClient.app.scaffolds.list({ page, pageSize: LISTING_PAGE_SIZE })
       for (const row of result.items) {
         rows.push({
           id: row.id,
@@ -213,7 +216,7 @@ export async function listTemplateCatalog(
     }
     return rows
   }
-  const result = await deployClient.template.marketplaceTemplates.list({
+  const result = await deployClient.app.marketplace.scaffolds.list({
     page: 1,
     pageSize: 50,
     ...(keyword.trim() === '' ? {} : { keyword: keyword.trim() }),
@@ -284,7 +287,7 @@ async function createTemplateListing(
   deployClient: SdkworkDeployAppClient,
   input: CreateTemplateListingInput,
 ): Promise<OwnedTemplate> {
-  const created = await deployClient.template.appTemplates.create({
+  const created = await deployClient.app.scaffolds.create({
     appUuid: input.appUuid,
     templateType: 'APP',
     categoryUuid: input.categoryUuid,
@@ -309,7 +312,7 @@ async function updateTemplateListing(
   templateId: string,
   input: UpdateTemplateListingInput,
 ): Promise<OwnedTemplate> {
-  const updated = await deployClient.template.appTemplates.update(templateId, {
+  const updated = await deployClient.app.scaffolds.update(templateId, {
     displayName: input.displayName.trim(),
     summary: input.summary.trim(),
     description: input.description.trim(),
@@ -328,7 +331,7 @@ async function createTemplateVersion(
   templateId: string,
   input: CreateTemplateVersionInput,
 ): Promise<void> {
-  await deployClient.template.appTemplateVersions.create(templateId, versionBody(input), {
+  await deployClient.app.scaffolds.versions.create(templateId, versionBody(input), {
     idempotencyKey: newIdempotencyKey(),
   })
 }

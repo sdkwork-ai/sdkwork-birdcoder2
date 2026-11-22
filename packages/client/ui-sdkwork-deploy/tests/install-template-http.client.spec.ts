@@ -37,11 +37,11 @@ async function startGateway(): Promise<{
     const token = req.headers['access-token']
     if (typeof token === 'string') accessTokenSeen.push(token)
     const url = (req.url ?? '').split('?')[0]
-    if (url === '/app/v3/api/app_templates/tpl-1') {
+    if (url === '/app/v3/api/scaffolds/tpl-1') {
       json(res, { code: 0, data: { id: 'tpl-1', displayName: 'PC 管理台模板', templateKey: 'pc-admin', version: '0.2.0', latestVersionUuid: 'v-2' } })
       return
     }
-    if (url === '/app/v3/api/app_templates/tpl-1/versions') {
+    if (url === '/app/v3/api/scaffolds/tpl-1/versions') {
       json(res, { code: 0, data: { items: [
         { id: 'v-1', templateVersion: '0.1.0' },
         { id: 'v-2', templateVersion: '0.2.0', artifactUuid: 'art-1' },
@@ -126,7 +126,10 @@ describe('installTemplateVersion over a real SDK HTTP stack', () => {
     const targetDirectory = await freshTarget('full')
     const report = vi.fn()
     const outcome = await installTemplateVersion({
-      templates: deployClient.template,
+      templates: {
+        appTemplates: deployClient.app.scaffolds,
+        appTemplateVersions: deployClient.app.scaffolds.versions,
+      },
       artifacts: deployClient,
       drive: driveClient,
       writeFile: diskWritePort(targetDirectory).writeFile,
@@ -154,7 +157,10 @@ describe('installTemplateVersion over a real SDK HTTP stack', () => {
     const { deployClient, driveClient } = buildClients()
     const targetDirectory = await freshTarget('auth')
     await installTemplateVersion({
-      templates: deployClient.template,
+      templates: {
+        appTemplates: deployClient.app.scaffolds,
+        appTemplateVersions: deployClient.app.scaffolds.versions,
+      },
       artifacts: deployClient,
       drive: driveClient,
       writeFile: diskWritePort(targetDirectory).writeFile,
@@ -168,7 +174,10 @@ describe('installTemplateVersion over a real SDK HTTP stack', () => {
     const seenArtifactIds: string[] = []
     const targetDirectory = await freshTarget('latest')
     const outcome = await installTemplateVersion({
-      templates: deployClient.template,
+      templates: {
+        appTemplates: deployClient.app.scaffolds,
+        appTemplateVersions: deployClient.app.scaffolds.versions,
+      },
       artifacts: {
         artifact: {
           retrieve: async (artifactId: string) => {

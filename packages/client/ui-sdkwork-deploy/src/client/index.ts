@@ -435,7 +435,10 @@ export function apply(ctx: ClientContext): void {
         throw new Error('template install is unavailable: the host composition has no template-install bridge')
       }
       const outcome = await installTemplateVersion({
-        templates: clients.deployClient.template,
+        templates: {
+          appTemplates: clients.deployClient.app.scaffolds,
+          appTemplateVersions: clients.deployClient.app.scaffolds.versions,
+        },
         artifacts: clients.deployClient,
         drive: clients.driveClient,
         writeFile: request => writeTemplateFile(request),

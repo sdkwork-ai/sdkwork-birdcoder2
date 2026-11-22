@@ -138,7 +138,7 @@ export function TemplatePublishDialog({
     void Promise.all([
       listOwnedPlatformApps(clients.deployClient),
       listOwnedTemplates(clients.deployClient),
-      clients.deployClient.template.templateCategories.list({ includeDisabled: false }),
+      clients.deployClient.app.scaffolds.categories.list({ includeDisabled: false }),
     ]).then(([apps, templates, page]) => {
       if (cancelled) return
       setCatalog({
@@ -170,7 +170,7 @@ export function TemplatePublishDialog({
       const uuid = template.latestVersionUuid
       if (uuid === undefined) continue
       latestVersionAttempts.current.add(`${template.id}:${uuid}`)
-      void clients.deployClient.template.appTemplateVersions
+      void clients.deployClient.app.scaffolds.versions
         .list(template.id, { page: 1, pageSize: 50 })
         .then((page) => {
           if (cancelled) return

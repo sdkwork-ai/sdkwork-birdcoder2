@@ -3,7 +3,7 @@
  * "我的应用模板" tab.
  *
  * It reads the caller's own template listings through the deployments app API
- * (`template.appTemplates.list` is already account-scoped) and narrows that set
+ * (`app.scaffolds.list` is already account-scoped) and narrows that set
  * by listing status. The whole set is loaded first so a chip's count and the
  * rows it selects come from the same set. The latest semantic version each
  * listing points at is a side read: a failed version read leaves the row
@@ -15,7 +15,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
-import type { AppTemplateResponse } from '@sdkwork/deployments-app-sdk'
+import type { ApplicationScaffoldResponse } from '@sdkwork/deployments-app-sdk'
 import type { DeployHostClients } from './deployHost.ts'
 import { DeployedLedgerError } from './DeployedLedgerError.tsx'
 import { DeployedLedgerToolbar } from './DeployedLedgerToolbar.tsx'
@@ -64,7 +64,7 @@ function statusTone(status: TemplateStatus): string {
  * @returns the tab's ledger content.
  */
 export function DeployedTemplatesPanel({ clients, t }: DeployedTemplatesPanelProps): ReactNode {
-  const [templates, setTemplates] = useState<AppTemplateResponse[] | undefined>(undefined)
+  const [templates, setTemplates] = useState<ApplicationScaffoldResponse[] | undefined>(undefined)
   const [versions, setVersions] = useState<Readonly<Record<string, string>>>({})
   const [truncated, setTruncated] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -84,7 +84,7 @@ export function DeployedTemplatesPanel({ clients, t }: DeployedTemplatesPanelPro
     setError(undefined)
     void (async () => {
       try {
-        const snapshot = await loadOwnedTemplates(page => clients.deployClient.template.appTemplates.list({
+        const snapshot = await loadOwnedTemplates(page => clients.deployClient.app.scaffolds.list({
           page,
           pageSize: OWNED_TEMPLATES_PAGE_SIZE,
         }, { signal: controller.signal }))
@@ -96,7 +96,7 @@ export function DeployedTemplatesPanel({ clients, t }: DeployedTemplatesPanelPro
         setVersions({})
         setBusy(false)
         const resolved = await resolveTemplateVersions(snapshot.items, (templateId, signal) =>
-          clients.deployClient.template.appTemplateVersions.list(templateId, {
+          clients.deployClient.app.scaffolds.versions.list(templateId, {
             page: 1,
             pageSize: TEMPLATE_VERSION_PAGE_SIZE,
           }, { signal }), { signal: controller.signal })

@@ -80,8 +80,8 @@ function stubHost(): DeployHost & { readonly written: Map<string, string>; reado
 function stubClients(): DeployHostClients {
   return {
     deployClient: {
-      template: {
-        appTemplates: {
+      app: {
+        scaffolds: {
           list: async () => ({
             items: [{
               id: 'tpl-1',
@@ -107,27 +107,29 @@ function stubClients(): DeployHostClients {
           submit: async () => { throw new Error('unused') },
           create: async () => { throw new Error('unused') },
           update: async () => { throw new Error('unused') },
+          versions: {
+            list: async () => ({ items: [{ id: 'ver-1', templateVersion: '1.0.0', artifactUuid: 'art-1' }] }),
+            create: async () => { throw new Error('unused') },
+          },
+          categories: { list: async () => ({ items: [], pageInfo: { hasMore: false } }) },
         },
-        appTemplateVersions: {
-          list: async () => ({ items: [{ id: 'ver-1', templateVersion: '1.0.0', artifactUuid: 'art-1' }] }),
-          create: async () => { throw new Error('unused') },
+        marketplace: {
+          scaffolds: {
+            list: async () => ({
+              items: [{
+                id: 'tpl-market',
+                templateKey: 'sdkwork-market-h5',
+                displayName: '市场模板',
+                summary: 'From the marketplace',
+                version: '3',
+                status: 'PUBLISHED',
+                installCount: '9',
+                updatedAt: '2026-11-02T00:00:00Z',
+              }],
+              pageInfo: { hasMore: false },
+            }),
+          },
         },
-        marketplaceTemplates: {
-          list: async () => ({
-            items: [{
-              id: 'tpl-market',
-              templateKey: 'sdkwork-market-h5',
-              displayName: '市场模板',
-              summary: 'From the marketplace',
-              version: '3',
-              status: 'PUBLISHED',
-              installCount: '9',
-              updatedAt: '2026-11-02T00:00:00Z',
-            }],
-            pageInfo: { hasMore: false },
-          }),
-        },
-        templateCategories: { list: async () => ({ items: [], pageInfo: { hasMore: false } }) },
       },
       artifact: {
         retrieve: async () => ({ driveNodeId: 'node-1' }),

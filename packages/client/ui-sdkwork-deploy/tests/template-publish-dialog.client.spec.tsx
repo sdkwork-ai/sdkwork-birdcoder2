@@ -179,18 +179,22 @@ async function mount(host: DeployHost = stubHost()): Promise<void> {
     host,
     clients: {
       deployClient: {
-        template: {
-          templateCategories: {
-            list: async () => ({
-              items: [{ id: 'cat-1', displayName: '应用模板', status: 'ACTIVE' }],
-              pageInfo: { hasMore: false },
-            }),
-          },
-          appTemplateVersions: {
-            list: async () => ({
-              items: [{ id: 'ver-1', templateVersion: '2.3.4', artifactUuid: 'art-1' }],
-              pageInfo: { hasMore: false },
-            }),
+        app: {
+          list: async () => ({ items: [], pageInfo: { hasMore: false } }),
+          scaffolds: {
+            list: async () => ({ items: [], pageInfo: { hasMore: false } }),
+            categories: {
+              list: async () => ({
+                items: [{ id: 'cat-1', displayName: '应用模板', status: 'ACTIVE' }],
+                pageInfo: { hasMore: false },
+              }),
+            },
+            versions: {
+              list: async () => ({
+                items: [{ id: 'ver-1', templateVersion: '2.3.4', artifactUuid: 'art-1' }],
+                pageInfo: { hasMore: false },
+              }),
+            },
           },
         },
       },
