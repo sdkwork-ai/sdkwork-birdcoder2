@@ -25,7 +25,10 @@
   "files": [
     "lib/index.js",
     "cordis.patch.yml",
-    "lib/types/**/*.d.ts"
+    "lib/types/**/*.d.ts",
+    "lib/types/**/*.d.ts.map",
+    "lib/**/*.js.map",
+    "src"
   ],
   "license": "MIT",
   "dsh": {
@@ -42,10 +45,10 @@
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-system-prompt": "workspace:*",
-    "@deepseek-ai/cordis": "workspace:^"
+    "@deepseek-ai/cordis": "workspace:~"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "workspace:^",
+    "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-official-bundles": "workspace:*",
     "@deepseek-ai/dsh-system-prompt": "workspace:*"
   }

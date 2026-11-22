@@ -8,9 +8,7 @@ bin/docker-deploy.sh logs --environment production --follow            # explici
 bin/docker-deploy.sh logs --environment production --export ./out      # export for tickets (redacted)
 ```
 
-Healthy startup signature: the `app` service binds its
-listener, `/healthz` returns 200, and module lifecycles report ready in
-order.
+Healthy startup signature: the `app` service binds its listener, `/healthz` returns 200, and module lifecycles report ready in order.
 
 ## Common failure signatures
 

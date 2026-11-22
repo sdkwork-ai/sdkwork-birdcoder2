@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Browsers reach the web GUI over HTTP through `dsh-host-webserver`: a `node:http` server — `node:https` once `tls` names a certificate and key — where other plugins register named routes, upgrade routes, index startup inputs, and one fallback. It serves no files — the `/api` bridge, plugin bundles, the HMR event stream, and the SPA dist belong to the plugins that register them. Route matching is fixed: exact over the whole table, then longest prefix, then the fallback. It serves browsers only; the Electron desktop shell ([apps/desktop](../../../apps/desktop)) swaps this row for the [desktop carrier](../sdkwork-desktop-carrier/README.md), which provides the same `webServer` service over the shell's `app://` protocol, and carries RPC over an IPC bridge.
+Browsers reach the web GUI over HTTP through `dsh-host-webserver`: a `node:http` server (`node:https` once `tls` names a certificate and key) where other plugins register named routes, upgrade routes, index startup inputs, and one fallback. It serves no files: the `/api` bridge, plugin bundles, the HMR event stream, and the SPA dist belong to the plugins that register them. Route matching is fixed: exact over the whole table, then longest prefix, then the fallback.
 
 ## Table of Contents
 
@@ -84,6 +84,8 @@ A listen failure (for example EADDRINUSE) rejects plugin initialization with the
 
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
+
+It serves browsers only; the Electron desktop shell ([apps/desktop](../../../apps/desktop)) swaps this row for the [desktop carrier](../sdkwork-desktop-carrier/README.md), which provides the same `webServer` service over the shell's `app://` protocol, and carries RPC over an IPC bridge.
 
 <details>
 <summary>Implementation internals — click to expand</summary>

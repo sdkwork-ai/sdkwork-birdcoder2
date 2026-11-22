@@ -540,7 +540,7 @@ export default defineConfig({
         'packages/experimental/webworker-runtime/src/**',
         'packages/experimental/webworker-packer/src/*',
         // `@deepseek-ai/dsh-host-apiproxy` is fork-retained: upstream deleted the
-        // package (`4f00a8b82a refactor(api): remove ApiProxy package`) and
+        // package (the upstream ApiProxy removal) and
         // dropped these exemptions in the same commit, but the fork keeps it —
         // `ctx.apiProxy` has no other provider, and the fork's own
         // `sdkwork-api-gateway` carrier plus the Connection slot consume it. The

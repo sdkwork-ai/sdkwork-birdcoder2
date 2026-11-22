@@ -17,6 +17,7 @@ The repository root `agent.app.config.json` governs the primary application mani
 | cli | app | yes | `@deepseek-ai/dsh` | [README](cli/README.md) |
 | desktop | app | yes | DeepSeek Harness Desktop | [README](desktop/README.md) |
 | desktop-host | app | yes | desktop-host app application root. | `desktop-host/` |
+| desktop-publisher | library | no | Desktop publication and staged-rollout helper shared with the Desktop packaging workflows (not a client application root) | [README](desktop-publisher/README.md) |
 | plugin-market-generator | app | yes | Plugin market index generator | [README](plugin-market-generator/README.md) |
 | sdkwork-birdcoder2-common | common | no | Cross-architecture shared package family for BirdCoder2 (not a runnable client surface) | [README](sdkwork-birdcoder2-common/README.md) |
 | sdkwork-birdcoder2-flutter-mobile | flutter-mobile | yes | BirdCoder2 Flutter Mobile flutter-mobile application root. | [README](sdkwork-birdcoder2-flutter-mobile/README.md) |

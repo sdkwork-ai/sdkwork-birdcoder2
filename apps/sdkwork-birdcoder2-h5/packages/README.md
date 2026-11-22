@@ -8,6 +8,8 @@ Authority: `APP_CLIENT_ARCHITECTURE_ALIGNMENT_SPEC.md` §2, `APP_H5_ARCHITECTURE
 | Package | Role | Layer |
 | --- | --- | --- |
 | `@sdkwork/birdcoder2-h5-core` | Runtime/bootstrap, SDK client construction, appbase IAM runtime, global TokenManager, host adapter fallback registration. | `runtime` |
+| `@sdkwork/birdcoder2-h5-hosts` | Host fleet capability: fleet list, inline rename/revoke, and the two-step enrollment flow. Contributes `app.host.fleet.*`. | `feature` |
+| `@sdkwork/birdcoder2-h5-agent-chat` | Agent conversation capability: live transcript, streaming turn log, and session list. Contributes `app.agent.chat.*`. | `feature` |
 | `@sdkwork/birdcoder2-h5-commons` | Shared mobile presentation primitives, safe-area and gesture helpers, empty/loading/error states. | `ui` |
 | `@sdkwork/birdcoder2-h5-shell` | Mobile route assembly, navigation, AuthGate wiring, shell layout. | `shell` |
 | `@sdkwork/birdcoder2-h5-console-shell` | User-facing mobile console navigation and route assembly. | `shell` |
@@ -27,6 +29,11 @@ Authority: `APP_CLIENT_ARCHITECTURE_ALIGNMENT_SPEC.md` §2, `APP_H5_ARCHITECTURE
 
 ## Wiring status
 
-The family is scaffolded only: no package is registered as a workspace member yet, so no
-package is built or linked. Registering the members is the next step before the first
-capability package lands.
+Every package in this family is a registered workspace member
+(`apps/sdkwork-birdcoder2-h5/packages/*` in `pnpm-workspace.yaml`), so each one is linked and
+type-checked by the repository.
+
+`core`, `shell`, `hosts`, and `agent-chat` are implemented and covered by the app's vitest suite:
+they own the composition root, the route shell, and both capabilities. `commons`, `console-shell`,
+`admin-core`, and `capacitor` still expose scaffold boundary contracts whose real surfaces land with
+their first consumers; the Capacitor native project (`ios/`, `android/`) is not generated yet.

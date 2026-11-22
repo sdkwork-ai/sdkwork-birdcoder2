@@ -4,11 +4,11 @@
 
 ## 0.2.2-rc.5（fork 同步 2026-11-18）
 
-本版本把 `deepseek-ai/deepseek-harness` 的 `0.2.2-rc.5` 完整合入 fork。上游 `master` 从上一合并基底 `ca33fd6843b`（rc.4 合并点）推进到 `2e39e70496a`（`Merge pull request #8728 from deepseek-harness/worktree-release-dsh-0.2.2-rc.5`），对应上游 tag `dsh-v0.2.2-rc.5`。相对基底新增 **238 个提交（其中 139 个非 merge 功能/修复提交）、960 个文件变更**（+22274 / −2710）。合并保留真实双亲 merge commit，上游 238 个提交记录、commit message 与代码注释逐字随合并进入仓库；版本线前移到 **0.2.2-rc.5**。
+本版本把 `deepseek-ai/deepseek-harness` 的 `0.2.2-rc.5` 完整合入 fork。上游 `master` 从上一合并基底 `dsh-v0.2.2-rc.4`（rc.4 合并点）推进到 `dsh-v0.2.2-rc.5`（`Merge pull request #8728 from deepseek-harness/worktree-release-dsh-0.2.2-rc.5`），对应上游 tag `dsh-v0.2.2-rc.5`。相对基底新增 **238 个提交（其中 139 个非 merge 功能/修复提交）、960 个文件变更**（+22274 / −2710）。合并保留真实双亲 merge commit，上游 238 个提交记录、commit message 与代码注释逐字随合并进入仓库；版本线前移到 **0.2.2-rc.5**。
 
 ### 上游变更（deepseek-harness 0.2.2-rc.5）
 
-上游尚未以 Release 正文形式发布该版说明，以下按 `git log ca33fd6843b..2e39e70496a` 的实际提交主题归纳。
+上游尚未以 Release 正文形式发布该版说明，以下按 `git log dsh-v0.2.2-rc.4..dsh-v0.2.2-rc.5` 的实际提交主题归纳。
 
 #### 会话、SQLite 与持久化
 
@@ -59,7 +59,7 @@
 
 #### 同步与冲突处理
 
-* 合并基底 `ca33fd6843b` → `2e39e70496a`（238 个上游提交、960 个文件变更）。**30 个文件**存在文本冲突，按 fork-first 规则逐项解决：SDKWork 自有组件（`ui-sdkwork-*`、`sdkwork-*` Host/Bundle、`ui-sdkwork-iam` 登录步骤等）与品牌表面（`BirdLogo` / `BirdWordmark` / `LoginPanel` / favicon / 图标 / 标语）保留 fork 版本。
+* 合并基底 `dsh-v0.2.2-rc.4` → `dsh-v0.2.2-rc.5`（238 个上游提交、960 个文件变更）。**30 个文件**存在文本冲突，按 fork-first 规则逐项解决：SDKWork 自有组件（`ui-sdkwork-*`、`sdkwork-*` Host/Bundle、`ui-sdkwork-iam` 登录步骤等）与品牌表面（`BirdLogo` / `BirdWordmark` / `LoginPanel` / favicon / 图标 / 标语）保留 fork 版本。
 * 关键冲突逐项并集：
   * 根 `package.json` 与 `apps/desktop-host/package.json` 保留 fork 已重排的依赖清单与 `@sdkwork/*` 可选依赖，并入上游新增的 `dsh-mcp-manager` / `dsh-linear` / `dsh-notion` 与 `dsh-api-workspace-files`；`connection` 清单并入上游 `dsh-client-config` 与 fork 的 `dsh-host-apiproxy` / `dsh-tools`。
   * `connection` 的 `types.ts` 拆分采纳上游 `ConnectionConfig` 位置与 volatile `Config`，同时保留 fork 的 `sdkwork-gateway-slot` 激活、`ConnectionFetchHandler`、SDKWork API 网关 fallback 与 `__DSH_CONNECTION_RECOVERY__` 页面注入（上游已移除该注入，fork 侧 5 个文件仍依赖）；client/host tsconfig 同时列出 fork 的 `rpc-schema.ts` / `sdkwork-gateway-slot.ts` 与上游 `types.ts`。
@@ -68,7 +68,7 @@
   * 上游整体重构的 `client-ui-forge/ChangesTab.tsx`（拆分为 `ChangesTab` 包装 + `ChangesView`，`ReviewPage.tsx` 已按上游导入 `ChangesView`）按上游为准；fork 对该文件的微小文案/图标调整让位于上游结构。
   * README 与 i18n 配对文件按 fork 品牌与 SDKWork 文档为准，prose 冲突并集双方段落（侧栏 trailing content 与 IM 快捷入口过滤、交付物 cwd 与普通缺失说明）。
 * 合并后全仓扫描无冲突标记残留；品牌契约复核通过：`FishLogo` 仅出现在 `ui-primitives` 源码与测试，三处登录入口（`WelcomePage` / `SignInDialog` / `SignInOverlay`）均渲染 `LoginPanel`，官方名称槽渲染 `BirdWordmark`，启动页渲染 `createBootBrand()`，56 个 `ui-sdkwork-*` 组件、15 个 `sdkwork-*` Host/Bundle 包完好，canonical 栅格 `apps/web/public/favicon.png` 未被覆盖。
-* **同步完整性复核**：`upstream/master` 已推进到 `2e39e70496a`，`git merge-base` 为 `ca33fd6843b`，238 个上游提交随真实双亲 merge commit 全部合入；4 个删除文件（各 `*config.ts`）与 1 个重命名（`working-directory/tests/admission.spec.ts` → `sandbox/sandbox-policy/tests/admission.spec.ts`）经核对均为上游自身改动，无 fork 自定文件误删。
+* **同步完整性复核**：`upstream/master` 已推进到 `dsh-v0.2.2-rc.5`，`git merge-base` 为 `dsh-v0.2.2-rc.4`，238 个上游提交随真实双亲 merge commit 全部合入；4 个删除文件（各 `*config.ts`）与 1 个重命名（`working-directory/tests/admission.spec.ts` → `sandbox/sandbox-policy/tests/admission.spec.ts`）经核对均为上游自身改动，无 fork 自定文件误删。
 
 #### 版本与依赖
 
@@ -79,7 +79,7 @@
 
 #### 合并后的 fork 变更（2026-11-19）
 
-合入 rc.5 之后 fork 侧在同一版本线上继续推进的自有能力（`ff72ca4f20..9d00779d7a`，13 个提交；依赖与 pin 的调整已记入上节）。上游代码与提交记录不受影响。
+合入 rc.5 之后 fork 侧在同一版本线上继续推进的自有能力（`dsh-v0.2.2-rc.5 之后的 fork 提交`，13 个提交；依赖与 pin 的调整已记入上节）。上游代码与提交记录不受影响。
 
 * **输入框历史（新包 `ui-sdkwork-input-history`）**：记录 Host 已接受的普通消息到浏览器本地存储，输入框裸 ↑/↓ 回溯——↑ 走向更旧一条、↓ 走向更新并在越过最新一条后恢复被中断的草稿，新一轮回溯只在草稿的询问边界开始（`feat(client): add the composer input history section and share the input contract`）。设置页「输入历史」可选范围（本会话 / 本项目 / 本浏览器全部会话）、保留窗口（默认 30 天）并可清空缓存；关闭开关即停止记录与回溯，账本保留至清空或过期。历史按浏览器配置存放，不跨账号或机器同步。输入契约与召回后的光标行为写入 README 与 agent-note（`docs(client): describe the caret behaviour inside a recalled input-history entry`）。
 * **设置菜单 shell store**：新增对话框可见性、当前分区与待揭示 provider 路由的共享 store，让轨道之外的表面——会话失败行的「去配置」手势——能在自己的分区打开设置对话框；悬停菜单的展开状态仍是组件内查看状态（`feat(client): add the settings menu store and its slot wiring`）。

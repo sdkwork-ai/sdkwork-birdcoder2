@@ -21,5 +21,6 @@ Dart packages for `sdkwork-birdcoder2-flutter-mobile`. Authority: `FLUTTER_APP_M
 
 ## Wiring status
 
-The family is scaffolded only: no package is wired into `pubspec.yaml` beyond the core, and no
-native platform project exists yet.
+Only `sdkwork_birdcoder2_flutter_mobile_core` is wired into the root `pubspec.yaml`; `commons`,
+`shell`, and `host` are not referenced yet, and no native runner project (`ios/`, `android/`) exists.
+The packages expose scaffold boundary contracts until the first capability consumes them.

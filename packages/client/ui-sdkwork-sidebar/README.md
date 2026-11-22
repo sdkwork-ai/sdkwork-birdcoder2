@@ -9,9 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This package occupies the layout's `sidebar` slot — the whole left column — in place of upstream `@deepseek-ai/dsh-client-ui-sidebar`. It keeps upstream's seat contract and adds a page registry: plugins contribute a left-column page through `ctx.sdkworkSidebar` and the shell draws the row, exactly the way the vendored [dsh-better-sidebar](../../../plugins/dsh-better-sidebar) lets plugins register sidebar tabs and pages through `ctx.betterSidebar.registerTab`.
-
-The column still shows the brand row and version badge, the New Session entry, the quick-entry stack, global panel rows, the Workspace/Session browser, the footer actions and Settings — every occupant of upstream's seats keeps registering into the same holes, so nothing downstream changes. The column also owns the visibility preference: the settings dialog's **Sidebar** page lists every row the column can draw and switches each one.
+The fork-owned left navigation column that replaces upstream's sidebar: it keeps every upstream seat and adds a page registry, so a plugin contributes a left-column page through `ctx.sdkworkSidebar` and the shell draws the row. The column still renders the brand row, New Session entry, quick entries, global panel rows, Workspace/Session browser, footer actions, and Settings, and its Settings **Sidebar** page lists every drawable row with a visibility switch.
 
 ## Table of Contents
 
@@ -97,6 +95,10 @@ The shell also owns the `sidebar.workspaces` viewport contract its occupant (ui-
 </details>
 
 -----
+
+This package occupies the layout's `sidebar` slot — the whole left column — in place of upstream `@deepseek-ai/dsh-client-ui-sidebar`. It keeps upstream's seat contract and adds a page registry: plugins contribute a left-column page through `ctx.sdkworkSidebar` and the shell draws the row, exactly the way the vendored [dsh-better-sidebar](../../../plugins/dsh-better-sidebar) lets plugins register sidebar tabs and pages through `ctx.betterSidebar.registerTab`.
+
+The column still shows the brand row and version badge, the New Session entry, the quick-entry stack, global panel rows, the Workspace/Session browser, the footer actions and Settings — every occupant of upstream's seats keeps registering into the same holes, so nothing downstream changes. The column also owns the visibility preference: the settings dialog's **Sidebar** page lists every row the column can draw and switches each one.
 
 <a id="further-exploration"></a>
 ## Further Exploration

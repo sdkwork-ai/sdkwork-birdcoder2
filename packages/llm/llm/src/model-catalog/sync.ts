@@ -1,8 +1,8 @@
 /**
  * Synchronization client for the versioned model catalog.
  *
- * The client follows the protocol in
- * `sdkwork-cloudrouter/docs/architecture/tech/TECH-2026-11-15-model-catalog-sync-api.md`:
+ * The client follows the protocol in the SDKWork CloudRouter model-catalog sync
+ * API tech note (`TECH-2026-11-15-model-catalog-sync-api.md`):
  * a conditional full snapshot on a cold start, a conditional delta afterwards,
  * a fallback to a full snapshot on a revision gap, and a local copy-on-write
  * commit for every accepted revision. A failed sync never clears the published

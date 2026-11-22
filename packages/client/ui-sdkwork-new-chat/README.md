@@ -17,6 +17,10 @@ The New Chat entry as an independent module: the new-conversation row that leads
 - [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
 - [Dev Note](#dev-note)
 
+## Runtime invariants
+
+No runtime invariant companion is published; the entry is a pure function of the seat's owner share, and the shell's fallback behavior is covered directly by ui-sidebar's client behavior specs.
+
 ## Model Experience
 
 None, as the package is human-only surface chrome; starting a conversation changes browser viewing state only, and nothing here reaches a model request.
@@ -38,7 +42,3 @@ None; this package neither assembles nor sends provider requests.
 The sidebar shell owns the seat and hands every entry the shared `startSession` action plus the wide flag; this package owns only its row chrome and copy. Capability parity with the built-in capsule is structural — both call the same injected action — so keep the entry registered against `sidebar.actions` and do not re-wire the Workspace UI service here.
 
 </details>
-
-## Runtime invariants
-
-No runtime invariant companion is published; the entry is a pure function of the seat's owner share, and the shell's fallback behavior is covered directly by ui-sidebar's client behavior specs.

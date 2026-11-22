@@ -33,7 +33,7 @@ export interface OwnedAppsSnapshot extends AccountListSnapshot<AppResponse> {}
  * Walk every page of the caller's own applications.
  *
  * Termination, the short-page fallback, and the page ceiling are the shared
- * {@link walkAccountPages} contract so the app and template ledgers cannot
+ * {@link walkAccountPages} contract so the app and scaffold ledgers cannot
  * drift apart.
  * @param loadPage - loads one page (1-based) of the caller's applications.
  * @returns the accumulated rows and whether the ceiling cut the walk short.

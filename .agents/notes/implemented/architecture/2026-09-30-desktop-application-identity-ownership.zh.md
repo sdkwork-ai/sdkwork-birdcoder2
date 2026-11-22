@@ -30,7 +30,7 @@ Windows 卸载进一步放大了问题：`installer/uninstall.nsh` 会删除 `%A
 
 打包宁可拒绝出包也不发布这处冲突：构建配置在清单缺少 `productName` 时直接失败，其 `afterPack` 钩子会把清单从已构建的 `app.asar` 中读回来，并拒绝安装程序身份与清单身份不一致的任何流水线。因此为隔离而改名的流水线——Windows 安装程序检查与已安装更新资格验证——必须同时把名字写进 `extraMetadata.productName`，这两条流水线现在都这样做。`apps/desktop/tests/desktop-application-identity.spec.ts` 固定了清单字段、构建器协议、壳的协议与 `open-url` 处理、开发包标识、启动器名称、命令归属记录与卸载目标。
 
-两条边界保持不变。Harness 主目录（`~/.dsh`、`desktop` profile、会话、凭据、设置）继续与 npm `dsh` CLI 共用：那是双方一致认可的数据，而非进程级资源，迁移它会丢弃所有既有用户的数据。Windows 卸载会删除本应用的 `%APPDATA%\BirdCoder` 与自己的更新缓存，并有意保留 `%APPDATA%\@deepseek-ai\dsh-desktop`——那是另一个已安装应用的 userData，拆分前版本留下的残余，是"绝不删除本应用并不拥有的数据"的代价（[卸载决策](2026-09-08-desktop-uninstall-preserve-dsh-home.md)，已更新）。
+两条边界保持不变。Harness 主目录（`~/.dsh`、`desktop` profile、会话、凭据、设置）继续与 npm `dsh` CLI 共用：那是双方一致认可的数据，而非进程级资源，迁移它会丢弃所有既有用户的数据。Windows 卸载会删除本应用的 `%APPDATA%\BirdCoder` 与自己的更新缓存，并有意保留 `%APPDATA%\@deepseek-ai\dsh-desktop`——那是另一个已安装应用的 userData，拆分前版本留下的残余，是"绝不删除本应用并不拥有的数据"的代价（[卸载决策](../../archived/feature/2026-09-08-desktop-uninstall-preserve-dsh-home.md)，已更新）。
 
 ## Alternatives considered
 

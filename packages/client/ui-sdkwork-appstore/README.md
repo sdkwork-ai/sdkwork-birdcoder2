@@ -28,6 +28,10 @@ The active [ui-sdkwork-env](../ui-sdkwork-env/README.md) profile supplies the AP
 
 The page mounts the full SDKWork App Store product shell inside BirdCoder's existing frame: Discover, search, categories, library, wishlist, updates, app detail, and publisher routes run in an isolated in-page router owned by `@sdkwork/appstore-pc-embed`. SDKWork navigation does not add a browser route or a persisted BirdCoder preference.
 
+## Runtime invariants
+
+No runtime invariant companion is published; the package contributes keyed rail and page entries whose ownership is already authoritative in the slot registry, while the catalog adapter has no independent host relationship to compare against.
+
 ## Model Experience
 
 None, as mode selection, storefront browsing, catalog searches, and SDKWork HTTP responses remain browser viewing state and add no model request content, tools, or session events.
@@ -49,7 +53,3 @@ None; this package neither assembles nor sends provider requests.
 Environment changes remount the whole SDKWork runtime while IAM and locale changes propagate through host props — preserve that split when touching the adapter. A static environment token takes precedence over the mounted IAM session, and local builds resolve `@sdkwork/appstore-pc-embed` from the `../sdkwork-appstore` sibling checkout, so the package cannot build without it.
 
 </details>
-
-## Runtime invariants
-
-No runtime invariant companion is published; the package contributes keyed rail and page entries whose ownership is already authoritative in the slot registry, while the catalog adapter has no independent host relationship to compare against.

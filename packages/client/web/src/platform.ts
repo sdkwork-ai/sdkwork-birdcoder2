@@ -17,7 +17,7 @@ export const PLATFORM_MODULES = [
   // seed-first — a seeded bare-name entry would shadow the dynamic client
   // bundle with whatever the alias points at, leaving the attachment slots
   // unregistered (uploads succeed but never display). Upstream removed this
-  // seed row in f37bc082c5; keep it dynamic.
+  // seed row added by an upstream change; keep it dynamic.
   '@deepseek-ai/dsh-client-ui-dockkit',
   '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager',
   '@deepseek-ai/dsh-client-ui-sdkwork-settings-menu/sdkwork-icons',

@@ -3,9 +3,13 @@
 Architecture-local config templates grouped by runtime target
 (`APP_PC_ARCHITECTURE_SPEC.md` §2.1). Checked-in files are **safe examples only**.
 
+Browser deploy-time runtime documents are not templates: they are authored projections under
+`etc/browser/runtime-env.<deployment-profile>.<environment>.json`, wired through
+`etc/sdkwork.deployment.config.json` and materialized to `public/runtime-env.json` by the canonical
+browser build runner.
+
 | Directory | Owner | Must not own |
 | --- | --- | --- |
-| `browser/` | Promotable public SDK base URLs, public feature flags, public app metadata. | Secrets, tokens, database/Redis URLs, private service endpoints. |
 | `desktop/` | Installed desktop mode, local service toggle, client-local SQLite path, secure storage provider. | Server PostgreSQL defaults, API route constants, signing secrets. |
 | `server/` | Bind address, PostgreSQL, Redis, reverse-proxy trust, service paths. | Browser-only `VITE_*`, Tauri packaging metadata. |
 | `container/` | Container service config, mounted secrets references, external services, volumes. | Image-baked secrets, mutable database state. |

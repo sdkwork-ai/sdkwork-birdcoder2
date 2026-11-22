@@ -21,3 +21,7 @@ The Client pass builds identically with or without sibling `node_modules`: local
 ## Testing
 
 Local simulation of the release runner (sibling root `node_modules` hidden): the Client tsdown pass completes. With siblings restored, the same pass completes with zero warnings.
+
+## Alternatives considered
+
+**Leave the current behavior in place.** Rejected: the Problem records the concrete failure that behavior produced.

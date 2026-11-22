@@ -3,7 +3,7 @@
  * "我的应用" row opens it.
  *
  * Two tabs share one account-scoped frame — 我的应用 lists the caller's own
- * `deploy_app` rows, 我的应用模板 lists the caller's own template listings —
+ * `deploy_app` rows, 我的应用脚手架 lists the caller's own scaffold listings —
  * because both are what the account deployed and the operator switches between
  * them instead of opening two drawers.
  *
@@ -24,11 +24,11 @@ import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@dee
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { DeployHost, DeployHostClients } from './deployHost.ts'
 import { DeployedAppsPanel } from './DeployedAppsPanel.tsx'
-import { DeployedTemplatesPanel } from './DeployedTemplatesPanel.tsx'
+import { DeployedScaffoldsPanel } from './DeployedScaffoldsPanel.tsx'
 import css from './DeployedAppsDialog.module.css'
 
-/** The drawer's tabs: the caller's deployed applications and app templates. */
-type DrawerTab = 'apps' | 'templates'
+/** The drawer's tabs: the caller's deployed applications and app scaffolds. */
+type DrawerTab = 'apps' | 'scaffolds'
 
 /** Injected business face: the host adapter, the sign-in gesture, and live host facts. */
 export interface DeployedAppsDialogInjected {
@@ -73,8 +73,8 @@ export function DeployedAppsDialog(props: DeployedAppsDialogProps): ReactNode {
   const idBase = useId()
   const appTabId = `${idBase}-apps-tab`
   const appPanelId = `${idBase}-apps-panel`
-  const templateTabId = `${idBase}-templates-tab`
-  const templatePanelId = `${idBase}-templates-panel`
+  const scaffoldTabId = `${idBase}-scaffolds-tab`
+  const scaffoldPanelId = `${idBase}-scaffolds-panel`
   const selectTab = (next: DrawerTab): void => {
     setTab(next)
     setVisited(current => (current.has(next) ? current : new Set([...current, next])))
@@ -127,16 +127,16 @@ export function DeployedAppsDialog(props: DeployedAppsDialogProps): ReactNode {
                   items={[
                     { value: 'apps', label: t('deployments.tab.apps'), id: appTabId, panelId: appPanelId },
                     {
-                      value: 'templates',
-                      label: t('deployments.tab.templates'),
-                      id: templateTabId,
-                      panelId: templatePanelId,
+                      value: 'scaffolds',
+                      label: t('deployments.tab.scaffolds'),
+                      id: scaffoldTabId,
+                      panelId: scaffoldPanelId,
                     },
                   ]}
                 />
                 {/* Both panel elements stay in the tree so each tab's
                     `aria-controls` resolves; only visited ledgers mount, so the
-                    template read starts when the operator first opens it. */}
+                    scaffold read starts when the operator first opens it. */}
                 <div
                   className={css.tabPanel}
                   role="tabpanel"
@@ -149,11 +149,11 @@ export function DeployedAppsDialog(props: DeployedAppsDialogProps): ReactNode {
                 <div
                   className={css.tabPanel}
                   role="tabpanel"
-                  id={templatePanelId}
-                  aria-labelledby={templateTabId}
-                  hidden={tab !== 'templates'}
+                  id={scaffoldPanelId}
+                  aria-labelledby={scaffoldTabId}
+                  hidden={tab !== 'scaffolds'}
                 >
-                  {visited.has('templates') && <DeployedTemplatesPanel clients={clients} t={t} />}
+                  {visited.has('scaffolds') && <DeployedScaffoldsPanel clients={clients} t={t} />}
                 </div>
               </div>
             )}

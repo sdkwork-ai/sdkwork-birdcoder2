@@ -10,7 +10,7 @@ English | [中文](README.zh.md)
 ## Summary
 
 
-The Course app-mode plugin owns the `course` rail entry, center-column page, and SDKWork host adapter. The rail entry calls the layout store's existing `setMode('course')` action; AppFrame then dispatches the keyed `mode.page` seat, where this package mounts the SDKWork Course PC application. The embedded page renders the SDKWork discovery surface (`@sdkwork/sdkwork-course-pc-courses`) inside a memory router: topic panel, featured carousel, responsive course feed, course list, detail, lesson, and creator-studio routes. The home feed loads further pages automatically when its bottom sentinel scrolls into view and keeps **上传课程** reachable from the top bar; the embedded studio creates drafts, uploads cover/video through Drive, arranges chapters and lessons, and submits for operator review. Host IAM credentials and the host API base URL are mirrored into the course Drive client so embedded uploads work without a second login. Returning to Code restores the conversation surface without URL routing or persisted mode state.
+The Course app-mode plugin owns the `course` rail entry, center-column page, and SDKWork host adapter. The rail entry calls the layout store's existing `setMode('course')` action; AppFrame then dispatches the keyed `mode.page` seat, where this package mounts the SDKWork Course PC application. Returning to Code restores the conversation surface without URL routing or persisted mode state.
 
 ## Table of Contents
 
@@ -27,6 +27,14 @@ The plugin requires `ctx.env`, `ctx.iam`, and `ctx.locale`. It configures its SD
 ## Browser bundle
 
 The client plugin emits one `client.js` closure because the BirdCoder client-module loader does not publish arbitrary sibling chunks. Its bundle face compiles the SDKWork Tailwind stylesheet and injects SDKWork CSS once. Declaration emit skips strict checking of the sibling SDKWork implementation; `tsconfig.tests.json` checks the consumed source closure with a single React type identity.
+
+## Understand the implementation
+
+The embedded page renders the SDKWork discovery surface (`@sdkwork/sdkwork-course-pc-courses`) inside a memory router: topic panel, featured carousel, responsive course feed, course list, detail, lesson, and creator-studio routes. The home feed loads further pages automatically when its bottom sentinel scrolls into view and keeps **上传课程** reachable from the top bar; the embedded studio creates drafts, uploads cover/video through Drive, arranges chapters and lessons, and submits for operator review. Host IAM credentials and the host API base URL are mirrored into the course Drive client so embedded uploads work without a second login.
+
+## Runtime invariants
+
+No runtime invariant companion is published; the mode state lives in the layout store declared action set, and the entry/page registrations follow the rail shell keyed dispatch; store/mode agreement is covered directly by this package client behavior specs.
 
 ## Model Experience
 
@@ -50,7 +58,3 @@ None; SDKWork HTTP requests are separate browser traffic and do not alter Harnes
 The SDKWork Course PC runtime ports are process-global: one browser window hosts one Course surface, and reconfiguration disposes the previous adapter, so a second concurrent surface cannot be composed. Local installs need the `../sdkwork-course` sibling checkout, and the single `client.js` closure exists because the BirdCoder client-module loader does not publish sibling chunks.
 
 </details>
-
-## Runtime invariants
-
-No runtime invariant companion is published; the mode state lives in the layout store declared action set, and the entry/page registrations follow the rail shell keyed dispatch; store/mode agreement is covered directly by this package client behavior specs.

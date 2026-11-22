@@ -7,15 +7,43 @@
   "materializationAuthority": "../../../etc/client-env.materialization.json",
   "materializationCommand": "pnpm workflow:materialize-client-env",
   "profiles": {
-    "standalone.development": "../../../etc/topology/standalone.development.env",
-    "standalone.test": "../../../etc/topology/standalone.test.env",
-    "standalone.staging": "../../../etc/topology/standalone.staging.env",
-    "standalone.demo": "../../../etc/topology/standalone.demo.env",
-    "standalone.production": "../../../etc/topology/standalone.production.env",
-    "cloud.development": "../../../etc/topology/cloud.development.env",
-    "cloud.test": "../../../etc/topology/cloud.test.env",
-    "cloud.staging": "../../../etc/topology/cloud.staging.env",
-    "cloud.demo": "../../../etc/topology/cloud.demo.env",
-    "cloud.production": "../../../etc/topology/cloud.production.env"
-  }
+    "cloud.development": {
+      "source": "browser/runtime-env.cloud.development.json"
+    },
+    "cloud.test": {
+      "source": "browser/runtime-env.cloud.test.json"
+    },
+    "cloud.staging": {
+      "source": "browser/runtime-env.cloud.staging.json"
+    },
+    "cloud.demo": {
+      "source": "browser/runtime-env.cloud.demo.json"
+    },
+    "cloud.production": {
+      "source": "browser/runtime-env.cloud.production.json"
+    },
+    "standalone.development": {
+      "source": "browser/runtime-env.standalone.development.json"
+    },
+    "standalone.test": {
+      "source": "browser/runtime-env.standalone.test.json"
+    },
+    "standalone.staging": {
+      "source": "browser/runtime-env.standalone.staging.json"
+    },
+    "standalone.demo": {
+      "source": "browser/runtime-env.standalone.demo.json"
+    },
+    "standalone.production": {
+      "source": "browser/runtime-env.standalone.production.json"
+    }
+  },
+  "materialization": {
+    "authority": "../../../etc/sdkwork.deployment.config.json",
+    "command": "node scripts/materialize-runtime-env.mjs",
+    "format": "json",
+    "output": "../public/runtime-env.json",
+    "checkMode": "--check"
+  },
+  "runtimeTarget": "browser"
 }

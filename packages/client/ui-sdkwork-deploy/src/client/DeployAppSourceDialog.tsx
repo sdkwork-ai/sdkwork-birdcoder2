@@ -10,7 +10,7 @@
  * - **Git 仓库** — an https clone URL with an optional default branch and the
  *   project subdirectory the app packages. When the project's manifest
  *   records a linked app, the binding also lands on the platform through
- *   `connectGitSource` (the same call the template flow makes); the URL,
+ *   `connectGitSource` (the same call the scaffold flow makes); the URL,
  *   branch, and subdirectory are always recorded in the manifest so the
  *   source spec travels with the project.
  *
@@ -22,7 +22,7 @@ import { createDeployAppOperationsService } from '@sdkwork/deployments-pc-consol
 import {
   repoKeyFromUrl,
   repoProviderFromUrl,
-} from './templatePlatforms.ts'
+} from './scaffoldPlatforms.ts'
 import type { DeployHost } from './deployHost.ts'
 import type { DeployKey } from './locales.ts'
 import css from './DeployDialogs.module.css'
@@ -107,7 +107,7 @@ export function DeployAppSourceDialog({
     }
     const url = gitUrl.trim()
     if (!/^https:\/\//iu.test(url)) {
-      setError(t('template.git.invalidUrl'))
+      setError(t('scaffold.git.invalidUrl'))
       return
     }
     const branch = gitBranch.trim()
@@ -214,7 +214,7 @@ export function DeployAppSourceDialog({
                 type="text"
                 className={css.input}
                 value={gitUrl}
-                placeholder={t('template.git.urlPlaceholder')}
+                placeholder={t('scaffold.git.urlPlaceholder')}
                 onChange={(event) => { setGitUrl(event.target.value) }}
               />
             </label>
@@ -224,7 +224,7 @@ export function DeployAppSourceDialog({
                 type="text"
                 className={css.input}
                 value={gitBranch}
-                placeholder={t('template.git.branchPlaceholder')}
+                placeholder={t('scaffold.git.branchPlaceholder')}
                 onChange={(event) => { setGitBranch(event.target.value) }}
               />
             </label>
@@ -234,7 +234,7 @@ export function DeployAppSourceDialog({
                 type="text"
                 className={css.input}
                 value={gitSubDirectory}
-                placeholder={t('template.git.subDirectoryPlaceholder')}
+                placeholder={t('scaffold.git.subDirectoryPlaceholder')}
                 onChange={(event) => { setGitSubDirectory(event.target.value) }}
               />
             </label>

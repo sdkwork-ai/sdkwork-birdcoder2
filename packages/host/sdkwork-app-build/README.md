@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Host capability for one-click app packaging. `describe({ cwd })` probes the workspace's `apps/` tree for the client families it declares, and each discovered compile/package script carries a **capability verdict** for the host that probed it: the OSes and CPU it can run on, the executables it needs on PATH, the environment groups it needs set, and whether the entry file its command line hands to `node`/`tsx` is actually in the tree. Only this side can answer that — a renderer is not the build host, and a real script is not the same fact as a runnable one. `sdkworkAppBuild.start` validates a build directory (absolute cwd, readable `package.json`, existing script, a satisfiable capability verdict), resolves the package manager from the lockfile present (`pnpm-lock.yaml` → `pnpm run`, `yarn.lock` → `yarn run`, else `npm run`), spawns the build with `shell: true` and color-forcing disabled, and records every frame — `started`, `output` (line-split stdout/stderr), and a single terminal `exit` — in a per-build bounded buffer. Followers attach through `follow(buildId, signal)`: buffered history replays by delivered index, live frames arrive as they emit, and the iteration ends right after the exit frame or quietly on abort (aborting detaches the follower, it never kills the build). `cancel(buildId)` requests a tree kill (`taskkill /T /F` on win32, process-group SIGTERM elsewhere) and lets the process's own exit path emit the terminal frame; a grace period covers a grandchild that escaped the tree walk and holds the stdio pipes. Concurrency is capped at three running builds; finished records are retained (up to twenty) so late followers and `status(buildId)` still answer. The wire face over this seam is the [`sdkwork-app-build-controller`](../../api/sdkwork-app-build-controller/README.md) Remote; this package owns no transport.
+Host capability for one-click app packaging. `describe({ cwd })` probes the workspace's `apps/` tree and attaches a capability verdict to every discovered compile/package script: the OSes and CPUs it can run on, the executables and environment groups it needs, and whether the entry file its command line hands to `node`/`tsx` is in the tree. `start` validates a build directory, resolves the package manager from the lockfile, spawns the build, and records every frame; `follow` replays buffered history then streams live frames, and `cancel` requests a tree kill. Output lives only in a bounded per-build buffer.
 
 ## Table of Contents
 
@@ -38,6 +38,8 @@ A command's requirements come from a rule table keyed on whole words taken from 
 
 One `BuildRecord` per accepted request holds the frame history: `started` stays at index 0, the oldest output line drops first once the buffer hits two thousand frames, and `finish` is idempotent so the exit frame is emitted exactly once. Followers wake through per-record listener sets; every frame lands in the history synchronously before listeners run, so a delivered-index replay cannot duplicate live frames. Eviction of finished records keeps the twenty most recent by start time.
 
+The wire face over this seam is the [`sdkwork-app-build-controller`](../../api/sdkwork-app-build-controller/README.md) Remote; this package owns no transport. Only this side can answer the capability verdict — a renderer is not the build host, and a real script is not the same fact as a runnable one. A build's frames are `started`, `output` (line-split stdout/stderr), and a single terminal `exit`, kept in a per-build bounded buffer; followers attach through `follow(buildId, signal)`, buffered history replays by delivered index, live frames arrive as they emit, and iteration ends right after the exit frame or quietly on abort (aborting detaches the follower, it never kills the build). `cancel(buildId)` requests a tree kill (`taskkill /T /F` on win32, process-group SIGTERM elsewhere) and lets the process's own exit path emit the terminal frame; a grace period covers a grandchild that escaped the tree walk and holds the stdio pipes. Concurrency is capped at three running builds; finished records are retained (up to twenty) so late followers and `status(buildId)` still answer.
+
 <a id="further-exploration"></a>
 ## Further Exploration
 
@@ -45,17 +47,6 @@ One `BuildRecord` per accepted request holds the frame history: `started` stays 
 - [`capability.ts`](./src/capability.ts) — the host facts, the rule table, and the verdict computation.
 - [`tests/runner.spec.ts`](./tests/runner.spec.ts) — real-process coverage of the validate/spawn/follow/cancel paths, including the leaf-escape cancellation race.
 - [`tests/capability.spec.ts`](./tests/capability.spec.ts) — the rule matrix, plus the real `apps/` tree read with a pinned Windows host.
-
-<a id="model-experience"></a>
-## Model Experience
-
-The build id, command, and cwd ride the `started` frame, so an agent narrating a packaging run can quote the exact command; output frames preserve stdout/stderr distinction for error triage.
-
-<a id="known-limitations-and-deferred-work"></a>
-## Known Limitations and Deferred Work
-
-- Cancelling during the first moments of a build (while the package-manager chain is still spawning its leaf) can let that leaf escape the kill and finish in the background; the record still reports `cancelled` and the UI stays correct, but the process is not reclaimed early.
-- No per-build env overrides, no workspaces filtering, and no build logs on disk; output lives only in the bounded frame buffer.
 
 <a id="dev-note"></a>
 ## Dev Note
@@ -65,3 +56,17 @@ This is a fork package (`sdkwork` marker) following the repository naming contra
 ## Runtime invariants
 
 No runtime invariant companion is published; build records are bounded, per-id, and self-consistent by construction.
+
+<a id="model-experience"></a>
+## Model Experience
+
+None, as the capability only runs caller-started packaging jobs and reports their frames to the wire caller; it registers no tool, prompt section, or session event.
+
+#### KV Cache effect
+
+None; this package neither assembles nor sends a provider request.
+
+## Known Limitations and Deferred Work
+
+- Cancelling during the first moments of a build (while the package-manager chain is still spawning its leaf) can let that leaf escape the kill and finish in the background; the record still reports `cancelled` and the UI stays correct, but the process is not reclaimed early.
+- No per-build env overrides, no workspaces filtering, and no build logs on disk; output lives only in the bounded frame buffer.

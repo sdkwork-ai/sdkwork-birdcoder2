@@ -9,9 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-The Search app mode as an independent module: its mode-rail entry and its center-column page. The rail shell (ui-sdkwork-app-modes) renders one keyed `mode.rail.entry` seat per mode id and hands each entry the live selection facts; this package registers the `search` entry — glyph, copy, and chrome — and the `search` page into the frame's keyed `mode.page` slot. The mode id joins the frame's `AppModeId` vocabulary in ui-layout and the rail's user-owned entry set: it starts hidden like every other optional mode, the customize dialog enables it, and once enabled it sits below Assets and directly above the customize plus button.
-
-The page queries through the SDKWork Search capability seam: `@sdkwork/search-service` owns query ranking, grouping, and paging; `@sdkwork/search-contracts` carries the document and result vocabulary; and the generated `@sdkwork/search-app-sdk` client reaches the Search application index. Two document sets feed the same pipeline — the plugin's own capability catalog (the product surfaces whose keyed `mode.page` entry is registered, resolved from this package's locale dictionaries) and, when the deployment carries credentials, the SDKWork Search index. A local hit switches the frame to the mode its document names; an indexed hit navigates only when its `metadata.mode` names a surface this client can render.
+Adds the Search app mode: its mode-rail entry and its center-column page. The entry registers into the frame's keyed rail seat and starts hidden like every optional mode, enabled from the customize dialog. The page queries through the SDKWork Search capability seam over two document sets — the plugin's own capability catalog of registered product surfaces and, when the deployment carries credentials, the SDKWork Search index — and a hit switches the frame to the mode its document names, or navigates only when an indexed hit names a surface this client can render.
 
 ## Table of Contents
 
@@ -34,6 +32,16 @@ The local catalog needs no gateway: the page answers signed out and offline. The
 3. When credentials exist, the same facade queries the SDKWork index through the generated app client; the response arrives untyped on the wire, so the runtime normalizes it at that boundary and drops malformed rows.
 4. Local sections render first, then indexed sections; a hit without a navigable destination renders as text only.
 
+## Runtime invariants
+
+The runtime owns one generated client per gateway origin; a stale client is never reused across environments. Search state is component-local: the page keeps its query text, in-flight status, and last outcome, so switching modes discards it rather than persisting a search across sections.
+
+## Understand the implementation
+
+The Search app mode as an independent module: its mode-rail entry and its center-column page. The rail shell (ui-sdkwork-app-modes) renders one keyed `mode.rail.entry` seat per mode id and hands each entry the live selection facts; this package registers the `search` entry — glyph, copy, and chrome — and the `search` page into the frame's keyed `mode.page` slot. The mode id joins the frame's `AppModeId` vocabulary in ui-layout and the rail's user-owned entry set: it starts hidden like every other optional mode, the customize dialog enables it, and once enabled it sits below Assets and directly above the customize plus button.
+
+The page queries through the SDKWork Search capability seam: `@sdkwork/search-service` owns query ranking, grouping, and paging; `@sdkwork/search-contracts` carries the document and result vocabulary; and the generated `@sdkwork/search-app-sdk` client reaches the Search application index. Two document sets feed the same pipeline — the plugin's own capability catalog (the product surfaces whose keyed `mode.page` entry is registered, resolved from this package's locale dictionaries) and, when the deployment carries credentials, the SDKWork Search index. A local hit switches the frame to the mode its document names; an indexed hit navigates only when its `metadata.mode` names a surface this client can render.
+
 ## Model Experience
 
 None, as the package is a human-facing browser surface; it adds no prompt content, tools, or session events.
@@ -55,7 +63,3 @@ None; SDKWork Search requests are separate browser traffic and do not alter Harn
 The rail position is the `search` row in ui-sdkwork-app-modes' `RAIL_MODE_ORDER` together with its absence from `FIXED_MODES`, which is what makes it ship hidden and be enabled from the customize dialog; once enabled it ends the top group, immediately above the customize plus button. The app-header title dictionary needs the matching `mode.search` row — adding a mode id fails that package's typecheck until both the roster and the dictionary carry it. The catalog duplicates the mode titles in its own `search` namespace because cross-plugin value imports are forbidden; a mode rename must reach both dictionaries.
 
 </details>
-
-## Runtime invariants
-
-The runtime owns one generated client per gateway origin; a stale client is never reused across environments. Search state is component-local: the page keeps its query text, in-flight status, and last outcome, so switching modes discards it rather than persisting a search across sections.

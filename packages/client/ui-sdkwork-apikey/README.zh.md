@@ -40,6 +40,14 @@ pnpm --filter @deepseek-ai/dsh-client-ui-sdkwork-apikey bundle
 
 本弹窗仅存在于浏览器侧：api-keys 服务的主机半部在其独立包中，本包只通过生成的 cloudrouter 客户端与可注入的 `configureApiKeyServiceClients` 接缝消费它，因此 Web 产物不携带主机侧凭据代码。
 
+## Model Experience
+
+无，因为该弹窗只通过浏览器侧的 SDKWork HTTP 请求管理中转站 API Key，不注册任何提示词分段、工具或会话事件。
+
+#### KV Cache effect
+
+无；本包既不组装也不发送 provider 请求。
+
 <a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与待办
 

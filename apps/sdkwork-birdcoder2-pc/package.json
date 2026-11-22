@@ -15,14 +15,27 @@
     "check:client-env": "node ../../../sdkwork-specs/tools/materialize-client-env.mjs --root ../../.. --check",
     "check:manifest": "node ../../../sdkwork-specs/tools/check-app-manifest-standard.mjs --root .",
     "check:apps-index": "node ../../../sdkwork-specs/tools/check-apps-directory-index.mjs --root ../../..",
-    "typecheck": "tsc -b tsconfig.json",
-    "test": "vitest run --root . --passWithNoTests",
-    "lint": "tsc -b tsconfig.json --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --root . --config vitest.config.ts --passWithNoTests",
+    "lint": "tsc --noEmit -p tsconfig.json",
     "build:dev:cloud": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment dev --deployment-profile cloud",
     "build:dev": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment dev",
     "build:test:cloud": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment test --deployment-profile cloud",
     "build:test": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment test",
     "build:staging:cloud": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment staging --deployment-profile cloud",
     "build:prod:cloud": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment prod --deployment-profile cloud"
+  },
+  "dependencies": {
+    "@sdkwork/sdk-common": "workspace:*",
+    "@tailwindcss/vite": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "tailwindcss": "catalog:"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
   }
 }

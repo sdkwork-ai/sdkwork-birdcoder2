@@ -28,6 +28,10 @@ The page is not reimplemented in BirdCoder. A host adapter (`assetsHost.ts`) map
 
 The active [ui-sdkwork-env](../ui-sdkwork-env/README.md) profile supplies the API gateway origin and optional static access token. [ui-sdkwork-iam](../ui-sdkwork-iam/README.md) session tokens supersede the env bootstrap when the user signs in. The host forwards credentials only; tenant and user identity are resolved inside Agents PC from JWT claims.
 
+## Runtime invariants
+
+No runtime invariant companion is published; the mode state lives in the layout store declared action set, and the entry/page registrations follow the rail shell keyed dispatch; store/mode agreement is covered directly by this package client behavior specs.
+
 ## Model Experience
 
 None, as mode selection, Drive listing requests, and SDKWork HTTP responses remain browser viewing state and add no model request content, tools, or session events.
@@ -49,7 +53,3 @@ None; this package neither assembles nor sends provider requests.
 The page is not reimplemented here: `assetsHost.ts` only maps ui-sdkwork-env and ui-sdkwork-iam into the Agents PC session store and Drive SDK client provider before mounting `@sdkwork/agents-pc-assets`, so surface fixes belong upstream in sdkwork-agents. This package's registrations shadow ui-sdkwork-assets' placeholder entries at a lower priority — keep the keys identical or both entries render.
 
 </details>
-
-## Runtime invariants
-
-No runtime invariant companion is published; the mode state lives in the layout store declared action set, and the entry/page registrations follow the rail shell keyed dispatch; store/mode agreement is covered directly by this package client behavior specs.

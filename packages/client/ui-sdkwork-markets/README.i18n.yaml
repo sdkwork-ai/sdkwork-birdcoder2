@@ -9,29 +9,32 @@
   en: abadad5cdc4a2501
   zh: 02e746625d985b24
 /deepseek-ai-dsh-client-ui-sdkwork-markets/summary:
-  en: da36664f9d883b40
-  zh: d18ee7c4ba68c327
+  en: 01d24c29c5ef36cc
+  zh: 0e4b82364601c3be
 /deepseek-ai-dsh-client-ui-sdkwork-markets/table-of-contents:
   en: ffd640d553db616a
-  zh: 0f133ecf53b3e0d7
+  zh: ad857ca879b589bb
 /deepseek-ai-dsh-client-ui-sdkwork-markets/runtime-requirements:
   en: 7c7a502ab230a327
-  zh: cc6f078b51a21282
+  zh: 6f3cd631b78efa4c
 /deepseek-ai-dsh-client-ui-sdkwork-markets/browser-bundle:
   en: 77edd77d0ef00fd9
   zh: 4825bc4760a66aba
+/deepseek-ai-dsh-client-ui-sdkwork-markets/runtime-invariants:
+  en: f548a014e55b82cd
+  zh: 144a59b105226e80
+/deepseek-ai-dsh-client-ui-sdkwork-markets/understand-the-implementation:
+  en: 3960f4f4dba487d1
+  zh: e5f6caf9cfdcfc63
 /deepseek-ai-dsh-client-ui-sdkwork-markets/model-experience:
-  en: 41219a2c36670ac1
-  zh: 80cc20d0f990e10d
+  en: d0e00a503d862f84
+  zh: 3e784f3ece17233c
 /deepseek-ai-dsh-client-ui-sdkwork-markets/model-experience/kv-cache-effect:
   en: 22773f28554e56ea
   zh: 15d7403386053700
 /deepseek-ai-dsh-client-ui-sdkwork-markets/known-limitations-and-deferred-work:
   en: 789671acc63d11e6
-  zh: dca4a066b918fa2c
+  zh: 2f316cc2180f68fb
 /deepseek-ai-dsh-client-ui-sdkwork-markets/known-limitations-and-deferred-work/dev-note:
   en: 74785a3e4d913870
   zh: 871490d6dc2950a9
-/deepseek-ai-dsh-client-ui-sdkwork-markets/runtime-invariants:
-  en: f548a014e55b82cd
-  zh: 144a59b105226e80

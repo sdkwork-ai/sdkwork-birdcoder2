@@ -20,6 +20,7 @@ SDKWork 个人主页插件：注册一个设置分区（id `profile`，order `-1
 - [模型体验](#model-experience)
 - [已知限制与后续工作](#known-limitations-and-deferred-work)
 
+<a id="surface"></a>
 ## 表面
 
 插件注册一个 `settings.section` 贡献及其字典：
@@ -28,27 +29,36 @@ SDKWork 个人主页插件：注册一个设置分区（id `profile`，order `-1
 - **分区正文**：身份头部（首字母头像、昵称、账号类型徽标、邮箱、前往管理中心）、`个人 / 企业` 两个标签页、账号信息卡片、关联账号卡片，以及带退出说明与按钮的页脚。企业页展示会话所属的组织/租户 ID，未加入企业时展示引导前往管理中心的空状态。
 - **未登录状态**：匿名访问者看到登录入口而不是空白页，分区不会是死路。
 
+<a id="data"></a>
 ## 数据
 
 `IamProfileSnapshot`（来自 `ui-sdkwork-iam`）是分区读取的唯一值：昵称、邮箱、用户名、账号 ID、组织/租户 ID、账号类型（`personal` 或 `enterprise`；IAM 登录上下文对个人会话返回 `organizationId: '0'`）、当前环境与 app id、CloudRouter 管理中心地址、是否可退出登录，以及登录 origin 上的托管退出登录 URL。IAM 服务按控制器状态加环境事实缓存该快照，因此 `useProfile` 钩子观察到的是稳定引用，直到某个事实变化。
 
+<a id="sign-out"></a>
 ## 退出登录
 
 页脚按钮调用 `iam.requestSignOut()`，与设置弹层底部退出登录行为使用同一个服务入口。服务弹出确认弹窗；确认后在登录 origin 上结束托管会话——桌面端为该客户端的 OAuth 注销（`<iamAuthorizeBaseUrl>/oauth/logout?client_id=<clientId>`），页面本地会话则为托管退出登录页（`<iamAuthorizeBaseUrl>/oauth/sign-out`）——并清除本页会话。分区本身不打开浏览器，也不清除令牌。
 
+<a id="implementation-notes"></a>
 ## 实现说明
 
 - 分区以 `iam` Cordis 服务为前提：未挂载 `ui-sdkwork-iam` 的组合会让该插件保持 pending，没有账号服务就不渲染账号页。
 - 本包的 tsc emit 把 sdkwork 认证相关导入解析到 `ui-sdkwork-iam` 的声明门面（`../ui-sdkwork-iam/sdkwork-types/`），不重复维护同一套门面；对 `IamProfileSnapshot` 的类型导入是共享声明，而不是对另一个插件实现的取值依赖。
 
-## 模型体验
+<a id="model-experience"></a>
+## 开发备注
+
+暂无额外运维备注；契约以上方章节为准。
+
+## Model Experience
 
 无。个人主页是浏览器侧账号界面，既不组装也不发送模型请求。
 
-#### KV 缓存影响
+#### KV Cache effect
 
 无；本包既不组装也不发送 provider 请求。
 
+<a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与后续工作
 
 - **不支持资料编辑** —— 分区只呈现账号并链接到管理中心；修改昵称、邮箱或密码仍属于托管页面的职责。

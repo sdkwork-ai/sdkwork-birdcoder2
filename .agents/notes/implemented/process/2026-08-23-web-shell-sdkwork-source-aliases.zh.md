@@ -19,3 +19,7 @@ Web 构建不再依赖 sibling 的 `dist` 产物：发布 runner 与本地 check
 ## 测试
 
 `verify-web-vite-aliases` 通过；完整 `build:official` 复演完成，bundle 携带 token manager 且没有外部 `@sdkwork/sdk-common` 导入。
+
+## 备选方案
+
+**保留当前行为。** 否决原因：问题一节记录的就是该行为造成的具体故障。

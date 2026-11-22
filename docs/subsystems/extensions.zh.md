@@ -517,7 +517,7 @@ Source: [`packages/api/sdkwork-git-controller/src/index.ts`](../../packages/api/
 
 <a id="ctxsdkworktemplateinstall--sdkworktemplateinstallinstaller"></a>
 
-### `ctx.sdkworkTemplateInstall` — `SdkworkTemplateInstallInstaller`
+### `ctx.sdkworkScaffoldInstall` — `SdkworkScaffoldInstallInstaller`
 
 The template-install service. Owns every bounded project-file write.
 
@@ -526,18 +526,18 @@ The template-install service. Owns every bounded project-file write.
  * Write one regular file under the target directory, creating parents.
  * @param request - target directory, target-relative path, base64 content.
  * @returns the absolute path written and the byte count.
- * @throws SdkworkTemplateInstallError with the closed code for every refusal.
+ * @throws SdkworkScaffoldInstallError with the closed code for every refusal.
  */
-async writeFile(request: SdkworkTemplateInstallWriteRequest): Promise<SdkworkTemplateInstallWriteValue>
+async writeFile(request: SdkworkScaffoldInstallWriteRequest): Promise<SdkworkScaffoldInstallWriteValue>
 ```
 
-Source: [`packages/host/sdkwork-template-install/src/index.ts`](../../packages/host/sdkwork-template-install/src/index.ts)
+Source: [`packages/host/sdkwork-scaffold-install/src/index.ts`](../../packages/host/sdkwork-scaffold-install/src/index.ts)
 
 <a id="ctxsdkworktemplateinstallcontroller--sdkworktemplateinstallcontroller"></a>
 
-### `ctx.sdkworkTemplateInstallController` — `SdkworkTemplateInstallController`
+### `ctx.sdkworkScaffoldInstallController` — `SdkworkScaffoldInstallController`
 
-Host service backing the generated `ctx.remote.sdkworkTemplateInstall` namespace. The capability owns the file system and the confinement checks; this controller owns the wire vocabulary and the request validation.
+Host service backing the generated `ctx.remote.sdkworkScaffoldInstall` namespace. The capability owns the file system and the confinement checks; this controller owns the wire vocabulary and the request validation.
 
 ```ts cordis-catalog
 /**
@@ -545,10 +545,10 @@ Host service backing the generated `ctx.remote.sdkworkTemplateInstall` namespace
  * @param request - absolute target directory, target-relative path, base64 content.
  * @returns the absolute path written and the byte count.
  */
-@Remote('writeFile') async writeFile(request: SdkworkTemplateInstallWriteRequest): Promise<SdkworkTemplateInstallWriteValue>
+@Remote('writeFile') async writeFile(request: SdkworkScaffoldInstallWriteRequest): Promise<SdkworkScaffoldInstallWriteValue>
 ```
 
-Source: [`packages/api/sdkwork-template-install-controller/src/index.ts`](../../packages/api/sdkwork-template-install-controller/src/index.ts)
+Source: [`packages/api/sdkwork-scaffold-install-controller/src/index.ts`](../../packages/api/sdkwork-scaffold-install-controller/src/index.ts)
 
 <a id="cordis-events"></a>
 

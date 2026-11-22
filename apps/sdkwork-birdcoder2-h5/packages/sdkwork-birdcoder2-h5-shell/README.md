@@ -2,7 +2,7 @@
 
 Mobile route assembly, navigation, AuthGate wiring, shell layout.
 
-- Surface: `[object Object]`
+- Surface: `h5`
 - Layer role: `shell`
 - Standard: `MODULE_SPEC.md`, `APP_H5_ARCHITECTURE_SPEC.md`
 
@@ -10,17 +10,17 @@ Mobile route assembly, navigation, AuthGate wiring, shell layout.
 
 | Entry | Content |
 | --- | --- |
-| `src/index.ts` | Public contract of this package. |
+| `.` | Public contract: the route registry, the component-key/icon resolvers, `MobileShellLayout`, the route title resolver, and `BirdCoder2H5AppRoutes`. |
 
 ## Model Experience
 
-The package currently exposes an empty public contract: the scaffold reserves the
-module boundary so SDK clients, service ports, and route contributions can be added
-without re-cutting the package family. Consumers receive nothing until the first
-capability lands, so no behavior depends on this package yet.
+The shell assembles the route registry from the installed capabilities, renders the mobile
+chrome (tab bar and header), and binds each component key to a lazily imported screen. It owns
+no capability state and no transport: screens arrive from the capability packages and receive
+`BirdCoder2Ports` from the composition root above them.
 
 ## Known Limitations and Deferred Work
 
-- No capability is implemented; only the module boundary, manifest, and component spec exist.
-- SDK client injection, route contributions, i18n keys, and tests arrive with the first capability.
-- Routing, state, and host-adapter wiring are deferred until a capability needs them.
+- Capability screens are assembled through component keys; a capability package that is not
+  mounted simply contributes no route.
+- Auth-gate placement is a root concern (`src/App.tsx`); the shell only renders the chrome.

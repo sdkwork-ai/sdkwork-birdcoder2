@@ -13,6 +13,15 @@ The browser half of the OEM profile. At boot it reads the `__DSH_OEM__` page pro
 
 The sidebar wordmark reads the same page projection directly through `readOemBrandName()` in [`ui-primitives`](../ui-primitives/README.md); the name is live SVG text, so a longer OEM name steps down inside the upstream wordmark's box rather than reflowing the slot.
 
+## Table of Contents
+
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+
+## Dev Note
+
+The OEM profile is deployment configuration; the package exposes it to Host consumers and renders no page of its own.
+
 ## Model Experience
 
 None, as the plugin changes display copy and the document title only.

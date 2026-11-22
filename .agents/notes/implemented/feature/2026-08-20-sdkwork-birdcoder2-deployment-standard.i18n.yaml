@@ -2,15 +2,21 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-20-sdkwork-birdcoder2-deployment-standard.md
-/sdkwork-birdcoder2-deployment-standard-adoption:
-  en: 3ca7f339d46ce225
-  zh: a283af9fdf8678bc
-/sdkwork-birdcoder2-deployment-standard-adoption/problem:
-  en: c0ce9940c69012a6
+/agent-note-sdkwork-birdcoder2-deployment-standard-adoption:
+  en: c55c1bcc0b34f5ee
+  zh: 17079ad9f5112bb4
+/agent-note-sdkwork-birdcoder2-deployment-standard-adoption/problem:
+  en: e1203f7f9f32cef7
   zh: f87e9e818f96586c
-/sdkwork-birdcoder2-deployment-standard-adoption/decision:
-  en: 2ba4bbd58dee9ad5
+/agent-note-sdkwork-birdcoder2-deployment-standard-adoption/decision:
+  en: 27b556ef6f4b13f4
   zh: 2a67e2ba7a4287a2
-/sdkwork-birdcoder2-deployment-standard-adoption/verification:
-  en: 684bb6e5a3f2edee
+/agent-note-sdkwork-birdcoder2-deployment-standard-adoption/verification:
+  en: 3a081d19e4a33ae7
   zh: 2db51ba1146e1da6
+/agent-note-sdkwork-birdcoder2-deployment-standard-adoption/consequences:
+  en: dbef2e08994095e7
+  zh: 0a054263a66ef2c8
+/agent-note-sdkwork-birdcoder2-deployment-standard-adoption/alternatives-considered:
+  en: dd978342b0aa3161
+  zh: 3ff64fd4ddc0f80f

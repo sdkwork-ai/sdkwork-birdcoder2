@@ -1,4 +1,4 @@
-/* Shared modal chrome for the plugin's picker and template dialogs. Every
+/* Shared modal chrome for the plugin's picker and scaffold dialogs. Every
    custom property resolves the app design tokens first (--dsw-*, defined on
    body by ui-theme's design-platform.css; the dialogs mount under
    document.body, so host-scoped variables never reach them and the tokens
@@ -254,7 +254,7 @@ textarea.input {
 
 .summaryRow {
   display: grid;
-  grid-template-columns: 84px minmax(0, 1fr);
+  grid-scaffold-columns: 84px minmax(0, 1fr);
   gap: 8px;
   align-items: baseline;
   font-size: 12px;

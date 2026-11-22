@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-一键打包的宿主能力。`describe({ cwd })` 探测工作区 `apps/` 树下声明的各客户端应用族，并把**能力判定**挂在每个编译/打包脚本上：它能在哪些操作系统与 CPU 上运行、需要 PATH 上有哪些可执行文件、需要哪些环境变量组、以及它交给 `node`/`tsx` 的入口文件是否真的在树里。这件事只有宿主能答——渲染进程不是构建主机，而“脚本存在”与“脚本可跑”本来就是两件不同的事实。`sdkworkAppBuild.start` 校验构建目录（绝对 cwd、可读的 `package.json`、脚本存在、能力判定可满足），根据目录中现有 lockfile 解析包管理器（`pnpm-lock.yaml` → `pnpm run`、`yarn.lock` → `yarn run`，否则 `npm run`），以 `shell: true` 且禁用颜色的方式拉起构建，并把每一帧——`started`、`output`（按行切分的 stdout/stderr）与唯一的终止帧 `exit`——记入每个构建独立的定容缓冲。跟随者通过 `follow(buildId, signal)` 接入：缓冲历史按已送达下标重放，活帧随发随达，迭代在 exit 帧之后立即结束；中止信号只是安静地断开跟随，从不终止构建。`cancel(buildId)` 请求整树击杀（win32 用 `taskkill /T /F`，其余平台对进程组发 SIGTERM），并让进程自己的退出路径发出终止帧；宽限期兜底逃逸树枚举、仍持有 stdio 管道的孙进程。并发上限为三个运行中的构建；已结束记录保留最多二十条，迟到跟随者与 `status(buildId)` 依旧可答。本缝之上的线协议面是 [`sdkwork-app-build-controller`](../../api/sdkwork-app-build-controller/README.zh.md) Remote；本包不拥有传输层。
+一键打包的宿主能力。`describe({ cwd })` 探测工作区 `apps/` 树，并为每个编译/打包脚本挂上能力判定：它能在哪些操作系统与 CPU 上运行、需要哪些可执行文件与环境变量组、以及它交给 `node`/`tsx` 的入口文件是否真的在树里。`start` 校验构建目录、按 lockfile 解析包管理器、拉起构建并记录每一帧；`follow` 先重放缓冲历史再推送活帧，`cancel` 请求整树击杀。输出只存在于有界的按构建缓冲中。
 
 ## 目录
 
@@ -38,6 +38,8 @@ kind: "package-reference"
 
 每个受理请求对应一条 `BuildRecord`，持有帧历史：`started` 固定在下标 0，缓冲达到两千帧后最老的输出行先被丢弃，`finish` 幂等保证 exit 帧恰好发出一次。跟随者经由每记录的监听器集合唤醒；每一帧都在监听器运行之前同步落入历史，因此按已送达下标的重放不会与活帧重复。已结束记录按开始时间保留最近二十条。
 
+本缝之上的线协议面是 [`sdkwork-app-build-controller`](../../api/sdkwork-app-build-controller/README.zh.md) Remote；本包不拥有传输层。能力判定只有宿主能答——渲染进程不是构建主机，而“脚本存在”与“脚本可跑”本来就是两件不同的事实。构建的帧为 `started`、`output`（按行切分的 stdout/stderr）与唯一的终止帧 `exit`，记入每个构建独立的定容缓冲；跟随者通过 `follow(buildId, signal)` 接入，缓冲历史按已送达下标重放，活帧随发随达，迭代在 exit 帧之后立即结束，中止信号只是安静地断开跟随、从不终止构建。`cancel(buildId)` 请求整树击杀（win32 用 `taskkill /T /F`，其余平台对进程组发 SIGTERM），并让进程自己的退出路径发出终止帧；宽限期兜底逃逸树枚举、仍持有 stdio 管道的孙进程。并发上限为三个运行中的构建；已结束记录保留最多二十条，迟到跟随者与 `status(buildId)` 依旧可答。
+
 <a id="further-exploration"></a>
 ## 进一步探索
 
@@ -45,17 +47,6 @@ kind: "package-reference"
 - [`capability.ts`](./src/capability.ts) — 主机事实、规则表与判定计算。
 - [`tests/runner.spec.ts`](./tests/runner.spec.ts) — 校验/拉起/跟随/取消路径的真实进程覆盖，含 leaf 逃逸取消竞态。
 - [`tests/capability.spec.ts`](./tests/capability.spec.ts) — 规则矩阵，以及用固定 Windows 主机读真实 `apps/` 树的验收。
-
-<a id="model-experience"></a>
-## 模型体验
-
-build id、命令与 cwd 随 `started` 帧下发，叙述打包过程的智能体可以引用确切命令；output 帧保留 stdout/stderr 区分，便于错误归因。
-
-<a id="known-limitations-and-deferred-work"></a>
-## 已知限制与延期工作
-
-- 在构建最初的片刻（包管理器进程链还在拉起 leaf 时）取消，可能让该 leaf 逃过击杀并在后台跑完；记录仍会报告 `cancelled`、UI 保持正确，但进程没有被提前回收。
-- 暂不支持按构建覆写环境变量、workspace 过滤与构建日志落盘；输出仅存在于定容帧缓冲中。
 
 <a id="dev-note"></a>
 ## 开发备注
@@ -65,3 +56,18 @@ build id、命令与 cwd 随 `started` 帧下发，叙述打包过程的智能�
 ## 运行时不变量
 
 不发布运行时不变量伴随检查；构建记录有界、按 id 隔离，且由构造方式保证自洽。
+
+<a id="model-experience"></a>
+## Model Experience
+
+无，因为该能力只运行调用方发起的打包任务并把构建帧报给线上调用方；它不注册任何工具、prompt 段或 Session 事件。
+
+#### KV Cache effect
+
+无；本包既不组装也不发送提供方请求。
+
+<a id="known-limitations-and-deferred-work"></a>
+## 已知限制与延期工作
+
+- 在构建最初的片刻（包管理器进程链还在拉起 leaf 时）取消，可能让该 leaf 逃过击杀并在后台跑完；记录仍会报告 `cancelled`、UI 保持正确，但进程没有被提前回收。
+- 暂不支持按构建覆写环境变量、workspace 过滤与构建日志落盘；输出仅存在于定容帧缓冲中。

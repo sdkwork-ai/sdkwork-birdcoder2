@@ -396,7 +396,7 @@
     // row's host face. The host face is what emits lib/types/index.js for the
     // clientBundle node half; without this row neither solution compiles
     // src/index.ts and the tsdown Client pass dies on UNRESOLVED_ENTRY
-    // lib/types/index.js (94dbea5d48 named the client face to fix TS6306 and
+    // lib/types/index.js (an upstream change named the client face to fix TS6306 and
     // dropped the directory reference that used to pull the host face in
     // transitively).
     { "path": "./packages/client/ui-sdkwork-image-models/tsconfig.host.json" },
@@ -463,7 +463,7 @@
     { "path": "./packages/api/workspace-controller/tsconfig.host.json" },
     { "path": "./packages/api/sdkwork-app-build-controller" },
     { "path": "./packages/api/sdkwork-git-controller" },
-    { "path": "./packages/api/sdkwork-template-install-controller" },
+    { "path": "./packages/api/sdkwork-scaffold-install-controller" },
     { "path": "./packages/typert/loader" },
     { "path": "./packages/session/session-persistence" },
     { "path": "./packages/session/session-format" },
@@ -682,7 +682,7 @@
     { "path": "./packages/host/sdkwork-app-build" },
     { "path": "./packages/host/sdkwork-git" },
     { "path": "./packages/host/sdkwork-oem" },
-    { "path": "./packages/host/sdkwork-template-install" },
+    { "path": "./packages/host/sdkwork-scaffold-install" },
     { "path": "./packages/host/sdkwork-directory-picker-auto" },
     { "path": "./packages/host/sdkwork-directory-picker-composed" },
     { "path": "./packages/boot/plugin-manager" },

@@ -23,7 +23,7 @@ SDKWork 自定义插件统一以 **`sdkwork`** 标识，一眼可辨：
 
 ## 二、与上游的总体差异概览
 
-- 分叉点（merge-base）：`141eb6fef83422698aef7a981029e843e8161534`（2026-08-19，上游 `dsh-0.1.0-rc.8`）。
+- 分叉点（merge-base）：`dsh-0.1.0-rc.8`（2026-08-19，上游 `dsh-0.1.0-rc.8`）。
 - `upstream/master..main` 共有 124 个 SDKWork 侧提交；`packages/` 下 857 个文件变更，绝大多数为版本重钉/siblings pin 噪声。
 - **真正的新增 = 24 个自定义插件**（改造后全部带 `sdkwork` 标识）。
 

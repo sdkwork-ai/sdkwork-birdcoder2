@@ -13,28 +13,28 @@
   zh: 3bd02c1ff08d6efe
 /deepseek-ai-dsh-host-apiproxy/table-of-contents:
   en: fdc9ebd12736b0a6
-  zh: 8047f2068d868e25
+  zh: 755c0b0d7d7310bb
 /deepseek-ai-dsh-host-apiproxy/the-shared-agent-default-agent-default-model-settings-section:
   en: 47bde9efe86032d9
-  zh: f2815eb0a9a923c7
+  zh: dc6cd6b71e1bbcb7
 /deepseek-ai-dsh-host-apiproxy/contract-layer-api:
   en: 7b5015e45c42c253
-  zh: a582df20022a0723
+  zh: 830bed63a923728d
 /deepseek-ai-dsh-host-apiproxy/carrier-layer-client-root:
   en: 1f45ea19a3d46644
   zh: 006949d97ca5d978
+/deepseek-ai-dsh-host-apiproxy/runtime-invariants:
+  en: d6bc78a5a53472e6
+  zh: cc63505cfcfc88e7
 /deepseek-ai-dsh-host-apiproxy/model-experience:
   en: 93e5e79f6a7e713f
-  zh: c6ee214bd5429d60
+  zh: 86c5580d82422675
 /deepseek-ai-dsh-host-apiproxy/model-experience/kv-cache-effect:
   en: ca75c51c89c2c9b0
-  zh: de54f3467ef3b9be
+  zh: 3ef62ca73fc4fa4e
 /deepseek-ai-dsh-host-apiproxy/known-limitations-and-deferred-work:
-  en: 2b9c8397740fe6c4
-  zh: 2fc4ffd487b3b9a1
+  en: e1225d91b0185406
+  zh: 18d7c0ad47e58c58
 /deepseek-ai-dsh-host-apiproxy/known-limitations-and-deferred-work/dev-note:
   en: 74f25431143111a8
   zh: 0f7adfde0dce6d77
-/deepseek-ai-dsh-host-apiproxy/runtime-invariants:
-  en: d6bc78a5a53472e6
-  zh: 8ae26387cadc4828

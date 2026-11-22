@@ -11,6 +11,16 @@ English | [中文](README.zh.md)
 
 An OEM deployment keeps the official DeepSeek verification flow and moves only the origins it runs against. This package resolves one JSON profile at boot, provides it as `ctx.oem`, and publishes the display brand (`__DSH_OEM__`) through the Web index injection. The account row reads `platformOrigin` and `inferenceOrigin` from it; the account route and the web-search rows read their endpoint bases. Without a profile every row resolves the shipped BirdCoder endpoints and brand; a composition that does not mount this profile keeps its own official defaults.
 
+## Table of Contents
+
+- [Brand identity](#brand-identity)
+- [Compatibility](#compatibility)
+- [Configuration](#configuration)
+- [Environment domains](#environment-domains)
+- [Merge contract](#merge-contract)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+
 ## Brand identity
 
 The application shipped by this repository is **BirdCoder**, and its logo is the BirdCoder bird (`apps/web/public/favicon.png`, from which the desktop, welcome, and installer marks derive). The OEM profile's default `brand.name` is also **BirdCoder**, so an OEM build with no profile still presents BirdCoder.

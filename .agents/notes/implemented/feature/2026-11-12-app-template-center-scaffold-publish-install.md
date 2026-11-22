@@ -23,7 +23,7 @@ A second source covers apps that do not live under `apps/`. The operator picks a
 Each candidate is matched to the caller's own platform app — manifest linkage, then the governed key against the server slug/name, then the display name — and deduped against the caller's template listings by template key. A publish run then:
 
 1. registers the platform app when none matches, falling back from an ambiguous multi-platform manifest to its first concrete declared platform (`ANDROID_APP`, `IOS_APP`, …) so a Flutter root is still publishable;
-2. packs the app root through the Host bridge (`sdkworkTemplateInstall.listFiles`/`readFiles`) with the same `.gitignore`-aware packer a browser-picked directory uses, excluding `.env`/`*.local` overrides and key material, and refusing a listing the Host cut at its 20,000-file / 24-level bound; the packer builds a zip locally with fflate and reports the compressed file count and byte size before any network write;
+2. packs the app root through the Host bridge (`sdkworkScaffoldInstall.listFiles`/`readFiles`) with the same `.gitignore`-aware packer a browser-picked directory uses, excluding `.env`/`*.local` overrides and key material, and refusing a listing the Host cut at its 20,000-file / 24-level bound; the packer builds a zip locally with fflate and reports the compressed file count and byte size before any network write;
 3. uploads only that locally built zip as the template version's artifact;
 4. creates the listing, or updates the existing listing and appends a new version when the account already owns that key (a concurrent creation is re-read and adopted);
 5. optionally submits for review; and
@@ -39,7 +39,7 @@ After the files land, the installer records the template identity in the install
 
 ### Host capability and product surface
 
-`packages/host/sdkwork-template-install` gains two bounded reads beside `writeFile`: `listFiles` (sorted, symlink-free, skip-listed walk) and `readFiles` (64 paths / 32 MiB per batch, 64 MiB for one file). The controller exposes them over the same `sdkworkTemplateInstall` Remote; the existing install planner needs no new endpoint. The browser packs the read batches lazily through the existing `packDirectory`.
+`packages/host/sdkwork-scaffold-install` gains two bounded reads beside `writeFile`: `listFiles` (sorted, symlink-free, skip-listed walk) and `readFiles` (64 paths / 32 MiB per batch, 64 MiB for one file). The controller exposes them over the same `sdkworkScaffoldInstall` Remote; the existing install planner needs no new endpoint. The browser packs the read batches lazily through the existing `packDirectory`.
 
 The publish surface is its own dialog with a dark/light token palette. Publish is a four-step single-app wizard — choose one project app card (radio, icon, type/platform/version badges, dedupe state) or one custom directory (path, scan count, detected type with manual override and manifest warnings), then Store assets (the app type's store policy decides logo size, screenshot device shelves/minimums and byte limits; the cover is the marketplace hero — 16:9 mobile/web, 16:10 desktop — not Google Play's 1024×500 feature graphic or an App Store slot), Basic information (name, key, subtitle, long description), and Version and publish (version/changelog, category/visibility/review, publish summary). Each step after the first shows a compact selected-app context bar and one centered form column; only the final step publishes, with its run/result inline. Images are previewed and validated locally, uploaded to Drive after the platform app is resolved, and persisted as stable `drive://` refs; existing refs survive unless a replacement is chosen. The footer always carries the primary action; a short viewport falls back to one column and full-width footer buttons. The signed-in account is the author identity and is shown in the header. Install is now a separate dialog, not a tab of this surface (see [the independent-dialogs note](2026-11-13-independent-template-publish-install-dialogs.md)).
 
@@ -60,7 +60,7 @@ The repository also owns a standalone server-side packaging component, `sdkwork-
 
 ## Consequences
 
-- Publishing from a project needs the Host packaging bridge. A composition without `sdkwork-template-install` still opens the center but cannot pack; the row reports the host failure.
+- Publishing from a project needs the Host packaging bridge. A composition without `sdkwork-scaffold-install` still opens the center but cannot pack; the row reports the host failure.
 - Custom-directory detection is a heuristic over names and a few marker files, not a build-system evaluation. A project with several frameworks, a monorepo root, or an unusual layout can be misclassified; the type select is the correction path, and an untyped candidate cannot advance until a type is chosen.
 - A custom directory without `agent.app.config.json` is never given a fabricated manifest and its app/template linkage is not written; the UI says so before publishing and the account-scoped template key still dedupes the next run.
 - Custom detection and packaging share the Host skip list and bounds, so a directory dominated by ignored build output can look empty or be refused exactly like an `apps/` root.
@@ -80,7 +80,7 @@ The repository also owns a standalone server-side packaging component, `sdkwork-
 - `template-publish-dialog.client.spec.tsx` pins the four-step single-app navigation, radio single-selection, semantic-version validation, publish run, retry, reset-to-selection, version enrichment, the disabled empty selection, the custom-directory pick/detect/publish path (no manifest write), the manual type override, and the store-asset path (per-app-kind logo/cover/screenshot policy, device shelves, uploads, description persistence, existing assets, type/size/count validation); `publish-template-flow.client.spec.tsx` pins late IAM hydration over the real generated SDK stack.
 - `sdkwork-intelligence-deploy-repository-sqlx/tests/template_market_postgres.rs` pins screenshot metadata and media refs through the real repository. `crates/sdkwork-deploy-archive/tests/archive.rs` pins the reusable gitignore pack/unpack component.
 - `template-custom-app.client.spec.ts` pins Flutter/React/mini/Expo detection, manifest precedence, the untyped candidate, empty/unreadable refusal, truncation, and the type vocabulary; `template-publish.client.spec.ts` pins the new local-zip stage between packing and upload.
-- `packages/host/sdkwork-template-install/tests/template-source.host.spec.ts` and the controller suite pin the bounded walk, batched reads, symlink refusal, and wire error projection.
+- `packages/host/sdkwork-scaffold-install/tests/template-source.host.spec.ts` and the controller suite pin the bounded walk, batched reads, symlink refusal, and wire error projection.
 
 ## Prior art
 

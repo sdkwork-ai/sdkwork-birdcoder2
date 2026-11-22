@@ -10,7 +10,7 @@ kind: "package-reference"
 ## 概述
 
 
-Course 应用模式插件拥有 `course` 侧栏入口、中栏页面以及 SDKWork 宿主适配器。侧栏入口调用布局 store 现有的 `setMode('course')` 动作；AppFrame 随后分派 keyed `mode.page` 席位，本包在该席位挂载 SDKWork Course PC 应用。嵌入页面通过内存路由渲染 SDKWork 发现页（`@sdkwork/sdkwork-course-pc-courses`）：主题分类、精选轮播、响应式课程流、课程列表、详情、课时和创作者中心路由。顶栏提供 **上传课程** 入口；首页课程流在底部哨兵滚动进入视口时自动加载后续分页。嵌入的创作中心可创建草稿、通过 Drive 上传封面/视频、编排章节与课时并提交运营审核。宿主 IAM 凭证与 API 基址会同步到课程 Drive 客户端，嵌入环境无需二次登录即可上传。返回 Code 会恢复对话工作区，无需 URL 路由或持久化模式状态。
+Course 应用模式插件拥有 `course` 侧栏入口、中栏页面以及 SDKWork 宿主适配器。侧栏入口调用布局 store 现有的 `setMode('course')` 动作；AppFrame 随后分派 keyed `mode.page` 席位，本包在该席位挂载 SDKWork Course PC 应用。返回 Code 会恢复对话工作区，无需 URL 路由或持久化模式状态。
 
 ## 目录
 
@@ -20,28 +20,41 @@ Course 应用模式插件拥有 `course` 侧栏入口、中栏页面以及 SDKWo
 - [已知限制与后续工作](#known-limitations-and-deferred-work)
 - [开发备注](#dev-note)
 
+<a id="runtime-requirements"></a>
 ## 运行时要求
 
 插件需要 `ctx.env`、`ctx.iam` 与 `ctx.locale`。它在注册页面前配置 SDKWork 宿主适配器。当前环境提供 API 基址与可选静态 access token；已配置的静态 token 优先于 IAM 会话凭证。环境变更会重建生成的 Course 客户端并 remount SDKWork 视图；IAM 与 locale 变更通过 SDKWork 订阅传播，无需 remount。嵌入页面通过 `SdkworkHostThemeSurface` 跟随宿主浅色/深色主题，并在深色宿主中渲染共享课程主题令牌。嵌入课程应用内部的渲染失败由页面自带的失败边界兜住：它上报错误、保持模式页与外壳挂载，并提供会重新挂载表面的重试。
 
+<a id="browser-bundle"></a>
 ## 浏览器 bundle
 
 客户端插件输出单个 `client.js` 闭包，因为 BirdCoder 客户端模块加载器不会发布任意 sibling chunk。其 bundle 面编译 SDKWork Tailwind 样式表并一次性注入 SDKWork CSS。声明 emit 跳过对 sibling SDKWork 实现的严格检查；`tsconfig.tests.json` 以单一 React 类型身份检查所消费的源码闭包。
 
-## 模型体验
+## 理解实现
+
+嵌入页面通过内存路由渲染 SDKWork 发现页（`@sdkwork/sdkwork-course-pc-courses`）：主题分类、精选轮播、响应式课程流、课程列表、详情、课时和创作者中心路由。顶栏提供 **上传课程** 入口；首页课程流在底部哨兵滚动进入视口时自动加载后续分页。嵌入的创作中心可创建草稿、通过 Drive 上传封面/视频、编排章节与课时并提交运营审核。宿主 IAM 凭证与 API 基址会同步到课程 Drive 客户端，嵌入环境无需二次登录即可上传。
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；模式状态保存在布局 store 的声明动作集合中，入口/页面注册遵循 rail shell 的 keyed 分发；store/模式一致性直接由本包的客户端行为规格测试覆盖。
+
+<a id="model-experience"></a>
+## Model Experience
 
 无。该插件渲染面向人类的浏览器应用，不增加 prompt 内容、工具或 session 事件。
 
-#### KV Cache 影响
+#### KV Cache effect
 
 无；SDKWork HTTP 请求是独立的浏览器流量，不会改变 Harness provider 请求。
 
+<a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与后续工作
 
 - **Sibling 源码要求** — 从源码安装或重建浏览器闭包需要 `../sdkwork-course` workspace checkout 及其生成的 Course 客户端。
 - **单文件 payload** — 完整 SDKWork 应用与编译样式打包在一个 client-plugin 闭包中，相比分块应用会增加 Course 插件的初始下载体积。
 - **单一活跃宿主适配器** — SDKWork Course PC runtime ports 是进程全局的，因此一个浏览器窗口只托管一个 Course 表面；重新配置会 dispose 先前的适配器。
 
+<a id="dev-note"></a>
 ### 开发备注
 
 <details>
@@ -50,7 +63,3 @@ Course 应用模式插件拥有 `course` 侧栏入口、中栏页面以及 SDKWo
 SDKWork Course PC runtime ports 是进程全局的：一个浏览器窗口只托管一个 Course 表面，重新配置会 dispose 先前适配器，因此无法组合出第二个并发表面。本地安装需要 `../sdkwork-course` 兄弟 checkout；单文件 `client.js` 闭包源于 BirdCoder 客户端模块加载器不发布任意 sibling chunk。
 
 </details>
-
-## 运行时不变量
-
-不发布运行时不变量伴随检查；模式状态保存在布局 store 的声明动作集合中，入口/页面注册遵循 rail shell 的 keyed 分发；store/模式一致性直接由本包的客户端行为规格测试覆盖。

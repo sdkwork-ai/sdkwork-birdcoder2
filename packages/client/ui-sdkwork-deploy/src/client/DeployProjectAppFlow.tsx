@@ -145,7 +145,7 @@ export function DeployProjectAppFlow({
   )
 
   // Rebuild clients on host notifications (IAM hydration, token rotation,
-  // environment switch), the same self-heal the picker and template flows use.
+  // environment switch), the same self-heal the picker and scaffold flows use.
   useEffect(() => {
     return host.subscribe(() => {
       try {

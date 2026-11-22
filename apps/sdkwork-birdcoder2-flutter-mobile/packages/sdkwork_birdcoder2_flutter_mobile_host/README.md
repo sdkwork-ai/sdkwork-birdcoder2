@@ -2,7 +2,7 @@
 
 Platform adapter boundary: secure storage, deep links, push, permissions, device capability probes.
 
-- Surface: `[object Object]`
+- Surface: `flutter-mobile`
 - Layer role: `host`
 - Standard: `MODULE_SPEC.md`, `FLUTTER_APP_MOBILE_ARCHITECTURE_SPEC.md`
 

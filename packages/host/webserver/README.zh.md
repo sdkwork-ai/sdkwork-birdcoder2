@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-浏览器经由 `dsh-host-webserver` 通过 HTTP 访问 web GUI：一个 `node:http` 服务器——当 `tls` 指定证书与私钥时改用 `node:https`——其他插件在其中注册具名路由、upgrade 路由、index 启动输入与一个回退。它不提供任何文件服务——`/api` 桥接、插件 bundle、HMR（热模块替换）事件流与 SPA dist 都属于注册它们的插件。路由匹配顺序固定不变：先在整张表中匹配精确 route，再匹配最长前缀，最后交给回退。它只服务浏览器；Electron 桌面壳层（[apps/desktop](../../../apps/desktop)）把这一行替换为[桌面载体](../sdkwork-desktop-carrier/README.zh.md)，后者经壳层 `app://` 协议提供同一个 `webServer` 服务，并经由 IPC 桥接承载 RPC。
+浏览器通过 `dsh-host-webserver` 以 HTTP 访问 Web GUI：一个 `node:http` 服务（当 `tls` 指定证书与私钥时改用 `node:https`），其他插件在其中注册具名路由、升级路由、index 启动输入与唯一一个 fallback。它不提供任何文件服务：`/api` 桥、插件 bundle、HMR 事件流与 SPA dist 都由注册它们的插件负责。路由匹配规则固定：先精确匹配整张表，再最长前缀，最后 fallback。
 
 ## 目录
 
@@ -85,6 +85,8 @@ index 启动输入分两层，按页面所代表的 Peer 计算。`collectIndexI
 <a id="understand-the-implementation"></a>
 ## 理解实现
 
+它只服务浏览器；Electron 桌面壳层（[apps/desktop](../../../apps/desktop)）把这一行换成[桌面载体](../sdkwork-desktop-carrier/README.zh.md)，后者在壳层的 `app://` 协议之上提供同一个 `webServer` 服务，并经 IPC 桥承载 RPC。
+
 <details>
 <summary>实现细节——点击展开</summary>
 
@@ -121,11 +123,11 @@ index 启动输入分两层，按页面所代表的 Peer 计算。`collectIndexI
 -----
 
 <a id="model-experience"></a>
-## 模型体验
+## Model Experience
 
-无。该 HTTP 载体只桥接浏览器与 API handler，不注册任何面向模型的内容。
+无，因为该 HTTP 载体只桥接浏览器与 API handler，不注册任何面向模型的内容。
 
-#### KV Cache 影响
+#### KV Cache effect
 
 无；该包既不组装也不发送提供方请求。
 

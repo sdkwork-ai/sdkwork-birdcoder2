@@ -2,7 +2,7 @@
 
 Service ports and generated-SDK-facing interfaces injected into client services.
 
-- Surface: `[object Object]`
+- Surface: `common`
 - Layer role: `service`
 - Standard: `MODULE_SPEC.md`, `APPLICATION_SPEC.md`
 

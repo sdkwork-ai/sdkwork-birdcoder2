@@ -9,9 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Open a workbook in the Sidebar and read it the way Excel shows it: the sheet's own fonts, fills, borders, merged regions, frozen panes, and number formats all come through as stored, with no server or converter in the path. The window is Excel's, from the Name Box and formula bar down to the sheet-tab strip and status bar. The worksheet surface fills its page whatever the workbook holds — a brand-new workbook with one empty cell paints gridlines to the window's own edges and scrolls the way a spreadsheet does — and the row-number and column-letter bands stay pinned to the page's edges while it scrolls. Select cells and ranges with the keyboard or the pointer and read their average, count, and sum off the status bar; only the cells on screen are mounted, so a workbook with a hundred thousand populated rows opens at the cost of the visible ones.
-
-The same surface edits. Typing, `F2`, `Backspace`, `Delete`, `Enter`, `Tab`, `Esc`, the arrow keys, the clipboard, and the fill handle all mean what they mean in Excel, the formula bar is a field rather than a readout, and a changed workbook leaves through **Save a copy** — the preview contract is read-only, so nothing is written back to the document on disk.
+Open a workbook in the Sidebar and read it the way Excel shows it: the sheet's own fonts, fills, borders, merged regions, frozen panes, and number formats appear as stored, with no server or converter, inside Excel's window — Name Box, formula bar, sheet tabs, and status bar. The surface fills its page, pins the row-number and column-letter bands to its edges, reports the selection's average, count, and sum, and mounts only the cells on screen. It edits with Excel's keys and semantics, and a changed workbook leaves through **Save a copy** because the preview contract is read-only.
 
 ## Table of Contents
 
@@ -65,6 +63,12 @@ What a reader types is read the way Excel reads it. Text starting with `=` is a 
 Nothing is written back to the document. The preview contract has no write path, so an edited workbook leaves through **Save a copy**: the sheet's own part is patched, the package is rewritten around it, and the bytes go to the browser as an `.xlsx` download. The bar marks a workbook that now differs from the file on disk, and a package the editor cannot rewrite — a ZIP64 archive, for instance — is reported by name rather than dropped in silence.
 
 Every edit lands in one log of final cell states, held per sheet and folded over the parsed model when the grid draws, so moving between sheets keeps each sheet's work and re-drawing never costs a re-parse. The undo history is a stack of whole logs rather than a stack of inverse operations, so an undo is exact and cannot drift from the edits it reverses. A confirmation that changes nothing is dropped rather than recorded, which is what leaves `F2` followed straight by `Enter` a workbook still clean.
+
+## Understand the implementation
+
+Open a workbook in the Sidebar and read it the way Excel shows it: the sheet's own fonts, fills, borders, merged regions, frozen panes, and number formats all come through as stored, with no server or converter in the path. The window is Excel's, from the Name Box and formula bar down to the sheet-tab strip and status bar. The worksheet surface fills its page whatever the workbook holds — a brand-new workbook with one empty cell paints gridlines to the window's own edges and scrolls the way a spreadsheet does — and the row-number and column-letter bands stay pinned to the page's edges while it scrolls. Select cells and ranges with the keyboard or the pointer and read their average, count, and sum off the status bar; only the cells on screen are mounted, so a workbook with a hundred thousand populated rows opens at the cost of the visible ones.
+
+The same surface edits. Typing, `F2`, `Backspace`, `Delete`, `Enter`, `Tab`, `Esc`, the arrow keys, the clipboard, and the fill handle all mean what they mean in Excel, the formula bar is a field rather than a readout, and a changed workbook leaves through **Save a copy** — the preview contract is read-only, so nothing is written back to the document on disk.
 
 <a id="model-experience"></a>
 ## Model Experience

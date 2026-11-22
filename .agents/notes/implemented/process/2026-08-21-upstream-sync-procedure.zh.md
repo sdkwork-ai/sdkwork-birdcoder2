@@ -6,7 +6,7 @@ Status: implemented
 
 ## 问题
 
-`main` 是 `deepseek-ai/deepseek-harness` 的 fork，在持续合并上游的同时承载 SDKWork 专属功能。一次覆盖 fork 功能、压平上游历史或方向错误的冲突解决，会同时毁掉开源血缘与产品功能。第一次完整同步（2026-08-21，上游 `528c682e06`）确立了下述可执行流程；本笔记记录它，使后续每次同步都遵循同样的步骤与冲突规则。
+`main` 是 `deepseek-ai/deepseek-harness` 的 fork，在持续合并上游的同时承载 SDKWork 专属功能。一次覆盖 fork 功能、压平上游历史或方向错误的冲突解决，会同时毁掉开源血缘与产品功能。第一次完整同步（2026-08-21）确立了下述可执行流程；本笔记记录它，使后续每次同步都遵循同样的步骤与冲突规则。
 
 ## 流程
 
@@ -26,7 +26,7 @@ Status: implemented
 10. **重新收敛发布家族版本（2026-09-11 教训）。** `DshFamily.verifyVersions` 要求每个可发布成员（`packages/!(experimental)/*/package.json` 加 `apps/*/package.json`，排除 `private: true`）共用同一个版本，且两个合并父提交都强制这一约束。上游的版本提升只落在上游自己改过的文件上：fork 独有的成员没有上游对应物，因此永不冲突，也就一直保留上一个版本行。2026-09-11 的同步让 49 个 fork manifest 停在 `0.1.5-alpha.1`/`0.1.5-alpha.2`，而上游已把 266 个推进到 `0.1.5-rc.2`；这份漂移被提交进 HEAD，随后每次 `release:pack --family dsh` 都在打包任何产物之前被家族版本门禁中止。解决合并后，读出合并后的根版本写进每个滞后成员的 manifest，再 `pnpm install --lockfile-only` 并确认家族只报出一个版本。
 11. **让兄弟仓 pin 与 lockfile 同步推进（2026-09-11 教训）。** CI 会先把 `scripts/sdkwork-sources.manifest.json` 里 pin 的兄弟仓克隆到 `../sdkwork-*`，再运行 `pnpm install --frozen-lockfile`；但 `pnpm-lock.yaml` 记录的是从**本地**兄弟 checkout 解析出的 specifier。因此 pin 落后于本地 HEAD 时，维护者本机安装一切正常，而所有 CI runner 都会以 `ERR_PNPM_OUTDATED_LOCKFILE` 失败——这个报错看起来像 lockfile 问题，而不像 pin 问题。先推送兄弟仓、把每个 pin 指向已推送的 HEAD，然后才重新记录并校验 lockfile，最后再推送合并。
 
-## 冲突决策表
+### 冲突决策表
 
 | 表面 | 取哪边 | 原因 |
 |---|---|---|
@@ -43,3 +43,9 @@ Status: implemented
 ## 结果
 
 2026-08-21 同步合并了 172 个上游提交、277 个冲突文件，把 fork 的 `sdkwork-` 命名契约写进 AGENTS.md，修复了两处真实接口缺口（desktop-carrier 的 `renderIndex`；测试的 boot 标记断言），并以零合并引入的 typecheck/测试回退落地。剩余失败（sdkwork 兄弟包 API 漂移、陈旧双语配对）是 fork 既有债务，由 WIP 分支继续处理。
+
+## 备选方案
+
+**用 rebase 把 fork 重新落到上游之上，而不是合并。** 否决原因：rebase 会重写 fork 历史并合成重放每一次冲突，丢失下一次同步所依赖的 merge base 记录。
+
+**把上游压缩成一个提交。** 否决原因：这会破坏上游历史，使下一次增量同步无法计算 merge base。

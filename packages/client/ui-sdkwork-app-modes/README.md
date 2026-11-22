@@ -9,6 +9,15 @@ English | [中文](README.zh.md)
 
 ## Summary
 
+App-mode surface plugin for the WeChat-desktop-style mode rail: the base modes Code, Work, and Document with their placeholder pages, the new-session hero's scene switcher, and the display-preference rows for the sidebar and that switcher. The rail shell renders one keyed `mode.rail.entry` seat per visible mode in the user's own layout order, and switching to a non-code mode replaces the conversation with that mode's page.
+
+## Table of Contents
+
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
+
+## Understand the implementation
 
 App-mode surface plugin: the WeChat-desktop-style mode rail shell, the base mode entries, the placeholder pages, the new-session hero's scene switcher, and the display-preference rows for the sidebar and that switcher. The frame's fixed leftmost track (`mode.rail`, declared by ui-layout) hosts the rail shell; the active mode lives in the layout store, so the frame hands it to the rail as owner props and the rail holds no state of its own. The shell renders one keyed `mode.rail.entry` seat per visible mode id in the user's layout order (the shipped layout shows the five fixed modes and App Store) and passes each entry the live selection facts. This package contributes the base modes Code, Work, and Document; Video, Image, App Store, Knowledge Base, Drive, Assets, Search, and Token Plan come from independent mode plugins. Clicking a non-code entry switches the frame's mode: the center column renders the keyed `mode.page` slot (entryKey = the mode id) instead of the conversation, and switching back to Code restores the conversation surface. A mode whose page needs a signed-in session states that requirement on its own page; the rail itself opens no sign-in surface. The rail stays mounted in both sidebar states, so mode switching never depends on the sidebar being expanded. The rail's bottom also holds the settings trigger and the global-panel shortcuts: the `mode.rail.settings` seat (declared by this package, occupied by ui-settings-general's trigger + modal panel) renders outside the entries group, so the settings button is not announced as an app mode and stays reachable while the sidebar is collapsed, and the `mode.rail.panel` list seat directly above it hosts feature packages' own panel shortcuts (the shipped composition puts the IM connector there). A panel shortcut owns its chrome, glyph, label, and click, receives the frame's active mode as owner props, may also read the selected panel through the standard `usePanelInfo` hook, and opens its surface through the layout service; the seat is outside the entries group because a panel shortcut is not an app mode.
 
@@ -26,15 +35,15 @@ The plugin also owns the display preferences for the frame and the new-session h
 
 Mode glyphs are self-contained icons in this package in two weights — outline for idle rail entries, placeholder pages, and idle scene pills, filled for the rail's active entry and the selected scene pill (the design-system icon set has no Work/Video/Document vocabulary); they follow the shared icon contract so swapping in library icons later is local. The rail presents Code — the workbench — as Home: a house glyph in both weights (outline at rest, solid while selected) and the localized `首页` / `Home` name on the entry's tooltip, accessible name, and customize row, so the entry that returns to the workbench reads as a way home. The hero scene pills keep the code brackets for their Code development scene, which stages rather than navigates.
 
-## Table of Contents
+## Runtime invariants
 
-- [Model Experience](#model-experience)
-- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
-- [Dev Note](#dev-note)
+No runtime invariant companion is published; the mode state lives in the layout store declared action set (the store spec is the write gate), the settings scope validates and publishes the durable section, and the rail active entry follows the same store channel AppFrame reads; store/mode agreement is covered directly by this package client and Host behavior specs.
+
+The strip's preference overlay has the same shape and one extra rule. `scene-prefs-store` holds the two tag lists and the master switch as declared state with a single `sync` action, fed from the `skillPreferences` snapshot inside an optional `ctx.inject(['skillPreferences'], …)` — the injection is what keeps this plugin composable without the skill manager, and the store keeps the lists as plain arrays so the state stays JSON-compatible. The one rule the store does not own is precedence: "hide wins over pin" is decided once by the service's `hidden` set and consumed per tag, so no consumer re-derives it. A publish with the same facts is a no-op, which is what stops a `skillPreferences` notification storm from re-rendering the strip. Both halves are asserted by `scene-skill-tags.client.spec.tsx` and `scene-prefs-store` coverage rather than by a runtime companion — for exactly the reason above: the only consumer-visible failure a companion could catch is a precedence divergence, and there is only one place precedence is computed.
 
 ## Model Experience
 
-None, as the package is human-only surface chrome and a settings preference. Switching modes changes browser viewing state only; nothing here reaches a model request.
+None, as the package is human-only surface chrome and a settings preference: switching modes changes browser viewing state only, and nothing here reaches a model request.
 
 #### KV Cache effect
 
@@ -59,9 +68,3 @@ The rail holds no state of its own: the active mode lives in the ui-layout store
 The customize dialog's mode names (`mode.chat`, `mode.contacts`, …) mirror each owning mode package's `mode.<id>` copy: the dialog renders inside the rail shell, which cannot import the other packages' locale namespaces without a dependency cycle. Re-sync the mirrors on a rename there. The rail-layout store (`dsh.railLayout`) normalizes a rehydrated blob against the current vocabulary, so renamed or removed ids drop, a newly shipped mode appends instead of being swallowed, and a fixed mode named in the stored hidden set clamps back to visible. Its shipped-default revision (`dsh.railLayoutRevision`, `LAYOUT_REVISION`) gates a one-time migration: bump the revision whenever `SHIPPED_VISIBLE_MODES` changes, so a layout written under the previous defaults adopts the new visibility once instead of keeping a choice the user never made, while a choice made afterwards survives.
 
 </details>
-
-## Runtime invariants
-
-No runtime invariant companion is published; the mode state lives in the layout store declared action set (the store spec is the write gate), the settings scope validates and publishes the durable section, and the rail active entry follows the same store channel AppFrame reads; store/mode agreement is covered directly by this package client and Host behavior specs.
-
-The strip's preference overlay has the same shape and one extra rule. `scene-prefs-store` holds the two tag lists and the master switch as declared state with a single `sync` action, fed from the `skillPreferences` snapshot inside an optional `ctx.inject(['skillPreferences'], …)` — the injection is what keeps this plugin composable without the skill manager, and the store keeps the lists as plain arrays so the state stays JSON-compatible. The one rule the store does not own is precedence: "hide wins over pin" is decided once by the service's `hidden` set and consumed per tag, so no consumer re-derives it. A publish with the same facts is a no-op, which is what stops a `skillPreferences` notification storm from re-rendering the strip. Both halves are asserted by `scene-skill-tags.client.spec.tsx` and `scene-prefs-store` coverage rather than by a runtime companion — for exactly the reason above: the only consumer-visible failure a companion could catch is a precedence divergence, and there is only one place precedence is computed.

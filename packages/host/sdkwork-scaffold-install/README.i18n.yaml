@@ -1,0 +1,31 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/host/sdkwork-scaffold-install/README.md
+/:
+  en: 59ef0c9f0c393ba5
+  zh: 84dfe14f5b8cf90d
+/deepseek-ai-dsh-sdkwork-scaffold-install:
+  en: dbc1d10bbcdea975
+  zh: 0a3c70b06c87eebe
+/deepseek-ai-dsh-sdkwork-scaffold-install/summary:
+  en: 906e641c1f9a0a9f
+  zh: a24769ebb44487c9
+/deepseek-ai-dsh-sdkwork-scaffold-install/table-of-contents:
+  en: 29eb5905b5fbc642
+  zh: 11bc365b80df7f56
+/deepseek-ai-dsh-sdkwork-scaffold-install/understand-the-implementation:
+  en: 02e686fa3214a6a0
+  zh: e4f7a636d624dbd1
+/deepseek-ai-dsh-sdkwork-scaffold-install/dev-note:
+  en: 6cf5cf5d331dad82
+  zh: b63428b36c0d0078
+/deepseek-ai-dsh-sdkwork-scaffold-install/model-experience:
+  en: 770bd349b03af69d
+  zh: 410a6a4c4d036a4e
+/deepseek-ai-dsh-sdkwork-scaffold-install/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: 123b450ae1406e9d
+/deepseek-ai-dsh-sdkwork-scaffold-install/known-limitations-and-deferred-work:
+  en: 0553cce45e0018e1
+  zh: 34fd10ef66d71bb5

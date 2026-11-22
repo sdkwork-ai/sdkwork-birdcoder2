@@ -2,7 +2,7 @@
 
 App route assembly, layout, navigation, AuthGate wiring, workspace entry, keyboard and pointer workflows.
 
-- Surface: `[object Object]`
+- Surface: `pc`
 - Layer role: `shell`
 - Standard: `MODULE_SPEC.md`, `APP_PC_ARCHITECTURE_SPEC.md`
 

@@ -17,3 +17,6 @@
 /agent-note-tailwind-resolution-must-not-depend-on-sibling-node-modules/testing:
   en: 1a7b2fd41a4e7f4a
   zh: d7e794414d08bbfb
+/agent-note-tailwind-resolution-must-not-depend-on-sibling-node-modules/alternatives-considered:
+  en: fed15f64f281ece3
+  zh: 0ada719a4563c787

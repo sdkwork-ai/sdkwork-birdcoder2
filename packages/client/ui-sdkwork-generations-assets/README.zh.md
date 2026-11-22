@@ -20,27 +20,37 @@ SDKWork Agents 资产应用模式。此浏览器插件持有 `assets` 模式栏�
 - [已知限制与后续工作](#known-limitations-and-deferred-work)
 - [开发备注](#dev-note)
 
+<a id="asset-library"></a>
 ## 资产库
 
 BirdCoder 不在本地重新实现资产 UI。宿主适配器（`assetsHost.ts`）将 [ui-sdkwork-env](../ui-sdkwork-env/README.zh.md) 与 [ui-sdkwork-iam](../ui-sdkwork-iam/README.zh.md) 映射到 Agents PC 会话存储与 Drive SDK 客户端 provider，随后挂载 `@sdkwork/agents-pc-assets` 的 `AssetsView` 及 Agents 工作台 i18n 目录。嵌入页面与 Agents PC 工作台一致，包含顶栏标签、媒体筛选、日期分组网格与详情弹窗。
 
+<a id="runtime-requirements"></a>
 ## 运行时要求
 
 当前 [ui-sdkwork-env](../ui-sdkwork-env/README.zh.md) 配置提供 API 网关地址与可选静态 access token。用户登录后，[ui-sdkwork-iam](../ui-sdkwork-iam/README.zh.md) 会话 token 优先于 env 引导 token。宿主仅转发凭证；租户与用户身份在 Agents PC 内由 JWT 声明解析。
 
-## 模型体验
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；模式状态保存在布局 store 的声明动作集合中，入口/页面注册遵循 rail shell 的 keyed 分发；store/模式一致性直接由本包的客户端行为规格测试覆盖。
+
+<a id="model-experience"></a>
+## Model Experience
 
 无。模式选择、Drive 列表请求与 SDKWork HTTP 响应均属于浏览器查看状态，不增加模型请求内容、工具或会话事件。
 
-#### KV Cache 影响
+#### KV Cache effect
 
 无；此包既不组装也不发送 provider 请求。
 
+<a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与后续工作
 
 - **仅 Drive 列表** — 页面展示 Drive 资产 API 返回的内容；上传、删除与移动行为与 Agents PC 表面一致。
 - **在线鉴权列表** — 当部署的 Drive API 需要 SDKWork access token 时，没有离线缓存或匿名回退。
 
+<a id="dev-note"></a>
 ### 开发备注
 
 <details>
@@ -49,7 +59,3 @@ BirdCoder 不在本地重新实现资产 UI。宿主适配器（`assetsHost.ts`�
 页面不在本地重新实现：`assetsHost.ts` 只把 ui-sdkwork-env 与 ui-sdkwork-iam 映射到 Agents PC 会话存储和 Drive SDK 客户端 provider，随后挂载 `@sdkwork/agents-pc-assets`，因此表面修复应在上游 sdkwork-agents 进行。本包的注册以更低优先级覆盖 ui-sdkwork-assets 的占位条目——key 必须保持一致，否则两个条目都会渲染。
 
 </details>
-
-## 运行时不变量
-
-不发布运行时不变量伴随检查；模式状态保存在布局 store 的声明动作集合中，入口/页面注册遵循 rail shell 的 keyed 分发；store/模式一致性直接由本包的客户端行为规格测试覆盖。

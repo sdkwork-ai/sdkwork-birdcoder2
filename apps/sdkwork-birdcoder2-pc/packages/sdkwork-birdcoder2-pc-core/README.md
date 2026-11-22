@@ -2,7 +2,7 @@
 
 Runtime/bootstrap, SDK client construction, appbase IAM runtime, global TokenManager, host adapters, offline/resilience and diagnostics.
 
-- Surface: `[object Object]`
+- Surface: `pc`
 - Layer role: `runtime`
 - Standard: `MODULE_SPEC.md`, `APP_PC_ARCHITECTURE_SPEC.md`
 

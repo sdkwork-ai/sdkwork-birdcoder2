@@ -2,7 +2,7 @@
 
 Shared components, theming tokens, list/empty/loading/error/permission-denied states.
 
-- Surface: `[object Object]`
+- Surface: `mini-program`
 - Layer role: `ui`
 - Standard: `MODULE_SPEC.md`, `MINI_PROGRAM_APP_ARCHITECTURE_SPEC.md`
 

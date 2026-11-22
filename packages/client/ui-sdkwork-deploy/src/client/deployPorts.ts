@@ -1,7 +1,7 @@
 /**
  * Reactive theme/locale ports shared by every publish surface (the
  * session-header action, the standalone publish dialog, and the shared
- * publish-as-template flow), plus the BirdCoder-locale → deployments-locale
+ * publish-as-scaffold flow), plus the BirdCoder-locale → deployments-locale
  * mapping the @sdkwork dialogs consume. Own module so the surfaces can compose
  * without importing each other.
  */

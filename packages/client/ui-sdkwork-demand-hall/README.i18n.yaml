@@ -9,32 +9,35 @@
   en: 87c2888b3304f592
   zh: 9fdd96036856de5e
 /deepseek-ai-dsh-client-ui-sdkwork-demand-hall/summary:
-  en: 5fffd2f5ccea11e8
-  zh: 0bc662aa886fab6d
+  en: 1d7effc72f98faed
+  zh: 773c96ecac8b8a5a
 /deepseek-ai-dsh-client-ui-sdkwork-demand-hall/table-of-contents:
   en: a89695bf50a8ef5e
-  zh: 326d5a4d711f44c4
+  zh: 5d5632499cf9fb2a
 /deepseek-ai-dsh-client-ui-sdkwork-demand-hall/runtime-requirements:
   en: 3ac3a463e6948163
-  zh: 597e67e71d49d085
+  zh: ea2e369472ad6a10
 /deepseek-ai-dsh-client-ui-sdkwork-demand-hall/embedded-surface:
   en: 33ad0111be1b0528
-  zh: 9c673d962d92fc56
+  zh: d7a24b06ed408d20
 /deepseek-ai-dsh-client-ui-sdkwork-demand-hall/demand-to-project:
   en: a409dd41b48ed6b2
   zh: df546a7a09f252d2
-/deepseek-ai-dsh-client-ui-sdkwork-demand-hall/model-experience:
-  en: d0de56e90fdd4beb
-  zh: d8196aaab14c2e91
-/deepseek-ai-dsh-client-ui-sdkwork-demand-hall/model-experience/kv-cache-effect:
-  en: 36160a041d03ed9a
-  zh: 96d309dffe1d527a
-/deepseek-ai-dsh-client-ui-sdkwork-demand-hall/known-limitations-and-deferred-work:
-  en: b4ec134b7f35b263
-  zh: c9645b53408eeab4
-/deepseek-ai-dsh-client-ui-sdkwork-demand-hall/known-limitations-and-deferred-work/dev-note:
-  en: 033f0536028ebf8c
-  zh: 8e909175f481fd4e
+/deepseek-ai-dsh-client-ui-sdkwork-demand-hall/understand-the-implementation:
+  en: 281c73df91355c73
+  zh: b943a7bcb0587d1a
 /deepseek-ai-dsh-client-ui-sdkwork-demand-hall/runtime-invariants:
   en: d07543577f56b2b9
-  zh: 9beaf54a1928177f
+  zh: 55565c781b03fed3
+/deepseek-ai-dsh-client-ui-sdkwork-demand-hall/model-experience:
+  en: 1ec0c9a9efdc12dc
+  zh: c3b8637e794cf281
+/deepseek-ai-dsh-client-ui-sdkwork-demand-hall/model-experience/kv-cache-effect:
+  en: 36160a041d03ed9a
+  zh: 0dcb812007e0c1ef
+/deepseek-ai-dsh-client-ui-sdkwork-demand-hall/known-limitations-and-deferred-work:
+  en: b4ec134b7f35b263
+  zh: d894b702dca520e1
+/deepseek-ai-dsh-client-ui-sdkwork-demand-hall/known-limitations-and-deferred-work/dev-note:
+  en: 033f0536028ebf8c
+  zh: 9641b9d66c9af8ea

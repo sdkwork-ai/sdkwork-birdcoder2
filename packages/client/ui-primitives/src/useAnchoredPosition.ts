@@ -1,7 +1,7 @@
 /**
  * Synchronous placement for body-portaled panels with a viewport fixed-position containing block.
  *
- * FORK DIVERGENCE (merge of dsh-v0.2.2-rc.1, upstream fcc0ad4621): upstream
+ * FORK DIVERGENCE (merge of dsh-v0.2.2-rc.1, upstream): upstream
  * removed this hook and `AnchoredPositionOptions` in favour of CSS anchor
  * positioning (`docs/upgrade-guide/v0.2.2-alpha.2/css-anchored-menus`). The
  * fork's own client surfaces (`ui-sdkwork-automation`'s picker and task menu and

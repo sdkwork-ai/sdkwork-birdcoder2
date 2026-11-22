@@ -19,3 +19,7 @@ The web build no longer depends on sibling `dist` output: the release runner and
 ## Testing
 
 `verify-web-vite-aliases` passes; a full `build:official` rehearsal completes and the bundle carries the token manager with no external `@sdkwork/sdk-common` import.
+
+## Alternatives considered
+
+**Leave the current behavior in place.** Rejected: the Problem records the concrete failure that behavior produced.

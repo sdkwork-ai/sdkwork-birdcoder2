@@ -2,7 +2,7 @@
 
 Shared widgets, theming, adaptive layout primitives, loading/empty/validation-error/permission-denied/offline states.
 
-- Surface: `[object Object]`
+- Surface: `flutter-mobile`
 - Layer role: `ui`
 - Standard: `MODULE_SPEC.md`, `FLUTTER_APP_MOBILE_ARCHITECTURE_SPEC.md`
 

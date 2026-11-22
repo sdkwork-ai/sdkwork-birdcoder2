@@ -30,31 +30,11 @@ The step writes `resources/sdkwork-release.env` through `renderSdkworkReleaseEnv
 
 ### Both classes name the application, only the credential is class-scoped
 
-`sdkwork-app.json` records the manifest `app.key` with its vendor prefix removed
-(`birdcoder2`). `prepare:sdkwork-env` writes it into the target build root for
-every distribution class, `extraResources` copies it to
-`resources/sdkwork-app.json`, and `src/main.ts` resolves it before starting the
-Host and passes `SDKWORK_APPLICATION_CODE` through the Host environment. An
-installed launch therefore names `~/.sdkwork/<application-code>/credentials/`
-instead of deriving the directory from the profile directory it happens to run in
-(`<home>/profiles/desktop`). The file holds no credential, so a public release
-carries it while still refusing the release environment.
+`sdkwork-app.json` records the manifest `app.key` with its vendor prefix removed (`birdcoder2`). `prepare:sdkwork-env` writes it into the target build root for every distribution class, `extraResources` copies it to `resources/sdkwork-app.json`, and `src/main.ts` resolves it before starting the Host and passes `SDKWORK_APPLICATION_CODE` through the Host environment. An installed launch therefore names `~/.sdkwork/<application-code>/credentials/` instead of deriving the directory from the profile directory it happens to run in (`<home>/profiles/desktop`). The file holds no credential, so a public release carries it while still refusing the release environment.
 
 ### The release lane tracks its deployment credential (fork divergence)
 
-The release lane has no secret-manager or runner-provisioned credential source, so
-this fork lets its tracked materialization carry the deployment's
-`SDKWORK_ACCESS_TOKEN`. `.env.standalone.production` holds the value, the operator
-fills it once with `pnpm env:token:ensure --environment production`, and
-`prepare:sdkwork-env` reads it like any other tracked value and projects it into
-the artifact. The reuse check still decides usability: packaging reuses an
-unexpired token whose `environment`, `app_id`, and tenant claims match this
-manifest and fails on anything else, so refreshing the credential is a tracked
-commit rather than a secret rotation. `ENVIRONMENT_SPEC.md` section 5.1.7 treats
-that token as a private bootstrap credential and expects a secret manager; the
-divergence is deliberate because the installed application already carries the
-same value in `resources/sdkwork-release.env`, and the lane's public releases
-would otherwise install an application that cannot dispatch a login request.
+The release lane has no secret-manager or runner-provisioned credential source, so this fork lets its tracked materialization carry the deployment's `SDKWORK_ACCESS_TOKEN`. `.env.standalone.production` holds the value, the operator fills it once with `pnpm env:token:ensure --environment production`, and `prepare:sdkwork-env` reads it like any other tracked value and projects it into the artifact. The reuse check still decides usability: packaging reuses an unexpired token whose `environment`, `app_id`, and tenant claims match this manifest and fails on anything else, so refreshing the credential is a tracked commit rather than a secret rotation. `ENVIRONMENT_SPEC.md` section 5.1.7 treats that token as a private bootstrap credential and expects a secret manager; the divergence is deliberate because the installed application already carries the same value in `resources/sdkwork-release.env`, and the lane's public releases would otherwise install an application that cannot dispatch a login request.
 
 ### The installed application applies it before resolving
 

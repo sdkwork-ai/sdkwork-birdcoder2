@@ -69,9 +69,13 @@ The session is persisted in the desktop shell's OS-encrypted host copy (Electron
 - The auth surfaces are the sdkwork components; their Tailwind utilities come from `apps/web`'s Tailwind pipeline (`@source` into the sdkwork packages, `primary-*` aliased to the harness's deepseek brand ramp). Light form fields overlay `--dsw-alias-bg-overlay` and `--dsw-alias-border-l2` rather than the collapsed light `bg-layer-*` whites; dark fields use `bg-layer-1` against the elevated shell. The QR column uses the same shell fill; the frame around the white canvas is transparent. Overlay CSS ships as a CSS Module (`sdkwork-auth.module.css`) so the client bundle injects it.
 - The package's tsc emit resolves `@sdkwork/*` to local declaration facades (`sdkwork-types/`) — the sdkwork source cannot be emitted portably into `lib/types`; the full typecheck against the real packages runs in `tsconfig.tests.json` (wired into `typecheck:contracts-ready`), which is the drift guard for the facades. The tsdown client bundle swaps in a path-free tsconfig so it inlines the private auth and i18n source packages, pins qrcode to its browser entry (its node renderers would drag `fs` into the browser bundle), and empties the one plain sdkwork stylesheet (an error-page css for a component this harness never mounts). The published package declares only the public `@sdkwork/iam-app-sdk@0.1.1` optional dependency; npm consumers never resolve the private source packages.
 
+## Runtime invariants
+
+No runtime invariant companion is published; the account seam swap is a service call (`ctx.account.setSource`) whose contract the settings menu consumes unchanged, the IAM session facts flow through the sdkwork controller own state machine, and the auth surfaces mount through the standard keyed slots; session/presentation agreement is covered directly by this package client behavior specs.
+
 ## Model Experience
 
-The relay session mirror changes how a model request authenticates, never what it contains: it writes the signed-in token into the Host credential plane the BirdCoder route reads, and removes it on sign-out. It adds no prompt section, tool, or session content.
+None, as the relay session mirror only writes the signed-in token into the Host credential plane and removes it on sign-out: it changes how relay requests authenticate, never what a model request contains, and adds no prompt section, tool, or session content.
 
 #### KV Cache effect
 
@@ -96,7 +100,3 @@ None; this package neither assembles nor sends provider requests.
 `sdkwork-global-token-manager.ts` owns the browser-global `AuthTokenManager` shared by every SDKWork-backed client plugin — IAM login writes merged IAM and env credentials there, and Drive, Knowledge, Token Plan, Feedback, and Agents surfaces read the same transport instead of creating isolated managers. The tsc emit resolves `@sdkwork/*` to local declaration facades; the `tsconfig.tests.json` typecheck against the real packages is the drift guard.
 
 </details>
-
-## Runtime invariants
-
-No runtime invariant companion is published; the account seam swap is a service call (`ctx.account.setSource`) whose contract the settings menu consumes unchanged, the IAM session facts flow through the sdkwork controller own state machine, and the auth surfaces mount through the standard keyed slots; session/presentation agreement is covered directly by this package client behavior specs.

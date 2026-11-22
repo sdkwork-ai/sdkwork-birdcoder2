@@ -1,4 +1,4 @@
-/** Git-ignore matcher behavior: the publish-as-template directory packer's
+/** Git-ignore matcher behavior: the publish-as-scaffold directory packer's
  * selection semantics, held to git's documented rules. */
 import { describe, expect, it } from 'vitest'
 import { isIgnoredByChain, parseGitIgnore } from '../src/client/gitignore.ts'

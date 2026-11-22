@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Draws and edits `.pptx` presentations in the right Sidebar's document tab. A press puts PowerPoint's selection frame and its eight handles on a shape, and a double-click opens an editor over the shape that keeps the shape's own paint beneath and each line's own alignment and type, ending on a blur, a click away, or `Esc` — the canvas re-renders as you commit. The speaker-notes pane under the stage is always editable, and `Save a copy` downloads the presentation with only the touched parts rewritten. The package claims the presentation suffixes in the document registry, then contributes the keyed body that renders one slide beside a thumbnail rail, with zoom, slide stepping, and speaker notes. Parsing happens in the browser from the package bytes the document owner already reads, through the slide → layout → master → theme inheritance chain, so a slide looks like what PowerPoint drew without a server, a converter, or a network round trip.
+Draws and edits `.pptx` presentations in the right Sidebar's document tab: a press puts PowerPoint's selection frame and eight handles on a shape, a double-click edits the shape with its own paint, alignment, and type beneath, and `Save a copy` downloads the presentation with only the touched parts rewritten. The package claims the presentation suffixes in the document registry and contributes the keyed body that renders one slide beside a thumbnail rail with zoom, slide stepping, and speaker notes, parsing package bytes in the browser through the slide → layout → master → theme inheritance chain.
 
 ## Table of Contents
 
@@ -46,6 +46,10 @@ Media parts become Blob URLs created with the parsed deck and revoked with the e
 ## Interaction
 
 The rail lists every slide in presentation order with a live thumbnail; the selected slide carries `aria-selected` and a brand-coloured frame, and slides the presentation marks hidden carry a badge. Thumbnails mount lazily through one shared IntersectionObserver, so a hundred-slide deck keeps only the approaching slides' element trees alive. The toolbar steps to the previous or next slide, zooms out and in by one step, reads the current scale, returns to `1:1`, and toggles the window-fitting scale; Ctrl+wheel zooms in finer steps around the viewport centre. Stepping from the toolbar or keyboard scrolls the selected thumbnail into view. `ArrowUp`/`ArrowDown`, `ArrowLeft`/`ArrowRight`, `PageUp`, `PageDown`, `Home`, and `End` move through the slides while the stage holds focus; `+`/`-` step the zoom and `0` returns to `1:1`. Speaker notes appear under the stage when the selected slide has any.
+
+## Understand the implementation
+
+Draws and edits `.pptx` presentations in the right Sidebar's document tab. A press puts PowerPoint's selection frame and its eight handles on a shape, and a double-click opens an editor over the shape that keeps the shape's own paint beneath and each line's own alignment and type, ending on a blur, a click away, or `Esc` — the canvas re-renders as you commit. The speaker-notes pane under the stage is always editable, and `Save a copy` downloads the presentation with only the touched parts rewritten. The package claims the presentation suffixes in the document registry, then contributes the keyed body that renders one slide beside a thumbnail rail, with zoom, slide stepping, and speaker notes. Parsing happens in the browser from the package bytes the document owner already reads, through the slide → layout → master → theme inheritance chain, so a slide looks like what PowerPoint drew without a server, a converter, or a network round trip.
 
 <a id="model-experience"></a>
 ## Model Experience

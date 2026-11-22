@@ -15,8 +15,6 @@ This plugin redesigns the conversation session header for SDKWork. The upstream 
 2. Center: an icon+label segmented control for the View navigation — the former tabs strip becomes a compact control that saves one header row.
 3. Right: the utility cluster.
 
-The upstream body stays mounted as the fallback: without this plugin (or with the plugin disabled) the header renders exactly as before.
-
 ## Table of Contents
 
 - [Use this package](#use-this-package)
@@ -40,7 +38,7 @@ Mount the plugin as part of the web-app bundle (a roster row in `packages/bundle
 - `src/client/ConversationHeader.module.css` — the three-zone grid (`1fr auto 1fr`) that keeps the segmented control truly centered at every column width, styled with the shared DSW alias tokens.
 - `src/client/locales.ts` — the plugin-owned `sdkworkConversationHeader` namespace (aria labels).
 
-The upstream header entry keeps the `<header>` shell, blank-session hiding, and the View selection store; the plugin owns presentation only and never touches cross-plugin mutable state.
+The upstream header entry keeps the `<header>` shell, blank-session hiding, and the View selection store; the plugin owns presentation only and never touches cross-plugin mutable state. The upstream body stays mounted as the fallback: without this plugin (or with the plugin disabled) the header renders exactly as before.
 
 ### Seat ownership (merge-stable contract)
 

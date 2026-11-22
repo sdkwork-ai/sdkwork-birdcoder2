@@ -107,36 +107,18 @@ Third-party dependencies and their licenses are disclosed in [THIRD_PARTY_NOTICE
 
 ## Deploy application identity
 
-The public application access token the Web build bakes into the page must carry this
-installation's deploy application id (`app_id`/`aud`) — the decimal `deploy_app.id` IAM binds. A
-repository cannot know an installation's id, so the root `.env.<deployment-profile>.<environment>`
-documents carry the `__SDKWORK_DEPLOY_APPLICATION_ID__` placeholder and `apps/web/vite.config.ts`
-substitutes the anchor at build time.
+The public application access token the Web build bakes into the page must carry this installation's deploy application id (`app_id`/`aud`) — the decimal `deploy_app.id` IAM binds. A repository cannot know an installation's id, so the root `.env.<deployment-profile>.<environment>` documents carry the `__SDKWORK_DEPLOY_APPLICATION_ID__` placeholder and `apps/web/vite.config.ts` substitutes the anchor at build time.
 
-The token ships inside the packaged application, so it is permanent: `exp` is `0` (never expires),
-never a session lifetime. Every profile of the matrix carries one — the token-only materializer
-mode owns that line and preserves the rest of each documented profile — and every application type
-(Web/Desktop shell, PC/H5/pad, Flutter, mini program) has the same matrix.
+The token ships inside the packaged application, so it is permanent: `exp` is `0` (never expires), never a session lifetime. Every profile of the matrix carries one — the token-only materializer mode owns that line and preserves the rest of each documented profile — and every application type (Web/Desktop shell, PC/H5/pad, Flutter, mini program) has the same matrix.
 
-The build resolves the anchor from its environment first, then from the loaded env layer: the
-repository's gitignored `.env`, or — once a surface has its own materialized profile —
-`apps/web/.env.local`, because `apps/web/vite.config.ts` loads the surface directory and never reads
-the repository `.env` layer. A token the materializer already anchored also satisfies the build, so a
-materialized surface needs no export; only a placeholder token without an anchor fails. Export the
-anchor on a build host that has none (it is not a secret). CI reads the repository variable
-`SDKWORK_DEPLOY_APPLICATION_ID` and falls back to the recorded registration id when it is unset, so a
-deployment can repoint the anchor without editing a workflow:
+The build resolves the anchor from its environment first, then from the loaded env layer: the repository's gitignored `.env`, or — once a surface has its own materialized profile — `apps/web/.env.local`, because `apps/web/vite.config.ts` loads the surface directory and never reads the repository `.env` layer. A token the materializer already anchored also satisfies the build, so a materialized surface needs no export; only a placeholder token without an anchor fails. Export the anchor on a build host that has none (it is not a secret). CI reads the repository variable `SDKWORK_DEPLOY_APPLICATION_ID` and falls back to the recorded registration id when it is unset, so a deployment can repoint the anchor without editing a workflow:
 
 ```sh
 export SDKWORK_DEPLOY_APPLICATION_ID=381158401561858048
 pnpm build
 ```
 
-`admin:bootstrap:app` records the id a remote registration returns: IAM application bootstrap answers
-with `deployApplicationId`, and the command writes it into the repository `.env` (as the
-surface-scoped `SDKWORK_DEPLOY_APPLICATION_ID_<SURFACE>`, or the base variable for the repository-root
-surface) and into that surface's `.env.local`. An id returned by any other call — or carried by an
-issued token — is recorded the same way:
+`admin:bootstrap:app` records the id a remote registration returns: IAM application bootstrap answers with `deployApplicationId`, and the command writes it into the repository `.env` (as the surface-scoped `SDKWORK_DEPLOY_APPLICATION_ID_<SURFACE>`, or the base variable for the repository-root surface) and into that surface's `.env.local`. An id returned by any other call — or carried by an issued token — is recorded the same way:
 
 ```sh
 pnpm exec tsx scripts/bootstrap/record-deploy-anchor.ts --from registration-response.json
@@ -144,8 +126,7 @@ pnpm exec tsx scripts/bootstrap/record-deploy-anchor.ts --access-token "$SDKWORK
   --surface apps/web --surface-id sdkwork-birdcoder2-web-app
 ```
 
-Never commit a live token or a real app id: both layers the recorder writes are gitignored, and
-`.env.example` documents the same contract.
+Never commit a live token or a real app id: both layers the recorder writes are gitignored, and `.env.example` documents the same contract.
 
 ## Application Roots
 
@@ -155,21 +136,8 @@ Never commit a live token or a real app id: both layers the recorder writes are 
 
 `repository-kind: foundation-dependency`
 
-This repository is the **SDKWork BirdCoder2 fork of DeepSeek Harness**. Its repository-root
-`packages/` is the upstream-inherited `@deepseek-ai/dsh-*` foundation package family, consumed by
-this repository's own application surfaces (`apps/cli`, `apps/desktop`, `apps/desktop-host`,
-`apps/web`) and by the SDKWork client roots under `apps/sdkwork-birdcoder2-*`. That tree is a
-foundation/dependency layer, not an application-line package family, and it **cannot be relocated**
-into `apps/<root>/packages/`: it is the upstream layout, and moving it would make every
-`git merge upstream/master` conflict catastrophically (see the upstream sync procedure in
-AGENTS.md). `foundation-dependency` is therefore the repository kind that lets the repository-root
-`packages/` stay where the fork contract requires it, and this is why the application-repository
-prohibition on a repository-root `packages/` does not apply here.
+This repository is the **SDKWork BirdCoder2 fork of DeepSeek Harness**. Its repository-root `packages/` is the upstream-inherited `@deepseek-ai/dsh-*` foundation package family, consumed by this repository's own application surfaces (`apps/cli`, `apps/desktop`, `apps/desktop-host`, `apps/web`) and by the SDKWork client roots under `apps/sdkwork-birdcoder2-*`. That tree is a foundation/dependency layer, not an application-line package family, and it **cannot be relocated** into `apps/<root>/packages/`: it is the upstream layout, and moving it would make every `git merge upstream/master` conflict catastrophically (see the upstream sync procedure in AGENTS.md). `foundation-dependency` is therefore the repository kind that lets the repository-root `packages/` stay where the fork contract requires it, and this is why the application-repository prohibition on a repository-root `packages/` does not apply here.
 
-No other SDKWork repository consumes `@deepseek-ai/dsh-*`; the relationship is the reverse — this
-repository consumes sibling SDKWork sources (`@sdkwork/*`) through `pnpm-workspace.yaml`.
+No other SDKWork repository consumes `@deepseek-ai/dsh-*`; the relationship is the reverse — this repository consumes sibling SDKWork sources (`@sdkwork/*`) through `pnpm-workspace.yaml`.
 
-The SDKWork client surfaces composed on top of that foundation live under
-`apps/sdkwork-birdcoder2-*` and follow the application standards
-(`APP_CLIENT_ARCHITECTURE_ALIGNMENT_SPEC.md` and the per-architecture standards) — see the
-[apps directory index](apps/README.md) and [specs/component.spec.json](specs/component.spec.json).
+The SDKWork client surfaces composed on top of that foundation live under `apps/sdkwork-birdcoder2-*` and follow the application standards (`APP_CLIENT_ARCHITECTURE_ALIGNMENT_SPEC.md` and the per-architecture standards) — see the [apps directory index](apps/README.md) and [specs/component.spec.json](specs/component.spec.json).

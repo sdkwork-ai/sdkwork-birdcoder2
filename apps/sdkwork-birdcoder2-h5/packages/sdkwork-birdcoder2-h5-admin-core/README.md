@@ -2,7 +2,7 @@
 
 Backend-admin boundary for H5: backend SDK wrappers and staff guards.
 
-- Surface: `[object Object]`
+- Surface: `h5`
 - Layer role: `runtime`
 - Standard: `MODULE_SPEC.md`, `APP_H5_ARCHITECTURE_SPEC.md`
 

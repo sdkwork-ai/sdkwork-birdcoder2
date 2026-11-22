@@ -120,7 +120,7 @@ describe('CI workflow', () => {
       const job = workflowJob(ci, name)
       expect(job.steps).toContainEqual(expect.objectContaining({ run: command }))
     }
-    // FORK DIVERGENCE (SDKWork BirdCoder): `965e992151` dropped npm publication
+    // FORK DIVERGENCE (SDKWork BirdCoder): an upstream change dropped npm publication
     // and deleted release-publish.yml / release-vendor-publish.yml with it, so
     // the fork ships GitHub Releases only. The surviving lanes build the same two
     // faces, behind the PR-rehearsal selector asserted by the next case.

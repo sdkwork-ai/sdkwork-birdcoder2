@@ -6,7 +6,7 @@ Status: implemented
 
 ## 问题
 
-2026-09-10 的上游对齐（`chore 54561513cf`）让 `apps/desktop/src/main.ts` 采纳了上游的窗口创建代码。上游从不指定应用图标，而此前的 fork 壳会把随包分发的 `build/icon.png` 传给每个 `BrowserWindow`。同一次改动还删除了 `apps/desktop/scripts/generate-icons.mjs`、对应的 `generate-icons` 包脚本、该脚本用于缩放的 `assets/birdcoder2-appicon.png` 位图，并把窗口位图从 electron-builder 的 `files` 列表中移除。
+2026-09-10 的上游对齐（that upstream alignment）让 `apps/desktop/src/main.ts` 采纳了上游的窗口创建代码。上游从不指定应用图标，而此前的 fork 壳会把随包分发的 `build/icon.png` 传给每个 `BrowserWindow`。同一次改动还删除了 `apps/desktop/scripts/generate-icons.mjs`、对应的 `generate-icons` 包脚本、该脚本用于缩放的 `assets/birdcoder2-appicon.png` 位图，并把窗口位图从 electron-builder 的 `files` 列表中移除。
 
 已提交的位图本身保留了下来，因此安装包仍通过 electron-builder 默认的 `build/icon.*` 路径带上鸟图标，但留下了三处缺口。未打包壳（`pnpm dev:desktop`、`start:desktop`）以及任何需要显式图标的已打包窗口只能显示 Electron 默认图标。仓库中已没有任何内容可以复现这些位图：源位图没了，用它拼装 ICO 与 ICNS 容器的生成脚本也没了。而当某次合并删掉位图或断开图标接线时，也不会有任何检查失败——本次回归正是这样进入 master 的。AGENTS.md「BirdCoder 品牌资产」声明桌面端从 `apps/web/public/favicon.png` 派生 `apps/desktop/build/icon.{ico,icns,png}`，而该声明此前没有实现支撑。
 

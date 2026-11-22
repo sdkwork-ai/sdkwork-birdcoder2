@@ -38,7 +38,7 @@ pnpm --filter @deepseek-ai/dsh-client-ui-sdkwork-mini-program-accounts bundle
 ```
 
 <a id="dev-note"></a>
-## 开发说明
+## 开发备注
 
 弹窗仅存在于浏览器；本包 host 半部是空的 `apply`。它不运行时导入其他功能插件：共享声明只通过 `import type` 引入，运行时协作只有注入的 `env`/`iam` 服务、主题服务与 `settings.miniPrograms` 座位授权。共享面板与生成的后台客户端都私有打包，因此 Web 外壳与其他插件都不会新增模块表身份。
 

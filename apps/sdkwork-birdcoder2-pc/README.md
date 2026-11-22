@@ -35,7 +35,7 @@ sdkwork-birdcoder2-pc/
 | `@sdkwork/birdcoder2-pc-<capability>` | User-facing capability packages. |
 | `@sdkwork/birdcoder2-pc-console-*` | User-facing management console packages. |
 | `@sdkwork/birdcoder2-pc-admin-*` | Internal operator packages owning the `backend-admin` boundary. |
-| `@sdkwork/birdcoder2-pc-desktop` | Tauri/Electron native host for Windows, macOS, Linux, iPadOS, and Android tablet targets. |
+| `@sdkwork/birdcoder2-pc-tauri` | Tauri/Electron native host for Windows, macOS, Linux, iPadOS, and Android tablet targets. |
 
 ## Deployment profiles
 
@@ -52,8 +52,12 @@ node ../../../sdkwork-specs/tools/materialize-client-env.mjs --root ../../..    
 node ../../../sdkwork-specs/tools/materialize-client-env.mjs --root ../../.. --check   # verify
 ```
 
-## Scaffold status
+## Implementation status
 
-This root is a **standard-layout scaffold**: layout, manifest, profile projection, config
-templates, and the package family boundary exist. The renderer, capability packages, and
-native desktop host are not implemented yet — build/dev commands become functional as those land.
+The standard layout, manifest, profile projection, config templates, the package family boundary,
+and a minimal renderer entry (`src/`: environment selection, SDK client construction, IAM runtime
+stub, AuthGate, and route assembly) are implemented, and the app type-checks and tests clean.
+
+Not implemented: capability packages, the native desktop host (`@sdkwork/birdcoder2-pc-tauri` is
+still a boundary contract), signed artifacts, and the shared shell/console/admin surfaces. Build and
+dev commands become functional as those land.

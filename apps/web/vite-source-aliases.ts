@@ -22,7 +22,7 @@ export const WEB_SOURCE_ALIASES = [
   // static seed first. Seeding/aliasing the bare name would shadow the dynamic
   // client bundle (lib/client.js) with the no-op host half (src/index.ts), so
   // the attachment slots never register and uploads never display. The plugin
-  // must stay a dynamic graph row (upstream f37bc082c5).
+  // must stay a dynamic graph row (an upstream change).
   { find: /^@deepseek-ai\/dsh-client-modules\/client$/, replacement: src('../../packages/client/modules/src/client/index.ts') },
   // The seed table imports the IAM token manager through its package subpath;
   // the emitted lib half imports @sdkwork/sdk-common, whose package entry

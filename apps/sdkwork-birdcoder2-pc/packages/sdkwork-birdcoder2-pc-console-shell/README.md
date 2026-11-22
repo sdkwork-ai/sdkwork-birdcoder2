@@ -2,7 +2,7 @@
 
 User-facing management console navigation, route assembly, console permission hints.
 
-- Surface: `[object Object]`
+- Surface: `pc`
 - Layer role: `shell`
 - Standard: `MODULE_SPEC.md`, `APP_PC_ARCHITECTURE_SPEC.md`
 

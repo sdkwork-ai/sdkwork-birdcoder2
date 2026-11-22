@@ -9,23 +9,26 @@
   en: adacd310a2ff5623
   zh: ea4995e0b20b8fc2
 /deepseek-ai-dsh-client-ui-sdkwork-assets/summary:
-  en: 414543609aac037e
-  zh: 251eee5e788dd737
+  en: b89ae0be96b398d0
+  zh: e0b3c94468444fa3
 /deepseek-ai-dsh-client-ui-sdkwork-assets/table-of-contents:
   en: 638dd73bc5b9dc7a
   zh: 1ca260dbf9da9f1d
+/deepseek-ai-dsh-client-ui-sdkwork-assets/understand-the-implementation:
+  en: 6ef0c55154dcd10a
+  zh: b3d7f81a9a22f057
+/deepseek-ai-dsh-client-ui-sdkwork-assets/runtime-invariants:
+  en: ca99384ed2f6bae1
+  zh: 4296d8e095aa1ca2
 /deepseek-ai-dsh-client-ui-sdkwork-assets/model-experience:
   en: a3e56ee74f0340f0
-  zh: f99c097efe9ccdf6
+  zh: ac689ce72a10946f
 /deepseek-ai-dsh-client-ui-sdkwork-assets/model-experience/kv-cache-effect:
   en: 6250c7744b2590b1
-  zh: bacec35330ccc487
+  zh: 5871c52019cbc7a8
 /deepseek-ai-dsh-client-ui-sdkwork-assets/known-limitations-and-deferred-work:
   en: a278f68c5b34c81e
-  zh: 6367e9ebf336b13c
+  zh: 00043964a5087b01
 /deepseek-ai-dsh-client-ui-sdkwork-assets/known-limitations-and-deferred-work/dev-note:
   en: 755d0a15cea95bbe
   zh: c13820fa895433db
-/deepseek-ai-dsh-client-ui-sdkwork-assets/runtime-invariants:
-  en: ca99384ed2f6bae1
-  zh: 1bcf7dd3cd59dba8

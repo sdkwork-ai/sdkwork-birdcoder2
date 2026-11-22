@@ -10,10 +10,10 @@ Status: implemented
 
 上游的两次变更撞上了 fork 自有的一份目录：
 
-1. 上游把 code mode 改名为 PTC mode（[`3ca9c7d489`](https://github.com/deepseek-ai/deepseek-harness/commit/3ca9c7d489)）：preset 目录 `code` 变成 `ptc`，呈现行的 `mode` 取值变成 `ptc`。`@deepseek-ai/dsh-agent-tool-presentation` 现在只接受 `z.union(['native', 'ptc', 'both'])`，于是 `mode: code` 在挂载时被拒绝。
+1. 上游把 code mode 改名为 PTC mode（upstream change）：preset 目录 `code` 变成 `ptc`，呈现行的 `mode` 取值变成 `ptc`。`@deepseek-ai/dsh-agent-tool-presentation` 现在只接受 `z.union(['native', 'ptc', 'both'])`，于是 `mode: code` 在挂载时被拒绝。
 2. 上游把内置 preset 搬进了插件（[2026-08-20 说明](../../archived/bug-fix/2026-08-20-plugin-owned-shipped-preset-root.md)）：`dsh-agent-presets` 把自己的 `presets/` 前置为 `system` 根，排在 `config.roots` 之前。
 
-桌面壳从 [`9cb7a27ee2`](https://github.com/sdkwork-ai/sdkwork-birdcoder2/commit/9cb7a27ee2) 起自带一份 preset 根 —— `apps/desktop/config/agent-presets`，是当时 `apps/cli` preset 的快照，因为 CLI 自己的那份进不了打包产物所以随应用打进去。这份快照里还留着改名前的 `code` 目录，而它的 `preset.yml` 后来已经跟上了新措辞：`name: PTC 模式`、`order: 2`。
+桌面壳从 earlier fork change 起自带一份 preset 根 —— `apps/desktop/config/agent-presets`，是当时 `apps/cli` preset 的快照，因为 CLI 自己的那份进不了打包产物所以随应用打进去。这份快照里还留着改名前的 `code` 目录，而它的 `preset.yml` 后来已经跟上了新措辞：`name: PTC 模式`、`order: 2`。
 
 两个根同时生效时，`discoverPresets` 按 **id 去重，先出现的根胜出**。插件根提供 `standard`、`ptc`、`minimal`、`cordis`；桌面根提供 `standard`、`code`、`minimal`、`cordis`。三个 id 被插件遮蔽，`code` 没有同名者于是留存 —— 名册变成五行，第二个根的条目追加在第一个根之后：
 
@@ -48,3 +48,13 @@ Status: implemented
 ## 后续
 
 `apps/desktop/release-build/` 是一份过期的解包产物，里面仍是旧的 `code` 目录；它被 gitignore，下一次 `electron-builder` 运行会覆盖。
+
+## 影响
+
+桌面名册中每个 preset 只列一次：插件自带的 shipped 根不再遮蔽 fork 副本，`code` 已消失，桌面根的 presets 与插件版本逐字节一致。今后上游重命名 preset 时，`composition-parity.spec.ts` 会在桌面边界失败，而不是交付重复条目或静默遗漏。
+
+## 备选方案
+
+**删除桌面 preset 根，只加载插件的 presets。** 否决原因：打包应用的依赖闭包是手工维护的，且 packaged-boot 探针不校验 presets，会话创建会依赖打包可能遗漏的树。
+
+**保留两个根，只重命名 `code`。** 否决原因：被遮蔽的桌面副本是任何编辑都无法影响的死配置。

@@ -9,12 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-本插件为 Web 客户端增加 SDKWork「分享」入口：会话头部右侧工具簇的分享图标，位于发布应用图标右侧、Session log 省略号图标左侧。点击打开弹层，包含两部分：
-
-1. 当前会话：复制会话 ID。
-2. 最近发布的应用：列出最多 5 个 `deploy_app` 记录（通过 deploy app API 尽力获取），一键复制各应用 ID——刚发布的应用可立即分享。
-
-宿主适配器（`shareHost.ts`）通过全局 token manager 从共享的 `ui-sdkwork-env` 与 `ui-sdkwork-iam` 服务构造生成的 deploy 客户端，与 `ui-sdkwork-deploy` 保持一致。
+为 Web 客户端增加 SDKWork「分享」入口：会话头部右侧工具簇中的分享图标，位于发布应用图标右侧、Session log 省略号左侧。点击打开弹层，可复制当前会话 ID，并列出最多 5 个最近发布的 `deploy_app` 记录，支持一键复制各自的应用 ID，刚发布的应用因此可以立即分享。
 
 ## 目录
 
@@ -36,11 +31,12 @@ kind: "package-reference"
 - `src/client/shareHost.ts` — 环境/IAM 适配与 deploy 客户端构造（对齐 `ui-sdkwork-deploy`）。
 - 通过生成的 `deployments-app-sdk` 列出应用，不引入新的后端契约。
 
-<a id="known-limitations-and-deferred-work"></a>
-## 已知限制与后续工作
+本插件为 Web 客户端增加 SDKWork「分享」入口：会话头部右侧工具簇的分享图标，位于发布应用图标右侧、Session log 省略号图标左侧。点击打开弹层，包含两部分：
 
-- 分享目标目前为 ID（会话/应用）。应用商店面定义持久化分享链接方案后，可补充深链。
-- 最近应用列表为尽力获取：发布服务不可达时为空。
+1. 当前会话：复制会话 ID。
+2. 最近发布的应用：列出最多 5 个 `deploy_app` 记录（通过 deploy app API 尽力获取），一键复制各应用 ID——刚发布的应用可立即分享。
+
+宿主适配器（`shareHost.ts`）通过全局 token manager 从共享的 `ui-sdkwork-env` 与 `ui-sdkwork-iam` 服务构造生成的 deploy 客户端，与 `ui-sdkwork-deploy` 保持一致。
 
 ## 运行时不变量
 
@@ -49,3 +45,17 @@ kind: "package-reference"
 ## 开发备注
 
 弹层为纯浏览器侧：会话 ID 读取自外壳共享的会话上下文，deploy_app 记录通过 deploy app API 获取；本包不持有任何主机侧发布状态。
+
+## Model Experience
+
+无，因为本包是纯浏览器侧的会话头部界面，弹层只复制标识符并列出部署记录，不贡献提示词、工具或会话事件。
+
+#### KV Cache effect
+
+无；本包既不组装也不发送 provider 请求。
+
+<a id="known-limitations-and-deferred-work"></a>
+## 已知限制与后续工作
+
+- 分享目标目前为 ID（会话/应用）。应用商店面定义持久化分享链接方案后，可补充深链。
+- 最近应用列表为尽力获取：发布服务不可达时为空。

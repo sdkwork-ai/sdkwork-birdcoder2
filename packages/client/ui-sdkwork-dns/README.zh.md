@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-SDKWork 域名管理插件（浏览器侧）：在设置菜单弹出面板中注册 **域名管理** 行（位于公众号账号正下方），并把该行打开的90% 视口的弹窗注册到根作用域的 `settings.dns` 座位。弹窗管理已登录账号的根域名（Zone）、其子域名与归属验证、每个根域名发布的域名归属校验文件（微信公众号/小程序、支付宝、抖音、Google、Apple 或自定义平台），以及从根域名云账号同步的 DNS 解析记录。所有操作都走 deployments app API 的 `domain` 面（`@sdkwork/deployments-app-sdk`）——也就是 sdkwork-webserver 控制台读取的同一权威——不引入第二套后端契约。
+SDKWork 域名管理插件（浏览器侧）：在设置菜单弹出面板中注册 **域名管理** 行（位于公众号账号正下方），并把该行打开的90% 视口的弹窗注册到根作用域的 `settings.dns` 座位。弹窗管理已登录账号的根域名（Zone）、其子域名与归属验证、每个根域名发布的域名归属校验文件（微信公众号/小程序、支付宝、抖音、Google、Apple 或自定义平台），以及从根域名云账号同步的 DNS 解析记录。
 
 ## 目录
 
@@ -39,16 +39,21 @@ pnpm --filter @deepseek-ai/dsh-client-ui-sdkwork-dns bundle
 ```
 
 <a id="dev-note"></a>
-## 开发说明
+## 开发备注
 
 弹窗仅存在于浏览器；本包 host 半部是空的 `apply`。它不运行时导入其他功能插件：共享声明只通过 `import type` 引入，运行时协作只有注入的 `env`/`iam` 服务与 `settings.dns` 座位授权。生成的 deployments 客户端私有打包，因此 Web 外壳与其他插件都不会新增模块表身份。
 
+<a id="understand-the-implementation"></a>
+## 理解实现
+
+所有操作都走 deployments app API 的 `domain` 面（`@sdkwork/deployments-app-sdk`）——也就是 sdkwork-webserver 控制台读取的同一权威——不引入第二套后端契约。
+
 <a id="model-experience"></a>
-## 模型体验
+## Model Experience
 
 无。本插件只渲染浏览器侧的域名管理界面，其业务 HTTP 请求与 Harness 的模型请求彼此独立。
 
-#### KV Cache 影响
+#### KV Cache effect
 
 无；本包既不组装也不发送任何 provider 请求。
 

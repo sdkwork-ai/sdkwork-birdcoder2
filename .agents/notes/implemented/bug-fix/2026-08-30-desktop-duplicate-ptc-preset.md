@@ -10,10 +10,10 @@ After the second upstream sync, the desktop shell's mode picker offered **two en
 
 Two upstream changes met one fork-owned directory:
 
-1. Upstream renamed code mode to PTC mode ([`3ca9c7d489`](https://github.com/deepseek-ai/deepseek-harness/commit/3ca9c7d489)): the preset directory `code` became `ptc`, and the presentation row's `mode` value became `ptc`. `@deepseek-ai/dsh-agent-tool-presentation` now accepts only `z.union(['native', 'ptc', 'both'])`, so `mode: code` is rejected at mount.
+1. Upstream renamed code mode to PTC mode (upstream change): the preset directory `code` became `ptc`, and the presentation row's `mode` value became `ptc`. `@deepseek-ai/dsh-agent-tool-presentation` now accepts only `z.union(['native', 'ptc', 'both'])`, so `mode: code` is rejected at mount.
 2. Upstream moved the built-in presets into the plugin ([2026-08-20 note](../../archived/bug-fix/2026-08-20-plugin-owned-shipped-preset-root.md)): `dsh-agent-presets` prepends its own `presets/` as a `system` root, before `config.roots`.
 
-The desktop shell has carried its own preset root since [`9cb7a27ee2`](https://github.com/sdkwork-ai/sdkwork-birdcoder2/commit/9cb7a27ee2) — `apps/desktop/config/agent-presets`, a snapshot of the then-current `apps/cli` presets, packed into the app because the CLI's own copy did not survive packaging. That snapshot still held the pre-rename `code` directory, whose `preset.yml` had since been aligned to the new wording: `name: PTC 模式`, `order: 2`.
+The desktop shell has carried its own preset root since earlier fork change — `apps/desktop/config/agent-presets`, a snapshot of the then-current `apps/cli` presets, packed into the app because the CLI's own copy did not survive packaging. That snapshot still held the pre-rename `code` directory, whose `preset.yml` had since been aligned to the new wording: `name: PTC 模式`, `order: 2`.
 
 With both roots live, `discoverPresets` de-duplicates **by id, first root wins**. The plugin's root supplied `standard`, `ptc`, `minimal`, `cordis`; the desktop root supplied `standard`, `code`, `minimal`, `cordis`. Three ids were shadowed by the plugin; `code` had no namesake, so it survived — producing a five-row roster whose second root's entries are appended after the first root's:
 
@@ -48,3 +48,13 @@ The desktop root stays rather than being deleted in favour of the plugin's own: 
 ## Follow-up
 
 `apps/desktop/release-build/` is a stale unpacked build and still carries the old `code` directory; it is gitignored and is replaced by the next `electron-builder` run.
+
+## Consequences
+
+The desktop roster lists each preset once: the plugin's shipped root no longer shadows a fork copy, `code` is gone, and the desktop root's presets are byte-identical mirrors of the plugin's. A future upstream preset rename now fails `composition-parity.spec.ts` at the desktop boundary instead of shipping a duplicate or silently omitting an entry.
+
+## Alternatives considered
+
+**Delete the desktop preset root and load the plugin's presets only.** Rejected: the packaged app's dependency closure is hand-maintained and the packaged-boot probe does not assert presets, so session creation would depend on a tree packaging may omit.
+
+**Keep both roots and rename only `code`.** Rejected: the shadowed desktop copies were dead configuration that no edit could affect.

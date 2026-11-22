@@ -53,6 +53,10 @@ Each application mode registers its own deploy application (the repository's `.e
 - The SDK client is constructed in the apply closure, never in a component; the response is narrowed at the wire boundary and the components receive plain data through the injected face.
 - The dialog's visibility lives in a declared store created once in `apply`, so the service and the rendered dialog cannot disagree.
 
+## Dev Note
+
+The installation read is the only network call; the plugin renders the verified identity and never caches a deployment fact in the browser.
+
 ## Model Experience
 
 None, as the About surfaces are browser-side product identity UI; they neither assemble nor send model requests.

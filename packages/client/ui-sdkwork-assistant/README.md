@@ -9,19 +9,23 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-The assistant's product surface: two navigation entries, one in each column. The mode rail carries one cell directly below Home — the product name 助理 (English "Assistant") and [a robot-head glyph](src/client/AssistantIcon.tsx) in the rail's outline weight. The left column's New Session area carries one quick entry in the sidebar's `sidebar.actions` seat, drawn exactly like the scheduled-tasks entry beside it: 16px outline glyph, 助理 label, no artwork background, no badge. Both open the persona-bot layer's interface, which the linked `@botharness/ui` plugin publishes as its `botharness` main panel.
-
-The panel owns the whole surface; this package owns the name, the glyph, and the navigation. Each entry selects that panel through `ctx.layout.selectPanel`, exactly as the plugin's own `sidebar.panellist` row does, so the center column shows the plugin's interface while the frame's mode stays `code`. Because the mode never changes, the rail cell paints its selection from the main-panel selection (`usePanelInfo`) rather than from the rail's own `active` owner prop, and the rail's mode cells stay dark while a panel owns the column.
-
-The plugin's own `sidebar.panellist` row — its avatar artwork and onboarding badge — is suppressed through `ctx.sdkworkSidebar.suppressPanel`, so the left column keeps exactly one entry to the surface. That suppression follows the sidebar service, so a profile without this column still gets the rail cell.
-
-Both entries exist only while that main panel is registered: a composition without the plugin — a profile that disabled its rows, or a build that does not ship the `deepseekbot` dependency — offers no dead navigation, and a plugin teardown removes the entries with its panel.
+The assistant's product surface: two navigation entries, one in each column. The mode rail carries one cell directly below Home — the product name 助理 (English "Assistant") and [a robot-head glyph](src/client/AssistantIcon.tsx) in the rail's outline weight. Both open the persona-bot layer's interface, which the linked `@botharness/ui` plugin publishes as its `botharness` main panel.
 
 ## Table of Contents
 
 - [Model Experience](#model-experience)
 - [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
 - [Dev Note](#dev-note)
+
+## Understand the implementation
+
+The left column's New Session area carries one quick entry in the sidebar's `sidebar.actions` seat, drawn exactly like the scheduled-tasks entry beside it: 16px outline glyph, 助理 label, no artwork background, no badge.
+
+The panel owns the whole surface; this package owns the name, the glyph, and the navigation. Each entry selects that panel through `ctx.layout.selectPanel`, exactly as the plugin's own `sidebar.panellist` row does, so the center column shows the plugin's interface while the frame's mode stays `code`. Because the mode never changes, the rail cell paints its selection from the main-panel selection (`usePanelInfo`) rather than from the rail's own `active` owner prop, and the rail's mode cells stay dark while a panel owns the column.
+
+The plugin's own `sidebar.panellist` row — its avatar artwork and onboarding badge — is suppressed through `ctx.sdkworkSidebar.suppressPanel`, so the left column keeps exactly one entry to the surface. That suppression follows the sidebar service, so a profile without this column still gets the rail cell.
+
+Both entries exist only while that main panel is registered: a composition without the plugin — a profile that disabled its rows, or a build that does not ship the `deepseekbot` dependency — offers no dead navigation, and a plugin teardown removes the entries with its panel.
 
 ## Model Experience
 

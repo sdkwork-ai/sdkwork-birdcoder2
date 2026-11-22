@@ -70,7 +70,7 @@ Read these pages when the package-level contract is not enough. They move from t
 - [Skill subsystem reference](../../../docs/subsystems/skills.md) — the registry, provider contract, local discovery priority, and the catalog and tool.
 - [skill-filesystem package](../skill-filesystem/README.md) — the directory provider this root reuses, including the bundled rank it occupies.
 - [tool-skill package](../tool-skill/README.md) — how a catalog entry reaches the session catalog and the model, and how a leading `/name` injects a body.
-- [skill-badge package](../skill-badge/README.md) — the other bundled provider, and the smallest example of one fixed virtual skill.
+- [skill-badge package](../../experimental/skill-badge/README.md) — the other bundled provider, and the smallest example of one fixed virtual skill.
 
 -----
 

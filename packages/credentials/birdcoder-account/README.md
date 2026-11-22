@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`dsh-birdcoder-account` turns a signed-in SDKWork IAM session into a ready-to-use BirdCoder relay. BirdCoder accepts the IAM `authToken` as its API key on its OpenAI-compatible `/v1` face, so a signed-in user needs no separate credential. The plugin reads that token from the credentials the session reaches the Host through — the desktop shell's plaintext projection beside its encrypted durable session, or the `BIRDCODER_AUTH_TOKEN` reference a browser client writes through the Host credential plane — stores it under `BIRDCODER_API_KEY`, and declares the `birdcoder` profile over `openai-completions` when settings have none. The Models page then shows a configured provider and its models, model discovery and dispatch authenticate with the token, and a user-stored key always wins. Sign-out removes only the writes this plugin made and restores the previous default model.
+`dsh-birdcoder-account` turns a signed-in SDKWork IAM session into a ready-to-use BirdCoder relay. BirdCoder accepts the IAM `authToken` as its API key on its OpenAI-compatible `/v1` face, so a signed-in user needs no separate credential. The plugin reads that token from the credentials the session reaches the Host through, stores it under `BIRDCODER_API_KEY`, and declares the `birdcoder` profile over `openai-completions` when settings have none. Sign-out removes only the writes this plugin made and restores the previous default model.
 
 ## Table of Contents
 
@@ -63,6 +63,8 @@ The desktop shell encrypts `<DSH_HOME>/iam/session.json` with the operating syst
 A launch with no desktop shell — the browser product, or a deployment that ships the web app without the Electron shell — has neither file. There the mounted client keeps `BIRDCODER_AUTH_TOKEN` in step with the session it holds: it writes the `authToken` on a committed sign-in and unsets it on sign-out. The reference is a session source, not the relay key, so the user's own key at `BIRDCODER_API_KEY` always wins and this plugin only ever removes the key it mirrored itself.
 
 Polling is deliberate: the desktop shell writes the session atomically, and a small `stat`-free re-read per interval is cheaper to own than a cross-platform watcher whose teardown must be exact. The interval bounds how long after a shell-written login the relay becomes available and how long after sign-out it goes away; the client reference path is event-driven and needs no poll.
+
+The token comes from the desktop shell's plaintext projection beside its encrypted durable session, or from the `BIRDCODER_AUTH_TOKEN` reference a browser client writes through the Host credential plane. The Models page then shows a configured provider and its models, model discovery and dispatch authenticate with the token, and a user-stored key always wins.
 
 <a id="model-experience"></a>
 ## Model Experience

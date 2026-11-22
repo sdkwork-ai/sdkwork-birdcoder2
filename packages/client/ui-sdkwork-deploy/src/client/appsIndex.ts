@@ -4,9 +4,9 @@
  * application root under `apps/`, its surface role, runnable flag, purpose,
  * and entry path.
  *
- * The template flow reads this index to learn which `apps/*` children are
+ * The scaffold flow reads this index to learn which `apps/*` children are
  * independent applications (`role !== 'common'`) and updates it after a
- * template installs a new application root, so a downloaded scaffold joins
+ * scaffold installs a new application root, so a downloaded scaffold joins
  * the repository exactly the way a hand-authored app does.
  *
  * Parsing is deliberately table-local: the file keeps free prose and section

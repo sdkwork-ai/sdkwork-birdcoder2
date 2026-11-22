@@ -2,7 +2,7 @@
 
 Backend-admin boundary for mini programs: backend SDK wrappers and staff guards.
 
-- Surface: `[object Object]`
+- Surface: `mini-program`
 - Layer role: `runtime`
 - Standard: `MODULE_SPEC.md`, `MINI_PROGRAM_APP_ARCHITECTURE_SPEC.md`
 

@@ -21,6 +21,7 @@ SDKWork IAM 集成插件：通过 sdkwork-iam 认证栈提供登录/注册（全
 - [已知限制与后续工作](#known-limitations-and-deferred-work)
 - [开发备注](#dev-note)
 
+<a id="surface"></a>
 ## 表面
 
 插件贡献以下表面与 `ctx.iam` 服务缝：
@@ -36,6 +37,7 @@ SDKWork IAM 集成插件：通过 sdkwork-iam 认证栈提供登录/注册（全
 - **BirdCoder 提供方卡片提示**（`settings.models.provider-card`，keyed `llm-pi-ai`）：配置缺失的 BirdCoder 卡片上说明中转使用登录账号的 Auth Token，并提供登录手势，打开与设置菜单相同的登录表面。已登录或凭据关联（credential join）报告 Key 已配置时不渲染；它位于行上而不是编辑器内部，其他 pi-ai 路由完全不受影响。卡片自己的 API Key 输入框仍是覆盖路径，在没有「模型」分区的组合里也是唯一路径（该插槽不会被声明）。
 - **Chat 失败行的凭据修复**（`conversation.chat.turn-error.sign-in` 与 `conversation.chat.turn-error.model-settings`）：缺少凭据的句子保留原有措辞，只把两个短语变成链接。**登录账号** 通过 `openSignInOverlay` 打开登录入口弹窗，已登录时该短语退回纯文本；**设置 → 模型** 经 `ctx.settingsMenu` 打开「模型」页并定位到 BirdCoder 提供方卡片、将该行滚入视野。标签来自 Chat 的本地化文案，因此整句仍是一句本地化文本；两个条目都只响应 `MISSING_CREDENTIAL`。
 
+<a id="configuration"></a>
 ## 配置
 
 IAM baseUrl 与租户应用 id 来自共享的 [ui-sdkwork-env](../ui-sdkwork-env/README.zh.md) profile——活动环境的 `apiBaseUrl` 即 IAM app-api 源、`appId` 即租户应用 id；`apiBaseUrl` 为空时关闭会话恢复与认证表面（菜单的登录/注册行仍然可见，点击打开配置提示）。OEM profile 中的 `sdkwork.iamBaseUrl` 非默认值时会在所有环境层级替换该源；生成的客户端仍使用相同的 `/app/v3/api/auth/...` 路径、相同参数与 `X-Platform: pc` 请求头，只有域名变化。
@@ -61,6 +63,7 @@ IAM baseUrl 与租户应用 id 来自共享的 [ui-sdkwork-env](../ui-sdkwork-en
 
 会话持久化在桌面外壳的操作系统加密副本中（操作系统提供密钥库时使用 Electron `safeStorage`，位于 `<DSH_HOME>/iam/session.json`，仅属主可读、原子写入）；纯浏览器页面没有系统密钥库，使用 `localStorage` 的 `dsh.iam.session` 键。桌面端刻意不再把 token 镜像到 `localStorage`，旧的本地副本会迁移一次并删除。桌面副本包含完整会话（authToken、accessToken、可轮换的 refreshToken、sessionId、user 与 AppContext）；持久化写入失败的提交会被拒绝，不会把无法跨启动的登录报告为成功。验证码登录方式默认隐藏（harness 的 app 客户端不提供消息验证码 API）；在后端策略允许时注册与找回密码无需验证码，页面也遵循后端获取到的策略。
 
+<a id="implementation-notes"></a>
 ## 实现说明
 
 - 运行时适配器（`iam-runtime.ts`）把 `SdkworkIamRuntimeAuthRuntimeLike` 表面映射到生成的 app 客户端（双 token 认证模式），并让客户端凭据状态与 localStorage token 存储保持同步。
@@ -69,14 +72,21 @@ IAM baseUrl 与租户应用 id 来自共享的 [ui-sdkwork-env](../ui-sdkwork-en
 - 认证表面是 sdkwork 组件；其 Tailwind 工具类来自 `apps/web` 的 Tailwind 管线（`@source` 指向 sdkwork 包，`primary-*` 别名到 harness 的 deepseek 品牌色阶）。浅色表单控件叠加 `--dsw-alias-bg-overlay` 与 `--dsw-alias-border-l2`，而不是浅色下塌成同一白色的 `bg-layer-*`；深色控件使用 `bg-layer-1` 对照 elevated shell。二维码列使用与 shell 相同的填充；白色画布外的框是透明的。叠加 CSS 以 CSS Module（`sdkwork-auth.module.css`）随客户端 bundle 注入。
 - 本包的 tsc 发射把 `@sdkwork/*` 解析到本地声明门面（`sdkwork-types/`）——sdkwork 源码无法可移植地发射进 `lib/types`；针对真实包的完整类型检查在 `tsconfig.tests.json`（接入 `typecheck:contracts-ready`）中运行，是门面的漂移守卫。tsdown 客户端 bundle 换用无 paths 的 tsconfig 以内联私有认证与 i18n 源码包，把 qrcode 钉到浏览器入口（其 node 渲染器会把 `fs` 拖进浏览器 bundle），并清空 sdkwork 闭包中唯一一个普通样式表（一个本 harness 从不挂载的组件错误页 css）。发布包只声明公共的 `@sdkwork/iam-app-sdk@0.1.1` 可选依赖；npm 消费者不会解析私有源码包。
 
-## 模型体验
 
-中转会话镜像只改变模型请求的认证方式，不改变请求内容：它把已登录令牌写入 BirdCoder 路由读取的 Host 凭据面，并在退出登录时移除。它不新增提示词分区、工具或会话内容。
+## 运行时不变量
+
+不发布运行时不变量伴随检查；account 接缝交换是一次服务调用（`ctx.account.setSource`），settings 菜单按原契约消费；IAM 会话事实经 sdkwork 控制器自己的状态机流转，认证界面通过标准 keyed slot 挂载；会话/展示一致性直接由本包的客户端行为规格测试覆盖。
+
+<a id="model-experience"></a>
+## Model Experience
+
+无，因为中转会话镜像只把已登录令牌写入 Host 凭据面并在退出登录时移除：它改变的是中转请求的认证方式，而不是模型请求的内容，也不新增提示词分区、工具或会话内容。
 
 #### KV Cache effect
 
 无；本包既不组装也不发送 provider 请求。
 
+<a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与后续工作
 
 - **验证码登录**——邮箱/手机验证码登录与需要验证的注册依赖消息验证码 API；harness app 客户端未暴露它，因此这些方式被隐藏或呈现后端策略的要求。
@@ -88,6 +98,7 @@ IAM baseUrl 与租户应用 id 来自共享的 [ui-sdkwork-env](../ui-sdkwork-en
 - **出厂的深链回调使用短产品 scheme**——品牌注册的是 `birdcoder://auth/callback`；RFC 8252 第 7.1、8.4 节要求反向域名的私有 scheme，而品牌的应用 id（`com.sdkwork.birdcoder`）正是该身份。OEM profile 可以把 `com.sdkwork.birdcoder://auth/callback` 写成 `sdkwork.iamRedirectUri`；Host 接受它、打包应用向操作系统声明它，只剩租户的 OAuth 客户端注册需要跟上。第 8.10 节要求的“每个授权服务器一个独立 redirect”仍是部署决定（所有 tier 共用一个回调），而 origin 变化会放弃待处理流程，而不是把 code 拿去对另一个授权服务器兑换。应用 id scheme 上接受 RFC 8252 第 7.1 节定义的两种私有 scheme 形式：`com.sdkwork.birdcoder://auth/callback` 与无 authority 的 `com.sdkwork.birdcoder:/auth/callback`；出厂的短 scheme 仍使用带 authority 的形式。
 - **回环监听器只绑定 IPv4**——RFC 8252 第 7.3 节建议同时尝试两种地址族。部署注册的是 `http://127.0.0.1:<端口>/auth/callback`，因此监听器呈现该字面量，不回退到 `[::1]`。
 
+<a id="dev-note"></a>
 ### 开发备注
 
 <details>
@@ -96,7 +107,3 @@ IAM baseUrl 与租户应用 id 来自共享的 [ui-sdkwork-env](../ui-sdkwork-en
 `sdkwork-global-token-manager.ts` 持有每个 SDKWork 客户端插件共享的浏览器全局 `AuthTokenManager`——IAM 登录把合并后的 IAM 与环境凭证写入该 manager，Drive、Knowledge、Token Plan、Feedback 与 Agents 表面读取同一传输层，而不是各自创建隔离 manager。tsc emit 将 `@sdkwork/*` 解析到本地声明门面；针对真实包的 `tsconfig.tests.json` 类型检查是门面的漂移守卫。
 
 </details>
-
-## 运行时不变量
-
-不发布运行时不变量伴随检查；account 接缝交换是一次服务调用（`ctx.account.setSource`），settings 菜单按原契约消费；IAM 会话事实经 sdkwork 控制器自己的状态机流转，认证界面通过标准 keyed slot 挂载；会话/展示一致性直接由本包的客户端行为规格测试覆盖。

@@ -90,7 +90,7 @@ export function DeployAppPicker({
         return linked !== 0 ? linked : left.name.localeCompare(right.name)
       }))
     } catch (cause) {
-      setError(t('templateCenter.picker.failed', { message: messageOf(cause) }))
+      setError(t('scaffoldCenter.picker.failed', { message: messageOf(cause) }))
     } finally {
       setLoading(false)
     }
@@ -99,7 +99,7 @@ export function DeployAppPicker({
   useEffect(() => { void scan() }, [scan])
 
   const selectedTypeCard = DEPLOY_APP_TYPE_CARDS.find(card => card.id === selectedType)
-  const typeName = selectedTypeCard === undefined ? t('templateCenter.picker.typeUnknown') : publishingT(selectedTypeCard.labelKey)
+  const typeName = selectedTypeCard === undefined ? t('scaffoldCenter.picker.typeUnknown') : publishingT(selectedTypeCard.labelKey)
   const matchingEntries = selectedType === undefined
     ? []
     : entries.filter(entry => entry.cardId === selectedType)
@@ -131,7 +131,7 @@ export function DeployAppPicker({
     setCustomReading(false)
     if (detected !== undefined && selectedType !== undefined && detected !== selectedType) {
       setCustomSelected(false)
-      setCustomError(t('templateCenter.picker.typeMismatch', {
+      setCustomError(t('scaffoldCenter.picker.typeMismatch', {
         detected: cardTypeLabel(detected, publishingT, t),
         selected: typeName,
       }))
@@ -158,14 +158,14 @@ export function DeployAppPicker({
 
   if (children !== undefined) {
     return (
-      <div className={dialogs.overlay} data-theme={colorScheme} role="dialog" aria-modal="true" aria-label={t('templateCenter.picker.title')}>
+      <div className={dialogs.overlay} data-theme={colorScheme} role="dialog" aria-modal="true" aria-label={t('scaffoldCenter.picker.title')}>
         <div className={css.embeddedHost}>{children}</div>
       </div>
     )
   }
 
   return (
-    <div className={dialogs.overlay} data-theme={colorScheme} role="dialog" aria-modal="true" aria-label={t('templateCenter.picker.title')}>
+    <div className={dialogs.overlay} data-theme={colorScheme} role="dialog" aria-modal="true" aria-label={t('scaffoldCenter.picker.title')}>
       <div className={css.modal}>
         <header className={css.header}>
           <div className={css.titleBlock}>
@@ -173,11 +173,11 @@ export function DeployAppPicker({
               <IconLayersOutlineRegular size={16} />
             </span>
             <div>
-              <h2 className={css.title}>{t('templateCenter.picker.title')}</h2>
-              <p className={css.subtitle}>{t('templateCenter.picker.subtitle')}</p>
+              <h2 className={css.title}>{t('scaffoldCenter.picker.title')}</h2>
+              <p className={css.subtitle}>{t('scaffoldCenter.picker.subtitle')}</p>
             </div>
           </div>
-          <button type="button" className={dialogs.closeButton} onClick={onClose} aria-label={t('templateCenter.picker.close')}>
+          <button type="button" className={dialogs.closeButton} onClick={onClose} aria-label={t('scaffoldCenter.picker.close')}>
             ✕
           </button>
         </header>
@@ -186,10 +186,10 @@ export function DeployAppPicker({
           {stage === 'type' && (
             <section className={css.typeStage}>
               <div className={css.typeStageHead}>
-                <h3 className={css.sectionTitle}>{t('templateCenter.picker.selectType')}</h3>
-                <p className={css.sectionHint}>{t('templateCenter.picker.typeStepHint')}</p>
+                <h3 className={css.sectionTitle}>{t('scaffoldCenter.picker.selectType')}</h3>
+                <p className={css.sectionHint}>{t('scaffoldCenter.picker.typeStepHint')}</p>
               </div>
-              <div className={css.typeStageGrid} role="radiogroup" aria-label={t('templateCenter.picker.selectType')}>
+              <div className={css.typeStageGrid} role="radiogroup" aria-label={t('scaffoldCenter.picker.selectType')}>
                 {DEPLOY_APP_TYPE_CARDS.map(card => (
                   <button
                     key={card.id}
@@ -213,24 +213,24 @@ export function DeployAppPicker({
             <section className={css.sourceStage}>
               <div className={css.sourceHead}>
                 <div>
-                  <span className={css.sourceTypeLabel}>{t('templateCenter.picker.selectedType')}</span>
+                  <span className={css.sourceTypeLabel}>{t('scaffoldCenter.picker.selectedType')}</span>
                   <h3 className={css.sourceTypeName}>{typeName}</h3>
-                  <p className={css.sectionHint}>{t('templateCenter.picker.matchingHint')}</p>
+                  <p className={css.sectionHint}>{t('scaffoldCenter.picker.matchingHint')}</p>
                 </div>
                 <div className={css.sourceHeadActions}>
                   {root !== undefined && <span className={css.rootPath} title={root}>{root}</span>}
                   <button type="button" className={css.secondaryButton} onClick={() => { setStage('type') }}>
-                    {t('templateCenter.picker.changeType')}
+                    {t('scaffoldCenter.picker.changeType')}
                   </button>
                 </div>
               </div>
 
-              {loading && <p className={css.stateText}>{t('templateCenter.picker.loading')}</p>}
+              {loading && <p className={css.stateText}>{t('scaffoldCenter.picker.loading')}</p>}
               {!loading && error !== undefined && (
                 <div className={css.errorCard} role="alert">
                   <span>{error}</span>
                   <button type="button" className={css.ghostButton} onClick={() => { void scan() }}>
-                    {t('templateCenter.picker.retry')}
+                    {t('scaffoldCenter.picker.retry')}
                   </button>
                 </div>
               )}
@@ -243,7 +243,7 @@ export function DeployAppPicker({
                           <button
                             type="button"
                             className={`${css.appRow} ${css.appAdd}`}
-                            aria-label={t('templateCenter.picker.addCustom')}
+                            aria-label={t('scaffoldCenter.picker.addCustom')}
                             onClick={() => { void chooseCustom() }}
                           >
                             <span className={css.appAddGlyph} aria-hidden="true">+</span>
@@ -287,14 +287,14 @@ export function DeployAppPicker({
                             </span>
                             <span className={css.appMain}>
                               <span className={css.appNameRow}>
-                                <span className={css.appName}>{t('templateCenter.picker.customTitle')}</span>
+                                <span className={css.appName}>{t('scaffoldCenter.picker.customTitle')}</span>
                                 <span className={css.typeBadge}>{typeName}</span>
                               </span>
                               <span className={css.appPath} title={customDirectory}>{customDirectory}</span>
                               <span className={css.appDescription}>
                                 {customReading
-                                  ? t('templateCenter.picker.reading')
-                                  : customError ?? t('templateCenter.picker.customCompatible', { type: typeName })}
+                                  ? t('scaffoldCenter.picker.reading')
+                                  : customError ?? t('scaffoldCenter.picker.customCompatible', { type: typeName })}
                               </span>
                             </span>
                             <span className={css.rowAction}>
@@ -307,7 +307,7 @@ export function DeployAppPicker({
                                 }}
                               >
                                 <IconFolderOpenOutlineRegular size={15} />
-                                {t('templateCenter.picker.customChange')}
+                                {t('scaffoldCenter.picker.customChange')}
                               </button>
                             </span>
                           </div>
@@ -335,7 +335,7 @@ export function DeployAppPicker({
                               <span className={css.appName}>{entry.name}</span>
                               {entry.state.linkedAppId !== undefined && (
                                 <span className={css.linkedBadge}>
-                                  {t('templateCenter.picker.linked', { name: entry.linkedAppName ?? entry.name })}
+                                  {t('scaffoldCenter.picker.linked', { name: entry.linkedAppName ?? entry.name })}
                                 </span>
                               )}
                             </span>
@@ -346,8 +346,8 @@ export function DeployAppPicker({
                           </span>
                           <span className={css.rowAction}>
                             {selectedApp === entry.directory
-                              ? t('templateCenter.picker.selected')
-                              : t('templateCenter.picker.choose')}
+                              ? t('scaffoldCenter.picker.selected')
+                              : t('scaffoldCenter.picker.choose')}
                             <IconChevronRightOutlineRegular size={14} />
                           </span>
                         </label>
@@ -355,7 +355,7 @@ export function DeployAppPicker({
                     ))}
                   </ul>
                   {matchingEntries.length === 0 && (
-                    <p className={css.stateText}>{t('templateCenter.picker.noMatching')}</p>
+                    <p className={css.stateText}>{t('scaffoldCenter.picker.noMatching')}</p>
                   )}
                   {customError !== undefined && <p className={css.customError} role="alert">{customError}</p>}
                 </>
@@ -366,11 +366,11 @@ export function DeployAppPicker({
 
         <footer className={css.footer}>
           <button type="button" className={css.secondaryButton} onClick={onClose}>
-            {t('templateCenter.picker.cancel')}
+            {t('scaffoldCenter.picker.cancel')}
           </button>
           {stage === 'source' && (
             <button type="button" className={css.secondaryButton} onClick={() => { setStage('type') }}>
-              {t('templateCenter.picker.previous')}
+              {t('scaffoldCenter.picker.previous')}
             </button>
           )}
           <button
@@ -379,7 +379,7 @@ export function DeployAppPicker({
             disabled={!canContinue}
             onClick={continueNext}
           >
-            {t('templateCenter.picker.next')}
+            {t('scaffoldCenter.picker.next')}
           </button>
         </footer>
       </div>
@@ -402,7 +402,7 @@ function cardTypeLabel(
   t: (key: DeployKey) => string,
 ): string {
   const card = DEPLOY_APP_TYPE_CARDS.find(candidate => candidate.id === cardId)
-  return card === undefined ? t('templateCenter.picker.typeUnknown') : publishingT(card.labelKey)
+  return card === undefined ? t('scaffoldCenter.picker.typeUnknown') : publishingT(card.labelKey)
 }
 
 /**

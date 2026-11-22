@@ -1,9 +1,15 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    // Sibling packages resolve through `paths` to their sources, so a composite
+    // root would reject them on `rootDir` (TS6307). App roots therefore compile
+    // as a single non-composite program.
+    "composite": false,
+    "incremental": false,
+    "declaration": false,
+    "declarationMap": false,
     "noEmit": true,
-    "jsx": "react-jsx",
-    "types": ["vite/client"]
+    "jsx": "react-jsx"
   },
   "include": ["src/**/*", "tests/**/*", "vite.config.ts"]
 }

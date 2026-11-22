@@ -9,14 +9,20 @@
   en: 0e01901abb2c3ec3
   zh: 6a42007f0b391289
 /token-plan/summary:
-  en: 667f35b4287cbd46
-  zh: b1ed13dd70f86cef
+  en: b9523d6929931c2b
+  zh: 70526df59e55b992
 /token-plan/table-of-contents:
   en: 01bed5d25fccc3b9
-  zh: 933b172d55daca1a
+  zh: 7107c7adb617d3b6
 /token-plan/runtime-requirements:
   en: 28c9b3f4f15a0a98
   zh: b238d7552147b05f
+/token-plan/runtime-invariants:
+  en: 98b6ee6172e312d7
+  zh: c8053f92fc407a9b
+/token-plan/understand-the-implementation:
+  en: 831cb9f7dd7ff6af
+  zh: 3cf5e66a96ef2849
 /token-plan/model-experience:
   en: 7ccee73caf533af5
   zh: c814ef568ff1bf83
@@ -25,10 +31,7 @@
   zh: bacec35330ccc487
 /token-plan/known-limitations-and-deferred-work:
   en: 67bc16a0c703af28
-  zh: a6197872848ba419
+  zh: c53c023d4c02adea
 /token-plan/known-limitations-and-deferred-work/dev-note:
   en: 77935bf58b2bfefa
   zh: 4b1b2442a42d1a83
-/token-plan/runtime-invariants:
-  en: 98b6ee6172e312d7
-  zh: c8053f92fc407a9b

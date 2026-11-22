@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-面向会话头部 git pill 的宿主能力：`sdkworkGit.status(cwd)` 报告当前检出分支（游离 HEAD 为 null）、HEAD 提交、未提交文件数（一次 `git status` 报告的全部暂存、修改与未跟踪路径）以及 ahead/behind 计数；`sdkworkGit.branches(cwd)` 列出本地分支（当前分支在前，随后按名称排序）；`sdkworkGit.checkout(cwd, branch)` 在确认分支存在后切换到已有本地分支；`sdkworkGit.createAndCheckout(cwd, name)` 先经 `git check-ref-format` 校验名称，再创建并切换；`sdkworkGit.log(cwd, limit)` 返回最近提交的父拓扑与引用装饰（HEAD 分支、本地分支、对照 `refs/remotes` 分类的远程跟踪引用、标签）。每次调用在运行任何 git 命令前先校验目录（绝对路径、存在、是目录）及其仓库状态（经 simple-git 的 `checkIsRepo` 执行 `git rev-parse`）。git 子进程带 15 秒墙钟 block 超时运行，卡死的仓库不会挂住 wire。本 seam 之上的 wire 面是 [`sdkwork-git-controller`](../../api/sdkwork-git-controller/README.zh.md) Remote；本包不拥有传输。
+会话头部 git 胶囊的宿主能力。`sdkworkGit.status(cwd)` 报告当前检出的分支（detached HEAD 时为 null）、HEAD 提交、未提交文件数与 ahead/behind 计数；`branches(cwd)` 列出本地分支且当前分支在前；`checkout(cwd, branch)` 切换到已存在的本地分支，`createAndCheckout(cwd, name)` 先用 `git check-ref-format` 校验名字再创建并切换，`log(cwd, limit)` 返回近期提交及其父拓扑与引用装饰。每次调用都先校验目录与仓库状态。
 
 ## 目录
 
@@ -32,6 +32,8 @@ kind: "package-reference"
 
 每次调用都构建绑定到解析后目录的全新 simple-git 句柄（无状态；不缓存仓库状态）。分支列表解析 `git branch --format=%(refname:short) %(objectname) %(HEAD)` — refname 不含空格，因此每行是名称、sha 与可选的 ` *` 标记。图谱日志解析 `log --pretty=format:%x1e…%x1f…` 的控制字符分隔行（哈希、父提交、作者、时间、%D 装饰、主题），并将装饰对照 `for-each-ref refs/remotes` 集合分类——本地分支可以合法包含斜杠，仅凭名称无法判断；HEAD 分支由 rev-parse 归属，不依赖装饰格式。`checkout` 在切换前先确认分支在本地存在，缺失分支以 `checkout-failed` 失败而不是泄漏原始 git 输出；`createAndCheckout` 在改动 HEAD 前先校验 ref 格式，以 `branch-name-invalid` 失败。
 
+未提交文件数统计 `git status` 报告的全部已暂存、已修改与未跟踪路径；`branches` 先列当前分支、再按名称排序；`log` 的引用装饰按 HEAD 分支、本地分支、对照 `refs/remotes` 归类的远程跟踪引用与标签分类。每次调用在任何 git 命令之前先校验目录（绝对、存在、是目录）与仓库状态（经 simple-git 的 `checkIsRepo` 执行 `git rev-parse`）。git 子进程带 15 秒墙钟阻塞超时，卡死的仓库因此无法挂住 wire。本缝之上的线协议面是 [`sdkwork-git-controller`](../../api/sdkwork-git-controller/README.zh.md) Remote；本包不拥有传输层。
+
 <a id="further-exploration"></a>
 
 ## 进一步探索
@@ -49,9 +51,9 @@ kind: "package-reference"
 
 不发布运行时不变量伴随检查；seam 每次调用无状态，所有失败都是闭集词汇拒绝。
 
-## 模型体验
+## Model Experience
 
-无：该能力只读取仓库状态并执行用户请求的检出；它自身不注册提示词、schema 或结果呈现。
+无，因为该能力只读取仓库状态并执行用户请求的检出；它自身不注册提示词、schema 或结果呈现。
 
 #### KV Cache effect
 

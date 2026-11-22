@@ -83,7 +83,7 @@ None; the package sends no provider request and changes no prompt section. Inser
 - **能力状态不跨消息保留。** 每次选择只把文本插入一份草稿；没有能把某项能力自动沿用到后续轮次的会话级绑定。
 
 <a id="dev-note"></a>
-### Dev Note
+### 开发备注
 
 <details>
 <summary>维护者工作上下文——点击展开</summary>

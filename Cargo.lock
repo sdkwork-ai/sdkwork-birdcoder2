@@ -2108,7 +2108,6 @@ dependencies = [
 name = "sdkwork-birdcoder2-host-runtime-service"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "serde",
  "serde_json",
  "thiserror",

@@ -30,6 +30,10 @@ The active [ui-sdkwork-env](../ui-sdkwork-env/README.md) profile supplies the AP
 
 The page **states** its sign-in requirement up front. Generation needs a session for the work it creates, so the embedded creative surface mounts only after [ui-sdkwork-iam](../ui-sdkwork-iam/README.md) reports a signed-in session; signed out, the page renders its own notice (heading, supporting copy, and a Sign in button) in place of the surface, and only that button opens the sign-in overlay. The host adapter keeps the requirement's transport half — `createSignInRequestInterceptor` still holds a user-initiated request that a session ending mid-page would otherwise send anonymously — but no generation call is attempted while signed out.
 
+## Runtime invariants
+
+No runtime invariant companion is published; the mode state lives in the layout store declared action set, and the entry/page registrations follow the rail shell keyed dispatch; store/mode agreement is covered directly by this package client behavior specs.
+
 ## Model Experience
 
 None, as mode selection and SDKWork HTTP responses remain browser viewing state and add no model request content, tools, or session events.
@@ -52,7 +56,3 @@ None; this package neither assembles nor sends provider requests.
 The rail key is `image`, but the embedded page is the complete Agents creative workbench shared with ui-sdkwork-generations-video — the two plugins differ only in the dialog's default modality, so keep `creativeHost.ts` and the sibling video plugin's adapter in step when the Agents PC surface moves. An empty base URL still mounts the page but generation fails until a gateway is configured. The sign-in requirement is stated by the page (`AuthenticatedSdkworkModePage`, whose shell replaces the surface with the notice) and enforced on the wire by `createSignInRequestInterceptor` for a session that ends while the page stays mounted; keep both when the Agents PC surface moves.
 
 </details>
-
-## Runtime invariants
-
-No runtime invariant companion is published; the mode state lives in the layout store declared action set, and the entry/page registrations follow the rail shell keyed dispatch; store/mode agreement is covered directly by this package client behavior specs.

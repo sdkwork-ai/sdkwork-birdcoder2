@@ -7,7 +7,7 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-## 概要
+## 概述
 
 SDKWork IAM 公众号账号管理插件（浏览器侧）：在设置菜单弹出面板中注册 **公众号账号** 行（位于中转站 API Key 行上方），并把该行打开的90% 视口的弹窗注册到根作用域的 `settings.officialAccounts` 座位。弹窗承载统一组件 `@sdkwork/iam-pc-official-accounts` 的自助维护形态，它通过 IAM app API 维护已登录账号自己的公众号配置——不涉及后台管理面，也不涉及租户登录资源。
 
@@ -39,7 +39,7 @@ pnpm --filter @deepseek-ai/dsh-client-ui-sdkwork-official-accounts bundle
 ```
 
 <a id="dev-note"></a>
-## 开发说明
+## 开发备注
 
 弹窗仅运行于浏览器，并且只对接两个接缝：此处构建的 IAM app 客户端，以及 `@sdkwork/iam-pc-official-accounts` 提供的控制器/面板端口（作为依赖解析用途加入的 workspace 成员；打包时通过 `tsconfig.base.json` 源码别名内联）。本宿主使用该组件的**自助维护**形态，因此不会触达运营侧才有的菜单发布与扫码登录默认号能力。app 级的行按会话的租户与用户隔离，且从不参与登录——`@sdkwork/iam-pc-admin-oauth` 中的后台管理能力 `iam.oauth.resourceAccounts.*` 是另一个表面，这里不使用。
 

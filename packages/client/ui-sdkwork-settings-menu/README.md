@@ -9,6 +9,21 @@ English | [中文](README.zh.md)
 
 ## Summary
 
+The settings menu over the mode rail's settings gear, plus the settings modal shell it owns. The menu swaps the upstream General row's implementation behind the same loader id, re-declares every upstream settings seat so feature-owned sections, rows, and onboarding steps mount unchanged, and shows the account, wallet, and feature rows around a pinned sign-out footer. The modal provides the section nav over the `settings.section` ledger, the General section, and the onboarding coordinator.
+
+## Table of Contents
+
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
+
+## Runtime invariants
+
+No runtime invariant companion is published; the settings surface reads the authoritative settings service sections directly, and each toggle writes through the same service face the owning capability validates; scope agreement is covered directly by this package client behavior specs.
+
+The dialog's visibility, active section, and reveal target live in the `mode.rail.settings` store, so a surface outside the rail opens the very dialog the shell renders: `ctx.settingsMenu.openSection(id, { focusProvider })` shows one registered section and hands it the provider row to reveal, while the shell clears that target on ordinary navigation and on close. The hover popover's own open state stays component-local.
+
+## Understand the implementation
 
 The settings menu over the mode rail's settings gear plus the settings modal shell it owns. The plugin occupies the `mode.rail.settings` seat that upstream's `ui-settings-general` used to hold; the web bundle patch keeps that upstream row's `id` — a profile-backed settings namespace *is* the live loader row id — and swaps only the implementation package behind it to this one, so the upstream shell never loads (its source is never touched, so upstream updates cannot conflict with this surface) while every namespace the fork re-declares stays addressable; this package re-declares every settings seat — `settings.trigger/header/action/close/section/onboarding/general.item`, the root-scoped account-card seat `settings.menu.account`, the account-wallet seat `settings.menu.plan`, the points purchase modal `settings.pointsRecharge` the wallet card's top-up action opens, plus the six root-scoped feature-modal seats `settings.apiKeys`, `settings.officialAccounts`, `settings.miniPrograms`, `settings.dns`, `settings.certificates`, and `settings.myDeployments` — so feature-owned sections, rows, and onboarding steps mount unchanged.
 
@@ -18,15 +33,9 @@ The plugin provides `ctx.account` — a snapshot source (`{ signedIn, username?,
 
 The settings modal is the package's own shell: the section nav over the `settings.section` ledger, the General section over `settings.general.item`, the loopback open-document action, and the onboarding coordinator over `settings.onboarding`. The nav opens with `通用` (this package's General section, order `-200`), followed by the `个人主页` section `ui-sdkwork-profile` contributes at order `-190`, so the deployment preferences and the account page lead the rail. The Token Plan plugin adds the `套餐与积分` section through that same ledger, so the account's plan and points ledger live beside the other settings pages without shell changes. The welcome-notice acknowledgement is a volatile field of the host half's own Config, and the loader entry's id is the settings namespace — so because this package occupies upstream's `ui-settings-general` row, that field lands in the very namespace the welcome step's reader resolves, and persisted acknowledgements survive the swap.
 
-## Table of Contents
-
-- [Model Experience](#model-experience)
-- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
-- [Dev Note](#dev-note)
-
 ## Model Experience
 
-None, as the package is human-only settings chrome and navigation. The Appearance submenu calls `ctx.theme.setTheme`, which persists the preference through the settings transport and never touches a model request; the account provider is anonymous by default.
+None, as the package is human-only settings chrome and navigation whose theme and account providers never touch a model request.
 
 #### KV Cache effect
 
@@ -50,9 +59,3 @@ None; the package never assembles or sends provider requests.
 This package re-declares every settings seat (`settings.trigger/header/action/close/section/onboarding/general.item`) so feature-owned sections mount unchanged; a new seat must mirror upstream's vocabulary or existing consumers stop mounting. `ctx.account`, `ctx.feedback`, and `ctx.persona` ship anonymous and unavailable providers behind stable faces — consumers must cope with both states rather than assuming a real backend, and the host half registers `ui-onboarding` under the replaced shell's id so persisted acknowledgements survive.
 
 </details>
-
-## Runtime invariants
-
-No runtime invariant companion is published; the settings surface reads the authoritative settings service sections directly, and each toggle writes through the same service face the owning capability validates; scope agreement is covered directly by this package client behavior specs.
-
-The dialog's visibility, active section, and reveal target live in the `mode.rail.settings` store, so a surface outside the rail opens the very dialog the shell renders: `ctx.settingsMenu.openSection(id, { focusProvider })` shows one registered section and hands it the provider row to reveal, while the shell clears that target on ordinary navigation and on close. The hover popover's own open state stays component-local.

@@ -9,32 +9,35 @@
   en: 347f80c70e2452bd
   zh: 0f0348d8f3eb4efc
 /deepseek-ai-dsh-client-ui-sdkwork-music-models/summary:
-  en: d192cfc2e553a8a7
-  zh: b4d27d34f3d2a654
+  en: b4214c1c71a78cd2
+  zh: 34d690b3f6017d75
 /deepseek-ai-dsh-client-ui-sdkwork-music-models/table-of-contents:
   en: 6786c4d872b3ebac
-  zh: 3b8d3ec252bbcbae
+  zh: baed6ff740014212
 /deepseek-ai-dsh-client-ui-sdkwork-music-models/surface:
   en: 0ba27347c469d152
-  zh: a18040fe6d9b1407
+  zh: e9b697cc4faba477
 /deepseek-ai-dsh-client-ui-sdkwork-music-models/configuration:
-  en: 965489ac7a147bd5
-  zh: d9d64eb614ae99e8
+  en: 1b12030132993905
+  zh: a06e81d04b4de923
 /deepseek-ai-dsh-client-ui-sdkwork-music-models/configuration/the-music-models-sdkwork-json-document:
   en: 4123cbf6ab48314d
-  zh: d8094a6a191c1db2
+  zh: b8e4d2bd90009344
 /deepseek-ai-dsh-client-ui-sdkwork-music-models/configuration/providers-relays-and-credentials:
   en: 1f5e693f35f346f1
-  zh: c15a58c666bf8778
+  zh: 652cb26098dba10e
 /deepseek-ai-dsh-client-ui-sdkwork-music-models/configuration/where-the-presets-come-from:
   en: e38fab0466e1dc2c
   zh: 2d5b04f88eed9823
+/deepseek-ai-dsh-client-ui-sdkwork-music-models/understand-the-implementation:
+  en: b3eaedc27e954b40
+  zh: f338257f56a5a130
 /deepseek-ai-dsh-client-ui-sdkwork-music-models/model-experience:
   en: e50c4094562e5e1b
-  zh: e50c4094562e5e1b
+  zh: b4a85404f8c7ae22
 /deepseek-ai-dsh-client-ui-sdkwork-music-models/model-experience/kv-cache-effect:
   en: de0a8bbc2e45098f
-  zh: de0a8bbc2e45098f
+  zh: 35e965fa55ed1824
 /deepseek-ai-dsh-client-ui-sdkwork-music-models/known-limitations-and-deferred-work:
   en: b72af33944e57b88
   zh: 451cf05f2e3aec12

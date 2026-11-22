@@ -1,5 +1,5 @@
 /**
- * Directory → zip packer for the publish-as-template source step. Mirrors
+ * Directory → zip packer for the publish-as-scaffold source step. Mirrors
  * git's source-selection semantics: every `.gitignore` inside the picked
  * directory scopes to its own subtree with deeper files overriding shallower
  * ones, `.git/` is always dropped, and an ignored directory prunes its whole

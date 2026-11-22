@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-SDKWork domain management plugin (browser half): registers the **域名管理** row in the settings-menu popover, directly below 公众号账号, and the 90%-viewport modal it opens at the root-scoped `settings.dns` seat. The modal manages the signed-in account's root domains (zones), their subdomains and ownership verification, the domain-ownership verification files each zone publishes (WeChat official account and mini program, Alipay, ByteDance, Google, Apple, or a custom platform), and the DNS resolution records synced from the zone's cloud account. All operations are the deployments app API's `domain` surface (`@sdkwork/deployments-app-sdk`) — the same authority the sdkwork-webserver console reads — so the plugin introduces no second backend contract.
+SDKWork domain management plugin (browser half): registers the **域名管理** row in the settings-menu popover, directly below 公众号账号, and the 90%-viewport modal it opens at the root-scoped `settings.dns` seat. The modal manages the signed-in account's root domains (zones), their subdomains and ownership verification, the domain-ownership verification files each zone publishes (WeChat official account and mini program, Alipay, ByteDance, Google, Apple, or a custom platform), and the DNS resolution records synced from the zone's cloud account.
 
 ## Table of Contents
 
@@ -42,6 +42,11 @@ pnpm --filter @deepseek-ai/dsh-client-ui-sdkwork-dns bundle
 ## Dev Note
 
 The modal is browser-only; the host half of this package is an empty `apply`. It imports no other feature plugin: shared declarations come through `import type`, and the only runtime collaboration is the injected `env`/`iam` services plus the `settings.dns` slot grant. The generated deployments client is bundled privately, so neither the web shell nor another plugin gains a new module-table identity.
+
+<a id="understand-the-implementation"></a>
+## Understand the implementation
+
+All operations are the deployments app API's `domain` surface (`@sdkwork/deployments-app-sdk`) — the same authority the sdkwork-webserver console reads — so the plugin introduces no second backend contract.
 
 ## Model Experience
 

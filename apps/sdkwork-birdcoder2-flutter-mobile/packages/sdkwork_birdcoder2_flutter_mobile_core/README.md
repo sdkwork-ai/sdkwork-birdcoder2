@@ -2,7 +2,7 @@
 
 Runtime/bootstrap, generated Dart SDK injection, appbase Flutter IAM runtime, token manager wiring, diagnostics.
 
-- Surface: `[object Object]`
+- Surface: `flutter-mobile`
 - Layer role: `runtime`
 - Standard: `MODULE_SPEC.md`, `FLUTTER_APP_MOBILE_ARCHITECTURE_SPEC.md`
 

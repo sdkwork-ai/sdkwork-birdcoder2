@@ -21,6 +21,7 @@ kind: "package-reference"
 - [已知限制与暂缓事项](#known-limitations-and-deferred-work)
 - [开发备注](#dev-note)
 
+<a id="the-shared-agent-default-agent-default-model-settings-section"></a>
 ## 共享 Agent 默认值（`agent-default-model` Settings 分节）
 
 `ApiProxyService` 消费 `ctx.agentDefaultModel`；它不持有提供方／模型配置或 Settings 分节。共享服务在 `agent-default-model` 下注册 `{provider, model, reasoningEffort?}`：base 组合包的组合条目是底层，`settings.yaml` 把用户选择叠加其上。
@@ -33,6 +34,7 @@ Settings 分节中的 `reasoningEffort` 在 agent-default-model 插件配置中�
 
 存储的选择独立于目录成员关系。默认值指向不可用的提供方时，它仍会作为会话的 `current` 送到 `session.models`，让选择器请求用户重新选择，而不是静默选用其他模型。反过来，适配器也可以服务其目录中未公布的模型。
 
+<a id="contract-layer-api"></a>
 ## 约定层（`/api`）
 
 协议消息组成一个四象限可辨识联合：发起方 × 请求／响应，与物理通道解耦。四种消息分别是 `ClientRequest`（POST `/api/<method>` 的请求体）、`ServerResponse`（该 POST 的响应体）、`ServerRequest`（SSE（Server-Sent Events）帧）和 `ClientResponse`（POST `/api/respond` 的请求体）。响应始终回显对应请求的 `rpcId`，绝不签发新值。方法的参数与返回值结构只存在于领域接口签名（`SessionsApi`、`HostApi`、`EventsApi`）中；`RpcMethodMap` 注册方法，其他所有位置均通过 `RequestPayload<K>`／`ResponseValue<K>` 派生。Zod schema 以 `satisfies z.ZodType<Wire<T>>` 锚定类型，并分两层解析：先解析信封，再解析业务载荷，随后按方法分发。业务错误由 `RpcResult` 的错误分支承载（`RpcErrorDetailsMap` 封闭错误码集合）；HTTP 状态只表达载体层结果。每个 `/api` POST 都必须声明 `application/json` 媒体类型——否则在分发前即以 415 拒绝，因此跨站「简单请求」（浏览器不经 CORS 预检就会发出）永远无法盲目执行有副作用的方法。
@@ -77,21 +79,28 @@ preset 是声明的，不在这条协议上创作。上游用「在活动 profil
 
 `settings.*`、`credentials.*` 与 `llm.*` 领域是配置页协议。settings 领域服务于每一个已注册 namespace：在本仓库之外分发的插件只要注册自己的分节即可变得可从浏览器配置，无需改动这里；本代理也不再自设边界——没有任何注册应答的名字会折叠为 seam 自己的 `settings-rejected`。由哪个界面渲染某个 namespace 是浏览器的决定（插件配置页按 namespace 为其卡片编键），从不由本代理决定。`settings.describe` 为每个 namespace 提供其序列化 schemastery schema、脱敏后的分层值（resolved/`base`/`user`——字段出现在 `user` 中即标记其被用户覆盖）、`secrets` 槽位列表、该分节的 `revision`，以及布尔型 `hasDocument` 能力标志。浏览器不会收到 Host 路径：无路径参数的 `settings.openDocument` 会请求提供方准备文档，再把由 Host 解析出的结果交给原生打开器，因此任何浏览器载荷都无法选择任意文件系统目标。`settings.update`/`settings.replace` 写入用户层；`settings.mutate` 则在已存分节上施加路径 op（`set`/`unset`），这是持有脱敏视图的客户端的删除路径——据此重建分节再整体替换，会删掉协议从未回传过的那些机密。任何写入都可携带 `expectedRevision`；陈旧的期望值会以 `settings-conflict` 连同两个 revision 作答，而不是覆盖先落地的那个写方，其余每种 seam 拒绝则折叠为 `settings-rejected`。secret 角色的值绝不在任何一层搭乘任何响应；secret 只沿一个方向跨越协议——在 `update`/`mutate` 载荷或 `credentials.set` 之内。`credentials.describe` 返回不含值的视图（`configured`/`source`/`writable`），`credentials.set`/`credentials.unset` 则把提供方的拒绝映射为 `credential-rejected`。`llm.providers` 把可配置提供方目录与存活路由合并（休眠条目携带 `active: false`；未声明的存活路由追加在后，不带 settings 地址），`llm.models` 则是与会话无关的目录。`llm.discoverModels` 询问页面尚在起草的提供方端点：`settingsNs` 选出懂得读取该列表的适配器家族，端点、协议与密钥则来自表单而非存储。它什么都不写——回复是候选，只有随后的 `settings.mutate` 才决定路由服务什么——因此其 `apiKey` 是 secret 可以搭乘的第三个载荷（另两个是 `settings.update`/`mutate` 与 `credentials.set`），且绝不被存储或回显。host 从不存储或回传它；与另两者一样，它确实会搭乘客户端的出站信封，`subscribeEnvelopes()` 的观察者能看到——为该 tap 做脱敏是整个配置面的改动，而非本方法一家的事。每一种拒绝（无人服务的 namespace、没有可读列表的协议、不可达端点、被拒凭据）都折叠为 `model-discovery-failed`，其消息是适配器自己的文本，details 点名被询问的端点，绝不点名所提供的凭据。失效通知让每个面无需轮询即保持收敛。`settings/document-updated` 与 `credentials/reference-updated` 搭乘原样转发事件帧（见下），因此解析值未变的原始设置变更同样能到达客户端，凭据失效通知也仍然只带引用名、绝不带值。`llm/adapters-updated` 与 `settings/document-updated` 一并原样转发；具体模型消费方直接订阅这两个 owner 事件，因为拓扑提交和设置文档都能独立改变其目录。浏览器载体把整个配置面（含读取与原生操作：`settings.describe`/`openDocument`/`update`/`replace`/`mutate` 与 `credentials.describe`/`set`/`unset`）限制为仅接受来自回环地址的同源请求——即 `host.pickDirectory` 所在的特权集合。未装 settings 或凭据提供方的组合会以指名缺失插件、包含解决建议的 `internal` 错误应答这些领域。
 
+<a id="carrier-layer-client--root"></a>
 ## 载体层（`/client` + 根路径）
 
 `AbstractApiClient` 持有全部协议不变量：签发 rpcId、包装／解包信封、Zod 解析、SSE 帧解码、一元请求超时，以及按微任务批处理的信封观测（`subscribeEnvelopes`）；平台子类只提供 `doFetch` 传输环节。`InProcessApiClient` 以 `toFetchHandler(api)` 为基础，仍是同构接点：它运行完整的协议序列化与校验路径而不经过网络，供需要该路径的调用方和载体测试使用。产品的 `dsh --profile headless` 是直连 core 的入口，不挂载本包。
 
-## 模型体验
+## 运行时不变量
 
-无。该包定义客户端与宿主间的 wire 约定和载体，其中没有任何内容会进入模型请求。
+不发布运行时不变量伴随检查；该包是线协议契约层加 Host 侧网关，所包装的服务归属其他包——自身不发出 cordis 事件，它投影的 session/agent 事件流由归属包的伴随检查断言；rpcId 往返与 schema 接受在 carrier 边界强制执行，并由协议同构测试套件覆盖。
 
-#### KV Cache 影响
+<a id="model-experience"></a>
+## Model Experience
+
+无，因为该包定义客户端与宿主间的 wire 约定和载体，其中没有任何内容会进入模型请求。
+
+#### KV Cache effect
 
 无；该包既不组装也不发送提供方请求。
 
+<a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与暂缓事项
 
-- **转发的 Remote 事件寄居在这套 legacy 帧联合里**：`host/remote-event` 住在 `HostFrame` 中，是为了让投递路径复用现有宿主流、不必新开第三条下行通道，因此读起来像是本包拥有 Remote 事件契约。并非如此：名单归 `dsh-api-remotes`，消费端动词是 `ctx.remote.$on`。将来宿主流整体搬离本包时，该帧随之搬走，消费端契约不受影响（[原委](../../../.agents/notes/implemented/architecture/2026-08-10-remote-event-delivery.zh.md)）。
+- **转发的 Remote 事件寄居在这套 legacy 帧联合里**：`host/remote-event` 住在 `HostFrame` 中，是为了让投递路径复用现有宿主流、不必新开第三条下行通道，因此读起来像是本包拥有 Remote 事件契约。并非如此：名单归 `dsh-api-remotes`，消费端动词是 `ctx.remote.$on`。将来宿主流整体搬离本包时，该帧随之搬走，消费端契约不受影响（[原委](../../../.agents/notes/archived/architecture/2026-08-10-remote-event-delivery.md)）。
 - **待处理交互状态位于宿主侧**：wire 使用 POST `/api/respond` 加 `RpcReceipt`；`src/api-proxy.ts` 中的表只处理问题，不包含审批条目。
 - **待回答的提问无法跨宿主重启存活**：登记表持有等待中那次工具调用自身的 `resolve`／`reject`，因此它是宿主进程内存。`events.mux` 在每次重开时重放所有仍在等待的提问，这覆盖了浏览器刷新与重连；宿主重启则把等待中的 turn 一并带走，重新打开的 Session 不会为该提问提供任何作答界面。要让它跨宿主重启恢复，需要一份持久化的待处理交互记录，此项暂缓。
 - **预留 seam 不进入 `RpcMethodMap`**：`prompt.mode: 'inject'`、`job.list` 和描述字段 `hostInstanceId` 都是已记录的预留项；模型发现使用 `llm.models`。未知方法会在信封解析时直接失败，而不会返回「尚未实现」错误码。
@@ -100,6 +109,7 @@ preset 是声明的，不在这条协议上创作。上游用「在活动 profil
 - **Linux 原生选择器依赖桌面工具**：在 `native` 能力下，Zenity 和 KDialog 均未安装时，`host.pickDirectory` 会给出包含解决建议的错误提示；组合层面的回退是 browse 后端（见 [native 后端 README](../directory-picker-native/README.zh.md)）。
 - **冷列表提示只向“保持可见、排序偏旧”降级**：projection cache miss 或陈旧的 `lastPromptAt` 会回退到 `createdAt`，除非符合资格的小工件提供精确折叠，因此最近工作过的大 Session 可能在下一个 checkpoint 前排得偏低。大于 `coldBlankProbeMaxBytes` 的空白工件，或来自不提供 `locate()` 的后端的空白工件会保持可见。该阈值在 `readFrom()` 前检查，而非由 persistence 强制，因此工件并发增长可能增加一次探测的读取成本，但不会改变空白状态的安全方向。[有界空白验证决策](../../../.agents/notes/archived/bug-fix/2026-08-13-bounded-cold-blank-verification.md)规定了这个安全方向；权威且精确的最近时间索引仍属于[最后活动索引提案](../../../.agents/notes/proposed/architecture/2026-07-29-durable-last-activity-index.zh.md)的范围。
 
+<a id="dev-note"></a>
 ### 开发备注
 
 <details>
@@ -108,7 +118,3 @@ preset 是声明的，不在这条协议上创作。上游用「在活动 profil
 本包不注册任何路由——HTTP 等载体自行包装 `ctx.apiProxy`——随发行版交付的 Web 组合位于 `packages/bundle/web-app/cordis.patch.yml`。四象限 wire 联合、`RpcErrorDetailsMap` 封闭错误码集合、两层 Zod 解析，以及整个配置面的回环同源限制，是每个新方法都必须继承的不变量；预留 seam 不进入 `RpcMethodMap`，未知方法在信封解析时响亮失败。
 
 </details>
-
-## 运行时不变量
-
-不发布运行时不变量伴随检查；该包是线协议契约层加 Host 侧网关，所包装的服务归属其他包——自身不发出 cordis 事件，它投影的 session/agent 事件流由归属包的伴随检查断言；rpcId 往返与 schema 接受在 carrier 边界强制执行，并由协议同构测试套件覆盖。

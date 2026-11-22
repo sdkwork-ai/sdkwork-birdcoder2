@@ -224,12 +224,12 @@
     # SDKWork template install capability and its Remote: bounded,
     # confinement-checked project-file writes under a caller-picked directory
     # for the use-template scaffold flow.
-    - id: sdkwork-template-install
-      name: '@deepseek-ai/dsh-sdkwork-template-install'
+    - id: sdkwork-scaffold-install
+      name: '@deepseek-ai/dsh-sdkwork-scaffold-install'
 
-    - id: sdkwork-template-install-controller
-      name: '@deepseek-ai/dsh-api-sdkwork-template-install-controller'
-      inject: [sdkworkTemplateInstall]
+    - id: sdkwork-scaffold-install-controller
+      name: '@deepseek-ai/dsh-api-sdkwork-scaffold-install-controller'
+      inject: [sdkworkScaffoldInstall]
 
     - id: cordis-host-runner
       name: '@deepseek-ai/dsh-cordis-host-runner'

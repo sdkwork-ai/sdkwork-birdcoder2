@@ -81,6 +81,10 @@ The `settings.*`, `credentials.*`, and `llm.*` domains are the configuration-pag
 
 `AbstractApiClient` holds every protocol invariant — rpcId minting, envelope wrap/unwrap, zod parsing, SSE frame decoding, unary timeout, microtask-batched envelope observation (`subscribeEnvelopes`) — while platform subclasses supply only the `doFetch` transport aspect. `InProcessApiClient` over `toFetchHandler(api)` remains the isomorphic point for callers and carrier tests that need the full wire serialization/validation path without a network. Product `dsh --profile headless` is a direct core entry point and does not mount this package.
 
+## Runtime invariants
+
+No runtime invariant companion is published; this package is the wire contract layer plus the host-side gateway over services owned elsewhere — it emits no cordis events of its own, and the session/agent event streams it projects are asserted by their owning packages companions; rpcId round-trip and schema acceptance are enforced at the carrier boundary and exercised by the protocol-isomorphism suite.
+
 ## Model Experience
 
 None, as the package defines the client↔host wire contract and carriers; nothing here reaches a model request.
@@ -91,7 +95,7 @@ None; this package neither assembles nor sends a provider request.
 
 ## Known Limitations and Deferred Work
 
-- **Forwarded Remote events are parasitic on this legacy frame union** — `host/remote-event` lives in `HostFrame` so the delivery path could reuse the existing host stream instead of opening a third downlink, which makes it read as if this package owned the Remote event contract. It does not: the allowlist is `dsh-api-remotes`' and the consumer verb is `ctx.remote.$on`. When the host stream moves off this package, the frame moves with it and the consumer contract is unaffected ([rationale](../../../.agents/notes/implemented/architecture/2026-08-10-remote-event-delivery.md)).
+- **Forwarded Remote events are parasitic on this legacy frame union** — `host/remote-event` lives in `HostFrame` so the delivery path could reuse the existing host stream instead of opening a third downlink, which makes it read as if this package owned the Remote event contract. It does not: the allowlist is `dsh-api-remotes`' and the consumer verb is `ctx.remote.$on`. When the host stream moves off this package, the frame moves with it and the consumer contract is unaffected ([rationale](../../../.agents/notes/archived/architecture/2026-08-10-remote-event-delivery.md)).
 - **Pending-interaction state is host-side** — the wire uses POST `/api/respond` plus `RpcReceipt`; the table in `src/api-proxy.ts` handles questions only and has no approval entries.
 - **A pending question does not survive a host restart** — the registry holds the awaiting tool call's own `resolve`/`reject`, so it is host-process memory. `events.mux` replays every still-pending question on each reopen, which covers a browser reload or a reconnect; a host restart takes the awaiting turn with it, and the reopened Session offers no composer for that question. Restoring one across a host restart needs a durable pending-interaction record and is deferred.
 - **Reserved seams stay out of `RpcMethodMap`** — `prompt.mode: 'inject'`, `job.list`, and a describe `hostInstanceId` are documented reservations; model discovery uses `llm.models`. An unknown method fails loud at envelope parse rather than getting a not-implemented code.
@@ -108,7 +112,3 @@ None; this package neither assembles nor sends a provider request.
 This package registers no routes — HTTP and other carriers wrap `ctx.apiProxy` themselves — and the shipped Web composition lives in `packages/bundle/web-app/cordis.patch.yml`. The four-quadrant wire union, the `RpcErrorDetailsMap` closed error-code set, the two-level Zod parse, and the loopback same-origin restriction on the whole configuration plane are the invariants every new method must inherit; unknown methods fail loud at envelope parse because reserved seams stay out of `RpcMethodMap`.
 
 </details>
-
-## Runtime invariants
-
-No runtime invariant companion is published; this package is the wire contract layer plus the host-side gateway over services owned elsewhere — it emits no cordis events of its own, and the session/agent event streams it projects are asserted by their owning packages companions; rpcId round-trip and schema acceptance are enforced at the carrier boundary and exercised by the protocol-isomorphism suite.

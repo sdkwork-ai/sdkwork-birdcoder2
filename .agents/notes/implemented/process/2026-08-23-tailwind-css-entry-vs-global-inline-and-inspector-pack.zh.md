@@ -23,3 +23,7 @@ Status: implemented
 ## 测试
 
 `packaged-boot-probe` 对相对路径与 git 依赖两种包均通过；带 `--inspect` 的打包 exe 实测监听 9229 且 `GET /json/list` 返回 `node.js instance`。
+
+## 备选方案
+
+**保留当前行为。** 否决原因：问题一节记录的就是该行为造成的具体故障。

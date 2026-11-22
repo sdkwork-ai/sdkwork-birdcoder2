@@ -19,3 +19,7 @@ Client 阶段不再为无本地配置的 host-only 包解析 entry。回归测�
 ## 测试
 
 `pnpm exec vitest run scripts/tsdown-build-face.spec.ts`
+
+## 备选方案
+
+**保留当前行为。** 否决原因：问题一节记录的就是该行为造成的具体故障。

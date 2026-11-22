@@ -9,32 +9,35 @@
   en: b205ce38f609c803
   zh: f378433aee5018a4
 /deepseek-ai-dsh-client-ui-sdkwork-video-models/summary:
-  en: d001b9b81be1255a
-  zh: 81f2b214cdce5e48
+  en: 09b43a8e430ac336
+  zh: 66ec7f4981dfaac9
 /deepseek-ai-dsh-client-ui-sdkwork-video-models/table-of-contents:
   en: f88a2424c8d811b8
-  zh: a942de7d3ebcd68b
+  zh: a9565763ac133842
 /deepseek-ai-dsh-client-ui-sdkwork-video-models/surface:
   en: 7a76fc7a7f93524c
-  zh: 6cf91580ed3cd2f8
+  zh: 5b072fe2389bb942
 /deepseek-ai-dsh-client-ui-sdkwork-video-models/configuration:
-  en: 162a72fe0d2f69a5
-  zh: b669150097b9c802
+  en: 1dfff61d4476186c
+  zh: 620b9571001c7f2a
 /deepseek-ai-dsh-client-ui-sdkwork-video-models/configuration/the-video-models-sdkwork-json-document:
   en: e76824d194c32f27
-  zh: 7573f5fe98b51a1b
+  zh: b28c962f9bfb6a1b
 /deepseek-ai-dsh-client-ui-sdkwork-video-models/configuration/providers-relays-and-credentials:
   en: 1f5e693f35f346f1
-  zh: c15a58c666bf8778
+  zh: 652cb26098dba10e
 /deepseek-ai-dsh-client-ui-sdkwork-video-models/configuration/where-the-presets-come-from:
   en: aeff851b56e0276f
   zh: d2172b8f3d1d4951
+/deepseek-ai-dsh-client-ui-sdkwork-video-models/understand-the-implementation:
+  en: a08236f589945df2
+  zh: 8708ad4233696087
 /deepseek-ai-dsh-client-ui-sdkwork-video-models/model-experience:
   en: e50c4094562e5e1b
   zh: e50c4094562e5e1b
 /deepseek-ai-dsh-client-ui-sdkwork-video-models/model-experience/kv-cache-effect:
   en: de0a8bbc2e45098f
-  zh: de0a8bbc2e45098f
+  zh: 469e5ab7665f8d2a
 /deepseek-ai-dsh-client-ui-sdkwork-video-models/known-limitations-and-deferred-work:
   en: b72af33944e57b88
   zh: 451cf05f2e3aec12

@@ -41,6 +41,10 @@ The footer button calls `iam.requestSignOut()`, the same service entry the setti
 - The section is gated on the `iam` Cordis service: a composition without `ui-sdkwork-iam` leaves the plugin pending, so no account page renders without an account service.
 - The package's tsc emit resolves the sdkwork auth imports to `ui-sdkwork-iam`'s declaration facades (`../ui-sdkwork-iam/sdkwork-types/`) instead of duplicating them; the type-only import of `IamProfileSnapshot` is the shared declaration, not a value dependency on the other plugin's implementation.
 
+## Dev Note
+
+The profile section reads the IAM snapshot; it keeps no account state beyond the declared store.
+
 ## Model Experience
 
 None, as the profile section is browser-side account UI; it neither assembles nor sends model requests.

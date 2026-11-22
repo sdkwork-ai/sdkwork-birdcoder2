@@ -1,5 +1,5 @@
 /* Deployed-applications modal content: the two-tab frame, the kind/status
-   facet, and the app/template ledgers. The shared WideModal primitive owns the
+   facet, and the app/scaffold ledgers. The shared WideModal primitive owns the
    overlay, mask, header and dismissal geometry; this module styles only the
    content and resolves the app design tokens (--dsw-*) the modal inherits from
    body. */
@@ -144,7 +144,7 @@
 
 .skeletonRow {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
+  grid-scaffold-columns: 40px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
   padding: 12px;
@@ -207,7 +207,7 @@
 
 .row {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto;
+  grid-scaffold-columns: 40px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   padding: 12px;
@@ -256,7 +256,7 @@
   white-space: nowrap;
 }
 
-/* One line of template summary: the template's own pitch, kept below the
+/* One line of scaffold summary: the scaffold's own pitch, kept below the
    identity pair and above the badges so rows stay scannable. */
 .summaryLine {
   overflow: hidden;
@@ -408,7 +408,7 @@
 
 @media (max-width: 720px) {
   .row {
-    grid-template-columns: 36px minmax(0, 1fr);
+    grid-scaffold-columns: 36px minmax(0, 1fr);
   }
 
   .side {

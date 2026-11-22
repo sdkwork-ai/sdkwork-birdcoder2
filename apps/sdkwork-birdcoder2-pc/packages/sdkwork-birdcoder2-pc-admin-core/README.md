@@ -2,7 +2,7 @@
 
 Backend-admin boundary: backend SDK and appbase backend SDK wrappers, staff route guards, audit-sensitive layout.
 
-- Surface: `[object Object]`
+- Surface: `pc`
 - Layer role: `runtime`
 - Standard: `MODULE_SPEC.md`, `APP_PC_ARCHITECTURE_SPEC.md`
 

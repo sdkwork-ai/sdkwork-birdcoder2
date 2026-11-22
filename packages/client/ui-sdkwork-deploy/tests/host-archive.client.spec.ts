@@ -3,10 +3,10 @@ import { strFromU8, unzipSync } from 'fflate'
 import { describe, expect, it } from 'vitest'
 import {
   isSensitiveSourcePath,
-  packTemplateApp,
-  TemplateArchiveTruncatedError,
-  TemplateArchiveUnavailableError,
-  type TemplateArchivePort,
+  packScaffoldApp,
+  ScaffoldArchiveTruncatedError,
+  ScaffoldArchiveUnavailableError,
+  type ScaffoldArchivePort,
 } from '../src/client/hostArchive.ts'
 
 const FILES: Record<string, string> = {
@@ -26,16 +26,16 @@ function base64(text: string): string {
 }
 
 /** In-memory host bridge over {@link FILES}. */
-function port(overrides: Partial<TemplateArchivePort> = {}): TemplateArchivePort & {
+function port(overrides: Partial<ScaffoldArchivePort> = {}): ScaffoldArchivePort & {
   readonly batches: string[][]
 } {
   const batches: string[][] = []
-  const base: TemplateArchivePort = {
-    listTemplateFiles: async () => ({
+  const base: ScaffoldArchivePort = {
+    listScaffoldFiles: async () => ({
       files: Object.entries(FILES).map(([path, content]) => ({ path, size: content.length })),
       truncated: false,
     }),
-    readTemplateFiles: async (_directory, paths) => {
+    readScaffoldFiles: async (_directory, paths) => {
       batches.push([...paths])
       return paths.map(path => ({
         path,
@@ -54,7 +54,7 @@ describe('isSensitiveSourcePath', () => {
     expect(isSensitiveSourcePath('config/app.local.toml')).toBe(true)
     expect(isSensitiveSourcePath('config/.env.example')).toBe(false)
     expect(isSensitiveSourcePath('config/.env.sample')).toBe(false)
-    // A checked-in per-profile template is scaffold source, not a local secret.
+    // A checked-in per-profile scaffold is scaffold source, not a local secret.
     expect(isSensitiveSourcePath('config/.env.cloud.production')).toBe(false)
     expect(isSensitiveSourcePath('.npmrc')).toBe(true)
     expect(isSensitiveSourcePath('certs/server.pem')).toBe(true)
@@ -63,11 +63,11 @@ describe('isSensitiveSourcePath', () => {
   })
 })
 
-describe('packTemplateApp', () => {
+describe('packScaffoldApp', () => {
   it('packs the included files through bounded batches and drops sensitive carriers', async () => {
     const p = port()
     const progress: number[] = []
-    const pack = await packTemplateApp(p, '/proj/apps/demo', 1024 * 1024, {
+    const pack = await packScaffoldApp(p, '/proj/apps/demo', 1024 * 1024, {
       onReadProgress: (event) => { progress.push(event.read) },
     })
     expect(pack.archive.type).toBe('application/zip')
@@ -91,29 +91,29 @@ describe('packTemplateApp', () => {
   })
 
   it('rejects a listing the host cut at its bound', async () => {
-    const p = port({ listTemplateFiles: async () => ({ files: [], truncated: true }) })
-    await expect(packTemplateApp(p, '/proj/apps/demo', 1024)).rejects.toBeInstanceOf(TemplateArchiveTruncatedError)
+    const p = port({ listScaffoldFiles: async () => ({ files: [], truncated: true }) })
+    await expect(packScaffoldApp(p, '/proj/apps/demo', 1024)).rejects.toBeInstanceOf(ScaffoldArchiveTruncatedError)
   })
 
   it('rejects an unavailable host bridge', async () => {
-    const p = port({ listTemplateFiles: async () => undefined })
-    await expect(packTemplateApp(p, '/proj/apps/demo', 1024)).rejects.toBeInstanceOf(TemplateArchiveUnavailableError)
+    const p = port({ listScaffoldFiles: async () => undefined })
+    await expect(packScaffoldApp(p, '/proj/apps/demo', 1024)).rejects.toBeInstanceOf(ScaffoldArchiveUnavailableError)
   })
 
   it('rejects an app with no eligible files', async () => {
     const p = port({
-      listTemplateFiles: async () => ({ files: [{ path: '.env', size: 3 }], truncated: false }),
+      listScaffoldFiles: async () => ({ files: [{ path: '.env', size: 3 }], truncated: false }),
     })
-    await expect(packTemplateApp(p, '/proj/apps/demo', 1024)).rejects.toThrow('no packaging-eligible files')
+    await expect(packScaffoldApp(p, '/proj/apps/demo', 1024)).rejects.toThrow('no packaging-eligible files')
   })
 
   it('rejects a failed batch read', async () => {
-    const p = port({ readTemplateFiles: async () => undefined })
-    await expect(packTemplateApp(p, '/proj/apps/demo', 1024)).rejects.toBeInstanceOf(TemplateArchiveUnavailableError)
+    const p = port({ readScaffoldFiles: async () => undefined })
+    await expect(packScaffoldApp(p, '/proj/apps/demo', 1024)).rejects.toBeInstanceOf(ScaffoldArchiveUnavailableError)
   })
 
   it('rejects an over-cap pack', async () => {
     const p = port()
-    await expect(packTemplateApp(p, '/proj/apps/demo', 10)).rejects.toThrow('exceed')
+    await expect(packScaffoldApp(p, '/proj/apps/demo', 10)).rejects.toThrow('exceed')
   })
 })

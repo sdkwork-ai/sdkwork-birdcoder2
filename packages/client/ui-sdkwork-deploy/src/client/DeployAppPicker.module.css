@@ -103,7 +103,7 @@
 
 .appList {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  grid-scaffold-columns: repeat(auto-fill, minmax(380px, 1fr));
   grid-auto-rows: 132px;
   gap: 8px;
   margin: 0;
@@ -113,8 +113,8 @@
 
 .appRow {
   display: grid;
-  grid-template-columns: 18px 34px minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-scaffold-columns: 18px 34px minmax(0, 1fr);
+  grid-scaffold-rows: minmax(0, 1fr) auto;
   align-items: start;
   gap: 7px 9px;
   width: 100%;
@@ -143,8 +143,8 @@
 }
 
 .appAdd {
-  grid-template-columns: 1fr;
-  grid-template-rows: 1fr;
+  grid-scaffold-columns: 1fr;
+  grid-scaffold-rows: 1fr;
   place-items: center;
   border-style: dashed;
   background: var(--pda-field, #f6f8fb);
@@ -280,7 +280,7 @@
 
 .typeStageGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-scaffold-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -357,7 +357,7 @@
 
 .customHead {
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) auto;
+  grid-scaffold-columns: 18px minmax(0, 1fr) auto;
   align-items: center;
   gap: 9px;
   padding: 10px 12px;
@@ -408,7 +408,7 @@
 
 .typeGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-scaffold-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
 }
 
@@ -613,7 +613,7 @@
   }
 
   .typeStageGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-scaffold-columns: repeat(2, minmax(0, 1fr));
   }
 
   .rootPath {
@@ -621,6 +621,6 @@
   }
 
   .typeGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-scaffold-columns: repeat(2, minmax(0, 1fr));
   }
 }

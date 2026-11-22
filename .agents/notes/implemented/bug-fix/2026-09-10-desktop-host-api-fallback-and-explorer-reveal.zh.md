@@ -6,7 +6,7 @@ Status: implemented
 
 ## 问题
 
-2026-09-10 的上游对齐（`chore 54561513cf`）用上游的 `apps/desktop` 与其新建的 `apps/desktop-host` 取代了 fork 自己的宿主，两个桌面手势因此失效。
+2026-09-10 的上游对齐（that upstream alignment）用上游的 `apps/desktop` 与其新建的 `apps/desktop-host` 取代了 fork 自己的宿主，两个桌面手势因此失效。
 
 工作区行菜单的「打开文件夹」报 `POST dsh-app://app/api/host.openPath 404 (Not Found)`。对齐之前，`apps/desktop/src/host.ts` 以程序方式挂载 fork 的网关——`DESKTOP_APIPROXY_PATCH = { insert: [{ id: 'api-gateway', name: '@deepseek-ai/dsh-host-apiproxy' }] }`，与 `@deepseek-ai/dsh-sdkwork-desktop-app` overlay bundle 并列，由后者的 patch 承载 `sdkwork-api-gateway` 行。合并后的宿主组合是 `dsh-base` + `dsh-web-app` profile 加一个 launcher overlay `apps/desktop-host/config/desktop.cordis.patch.yml`，而该文件——至今仍与上游逐字相同——两行都没有。`apps/desktop-host/package.json` 保留了 `sdkwork-api-gateway` 依赖，因此没有任何检查失败：渲染进程同源的 `POST /api/host.openPath` 抵达 Connection，而 Connection 的 `/api` 分发只在 `ctx.sdkworkApiFallback` 存在时才回退；该服务缺位时，请求终结于 Connection 自己的 `not found` 分支。同一个 404 也覆盖 `host.openTerminal`、工作区头部背后的 `host.describe`，以及 apiproxy 名册的其余方法。该 overlay 现在是回退唯一可能的挂载点：仓库中没有任何 bundle patch 挂载 `@deepseek-ai/dsh-host-apiproxy`，因为 fork 的桌面宿主曾是唯一挂载处，而合并后的运行时加载的正是这个文件。
 
@@ -44,4 +44,4 @@ fork 有意不恢复被上游壳取代的那些本地行。`app://` 载体位于
 
 桌面端的 `/api` 名册恢复应答，而产生本报告的那个失败模式——fork 行被上游拥有的 overlay 静默丢弃、其依赖却留在原地——现在会先让用例失败，而不再抵达用户。overlay 的 insert 列表已被固定，因此重新加入被取代的 fork 行同样会失败，而不会让壳重复渲染。
 
-`POST /api/host.openPath` 现在在任何 Host 平台都能抵达操作系统打开器，定位手势交给 Explorer 的是它文档化要求的单个 token。合并时的复核仍归属 [上游同步流程](../process/2026-08-21-upstream-sync-procedure.zh.md)，其 2026-09-10 的记录（[b2e3b2a012 同步](../process/2026-09-10-upstream-sync-b2e3b2a012.zh.md)）即本 note 修复的那次对齐；打包与更新行为仍如 [Electron 桌面打包说明](../architecture/2026-08-25-electron-desktop-packaging-and-updates.zh.md) 所述，图标与托盘决策见 [桌面应用图标 note](2026-09-10-desktop-app-icon-merge-stability.zh.md)。
+`POST /api/host.openPath` 现在在任何 Host 平台都能抵达操作系统打开器，定位手势交给 Explorer 的是它文档化要求的单个 token。合并时的复核仍归属 [上游同步流程](../process/2026-08-21-upstream-sync-procedure.zh.md)，其 2026-09-10 的记录（[2026-09-10 同步](../process/2026-09-10-upstream-sync-rightbar-frame-convergence.zh.md)）即本 note 修复的那次对齐；打包与更新行为仍如 [Electron 桌面打包说明](../architecture/2026-08-25-electron-desktop-packaging-and-updates.zh.md) 所述，图标与托盘决策见 [桌面应用图标 note](2026-09-10-desktop-app-icon-merge-stability.zh.md)。

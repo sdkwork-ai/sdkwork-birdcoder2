@@ -2,7 +2,7 @@
 
 Route assembly, navigation shell, auth gate wiring.
 
-- Surface: `[object Object]`
+- Surface: `flutter-mobile`
 - Layer role: `shell`
 - Standard: `MODULE_SPEC.md`, `FLUTTER_APP_MOBILE_ARCHITECTURE_SPEC.md`
 

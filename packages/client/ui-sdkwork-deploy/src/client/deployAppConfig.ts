@@ -1,7 +1,7 @@
 /**
  * Deploy linkage persistence standard (`agent.app.config.json`).
  *
- * The deploy plugin records the deploy_app / deploy_app_template identities it
+ * The deploy plugin records the deploy_app / deploy_app_scaffold identities it
  * created (or associated) into the governed per-project app manifest, so
  * repeat runs relate by ID instead of creating duplicates.
  *
@@ -16,7 +16,7 @@
  * canonical block and removes it.
  *
  * Fork-owned display/provenance detail (app name and slug, source directory,
- * and the published template identity) rides beside the canonical map as
+ * and the published scaffold identity) rides beside the canonical map as
  * `metadata.publishing.birdcoder`. `metadata` is free-form in the standard and
  * the console's publisher merges the single target key while preserving other
  * metadata subtrees, so the two blocks coexist.
@@ -84,15 +84,15 @@ export interface DeployAppConfigLink {
   appSlug?: string
   /** The manifest's own `app.key`, recorded with the linkage for cross-reference. */
   appKey?: string
-  /** `deploy_app_template.uuid` —present once the app was published as a template. */
+  /** `deploy_app_scaffold.uuid` —present once the app was published as a scaffold. */
   templateId?: string
   templateKey?: string
   templateName?: string
-  /** Semantic version of the template version this app root last published. */
+  /** Semantic version of the scaffold version this app root last published. */
   templateVersion?: string
   /**
-   * The git repository bound as the template's source at publish time
-   * (`update-source` binding), with the project subdirectory the template
+   * The git repository bound as the scaffold's source at publish time
+   * (`update-source` binding), with the project subdirectory the scaffold
    * packages. Recorded locally so the packaging spec travels with the
    * project; the server-side binding carries the URL and branch only.
    */

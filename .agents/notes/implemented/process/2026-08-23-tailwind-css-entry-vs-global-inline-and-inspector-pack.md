@@ -23,3 +23,7 @@ Other packages' Tailwind entries live in sibling checkouts and never passed thro
 ## Testing
 
 `packaged-boot-probe` passes for both relative-path and git-dependency packages; the packaged exe with `--inspect` listens on 9229 and answers `GET /json/list` with a `node.js instance`.
+
+## Alternatives considered
+
+**Leave the current behavior in place.** Rejected: the Problem records the concrete failure that behavior produced.

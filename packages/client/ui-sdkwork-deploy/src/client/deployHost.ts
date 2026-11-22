@@ -6,7 +6,7 @@
  * this adapter re-derives from the IAM session and the env access token on
  * every read — deliberately not the browser-global instance, which other
  * SDKWork surfaces have historically cleared under it (an embed's signed-out
- * hydration); a private manager keeps publish and template flows immune to
+ * hydration); a private manager keeps publish and scaffold flows immune to
  * whatever any other surface does to the shared one.
  */
 import {
@@ -107,11 +107,11 @@ export interface DeployHostWorkspace {
    */
   writeTextFile?(path: string, content: string): Promise<string>
   /**
-   * Write one bounded template file under a caller-picked directory
+   * Write one bounded scaffold file under a caller-picked directory
    * (confinement-checked on the host; parents created). Optional: absent
-   * keeps use-template installs off while publish stays available.
+   * keeps use-scaffold installs off while publish stays available.
    */
-  writeTemplateFile?(request: {
+  writeScaffoldFile?(request: {
     targetDirectory: string
     relativePath: string
     contentBase64: string
@@ -121,15 +121,15 @@ export interface DeployHostWorkspace {
    * symlink-free). Optional: absent keeps publishing from a project folder
    * off while the browser archive picker stays available.
    */
-  listTemplateFiles?(directory: string): Promise<{
+  listScaffoldFiles?(directory: string): Promise<{
     files: readonly { readonly path: string; readonly size: number }[]
     truncated: boolean
   }>
   /**
    * Read one bounded batch of app files (base64 on the wire). Optional:
-   * paired with {@link listTemplateFiles}.
+   * paired with {@link listScaffoldFiles}.
    */
-  readTemplateFiles?(directory: string, paths: readonly string[]): Promise<readonly {
+  readScaffoldFiles?(directory: string, paths: readonly string[]): Promise<readonly {
     readonly path: string
     readonly contentBase64: string
     readonly bytes: number
@@ -388,36 +388,36 @@ export class DeployHost {
   }
 
   /**
-   * List one app root's packaging files through the host template bridge.
+   * List one app root's packaging files through the host scaffold bridge.
    * Degrades to undefined without the bridge or on any failure; the caller
    * falls back to a browser-picked archive instead of publishing a guess.
    */
-  async listTemplateFiles(directory: string): Promise<{
+  async listScaffoldFiles(directory: string): Promise<{
     files: readonly { readonly path: string; readonly size: number }[]
     truncated: boolean
   } | undefined> {
     const workspace = this.options.workspace
-    if (workspace?.listTemplateFiles === undefined) return undefined
+    if (workspace?.listScaffoldFiles === undefined) return undefined
     try {
-      return await workspace.listTemplateFiles(directory)
+      return await workspace.listScaffoldFiles(directory)
     } catch {
       return undefined
     }
   }
 
   /**
-   * Read one bounded batch of app files through the host template bridge.
+   * Read one bounded batch of app files through the host scaffold bridge.
    * Degrades to undefined without the bridge or on any failure.
    */
-  async readTemplateFiles(directory: string, paths: readonly string[]): Promise<readonly {
+  async readScaffoldFiles(directory: string, paths: readonly string[]): Promise<readonly {
     readonly path: string
     readonly contentBase64: string
     readonly bytes: number
   }[] | undefined> {
     const workspace = this.options.workspace
-    if (workspace?.readTemplateFiles === undefined) return undefined
+    if (workspace?.readScaffoldFiles === undefined) return undefined
     try {
-      return await workspace.readTemplateFiles(directory, paths)
+      return await workspace.readScaffoldFiles(directory, paths)
     } catch {
       return undefined
     }
@@ -469,19 +469,19 @@ export class DeployHost {
   }
 
   /**
-   * Write one bounded template file under a caller-picked directory through
+   * Write one bounded scaffold file under a caller-picked directory through
    * the host install bridge.
    * @throws when the bridge is absent or the host refuses the write; the
    *   installer surfaces that failure to the caller.
    */
-  async writeTemplateFile(request: {
+  async writeScaffoldFile(request: {
     targetDirectory: string
     relativePath: string
     contentBase64: string
   }): Promise<{ absolutePath: string; bytes: number }> {
-    const write = this.options.workspace?.writeTemplateFile
+    const write = this.options.workspace?.writeScaffoldFile
     if (write === undefined) {
-      throw new Error('template install is unavailable: the host composition has no template-install bridge')
+      throw new Error('scaffold install is unavailable: the host composition has no scaffold-install bridge')
     }
     return write(request)
   }

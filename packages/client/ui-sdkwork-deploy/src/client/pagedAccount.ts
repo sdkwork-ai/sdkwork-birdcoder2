@@ -2,7 +2,7 @@
  * The paged account-listing walk both settings-menu ledgers use.
  *
  * The deployments app API pages every account-scoped listing (the caller's
- * `deploy_app` rows and the caller's template listings) the same way: a
+ * `deploy_app` rows and the caller's scaffold listings) the same way: a
  * 1-based page parameter, a `pageInfo.hasMore` hint, and a per-request row cap.
  * Keeping the walk here means the two inventories cannot drift on termination,
  * truncation reporting, or the request-storm ceiling.

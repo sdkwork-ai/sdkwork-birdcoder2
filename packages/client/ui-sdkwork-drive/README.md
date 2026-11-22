@@ -28,6 +28,10 @@ The plugin requires `ctx.env`, `ctx.iam`, and `ctx.locale`. It configures its SD
 
 The client plugin emits one `client.js` closure because the BirdCoder client-module loader does not publish arbitrary sibling chunks. Its bundle face compiles the SDKWork Tailwind stylesheet and injects SDKWork CSS once. The embedded Drive page loads the Monaco editor from its CDN only when a text file preview opens, so the closure stays lean. Declaration emit skips strict checking of the sibling SDKWork implementation; `tsconfig.tests.json` checks the consumed source closure with a single React type identity.
 
+## Runtime invariants
+
+No runtime invariant companion is published; the mode state lives in the layout store declared action set, and the entry/page registrations follow the rail shell keyed dispatch; store/mode agreement is covered directly by this package client behavior specs.
+
 ## Model Experience
 
 None, as the plugin renders a human-facing browser application and does not add prompt content, tools, or session events.
@@ -50,7 +54,3 @@ None; SDKWork HTTP requests are separate browser traffic and do not alter Harnes
 The SDKWork Drive PC runtime ports are process-global: one browser window hosts one Drive surface, and reconfiguration disposes the previous adapter. Local installs need the `../sdkwork-drive` sibling checkout, and the single `client.js` closure exists because the BirdCoder client-module loader does not publish sibling chunks — Monaco stays out of it by loading from its CDN only when a text-file preview opens.
 
 </details>
-
-## Runtime invariants
-
-No runtime invariant companion is published; the mode state lives in the layout store declared action set, and the entry/page registrations follow the rail shell keyed dispatch; store/mode agreement is covered directly by this package client behavior specs.

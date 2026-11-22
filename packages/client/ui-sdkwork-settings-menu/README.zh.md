@@ -9,6 +9,21 @@ kind: "package-reference"
 
 ## 概述
 
+模式栏设置齿轮上的设置菜单，以及它拥有的设置弹窗外壳。菜单在同一个 loader id 背后替换上游「通用」行的实现，重新声明上游全部设置席位，使各功能的分区、行与 onboarding 步骤无需改动即可挂载，并在固定的退出登录页脚周围显示账户、钱包与功能行。设置弹窗提供基于 `settings.section` 账本的分区导航、通用设置分区与 onboarding 协调器。
+
+## 目录
+
+- [Model Experience](#model-experience)
+- [已知限制与后续工作](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；设置界面直接读取权威的 settings 服务分节，每个开关都通过所属能力自己校验的服务面写回；作用域一致性直接由本包的客户端行为规格测试覆盖。
+
+设置弹窗的可见性、当前分区与定位目标存放在 `mode.rail.settings` 的 store 中，因此轨道之外的表面对话打开的正是外壳渲染的同一个弹窗：`ctx.settingsMenu.openSection(id, { focusProvider })` 显示某个已注册分区，并把要定位的提供方行交给它；外壳在普通导航与关闭时清除该目标。悬浮菜单自身的打开状态仍为组件本地状态。
+
+## 理解实现
 
 模式栏设置齿轮上的设置菜单，以及它拥有的设置弹窗外壳。插件占据上游 `ui-settings-general` 曾占用的 `mode.rail.settings` 席位；web bundle patch 保留该上游行的 `id`——profile 承载的设置命名空间*就是*生效的 loader 行 id——只把它背后的实现包换成本包，因此上游外壳不会装载（其源码一行不动，上游更新不会与本表面冲突），同时本包重新声明的每个命名空间仍然可寻址；本包重新声明全部设置席位——`settings.trigger/header/action/close/section/onboarding/general.item`、根作用域的账号卡席位 `settings.menu.account`、账号钱包席位 `settings.menu.plan`、账号钱包卡「购买积分」打开的算力积分购买弹窗席位 `settings.pointsRecharge`，以及六个根作用域功能弹窗席位 `settings.apiKeys`、`settings.officialAccounts`、`settings.miniPrograms`、`settings.dns`、`settings.certificates` 与 `settings.myDeployments`——各功能的分区、行与 onboarding 步骤无需改动即可挂载。
 
@@ -18,20 +33,15 @@ kind: "package-reference"
 
 设置弹窗是本包自己的外壳：基于 `settings.section` 账本的分区导航、基于 `settings.general.item` 的通用设置分区、loopback 的打开配置文件动作、基于 `settings.onboarding` 的 onboarding 协调器。导航以 `通用` 开头（本包的通用分区，order `-200`），其后是 `ui-sdkwork-profile` 以 order `-190` 贡献的「个人主页」分区，因此部署偏好与账号页领衔导航。Token Plan 插件通过同一账本贡献「套餐与积分」分区，账号套餐与积分流水因此与其他设置页并列，外壳无需改动。欢迎通知确认是 host 半部自己 Config 的 volatile 字段，而 loader entry 的 id 就是设置命名空间——因此本包占据上游 `ui-settings-general` 行，该字段正落在欢迎步骤读取方所解析的那个命名空间里，已持久化的确认在切换后依然有效。
 
-## 目录
-
-- [Model Experience](#model-experience)
-- [已知限制与后续工作](#known-limitations-and-deferred-work)
-- [开发备注](#dev-note)
-
 ## Model Experience
 
-无，本包是纯人工设置界面与导航。外观子菜单调用 `ctx.theme.setTheme`，偏好经设置传输持久化，不触碰模型请求；账户 provider 默认匿名。
+无，因为本包是纯人工设置界面与导航，其主题与账户 provider 都不触碰模型请求。
 
 #### KV Cache effect
 
 无；本包从不组装或发送 provider 请求。
 
+<a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与后续工作
 
 - **匿名账户默认**——在真实账户 provider 替换 `ctx.account` 之前，不显示账户身份头部（头部与登录/注册行互斥），会员/积分隐藏，退出登录禁用。
@@ -42,6 +52,7 @@ kind: "package-reference"
 - **角色行由 provider 门控**——只有 persona seam 报告 `available`（ui-sdkwork-persona 插件且其设置分区已提供并可写）时才渲染该行；行文字携带该 seam 的本地化角色名，因此本包不拥有任何角色词汇。
 - **检查更新仅桌面端**——该行仅在 `window.desktopBridge.updates` 存在时渲染；web 组合隐藏。
 
+<a id="dev-note"></a>
 ### 开发备注
 
 <details>
@@ -50,9 +61,3 @@ kind: "package-reference"
 本包重新声明全部设置席位（`settings.trigger/header/action/close/section/onboarding/general.item`），各功能的分区因此无需改动即可挂载；新增席位必须沿用上游的词汇，否则既有消费方将不再挂载。`ctx.account`、`ctx.feedback` 与 `ctx.persona` 随附匿名态与不可用态实现，接口保持稳定——消费方必须同时应对两种状态，而不是假定真实后端存在；host 半部以被替换外壳的 id 注册 `ui-onboarding`，使已持久化的确认在切换后依然有效。
 
 </details>
-
-## 运行时不变量
-
-不发布运行时不变量伴随检查；设置界面直接读取权威的 settings 服务分节，每个开关都通过所属能力自己校验的服务面写回；作用域一致性直接由本包的客户端行为规格测试覆盖。
-
-设置弹窗的可见性、当前分区与定位目标存放在 `mode.rail.settings` 的 store 中，因此轨道之外的表面对话打开的正是外壳渲染的同一个弹窗：`ctx.settingsMenu.openSection(id, { focusProvider })` 显示某个已注册分区，并把要定位的提供方行交给它；外壳在普通导航与关闭时清除该目标。悬浮菜单自身的打开状态仍为组件本地状态。

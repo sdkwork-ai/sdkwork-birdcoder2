@@ -37,6 +37,10 @@ The service reads the environment and IAM state on every call, so a re-authentic
 
 The client plugin emits one `client.js` closure because the BirdCoder client-module loader does not publish arbitrary sibling chunks. Its bundle face compiles the SDKWork Tailwind stylesheet, injects SDKWork CSS once, provides the PDF.js worker as a Blob URL, and resolves router and i18n context packages to one physical instance. Declaration emit skips strict checking of the sibling SDKWork implementation; `tsconfig.tests.json` checks the consumed source closure with a single React type identity.
 
+## Runtime invariants
+
+No runtime invariant companion is published; the mode state lives in the layout store declared action set, and the entry/page registrations follow the rail shell keyed dispatch; store/mode agreement is covered directly by this package client behavior specs.
+
 ## Model Experience
 
 None, as the plugin renders a human-facing browser application and its catalog only returns knowledge bases and passages to browser callers, whose own draft text is what a user may send.
@@ -59,7 +63,3 @@ None; SDKWork HTTP requests are separate browser traffic and do not alter Harnes
 The bundle face provides the PDF.js worker as a Blob URL and resolves router and i18n context packages to one physical instance — duplicating those packages reintroduces subtle mount bugs. Local installs need the `../sdkwork-knowledgebase` sibling checkout, and the single `client.js` closure exists because the BirdCoder client-module loader does not publish sibling chunks.
 
 </details>
-
-## Runtime invariants
-
-No runtime invariant companion is published; the mode state lives in the layout store declared action set, and the entry/page registrations follow the rail shell keyed dispatch; store/mode agreement is covered directly by this package client behavior specs.

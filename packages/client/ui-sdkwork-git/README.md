@@ -9,14 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This plugin adds a git branch pill to the conversation session header. The pill shows the current session project's checked-out branch (a branch name, or the short commit hash on detached HEAD) and opens a popover when clicked:
-
-1. Branch list: every local branch, the current one first with a check mark and, when the tree is dirty, an "uncommitted changes: N files" line.
-2. Search field filtering the list as you type.
-3. "Create and check out a new branch", which opens a centered form modal (name field, HEAD-only hint, cancel/confirm; git's ref-format check validates the name host-side).
-4. "Git graph", which opens a centered screen-adaptive modal (70% of the viewport width and height): a sticky 图/描述/日期/作者/提交 column strip, an SVG lane graph computed from the commit topology, ref badges (HEAD, local branches, remote-tracking refs, tags), and a refresh button.
-
-Checking out a branch switches the host repository immediately and the pill refreshes from a fresh status read. All repository facts travel the `sdkworkGit` Typert Remote, served by `@deepseek-ai/dsh-sdkwork-git` (the host git capability over simple-git). The pill renders nothing when the session has no project directory or the host rejects git reads, so compositions without a repository keep the header unchanged.
+This plugin adds a git branch pill to the conversation session header. The pill shows the current session project's checked-out branch (a branch name, or the short commit hash on detached HEAD) and opens a popover when clicked.
 
 ## Table of Contents
 
@@ -46,6 +39,15 @@ Mount the plugin as part of the web-app bundle together with its host capability
 - `src/client/locales.ts` — the plugin-owned `sdkworkGit` namespace (zh source of truth, en key-identical).
 
 The plugin owns presentation only; every mutation is a user-initiated checkout through the host capability.
+
+The popover contains:
+
+1. Branch list: every local branch, the current one first with a check mark and, when the tree is dirty, an "uncommitted changes: N files" line.
+2. Search field filtering the list as you type.
+3. "Create and check out a new branch", which opens a centered form modal (name field, HEAD-only hint, cancel/confirm; git's ref-format check validates the name host-side).
+4. "Git graph", which opens a centered screen-adaptive modal (70% of the viewport width and height): a sticky 图/描述/日期/作者/提交 column strip, an SVG lane graph computed from the commit topology, ref badges (HEAD, local branches, remote-tracking refs, tags), and a refresh button.
+
+Checking out a branch switches the host repository immediately and the pill refreshes from a fresh status read. All repository facts travel the `sdkworkGit` Typert Remote, served by `@deepseek-ai/dsh-sdkwork-git` (the host git capability over simple-git). The pill renders nothing when the session has no project directory or the host rejects git reads, so compositions without a repository keep the header unchanged.
 
 <a id="known-limitations-and-deferred-work"></a>
 

@@ -33,8 +33,7 @@ bin/config.sh set --environment staging --key <KEY> --value '<real-value>'
 bin/docker-deploy.sh status --environment staging
 ```
 
-- A mismatch between the reported image and the release ledger is a drift
-  alert: `bin/docker-deploy.sh rollback --environment staging --to <ledger-version>`.
+- A mismatch between the reported image and the release ledger is a drift alert: `bin/docker-deploy.sh rollback --environment staging --to <ledger-version>`.
 
 ## 6. Wiring prerequisites (implementation checklist)
 

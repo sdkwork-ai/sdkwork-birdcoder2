@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Remote wire face for one-click app packaging. The controller extends `TypertRemoteService` with the namespace `sdkworkAppBuild` and exposes three verbs: `start` (zod-validated absolute cwd, optional script name, optional safe-charset arguments) returning the spawn facts, `follow` as a `mode: 'stream'` verb yielding the build's frame stream (`started`, `output`, `exit`) until the exit frame or client abort, and `cancel` requesting the tree kill. Capability errors map to a closed registry of wire codes — `app-build/cwd-unreadable`, `app-build/no-package-json`, `app-build/script-missing`, `app-build/build-unknown`, `app-build/concurrency-exceeded`, `app-build/command-unrunnable` — registered by module augmentation of `RemoteErrorDetailsMap` in this package's `types.ts`. The wire vocabulary (frames, requests, values) is declared locally rather than re-exported from the seam package, because the typert generator cannot resolve cross-package type-alias unions. The build execution itself lives entirely in [`dsh-sdkwork-app-build`](../../host/sdkwork-app-build/README.md); this package adds validation, error mapping, and the typert face, and the [`api-remotes`](../../api/remotes/README.md) assembly mounts the generated client contribution.
+Remote wire face for one-click app packaging: the controller extends `TypertRemoteService` with the `sdkworkAppBuild` namespace and exposes `start` (zod-validated cwd, optional script and safe-charset arguments) returning the spawn facts, `follow` streaming the build's `started`/`output`/`exit` frames until exit or client abort, and `cancel` requesting the tree kill. Capability failures map onto a closed `app-build/*` wire-code registry. Execution lives in `dsh-sdkwork-app-build`; this package adds validation, error mapping, and the typert face.
 
 ## Table of Contents
 
@@ -32,22 +32,13 @@ Clients consume the generated namespace through the remotes assembly (`ctx.remot
 
 Validation is zod-first: the cwd must be absolute, the script name matches a strict identifier pattern with a length cap, and arguments are capped in count and length with a safe charset — the controller rejects malformed requests before the seam sees them. `buildFailure` maps `SdkworkAppBuildError` codes onto the wire registry through a `satisfies Record` table; any other failure falls through to `gateway/internal` so unexpected errors never leak their shapes.
 
+The wire vocabulary (frames, requests, values) is declared locally rather than re-exported from the seam package, because the typert generator cannot resolve cross-package type-alias unions. Capability errors map to a closed registry of wire codes — `app-build/cwd-unreadable`, `app-build/no-package-json`, `app-build/script-missing`, `app-build/build-unknown`, `app-build/concurrency-exceeded`, `app-build/command-unrunnable` — registered by module augmentation of `RemoteErrorDetailsMap` in this package's `types.ts`. The `api-remotes` assembly mounts the generated client contribution.
+
 <a id="further-exploration"></a>
 ## Further Exploration
 
 - [`types.ts`](./src/types.ts) — local wire vocabulary plus the `RemoteErrorDetailsMap` augmentation for the `app-build/*` codes.
 - [`../../host/sdkwork-app-build/README.md`](../../host/sdkwork-app-build/README.md) — the execution seam this face projects.
-
-<a id="model-experience"></a>
-## Model Experience
-
-Error codes are stable and specific, so an agent can distinguish "wrong directory" from "missing build script" from "too many builds" and tell the user exactly what to fix without parsing messages.
-
-<a id="known-limitations-and-deferred-work"></a>
-## Known Limitations and Deferred Work
-
-- The registry is closed: adding a new failure code means editing the `RemoteErrorDetailsMap` augmentation here and the mapping table together.
-- No verb for listing finished builds; clients must hold the build id from `start`.
 
 <a id="dev-note"></a>
 ## Dev Note
@@ -57,3 +48,17 @@ This is a fork package (`sdkwork` marker) following the repository naming contra
 ## Runtime invariants
 
 No runtime invariant companion is published; the controller orchestrates app build jobs whose ordering and settlement are owned by the app-build service; the controller adds no independently observable state.
+
+<a id="model-experience"></a>
+## Model Experience
+
+None, as the controller only validates requests, maps error codes, and streams build frames to its wire caller; the build execution and its output belong to the app-build capability.
+
+#### KV Cache effect
+
+None; this package neither assembles nor sends a provider request.
+
+## Known Limitations and Deferred Work
+
+- The registry is closed: adding a new failure code means editing the `RemoteErrorDetailsMap` augmentation here and the mapping table together.
+- No verb for listing finished builds; clients must hold the build id from `start`.

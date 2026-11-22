@@ -12,7 +12,7 @@ Authority: `APP_CLIENT_ARCHITECTURE_ALIGNMENT_SPEC.md` §2, `APP_PC_ARCHITECTURE
 | `@sdkwork/birdcoder2-pc-shell` | App route assembly, layout, navigation, AuthGate wiring, workspace entry, keyboard and pointer workflows. | `shell` |
 | `@sdkwork/birdcoder2-pc-console-shell` | User-facing management console navigation, route assembly, console permission hints. | `shell` |
 | `@sdkwork/birdcoder2-pc-admin-core` | Backend-admin boundary: backend SDK and appbase backend SDK wrappers, staff route guards, audit-sensitive layout. | `runtime` |
-| `@sdkwork/birdcoder2-pc-desktop` | Tauri/Electron native host: window/tray, deep links, clipboard, file dialogs, updater, local service lifecycle, tablet packaging. | `host` |
+| `@sdkwork/birdcoder2-pc-tauri` | Tauri/Electron native host: window/tray, deep links, clipboard, file dialogs, updater, local service lifecycle, tablet packaging. | `host` |
 
 ## Rules
 
@@ -27,6 +27,8 @@ Authority: `APP_CLIENT_ARCHITECTURE_ALIGNMENT_SPEC.md` §2, `APP_PC_ARCHITECTURE
 
 ## Wiring status
 
-The family is scaffolded only: no package is registered as a workspace member yet, so no
-package is built or linked. Registering the members is the next step before the first
-capability package lands.
+Every package in this family is a registered workspace member
+(`apps/sdkwork-birdcoder2-pc/packages/*` in `pnpm-workspace.yaml`), so each one is linked and
+type-checked by the repository. The PC renderer entry (`apps/sdkwork-birdcoder2-pc/src/`) is
+implemented as a minimal composition root; the packages still expose scaffold boundary contracts,
+and capability packages plus the native desktop host land as those capabilities arrive.

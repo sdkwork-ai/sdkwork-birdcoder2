@@ -19,3 +19,7 @@ The Client pass leaves host-only packages without local configs out of entry res
 ## Testing
 
 `pnpm exec vitest run scripts/tsdown-build-face.spec.ts`
+
+## Alternatives considered
+
+**Leave the current behavior in place.** Rejected: the Problem records the concrete failure that behavior produced.

@@ -9,29 +9,32 @@
   en: 105a253d55a38f82
   zh: ba15979a45876ea4
 /deepseek-ai-dsh-client-ui-sdkwork-search/summary:
-  en: 554c1d4816d3e018
-  zh: a78013ef4e53c66f
+  en: 332b15513072333c
+  zh: 89a1dc0eb4356912
 /deepseek-ai-dsh-client-ui-sdkwork-search/table-of-contents:
   en: 583ef61137ffb680
-  zh: 7f9e584f79daca5e
+  zh: a258ef4bb3dfaeb3
 /deepseek-ai-dsh-client-ui-sdkwork-search/runtime-requirements:
   en: 7d31f56d35fdcb91
-  zh: 2efa2b230bd9f2b9
+  zh: b9ec17dccbb14de1
 /deepseek-ai-dsh-client-ui-sdkwork-search/search-pipeline:
   en: 0695211d0092f9f1
   zh: 3648f200cb7c94de
-/deepseek-ai-dsh-client-ui-sdkwork-search/model-experience:
-  en: 7573462f32f764c0
-  zh: 097c403fc616b91f
-/deepseek-ai-dsh-client-ui-sdkwork-search/model-experience/kv-cache-effect:
-  en: f66880de68e71c63
-  zh: 5746236da0a7d2ab
-/deepseek-ai-dsh-client-ui-sdkwork-search/known-limitations-and-deferred-work:
-  en: 92a5d24da96557ac
-  zh: 9094859cd9d6e918
-/deepseek-ai-dsh-client-ui-sdkwork-search/known-limitations-and-deferred-work/dev-note:
-  en: 47aab3a05966d628
-  zh: 9bd264687ca3670f
 /deepseek-ai-dsh-client-ui-sdkwork-search/runtime-invariants:
   en: 2bf50fdd406c58b0
   zh: cab97e839080a1b4
+/deepseek-ai-dsh-client-ui-sdkwork-search/understand-the-implementation:
+  en: 1b84f4cffc3060e5
+  zh: c525b4d465eb0217
+/deepseek-ai-dsh-client-ui-sdkwork-search/model-experience:
+  en: 7573462f32f764c0
+  zh: 03432a359dd99201
+/deepseek-ai-dsh-client-ui-sdkwork-search/model-experience/kv-cache-effect:
+  en: f66880de68e71c63
+  zh: e1fecadbd0b08701
+/deepseek-ai-dsh-client-ui-sdkwork-search/known-limitations-and-deferred-work:
+  en: 92a5d24da96557ac
+  zh: edf9e049fcabc130
+/deepseek-ai-dsh-client-ui-sdkwork-search/known-limitations-and-deferred-work/dev-note:
+  en: 47aab3a05966d628
+  zh: 9bd264687ca3670f

@@ -26,7 +26,7 @@
 若用户已提供完整参考材料（长文本、`.docx`、`.pdf` 等），本步可跳过或降级为只查陌生概念。
 
 ### Step2：需求对齐
-按 [human-alignment.md](references/human-alignment.md) 执行。要点：
+按 [human-alignment.md](human-alignment.md) 执行。要点：
 - 能推断就推断，文字提问 ≤ 3 个
 - 风格预览卡按需触发（详见 human-alignment.md §2.3 的跳过条件）
 - 无论预览卡是否触发，进入 Step3 前必须确保风格参数已确定（用户选定或 AI 推导）
@@ -49,9 +49,9 @@
 
 | 风格 | 核心调性 | 适用场景 |
 | :--- | :--- | :--- |
-| [学术风](references/designs/design-principle.academic.md) | 可信、证据驱动、蓝白克制 | 高校答辩、科研结题、教学课件（理工医）、学术会议、学科评估、临床/医学汇报、课题开题、实验室组会、科研申报 |
-| [商务咨询](references/designs/design-principle.consulting.md) | 权威、数据密集、结构化分析 | 战略/行业研究、高管 review/董事会、投行/IPO 路演、咨询交付物、企业转型/组织变革、私募/风投/行研、尽职调查 |
-| [红金政务风](references/designs/design-principle.redgold.md) | 庄重、红金热烈、中文优先 | 党政机关汇报、政务/公共部门、国企央企汇报、党课/学习宣讲、周年庆典/红色文化、表彰大会、纪检巡察 |
+| [学术风](designs/design-principle.academic.md) | 可信、证据驱动、蓝白克制 | 高校答辩、科研结题、教学课件（理工医）、学术会议、学科评估、临床/医学汇报、课题开题、实验室组会、科研申报 |
+| [商务咨询](designs/design-principle.consulting.md) | 权威、数据密集、结构化分析 | 战略/行业研究、高管 review/董事会、投行/IPO 路演、咨询交付物、企业转型/组织变革、私募/风投/行研、尽职调查 |
+| [红金政务风](designs/design-principle.redgold.md) | 庄重、红金热烈、中文优先 | 党政机关汇报、政务/公共部门、国企央企汇报、党课/学习宣讲、周年庆典/红色文化、表彰大会、纪检巡察 |
 
 **第三步：做出判断**
 
@@ -74,7 +74,7 @@
 #### 匹配后的执行
 
 - **命中预设风格**：读取对应风格文件，结合用户实际需求设计PPT，**禁止额外生成DESIGN.md**，可以显式声明哪些颜色、字体等内容需要结合用户需求微调；
-- **不命中（默认路线）**：读取通用[设计原则](references/design-principle.md)，结合用户实际需求生成DESIGN.md；
+- **不命中（默认路线）**：读取通用[设计原则](design-principle.md)，结合用户实际需求生成DESIGN.md；
 
 
 ### Step5：创建 PPTX 文件并打开预览

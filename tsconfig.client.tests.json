@@ -259,7 +259,6 @@
     { "path": "./packages/client/ui-agent-preset" },
     { "path": "./packages/client/ui-permission-presets" },
     { "path": "./packages/client/ui-plan" },
-    { "path": "./packages/client/ui-settings-plugins" },
     { "path": "./packages/client/ui-settings-shell" },
     { "path": "./packages/client/ui-settings-agent-loop" },
     { "path": "./packages/experimental/cua/tsconfig.client.json" },

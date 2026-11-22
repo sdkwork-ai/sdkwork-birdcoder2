@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-09-10-upstream-sync-rightbar-frame-convergence.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-09-10-upstream-sync-rightbar-frame-convergence.md
+/agent-note-upstream-sync-2026-09-10-the-rightbar-frame-convergence:
+  en: 1ccc42704f32d018
+  zh: 8abe2bc762be02b6
+/agent-note-upstream-sync-2026-09-10-the-rightbar-frame-convergence/problem:
+  en: 4b2b022e0874ca6e
+  zh: d9657fcee621fe70
+/agent-note-upstream-sync-2026-09-10-the-rightbar-frame-convergence/decision:
+  en: 17f1eb6b72f04e83
+  zh: 1f903c347b3cb1da
+/agent-note-upstream-sync-2026-09-10-the-rightbar-frame-convergence/consequences:
+  en: 1109647db795c2c8
+  zh: 8a2a231c7cd084c3
+/agent-note-upstream-sync-2026-09-10-the-rightbar-frame-convergence/alternatives-considered:
+  en: 20231af1a4a9bab1
+  zh: ee9214f57456d248

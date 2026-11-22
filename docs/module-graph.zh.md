@@ -131,7 +131,7 @@ flowchart TD
     pkg_api_remotes["api-remotes"]
     pkg_api_sdkwork_app_build_controller["api-sdkwork-app-build-controller"]
     pkg_api_sdkwork_git_controller["api-sdkwork-git-controller"]
-    pkg_api_sdkwork_template_install_controller["api-sdkwork-template-install-controller"]
+    pkg_api_sdkwork_template_install_controller["api-sdkwork-scaffold-install-controller"]
     pkg_api_session_controller["api-session-controller"]
     pkg_api_settings_controller["api-settings-controller"]
     pkg_api_terminal_controller["api-terminal-controller"]
@@ -441,7 +441,7 @@ flowchart TD
     pkg_sdkwork_directory_picker_composed["sdkwork-directory-picker-composed"]
     pkg_sdkwork_git["sdkwork-git"]
     pkg_sdkwork_oem["sdkwork-oem"]
-    pkg_sdkwork_template_install["sdkwork-template-install"]
+    pkg_sdkwork_template_install["sdkwork-scaffold-install"]
   end
   subgraph group_identity["packages/identity"]
     pkg_anonymous_user_id["anonymous-user-id"]
@@ -1924,7 +1924,7 @@ flowchart TD
 | [`sdkwork-directory-picker-composed`](../packages/host/sdkwork-directory-picker-composed) | `host` | — |
 | [`sdkwork-git`](../packages/host/sdkwork-git) | `host` | — |
 | [`sdkwork-oem`](../packages/host/sdkwork-oem) | `host` | — |
-| [`sdkwork-template-install`](../packages/host/sdkwork-template-install) | `host` | — |
+| [`sdkwork-scaffold-install`](../packages/host/sdkwork-scaffold-install) | `host` | — |
 | [`mcp-account`](../packages/mcp/mcp-account) | `mcp` | — |
 | [`message-quotes`](../packages/session/message-quotes) | `session` | — |
 | [`session-format`](../packages/session/session-format) | `session` | — |
@@ -1962,7 +1962,7 @@ flowchart TD
 | [`spill`](../packages/spill/spill) | `spill` | [`llm`](../packages/llm/llm), [`session`](../packages/core/session) |
 | [`api-sdkwork-app-build-controller`](../packages/api/sdkwork-app-build-controller) | `api` | [`sdkwork-app-build`](../packages/host/sdkwork-app-build), [`typert-protocol`](../packages/typert/protocol) |
 | [`api-sdkwork-git-controller`](../packages/api/sdkwork-git-controller) | `api` | [`sdkwork-git`](../packages/host/sdkwork-git), [`typert-protocol`](../packages/typert/protocol) |
-| [`api-sdkwork-template-install-controller`](../packages/api/sdkwork-template-install-controller) | `api` | [`sdkwork-template-install`](../packages/host/sdkwork-template-install), [`typert-protocol`](../packages/typert/protocol) |
+| [`api-sdkwork-scaffold-install-controller`](../packages/api/sdkwork-scaffold-install-controller) | `api` | [`sdkwork-scaffold-install`](../packages/host/sdkwork-scaffold-install), [`typert-protocol`](../packages/typert/protocol) |
 | [`api-terminal-controller`](../packages/api/terminal-controller) | `api` | [`subprocess`](../packages/subprocess/subprocess) |
 | [`attachment-local`](../packages/attachment/attachment-local) | `attachment` | [`attachment`](../packages/attachment/attachment), [`home-paths`](../packages/util/home-paths) |
 | [`hmr`](../packages/boot/hmr) | `boot` | [`app-boot`](../packages/boot/app-boot), [`cmdline`](../packages/boot/cmdline) |

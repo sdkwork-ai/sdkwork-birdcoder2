@@ -1,0 +1,34 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/host/sdkwork-directory-picker-composed/README.md
+/:
+  en: 97e0f9c625db7e21
+  zh: 17f442235b551ac0
+/deepseek-ai-dsh-sdkwork-directory-picker-composed:
+  en: 9d5a88ecf524622f
+  zh: 28a3eb350ac50064
+/deepseek-ai-dsh-sdkwork-directory-picker-composed/summary:
+  en: 8066bdecbce72421
+  zh: 4d43929c5e1c28d7
+/deepseek-ai-dsh-sdkwork-directory-picker-composed/table-of-contents:
+  en: fe1ecb09a73d1c7a
+  zh: 735dabcb5d2e35ed
+/deepseek-ai-dsh-sdkwork-directory-picker-composed/use-this-package:
+  en: ac2578bec58d4ae9
+  zh: 5468a731be55cca2
+/deepseek-ai-dsh-sdkwork-directory-picker-composed/understand-the-implementation:
+  en: 8fda0e67e54ecbf2
+  zh: d07d359bde0f2202
+/deepseek-ai-dsh-sdkwork-directory-picker-composed/dev-note:
+  en: 0ed3b4d2eb267b9b
+  zh: 1d2690e9dfb9539e
+/deepseek-ai-dsh-sdkwork-directory-picker-composed/model-experience:
+  en: 102effac0929c613
+  zh: 9a975bc9cdf9a0cf
+/deepseek-ai-dsh-sdkwork-directory-picker-composed/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: 123b450ae1406e9d
+/deepseek-ai-dsh-sdkwork-directory-picker-composed/known-limitations-and-deferred-work:
+  en: d6def431f03f1f88
+  zh: 8dfad952a894b3df

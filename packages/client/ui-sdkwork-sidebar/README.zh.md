@@ -9,9 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-本包占用布局的 `sidebar` 槽位——整条左侧列——替代上游 `@deepseek-ai/dsh-client-ui-sidebar`。它保留上游的槽位契约并新增页面注册表：插件通过 `ctx.sdkworkSidebar` 贡献一个左侧页面，外壳负责绘制该行；这与随仓引入的 [dsh-better-sidebar](../../../plugins/dsh-better-sidebar) 通过 `ctx.betterSidebar.registerTab` 让插件注册侧栏标签页/页面的方式一致。
-
-列内仍然显示品牌行与版本徽标、新会话入口、快捷入口栈、全局面板行、Workspace/Session 浏览器、底部操作与设置——上游各槽位的占用方仍在同一批洞位上注册，下游无需任何改动。列同时持有可见性偏好：设置弹窗的「侧边栏」页列出列内可绘制的每一行，并逐行提供开关。
+fork 自有的左侧导航列，替代上游 sidebar：保留上游全部槽位并新增页面注册表，插件通过 `ctx.sdkworkSidebar` 贡献一个左侧页面，外壳负责绘制该行。列内仍然显示品牌行、新会话入口、快捷入口、全局面板行、Workspace/Session 浏览器、底部操作与设置，其设置里的「侧边栏」页列出每一行并逐行提供显隐开关。
 
 ## 目录
 
@@ -100,6 +98,10 @@ ctx.effect(() => ctx.sdkworkSidebar.suppressPanel('other-panel'), 'my-plugin: em
 
 -----
 
+本包占用布局的 `sidebar` 槽位——整条左侧列——替代上游 `@deepseek-ai/dsh-client-ui-sidebar`。它保留上游的槽位契约并新增页面注册表：插件通过 `ctx.sdkworkSidebar` 贡献一个左侧页面，外壳负责绘制该行；这与随仓引入的 [dsh-better-sidebar](../../../plugins/dsh-better-sidebar) 通过 `ctx.betterSidebar.registerTab` 让插件注册侧栏标签页/页面的方式一致。
+
+列内仍然显示品牌行与版本徽标、新会话入口、快捷入口栈、全局面板行、Workspace/Session 浏览器、底部操作与设置——上游各槽位的占用方仍在同一批洞位上注册，下游无需任何改动。列同时持有可见性偏好：设置弹窗的「侧边栏」页列出列内可绘制的每一行，并逐行提供开关。
+
 <a id="further-exploration"></a>
 ## 进一步探索
 
@@ -112,11 +114,11 @@ ctx.effect(() => ctx.sdkworkSidebar.suppressPanel('other-panel'), 'my-plugin: em
 -----
 
 <a id="model-experience"></a>
-## 模型体验
+## Model Experience
 
 无：本包是浏览器侧导航层，不注册任何面向模型的内容。
 
-#### KV Cache 影响
+#### KV Cache effect
 
 无；本包既不组装也不发送任何 provider 请求。
 

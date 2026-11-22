@@ -21,8 +21,8 @@
   en: 6bc49e22f0f73f07
   zh: 10883997ccb7d145
 /deepseek-ai-dsh-client-ui-sidebar/use-this-package/global-panel-entries:
-  en: 4fb4991dbffef928
-  zh: 0e33daaaad0ce5ae
+  en: c6b9712e62e3def7
+  zh: c4c54c160566659f
 /deepseek-ai-dsh-client-ui-sidebar/use-this-package/collapse-behavior:
   en: 61d563b0f82ff658
   zh: f27504350dd14d4c
@@ -36,8 +36,8 @@
   en: 3e84ffdf6c7c1731
   zh: 3f7b19cac6d6674f
 /deepseek-ai-dsh-client-ui-sidebar/understand-the-implementation:
-  en: 2b5dd6efe77ee023
-  zh: 1dc6610bc9e50406
+  en: 4d08c745534fc8f4
+  zh: 164418412f91c02a
 /deepseek-ai-dsh-client-ui-sidebar/understand-the-implementation/slot-discipline:
   en: 6eefc5c45abe8a8f
   zh: 20b651e48a0ea903
@@ -46,10 +46,10 @@
   zh: 0236e569178756a2
 /deepseek-ai-dsh-client-ui-sidebar/model-experience:
   en: 3120df665299c634
-  zh: 1d9f365d091d0d2a
+  zh: b467b010f9799ec6
 /deepseek-ai-dsh-client-ui-sidebar/model-experience/kv-cache-effect:
   en: ca75c51c89c2c9b0
-  zh: de54f3467ef3b9be
+  zh: 001b59d0a86e0555
 /deepseek-ai-dsh-client-ui-sidebar/known-limitations-and-deferred-work:
   en: f31345fa08c77f91
   zh: e2639d597353207f

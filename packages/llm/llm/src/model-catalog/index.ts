@@ -3,8 +3,8 @@
  * copy-on-write store, copy-on-write persistence, source precedence, and the
  * synchronization client.
  *
- * The contract authority is
- * `sdkwork-cloudrouter/docs/architecture/tech/TECH-2026-11-15-model-catalog-sync-api.md`.
+ * The contract authority is the SDKWork CloudRouter
+ * model-catalog sync API tech note (`TECH-2026-11-15-model-catalog-sync-api.md`).
  *
  * @module @deepseek-ai/dsh-llm/model-catalog
  */

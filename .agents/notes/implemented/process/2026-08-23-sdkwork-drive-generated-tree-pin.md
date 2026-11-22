@@ -21,3 +21,7 @@ The release runner clone of every pinned sibling resolves the complete generated
 ## Testing
 
 Clean-tree rehearsal of the Client tsdown pass with the re-pinned sibling completes. The reachability scan reports zero untracked import targets.
+
+## Alternatives considered
+
+**Leave the current behavior in place.** Rejected: the Problem records the concrete failure that behavior produced.

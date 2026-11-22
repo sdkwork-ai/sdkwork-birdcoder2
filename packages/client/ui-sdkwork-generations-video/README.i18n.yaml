@@ -13,25 +13,25 @@
   zh: cac2a4c65286c2fe
 /deepseek-ai-dsh-client-ui-sdkwork-generations-video/table-of-contents:
   en: 8c637bf178f742d6
-  zh: 4fd0f6580689e345
+  zh: fe80ce494259af56
 /deepseek-ai-dsh-client-ui-sdkwork-generations-video/embedded-surface:
   en: d5da210d443dcd7b
-  zh: e04a2aa06cdbf32e
+  zh: 6791c7f848e2d00d
 /deepseek-ai-dsh-client-ui-sdkwork-generations-video/runtime-requirements:
   en: c8b809a3a874d2a4
   zh: 01a0a5bc23498190
+/deepseek-ai-dsh-client-ui-sdkwork-generations-video/runtime-invariants:
+  en: ca99384ed2f6bae1
+  zh: 1bcf7dd3cd59dba8
 /deepseek-ai-dsh-client-ui-sdkwork-generations-video/model-experience:
   en: c81defd314386d2e
   zh: b250b7e13f6cab47
 /deepseek-ai-dsh-client-ui-sdkwork-generations-video/model-experience/kv-cache-effect:
   en: 6250c7744b2590b1
-  zh: bacec35330ccc487
+  zh: 5871c52019cbc7a8
 /deepseek-ai-dsh-client-ui-sdkwork-generations-video/known-limitations-and-deferred-work:
   en: 84ed871318fec37f
-  zh: 4a93ecc4a5aa228d
+  zh: 79cfda66e94c227f
 /deepseek-ai-dsh-client-ui-sdkwork-generations-video/known-limitations-and-deferred-work/dev-note:
   en: 8b33121c61eda658
   zh: b43549ad106ab52c
-/deepseek-ai-dsh-client-ui-sdkwork-generations-video/runtime-invariants:
-  en: ca99384ed2f6bae1
-  zh: 1bcf7dd3cd59dba8

@@ -7,16 +7,28 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-## 摘要
+## 概述
 
 OEM 部署保留 DeepSeek 官方登录验证流程，只替换其运行的域名。本包在启动时解析一个 JSON 配置，作为 `ctx.oem` 提供，并通过 Web 索引注入发布显示品牌（`__DSH_OEM__`）。账号行从该服务读取 `platformOrigin` 与 `inferenceOrigin`；账号路由与 Web 搜索行读取各自的接口基址。无配置时使用出厂 BirdCoder 域名与品牌；未挂载本配置的组合保持自身的官方默认值。没有配置时所有行解析为官方域名与 BirdCoder 品牌，上游构建行为不变。
 
+## 目录
+
+- [Brand identity](#brand-identity)
+- [Compatibility](#compatibility)
+- [Configuration](#configuration)
+- [Environment domains](#environment-domains)
+- [Merge contract](#merge-contract)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+
+<a id="brand-identity"></a>
 ## 品牌标识
 
 本仓库交付的应用名称是 **BirdCoder**，Logo 是 BirdCoder 小鸟（`apps/web/public/favicon.png`，桌面、欢迎页与安装器图标均由它派生）。OEM profile 的默认 `brand.name` 同样是 **BirdCoder**，因此没有 OEM 配置的构建仍然呈现 BirdCoder。
 
 部署方可以把 `brand.name` 设为其他名称，客户端与 Desktop 的显示文案会在渲染时跟随。但这只改变显示名称：今后若 OEM 采用其他品牌，必须在同一次构建中同时替换构建期 Logo 位图——应用图标、安装器品牌图，以及 `apps/desktop/renderer/assets/welcome-bird.png`。`oem.json` 不会替换图片资源。
 
+<a id="compatibility"></a>
 ## 兼容性
 
 登录流程本身永不重配：state/PKCE 处理、`/oauth/callback`、`auth_init`/`auth_exchange`、`/dsh/authorize` 与 `/dsh/authorized` 浏览器路径、请求头、grant 存储与 401 处理都保持官方实现。OEM 平台需在自己的域名后实现同一契约。
@@ -27,6 +39,7 @@ SDKWork IAM 客户端保持生成的 `/app/v3/api/...` PC 登录路径、参数�
 
 桌面浏览器登录保持 SDKWork 契约：应用打开 `<iamAuthorizeBaseUrl>/iam/v3/oauth/authorize`，携带 PKCE S256、`client_id=sdkwork.iamClientId`、`redirect_uri=sdkwork.iamRedirectUri`、`scope=openid profile offline_access` 与 state。托管页在 `/auth/desktop/launch?redirectUrl=…` 完成，并通过深链把 code 交回应用；应用在 `/app/v3/api/oauth/desktop_sessions` 兑换双 token 会话。出厂默认值为 `birdcoder` 与 `birdcoder://auth/callback`；启动进程报告了自身品牌时，改为按该 scheme 派生 `<scheme>` 与 `<scheme>://auth/callback`，因此从这些源码派生出的品牌（例如产品的分支）无需自带 profile 即可登录。这两个字段构成一个品牌身份：`client_id` 命名品牌（`desktop.protocol`，出厂品牌为 `birdcoder`），回调是品牌所拥有的两种 scheme 之一的 `<scheme>://auth/callback`——该产品 scheme，或品牌的反向域名应用 id（`desktop.appId`，例如 `com.sdkwork.birdcoder`）——后者正是 RFC 8252 第 7.1、8.4 节对私有 scheme 登录重定向的建议形式。打包外壳把两种 scheme 都声明给操作系统，因此 HTTP(S) 重定向或其他品牌的 scheme 永远到不了应用；把别的品牌的 `client_id` 配上本品牌的回调，会在启动时直接失败，而不是打开一个 code 根本回不来的授权页。授权路径与参数保持上游原样。
 
+<a id="configuration"></a>
 ## 配置
 
 配置路径优先取 `DSH_OEM_CONFIG`，否则为 `$DSH_HOME/oem.json`。文件不存在表示使用出厂默认值；文件存在但无法读取、解析或校验时启动失败。Host 与 Desktop 外壳都会读取 `DSH_OEM_CONFIG`，请优先使用绝对路径：相对路径按各进程的工作目录解析。
@@ -80,6 +93,7 @@ DeepSeek API Key vendor（`llm-deepseek`）刻意不在 OEM 配置范围内：�
 
 官方 `platformOrigin` 不能与部署的 `inferenceOrigin` 配对：否则官方账号 grant 会被转发到部署端点。反向组合——部署自有登录门户为自己的 grant 使用官方 API——是允许的；此时各接口基址保持官方默认值。显式 `messagesBaseUrl` 必须与推理域名同源。
 
+<a id="environment-domains"></a>
 ## 环境域名
 
 出厂默认值跟随 SDKWork 生命周期，源码模式 `pnpm dev:web` / `pnpm desktop:dev` 不会访问生产：
@@ -121,6 +135,7 @@ DeepSeek API Key vendor（`llm-deepseek`）不在本表内：它仍使用 DeepSe
 }
 ```
 
+<a id="merge-contract"></a>
 ## 合并契约
 
 上游同步必须保持以下规则：
@@ -142,6 +157,7 @@ grep -c "applicationName: desktopBrandName()" apps/desktop/src/main.ts   # 1
 pnpm exec vitest run packages/host/sdkwork-oem packages/credentials/deepseek-account-platform/tests packages/client/ui-sdkwork-oem packages/client/ui-primitives/tests/oem-brand.client.spec.tsx apps/desktop/tests/locale.spec.ts
 ```
 
+<a id="model-experience"></a>
 ## 模型体验
 
 无。该包只发布部署域名与显示名，不进入模型提示词、Session 日志或工具结果。
@@ -150,12 +166,13 @@ pnpm exec vitest run packages/host/sdkwork-oem packages/credentials/deepseek-acc
 
 无；配置不改变任何模型请求前缀。
 
+<a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与后续工作
 
 - 配置只在启动时读取一次，修改后需重启生效。
 - 静态构建产物保留自身文案：桌面 `productName`、应用标识、操作系统 URL scheme、更新缓存、`birdcoder` 命令、安装器位图、Web manifest 名称与文档站标识属于构建期 OEM 工作，不是运行期配置字段。更换 `desktop.protocol` 的品牌按该 scheme 派生自己的 `sdkwork.iamClientId` 与 `sdkwork.iamRedirectUri`；profile 若显式写出这两个字段，客户端必须用品牌的 `desktop.protocol`，回调必须用该 scheme 或品牌的应用 id。外壳随后通过与产品链接相同的系统注册接收登录回调。
 - 搜索与 Fetch provider 只接受接口基址；其线上协议与模型名由 provider 定义。
 
-### 开发说明
+### 开发备注
 
 读取该配置的 bundle 行声明 `inject: [oem]`，使 `!!js` 配置表达式在服务就绪后求值。base bundle 为所有 profile 挂载该行；headless 关闭账号与凭证行，但仍会无害地解析配置。

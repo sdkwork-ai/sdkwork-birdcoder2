@@ -10,7 +10,7 @@ Status: implemented
 
 ## Decision
 
-`apps/web/public/` 承载四个安装图标：192px 与 512px 的 `any` 位图、512px 的 `maskable` 位图，以及 180px 的 `apple-touch-icon`。[`render-app-icons.ts`](../../../../apps/web/scripts/render-app-icons.ts) 从 `apps/desktop/resources/icon.svg` 的官方应用底板渲染这四个文件，`pnpm --filter @deepseek-ai/dsh-web-frontend run render:app-icons` 重新生成已提交的文件。每个变体都保留鲸鱼的几何路径、渐变、透明度和滤镜。渲染先生成不小于源图 1024px、且边长至少为输出尺寸四倍的位图，再以 Lanczos3 下采样。分开的栅格化步骤在平滑小图标曲线的同时保留原有明暗细节。每个变体都会裁掉底板的桌面投影。maskable 变体围绕底板中心按 `MASKABLE_ARTWORK_SCALE` 缩放鲸鱼，而底板渐变保持自身范围，因此可能被蒙层裁掉的那圈边框仍是真实底板，而不是与其相接的纯色。
+`apps/web/public/` 承载四个安装图标：192px 与 512px 的 `any` 位图、512px 的 `maskable` 位图，以及 180px 的 `apple-touch-icon`。`render-app-icons.ts` 从 `apps/desktop/resources/icon.svg` 的官方应用底板渲染这四个文件，`pnpm --filter @deepseek-ai/dsh-web-frontend run render:app-icons` 重新生成已提交的文件。每个变体都保留鲸鱼的几何路径、渐变、透明度和滤镜。渲染先生成不小于源图 1024px、且边长至少为输出尺寸四倍的位图，再以 Lanczos3 下采样。分开的栅格化步骤在平滑小图标曲线的同时保留原有明暗细节。每个变体都会裁掉底板的桌面投影。maskable 变体围绕底板中心按 `MASKABLE_ARTWORK_SCALE` 缩放鲸鱼，而底板渐变保持自身范围，因此可能被蒙层裁掉的那圈边框仍是真实底板，而不是与其相接的纯色。
 
 [`pwa-manifest.e2e.ts`](../../../../apps/web/tests/pwa-manifest.e2e.ts) 使用浏览器图像解码器测量已提交 maskable 图标的鲸鱼墨迹半径，拒绝越出平台安全区或小于预期比例的图案。未缩放图块超出该安全区，用作反向对照。
 

@@ -21,6 +21,7 @@ kind: "package-reference"
 
 未发布 runtime invariant 伴生物;入口是席位 owner share 的纯函数,键控页面渲染本包读取的 Host 目录,由本包客户端行为规格直接覆盖。
 
+<a id="model-experience"></a>
 ## 模型体验
 
 无,因为本浏览器界面自身不注册提示词、工具 schema 或会话事件;创建弹窗经 Schedule Remote 写入一条 Host 任务,没有任何模型调用参与创建或改写。
@@ -29,6 +30,7 @@ kind: "package-reference"
 
 无;本包既不组装也不发送 provider 请求。
 
+<a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与后续工作
 
 - **创建的任务在自己的会话里说话** — 模板或手工草稿始终指向一条由 Host 在任务首次投递时创建、之后复用的会话;弹窗无法把任务指向已有会话,因为它不知道作者指的是哪一条。
@@ -40,6 +42,7 @@ kind: "package-reference"
 - **静态模板目录** — 十二张卡片在本包内只是文案加一条重复规则;点击卡片会把它们填进同一个弹窗,而不是自行创建任务,卡片也不读取工作空间或已存任务。
 - **完全访问工作空间还不是 Schedule 的选项** — 弹窗把该控件标为建设中(`aria-disabled` 并附原因),而不是收集一个创建请求无法携带的选择。
 
+<a id="dev-note"></a>
 ### 开发备注
 
 <details>

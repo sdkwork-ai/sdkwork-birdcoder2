@@ -50,10 +50,11 @@ No browser, desktop, server, container, Electron, or Capacitor target is declare
 
 ## Deployment profiles
 
-Both `standalone` and `cloud` are supported; `cloud` is the default. Each target and
-environment has a checked-in `.env.<deployment-profile>.<environment>` file plus an
-Android tablet variant. `.env.local`, `.env.*.local`, `config/host/postgres.env`, and
-`config/*.local.toml` are ignored.
+Both `standalone` and `cloud` are supported; `cloud` is the default. Every profile and
+environment has exactly one checked-in, materialized
+`.env.<deployment-profile>.<environment>` document; the runtime target is selected at build
+time (`scripts/tablet.mjs`), so no per-target duplicate document exists. `.env.local`,
+`.env.*.local`, `config/host/postgres.env`, and `config/*.local.toml` are ignored.
 
 ## Tablet adaptation
 
@@ -95,10 +96,13 @@ pnpm clean
 corresponding deployment profile. Tablet builds require Xcode/Apple tooling for iPadOS and
 the Android SDK for Android tablets; CI must record which runner image satisfies each target.
 
-## Scaffold status
+## Implementation status
 
-This root is a **standard-layout scaffold**: layout, manifest, profile projection, tablet
-adaptation contract, config templates, package family boundary, and tablet adaptation tests
-exist. Capability packages, the production renderer, signing material, store listings, and
-native target projects are not implemented yet; build/xcrun/gradle commands become functional
-as those land.
+The standard layout, manifest, profile projection, tablet adaptation contract, server-free
+config templates, the package family (`core`, `commons`, `shell`, `console-*`, `admin-*`, and
+the single `pad-tauri` host), the window-class model, the renderer entry/bootstrap, and the
+tablet adaptation and config tests are implemented.
+
+Not implemented: capability packages beyond the shell boundary (so the renderer mounts an empty
+route set), the signed native target projects and store listings, and signing material.
+`build:tablet-*` stays gated on the native toolchains (Xcode/Apple tooling and the Android SDK).

@@ -15,8 +15,6 @@ kind: "package-reference"
 2. 中部：视图导航的 icon+文字分段控件——原来的整行 tabs 变成紧凑控件，节省一行头部空间。
 3. 右侧：工具簇。
 
-上游主体保留为 fallback：没有本插件（或插件被禁用）时，头部渲染与原先完全一致。
-
 ## 目录
 
 - [使用本包](#use-this-package)
@@ -40,7 +38,7 @@ kind: "package-reference"
 - `src/client/ConversationHeader.module.css` — 三区 grid（`1fr auto 1fr`），在任意列宽下都让分段控件真正居中，样式使用共享的 DSW alias token。
 - `src/client/locales.ts` — 插件自有的 `sdkworkConversationHeader` 词典命名空间（aria 标签）。
 
-上游 header entry 保留 `<header>` 外壳、空白会话隐藏与视图选择 store；本插件只拥有呈现层，不触碰跨插件可变状态。
+上游 header entry 保留 `<header>` 外壳、空白会话隐藏与视图选择 store；本插件只拥有呈现层，不触碰跨插件可变状态。上游主体保留为 fallback：没有本插件（或插件被禁用）时，头部渲染与原先完全一致。
 
 ### 席位归属（merge-stable 契约）
 
@@ -70,7 +68,7 @@ kind: "package-reference"
 
 不发布运行时不变量伴随检查；该包是 UI 插件，其唯一的 slot 注册通过规格测试套件验证销毁（HMR 安全）。
 
-## 模型体验
+## Model Experience
 
 无：本包是浏览器侧的头部呈现层；其渲染的每个事实都由下层 store（sessions、conversation views）持有。
 

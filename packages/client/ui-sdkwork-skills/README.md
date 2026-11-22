@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-The skill manager adds one page to the settings panel — 技能设置 (Skill settings), between Models and Plugins — and backs it with a durable preference the Host actually acts on. The page lists the catalog the current composition serves: the session's own view when a session is open, and the composition-wide inventory (bundled, preset, and user-level roots) when one is not. It tabs the catalog by the same scenarios the new-session tag strip uses (code / media / document, everything else in one bucket), showing one group at a time with that group's count and batch actions, and gives every skill an enable switch, a suggestion switch, and a disclosure carrying the facts the catalog supplies. A page-level switch above the catalog turns the whole suggestion strip off without rewriting the per-skill choices it would show. Skills installed from the SkillHub market are the exception that leads: they form their own first group, named by their provider rather than by the Host's wire source, and their enable switch is how a market skill is turned off without the market plugin moving a file. A disabled skill stops being a skill as far as the catalogs are concerned: the `/` menu no longer offers it and the model-facing catalog no longer advertises it, while the file on disk is never touched. The suggestion switch is the additive half of the strip's membership: it both removes a scene-table seat the user does not want and adds a seat for a skill the scene table never had, without the page needing to know which of the two it is doing.
+The skill manager adds a 技能设置 (Skill settings) page between Models and Plugins, backed by a durable preference the Host acts on. It lists the catalog the composition serves — the session's view when one is open, otherwise the composition-wide inventory — groups it by the new-session tag strip's scenarios, and gives every skill an enable switch, a suggestion switch, and a detail disclosure. A disabled skill stops being advertised to the model and the `/` menu while its file stays untouched, and a page-level switch turns the whole suggestion strip off.
 
 ## Table of Contents
 
@@ -85,6 +85,24 @@ The strip below the composer (`ui-sdkwork-app-modes`) shows its scene's skills a
 
 **Runtime invariant:** No companion is published. The suppression set is a pure projection of the named settings section — the provider re-reads it on every `list()` call — so the only state that can drift is the registry's completed-catalog cache, and a settings commit invalidates that through the registration's own control. A hand-edited settings document cannot break skill discovery either: a name that fails the registry's grammar is dropped before it becomes a candidate, and a field that is not a list reads as "nothing suppressed". Both properties are asserted by the Host spec instead of by a runtime companion.
 
+## Dev Note
+
+`pnpm exec tsc -b packages/client/ui-sdkwork-skills/tsconfig.host.json` type-checks the Host half alone, and `pnpm exec tsc -b packages/client/ui-sdkwork-skills/tsconfig.client.json` the browser half; the package is split because the two faces merge cordis `Context` under the same keys, so no single program can see both. The repo-wide gates it participates in are `tsconfig.host.json` (Host half and its spec) and `tsconfig.client.tests.json` (browser half tests), plus `pnpm run verify-builtin-scene-skills`, which keeps the page's scene table and the composer's tag table in step with the packaged skills. The page's component spec drives the store directly, and the Host spec drives the provider against a real Cordis context with stand-in `settings` and `skills` services.
+
+A note for whoever touches the Remote contract next: the page's `SkillCatalogSource` union and the Host's `SkillEntrySource` union are two spellings of the same closed vocabulary (`project` / `custom` / `user` / `bundled` / `runtime` / `unknown`), because the Host collapses the registry's open `source` string into that closed set at the `skills.list` boundary and the client store re-declares it to stay free of a Host type import. If a source class is ever added, both spellings and the `row.source.*` dictionary pair move together — the Host spec's source-mapping case is the one that will fail first.
+
+## Understand the implementation
+
+The skill manager adds one page to the settings panel — 技能设置 (Skill settings), between Models and Plugins — and backs it with a durable preference the Host actually acts on. The page lists the catalog the current composition serves: the session's own view when a session is open, and the composition-wide inventory (bundled, preset, and user-level roots) when one is not. It tabs the catalog by the same scenarios the new-session tag strip uses (code / media / document, everything else in one bucket), showing one group at a time with that group's count and batch actions, and gives every skill an enable switch, a suggestion switch, and a disclosure carrying the facts the catalog supplies. A page-level switch above the catalog turns the whole suggestion strip off without rewriting the per-skill choices it would show. Skills installed from the SkillHub market are the exception that leads: they form their own first group, named by their provider rather than by the Host's wire source, and their enable switch is how a market skill is turned off without the market plugin moving a file. A disabled skill stops being a skill as far as the catalogs are concerned: the `/` menu no longer offers it and the model-facing catalog no longer advertises it, while the file on disk is never touched. The suggestion switch is the additive half of the strip's membership: it both removes a scene-table seat the user does not want and adds a seat for a skill the scene table never had, without the page needing to know which of the two it is doing.
+
+## Model Experience
+
+Indirectly, through the Host skill loader, whose catalog and invocation policy decide which skills the model can see and invoke.
+
+#### KV Cache effect
+
+Replacing: a settings commit invalidates the registry's completed-catalog cache, so the next request assembles a changed skill catalog, while a turn already composed keeps its earlier prefix.
+
 ## Known Limitations and Deferred Work
 
 - **`disabledSkills` is per-user, not per-project.** It applies to every project the same user opens. A per-project override would need the section to key by project root.
@@ -95,9 +113,3 @@ The strip below the composer (`ui-sdkwork-app-modes`) shows its scene's skills a
 - **A pin whose skill disappears still renders on the strip.** The strip appends pins from the preference list alone and does not verify them against a fetched catalog, so a pin left behind by a removed skill shows as a dead pill until it is cleared here. This page lists only names the Host actually serves, which is where the stale entry is visible and removable.
 - **The model still sees the name in its prompt history.** A skill disabled mid-session disappears from the next catalog read, but a turn already composed with it is already composed.
 - **No editing of the skill's own metadata.** Description, `whenToUse`, and the model/user invocation policy are owned by the skill file's frontmatter; the page shows them and never writes them.
-
-## Dev Note
-
-`pnpm exec tsc -b packages/client/ui-sdkwork-skills/tsconfig.host.json` type-checks the Host half alone, and `pnpm exec tsc -b packages/client/ui-sdkwork-skills/tsconfig.client.json` the browser half; the package is split because the two faces merge cordis `Context` under the same keys, so no single program can see both. The repo-wide gates it participates in are `tsconfig.host.json` (Host half and its spec) and `tsconfig.client.tests.json` (browser half tests), plus `pnpm run verify-builtin-scene-skills`, which keeps the page's scene table and the composer's tag table in step with the packaged skills. The page's component spec drives the store directly, and the Host spec drives the provider against a real Cordis context with stand-in `settings` and `skills` services.
-
-A note for whoever touches the Remote contract next: the page's `SkillCatalogSource` union and the Host's `SkillEntrySource` union are two spellings of the same closed vocabulary (`project` / `custom` / `user` / `bundled` / `runtime` / `unknown`), because the Host collapses the registry's open `source` string into that closed set at the `skills.list` boundary and the client store re-declares it to stay free of a Host type import. If a source class is ever added, both spellings and the `row.source.*` dictionary pair move together — the Host spec's source-mapping case is the one that will fail first.

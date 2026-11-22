@@ -2,7 +2,7 @@
 
 Cross-architecture contracts: typed DTOs, enums, event and route identity keys, i18n key namespaces.
 
-- Surface: `[object Object]`
+- Surface: `common`
 - Layer role: `contracts`
 - Standard: `MODULE_SPEC.md`, `APPLICATION_SPEC.md`
 

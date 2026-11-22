@@ -106,7 +106,7 @@ describe('desktop and Web plugin composition parity', () => {
 
   // The desktop launcher's own `config/agent-presets` root and its
   // `includeShippedRoot` injection were removed with the old in-process shell
-  // (54561513cf); presets reach the desktop through the composition's
+  // (the 2026-09-10 upstream alignment); presets reach the desktop through the composition's
   // dsh-agent-preset rows, which the parity assertions above already cover.
 })
 

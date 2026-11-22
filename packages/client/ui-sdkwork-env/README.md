@@ -68,6 +68,10 @@ Under the Electron shell (`dsh-app://app`), `apiBaseUrl()` and `imApiBaseUrl()` 
 
 The plugin also publishes the active profile to the SDKWork browser runtime bridge (`globalThis.SDKWORK_RUNTIME_ENV`: `SDKWORK_API_BASE_URL`, `SDKWORK_IM_API_BASE_URL`, `SDKWORK_ENVIRONMENT`) and updates it on environment switches, so shared SDK resolvers reach the active gateway instead of the base URL the SDK was published with.
 
+## Runtime invariants
+
+No runtime invariant companion is published; the environment service is a pure settings mirror — every consuming plugin reads the active profile through the same service face, and profile agreement is covered directly by this package client behavior specs.
+
 ## Model Experience
 
 None, as the environment service is pure settings chrome and nothing here reaches a model request.
@@ -89,7 +93,3 @@ None; this package neither assembles nor sends provider requests.
 Resolution order is schema defaults, then the launch-environment `base` layer, then the user settings document — a user-edited `ui-sdkwork-env:` section always wins, so the env files are the deployment default rather than an override. Every sdkwork integration plugin reads deployment values from this one `ctx.env` service; adding a consumer means extending the profile semantics here, not minting another settings namespace.
 
 </details>
-
-## Runtime invariants
-
-No runtime invariant companion is published; the environment service is a pure settings mirror — every consuming plugin reads the active profile through the same service face, and profile agreement is covered directly by this package client behavior specs.

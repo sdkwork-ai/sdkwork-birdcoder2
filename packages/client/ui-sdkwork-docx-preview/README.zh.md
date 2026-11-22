@@ -22,7 +22,7 @@ kind: "package-reference"
 
 -----
 
-<a id="注册内容"></a>
+<a id="what-it-registers"></a>
 ## 注册内容
 
 - **渲染器元数据** —— `ctx.documentPreviews.register(...)`，id 为 `@deepseek-ai/dsh-client-ui-sdkwork-docx-preview/docx`，后缀 `docx`、`docm`、`dotx`、`dotm`、`doc`，`loading: 'bytes-complete'`。不设置 `priority` 时注册落入 `extension` 档，高于 builtin 档，因此文档永远不会退回纯文本阅读器。`bytes-complete` 让文档属主走它现有的 `readAll` 路径，本包自身不做任何文件读取。
@@ -31,7 +31,7 @@ kind: "package-reference"
 
 `doc` 是有意认领的，尽管渲染器无法绘制这种旧版二进制格式。若不认领，文件会落到纯文本阅读器并报告"可展示的文件不是文本"；认领它让主体说明真实原因并给出修复办法。
 
-<a id="渲染方式"></a>
+<a id="how-it-renders"></a>
 ## 渲染方式
 
 - **容器与部件** —— 共享 OOXML 库从中央目录读取 OPC 包；`document.ts` 走包根 → 主文档 → 样式、编号、设置、主题、媒体，以及各节的页眉页脚。没有页眉或页脚部件的节继承上一节的；连续分节符并入共享页面而不新开一页，除非该分节符自带页眉页脚。
@@ -44,14 +44,14 @@ kind: "package-reference"
 
 媒体部件在解析文档时创建 Blob URL，并在创建它们的效果中撤销，因此切换文件或关闭标签页不会泄漏。
 
-<a id="交互"></a>
+<a id="interaction"></a>
 ## 交互
 
 缩略图栏按文档顺序列出每一页的实时缩略图；选中页带 `aria-selected` 与品牌色边框。页面只在缩略图栏视口附近绘制，长文档只保留几十个活跃画布而非数百个，且缩略图栏会滚动到选中页。标签页宽度低于 520 px 时缩略图栏折叠，舞台占满宽度。
 
 工具栏支持上一页/下一页、按步进缩放、回到 `1:1`、切换适应窗口；适应按钮兼作缩放读数，`Ctrl` + 滚轮也可缩放。`PageUp`/`PageDown` 翻页；方向键先滚动页面、到达边缘才翻页，与 PDF 阅读器一致；`Home`/`End` 跳到首页与末页。对辅助技术而言每一页是一张图片，并由它自己报出页码。
 
-<a id="模型体验"></a>
+<a id="model-experience"></a>
 ## 模型体验
 
 无。预览是纯浏览器查看器，不注册任何工具、提示段或会话事件。
@@ -75,7 +75,7 @@ kind: "package-reference"
 - **Word 的 autofit 列平衡是近似的。** 未声明 `w:tblLayout w:type="fixed"` 的表格交由浏览器的表格算法按内容平衡声明的列宽；Word 用自己的 autofit 启发式分配剩余空间，因此这类表格的列比例可能与 Word 不同。
 - **从右到左的细粒度顺序遵循浏览器规则。** `w:bidi` 设置段落方向、`w:bidiVisual` 反转表格列序，但行内混排文字的细粒度顺序由浏览器自身的 bidi 布局决定，与 Word 的精确算法可能存在差异。
 
-<a id="开发备注"></a>
+<a id="dev-note"></a>
 ### 开发备注
 
 <details>

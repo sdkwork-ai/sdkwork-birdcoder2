@@ -2,7 +2,7 @@
 
 Shared presentation primitives, command palette, global search, accessibility and input helpers.
 
-- Surface: `[object Object]`
+- Surface: `pc`
 - Layer role: `ui`
 - Standard: `MODULE_SPEC.md`, `APP_PC_ARCHITECTURE_SPEC.md`
 

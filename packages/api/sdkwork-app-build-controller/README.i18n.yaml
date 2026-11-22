@@ -9,8 +9,8 @@
   en: 8df4a6317abf8567
   zh: 097f49d729382f52
 /deepseek-ai-dsh-api-sdkwork-app-build-controller/summary:
-  en: 0ce280e58e4ee274
-  zh: 05ef747697761cc3
+  en: 7ba8ef0fda79862f
+  zh: f6f09aa13243f16a
 /deepseek-ai-dsh-api-sdkwork-app-build-controller/table-of-contents:
   en: d152484eb41ac6b4
   zh: 09388d293f9be9cb
@@ -18,20 +18,23 @@
   en: b55296bbaef17cd1
   zh: ff2dd971ed6cad64
 /deepseek-ai-dsh-api-sdkwork-app-build-controller/understand-the-implementation:
-  en: 324c45eeac62dd63
-  zh: f22822a8816a242e
+  en: df6ecc371b1210ae
+  zh: 81508c5aad465cb0
 /deepseek-ai-dsh-api-sdkwork-app-build-controller/further-exploration:
-  en: 2b27b5647bf6036d
-  zh: 77ed680764026745
-/deepseek-ai-dsh-api-sdkwork-app-build-controller/model-experience:
-  en: 400cc990eeb1bc48
-  zh: 27c10c6e0b45d04a
-/deepseek-ai-dsh-api-sdkwork-app-build-controller/known-limitations-and-deferred-work:
-  en: 7fc5b6600a8036cd
-  zh: 600bcaecaf617d19
+  en: df173203d6354a58
+  zh: b1f7d7ade2f95304
 /deepseek-ai-dsh-api-sdkwork-app-build-controller/dev-note:
   en: 66d4dfeff2db066c
   zh: 78c2b7f7ce934bd2
 /deepseek-ai-dsh-api-sdkwork-app-build-controller/runtime-invariants:
-  en: 242d73bd5405a5da
-  zh: 46c598cd2ed0dc33
+  en: 448108eec2c066ea
+  zh: 6c832cb20fdcd2c3
+/deepseek-ai-dsh-api-sdkwork-app-build-controller/model-experience:
+  en: 6d87eb0ad918fcf9
+  zh: e3f80ebb7b57a0d7
+/deepseek-ai-dsh-api-sdkwork-app-build-controller/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: 123b450ae1406e9d
+/deepseek-ai-dsh-api-sdkwork-app-build-controller/known-limitations-and-deferred-work:
+  en: 9e0e2e3ede78a710
+  zh: 3f8e09cddd62b816

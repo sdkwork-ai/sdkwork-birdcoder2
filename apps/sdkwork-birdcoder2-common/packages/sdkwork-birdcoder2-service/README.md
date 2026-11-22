@@ -2,7 +2,7 @@
 
 Architecture-neutral orchestration over injected SDK clients: validation mapping, cache invalidation, workflow composition.
 
-- Surface: `[object Object]`
+- Surface: `common`
 - Layer role: `service`
 - Standard: `MODULE_SPEC.md`, `APPLICATION_SPEC.md`
 

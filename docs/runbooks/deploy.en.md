@@ -1,9 +1,6 @@
 # Runbook — sdkwork-birdcoder2 deploy / upgrade / rollback (EN)
 
-Environments: `development|test|staging|demo|production`. Commands run on the
-local WSL host by default; append `--host ssh://[user@]host[:port]` for remote
-targets. Image reference: `registry.sdkwork.com/apps/sdkwork-birdcoder2:0.1.0`
-(tag from `agent.app.config.json` → `release.currentVersion`).
+Environments: `development|test|staging|demo|production`. Commands run on the local WSL host by default; append `--host ssh://[user@]host[:port]` for remote targets. Image reference: `registry.sdkwork.com/apps/sdkwork-birdcoder2:0.1.0` (tag from `agent.app.config.json` → `release.currentVersion`).
 
 > ⚠️ **Wiring status**: the nine `bin/` entrypoints are mounted per MODULE_BIN_SPEC.md, but the image build hook and the deploy bundle are not wired yet:
 > - `bin/lib/module.sh` → `sdkwork_image_build` is still the scaffold placeholder (it exits with an explicit error);
@@ -18,13 +15,11 @@ bin/docker-deploy.sh install --environment <development|test|staging|demo|produc
 bin/docker-deploy.sh install --environment production --yes   # --yes is mandatory in production
 ```
 
-install syncs the bundle to `/opt/deploy/sdkwork-birdcoder2/bundle`, loads the image, starts
-instances and waits on the health gate (`/healthz`).
+install syncs the bundle to `/opt/deploy/sdkwork-birdcoder2/bundle`, loads the image, starts instances and waits on the health gate (`/healthz`).
 
 ## 2. Upgrade
 
-staging/demo/production capture a pre-change backup automatically (skip with
-`--skip-backup`; the skip is recorded as evidence):
+staging/demo/production capture a pre-change backup automatically (skip with `--skip-backup`; the skip is recorded as evidence):
 
 ```bash
 bin/docker-image.sh build
@@ -45,10 +40,7 @@ bin/docker-deploy.sh rollback --environment staging                  # previous 
 bin/docker-deploy.sh rollback --environment staging --to 0.1.0       # explicit version
 ```
 
-Rollback is gated by `/healthz` on the management ports; a failed gate
-auto-reverts and appends to `release-state/<env>/ledger.jsonl`. Migrations are
-forward-only: across an incompatible schema the only recovery is a data
-restore (backup-restore.md).
+Rollback is gated by `/healthz` on the management ports; a failed gate auto-reverts and appends to `release-state/<env>/ledger.jsonl`. Migrations are forward-only: across an incompatible schema the only recovery is a data restore (backup-restore.md).
 
 ## 5. Retire
 

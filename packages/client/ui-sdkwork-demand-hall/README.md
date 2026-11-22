@@ -10,11 +10,7 @@ English | [中文](README.zh.md)
 ## Summary
 
 
-The SDKWork Demand Hall (需求大厅). This browser plugin owns the `demand-hall` sidebar quick entry in the `sidebar.actions` seat, ordered below the market entry (order 51 after 40) in the New Session button area, and the keyed `mode.page` contribution that the entry opens as a code-surface overlay: the rail selection stays `code` while the demand hall renders in the center column, and the sidebar stays mounted beside the overlay with its workspace and session lists. The page mounts the SDKWork App Store demand hall through `@sdkwork/appstore-pc-embed`'s single-page surface (`page: 'demands'`), configured from the shared environment, IAM, and locale services.
-
-The embedded surface is the App Store storefront's demand hall page and keeps its feature set: demand-type filter (software development plus the video, image, music, and voice-generation families), search, demand cards, empty state, the publish-demand modal (title, type, cascading category, multi-select application forms, budget, bid deadline, description), the routed demand detail page, and the claim (我要抢单) flow with its bid form and bid statuses. Selecting a demand card navigates to that demand's detail page instead of raising a dialog: the detail URL is shareable within the surface, the browser-equivalent back step returns to the hall, and the page's right column lists the latest, related, and recommended demands that the company service ranks in one response. The claim action keeps the reader in place with a quick-claim dialog (demand context such as budget and deadline, inline validation, and in-place success feedback). Claims themselves are owned by the commerce order capability: the hall also exposes **我的抢单** (My Claims), which lists the provider's claims with 抢单中 / 已完成 / 未通过 status groups (the 抢单中 group adds stage filters for 待审核 / 已入围 / 待开工 / 交付中 / 待验收), a claim timeline, and the withdraw, start-delivery, and submit-delivery actions; the demand detail page additionally shows the publisher their received claims with award, reject, accept-delivery, and request-rework decisions. The storefront's hero header banner is removed outright (as on every AI Lab page), so the column starts at the toolbar row; this embed passes no controlled query, so the page keeps its own search-and-publish row. Publishing requires a leaf category picked from the category tree and, for development demands, the application form the provider must deliver; both are decided at publish time. Demand data is owned by the App Store company domain and served through the same platform gateway the templates catalog uses.
-
-The demand detail page also carries the host-provided **create project and start** action: the plugin turns the selected demand into a new Workspace and session, and sends the demand brief as that session's first prompt.
+The SDKWork Demand Hall (需求大厅). This browser plugin owns the `demand-hall` sidebar quick entry in the `sidebar.actions` seat, ordered below the market entry (order 51 after 40) in the New Session button area, and the keyed `mode.page` contribution that the entry opens as a code-surface overlay: the rail selection stays `code` while the demand hall renders in the center column, and the sidebar stays mounted beside the overlay with its workspace and session lists.
 
 ## Table of Contents
 
@@ -37,9 +33,21 @@ The page hosts the App Store storefront's demand hall (search bar, publish butto
 
 Choosing a demand's detail action drives the shell's own New Session flow, in order: pick the parent directory through the Host picker (dismissing it cancels), create a project directory named from the demand title (numeric suffixes resolve collisions), register the Workspace and rename it to the demand title, connect its blank session, open that session, and send the demand brief as the first prompt. On success the demand-hall overlay closes, so the new session is not left behind it. The brief carries the demand id, title, category, budget, bid deadline, and description, plus the application form and the SDKWork application-architecture specification that governs it. The page renders one status line above the catalog: starting, created (with the session title), or the failed step's message. A failed bootstrap never unmounts the catalog.
 
+## Understand the implementation
+
+The page mounts the SDKWork App Store demand hall through `@sdkwork/appstore-pc-embed`'s single-page surface (`page: 'demands'`), configured from the shared environment, IAM, and locale services.
+
+The embedded surface is the App Store storefront's demand hall page and keeps its feature set: demand-type filter (software development plus the video, image, music, and voice-generation families), search, demand cards, empty state, the publish-demand modal (title, type, cascading category, multi-select application forms, budget, bid deadline, description), the routed demand detail page, and the claim (我要抢单) flow with its bid form and bid statuses. Selecting a demand card navigates to that demand's detail page instead of raising a dialog: the detail URL is shareable within the surface, the browser-equivalent back step returns to the hall, and the page's right column lists the latest, related, and recommended demands that the company service ranks in one response. The claim action keeps the reader in place with a quick-claim dialog (demand context such as budget and deadline, inline validation, and in-place success feedback). Claims themselves are owned by the commerce order capability: the hall also exposes **我的抢单** (My Claims), which lists the provider's claims with 抢单中 / 已完成 / 未通过 status groups (the 抢单中 group adds stage filters for 待审核 / 已入围 / 待开工 / 交付中 / 待验收), a claim timeline, and the withdraw, start-delivery, and submit-delivery actions; the demand detail page additionally shows the publisher their received claims with award, reject, accept-delivery, and request-rework decisions. The storefront's hero header banner is removed outright (as on every AI Lab page), so the column starts at the toolbar row; this embed passes no controlled query, so the page keeps its own search-and-publish row. Publishing requires a leaf category picked from the category tree and, for development demands, the application form the provider must deliver; both are decided at publish time. Demand data is owned by the App Store company domain and served through the same platform gateway the templates catalog uses.
+
+The demand detail page also carries the host-provided **create project and start** action: the plugin turns the selected demand into a new Workspace and session, and sends the demand brief as that session's first prompt.
+
+## Runtime invariants
+
+No runtime invariant companion is published; the package contributes a keyed page entry whose ownership is already authoritative in the slot registry, while the catalog adapter has no independent host relationship to compare against.
+
 ## Model Experience
 
-One turn's worth of model-visible input, on an explicit user action: the create-project action sends the demand brief as the new session's first user message, which is durably logged like any other prompt. Browsing, publishing, and claiming remain browser viewing state and add no model request content or tools.
+Indirectly, through the New Session flow it drives: the create-project action sends the demand brief as that session's first user message, which is durably logged like any other prompt.
 
 #### KV Cache effect
 
@@ -60,7 +68,3 @@ None from this package; it assembles no provider request. The brief is ordinary 
 Environment changes remount the whole SDKWork runtime while IAM and locale changes propagate through host props — preserve that split when touching the adapter. The host adapter, theme shell, tsdown CSS/alias machinery and the quick-entry row CSS are deliberate per-package copies shared with `ui-sdkwork-markets` (client-bundle purity forbids cross-plugin value imports); change them together, so the sidebar entries keep one row geometry, margin pair and hover chrome. Local builds resolve `@sdkwork/appstore-pc-embed` from the `../sdkwork-appstore` sibling checkout, so the package cannot build without it. The demand → project port takes the host services as narrow structural faces so the flow is testable without a mounted runtime.
 
 </details>
-
-## Runtime invariants
-
-No runtime invariant companion is published; the package contributes a keyed page entry whose ownership is already authoritative in the slot registry, while the catalog adapter has no independent host relationship to compare against.

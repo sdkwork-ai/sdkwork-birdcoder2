@@ -1,7 +1,6 @@
 # Agent Note: Web GUI 改动在现有 URL 上闭环
 
 Status: implemented
-Archived: 2026-09-04
 
 [English](2026-07-28-web-gui-sdkwork-feedback-loop.md) | 中文
 

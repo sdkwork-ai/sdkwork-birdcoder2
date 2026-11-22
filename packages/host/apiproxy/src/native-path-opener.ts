@@ -18,7 +18,7 @@ import { runNativeCommand, type NativeCommandRunner } from '@deepseek-ai/dsh-nat
 export type PathOpenerRunner = NativeCommandRunner
 
 // FORK DIVERGENCE: every launch in this module passes `'hidden'`. The shared
-// runner took no such argument before `989fc3e2f5` and hard-coded
+// runner took no such argument before an earlier runner change and hard-coded
 // `windowsHide: true`, so `'hidden'` is exactly the behaviour this module
 // shipped; the terminal openers below (`cmd /c start`, PowerShell
 // `Invoke-Item`) create the window the user sees themselves, and hiding only

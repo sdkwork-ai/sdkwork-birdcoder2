@@ -24,6 +24,7 @@ Authority: `APP_CLIENT_ARCHITECTURE_ALIGNMENT_SPEC.md` §2, `APPLICATION_SPEC.md
 
 ## Wiring status
 
-The family is scaffolded only: no package is registered as a workspace member yet, so no
-package is built or linked. Registering the members is the next step before the first
-capability package lands.
+Every package in this family is a registered workspace member (`apps/sdkwork-birdcoder2-common/packages/*`
+in `pnpm-workspace.yaml`), so each one is linked and type-checked by the repository. The family still
+exposes only its scaffold boundary contracts: the shared contract, SDK-port, and service surfaces land
+with the first cross-architecture capability that consumes them.

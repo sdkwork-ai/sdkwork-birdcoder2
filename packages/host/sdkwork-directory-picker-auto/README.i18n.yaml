@@ -1,0 +1,40 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/host/sdkwork-directory-picker-auto/README.md
+/:
+  en: 3ad740d74a2a0a10
+  zh: edae0bf58dd8f789
+/deepseek-ai-dsh-sdkwork-directory-picker-auto:
+  en: 1b4c7ebfe10b59ec
+  zh: e537d503d313f949
+/deepseek-ai-dsh-sdkwork-directory-picker-auto/summary:
+  en: 96d5f8d298e62154
+  zh: 35c4615ab6840ddf
+/deepseek-ai-dsh-sdkwork-directory-picker-auto/table-of-contents:
+  en: fe1ecb09a73d1c7a
+  zh: 735dabcb5d2e35ed
+/deepseek-ai-dsh-sdkwork-directory-picker-auto/use-this-package:
+  en: bd7334c0c43dee35
+  zh: 061455c31b2e0786
+/deepseek-ai-dsh-sdkwork-directory-picker-auto/use-this-package/how-the-choice-is-made:
+  en: 2ff5f44f89496f43
+  zh: 01f1a82da56a01c0
+/deepseek-ai-dsh-sdkwork-directory-picker-auto/use-this-package/what-you-get:
+  en: cf33e6bec07e5db2
+  zh: 1e9ac0829dfc36d5
+/deepseek-ai-dsh-sdkwork-directory-picker-auto/understand-the-implementation:
+  en: 876367d129490115
+  zh: 0c5c3ba18b3136f5
+/deepseek-ai-dsh-sdkwork-directory-picker-auto/dev-note:
+  en: 2eb33e8a5cb943e6
+  zh: 1d2690e9dfb9539e
+/deepseek-ai-dsh-sdkwork-directory-picker-auto/model-experience:
+  en: 2248d656d4031709
+  zh: 713a7ecd3f0ea5d1
+/deepseek-ai-dsh-sdkwork-directory-picker-auto/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: 123b450ae1406e9d
+/deepseek-ai-dsh-sdkwork-directory-picker-auto/known-limitations-and-deferred-work:
+  en: ac47779d0ee7808b
+  zh: 15352a4f295f2632

@@ -20,6 +20,7 @@ SDKWork 部署环境插件：共享的 `ui-sdkwork-env` 设置作用域（活动
 - [已知限制与后续工作](#known-limitations-and-deferred-work)
 - [开发备注](#dev-note)
 
+<a id="configuration"></a>
 ## 配置
 
 `ui-sdkwork-env` 设置命名空间（本包 node 半部注册于 host 侧，经 api-proxy 的产品命名空间列表暴露给浏览器）携带：
@@ -52,6 +53,7 @@ ui-sdkwork-env:
 
 host 注册会把启动环境投影到命名空间的组合 `base` 层，因此 SDKWork env 文件可以直接驱动浏览器 SDK 配置，无需编辑设置文档。启动环境声明了 SDKWork profile（`SDKWORK_PROFILE_ID` 或 `SDKWORK_BIRDCODER_ENVIRONMENT`/`SDKWORK_ENVIRONMENT`）时，注册会设置 `environment` 为声明的层级（`development`、`test` / `staging` → `testing`、`production`）；活动 profile 的 `apiBaseUrl` 取 `SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL` / `SDKWORK_BIRDCODER_APP_API_BASE_URL` / `SDKWORK_BIRDCODER_APPLICATION_PUBLIC_HTTP_URL` 中首个非空值；活动 profile 的 `appId` 取 `SDKWORK_BIRDCODER_APP_ID` / `SDKWORK_APP_ID`（构建依据部署锚点物化出的已注册部署应用 id；已提交的占位符会被忽略、绝不投影），`appKey` 取 `SDKWORK_BIRDCODER_APP_KEY` / `SDKWORK_APP_KEY`，`accessToken` 取 `SDKWORK_ACCESS_TOKEN`（`@deepseek-ai/dsh-sdkwork-env-bootstrap` 的启动 ensure 步骤会把生成的 token 物化进进程环境），`imApiBaseUrl` 取 `SDKWORK_IM_API_BASE_URL` / `SDKWORK_BIRDCODER_IM_API_BASE_URL`，`imEmbedUrl` 取 `SDKWORK_IM_EMBED_URL` / `SDKWORK_BIRDCODER_IM_EMBED_URL`，`cloudRouterUrl` 取 `SDKWORK_CLOUDROUTER_PUBLIC_HTTP_URL` / `SDKWORK_CLOUDROUTER_ROUTER_APPLICATION_PUBLIC_HTTP_URL` / `SDKWORK_BIRDCODER_CLOUDROUTER_URL`。在源码 checkout 里，launcher 会先尊重复制到仓库根目录的 `.env`，再用跟当前生命周期环境匹配的 `.env.standalone.<environment>` 物化文件补齐缺失的 SDKWork 键，因此 `pnpm dsh web`、`pnpm desktop:dev` 与直接 Vite 构建会落在同一个生命周期槽位。解析顺序是 schema 默认值 → base 层 → 用户设置文档：用户编辑过的 `ui-sdkwork-env:` 分区始终优先，因此 env 文件是部署默认值而非强制覆盖。
 
+<a id="consumers"></a>
 ## 消费方
 
 - **ui-sdkwork-iam** 以活动 profile 的 `apiBaseUrl` 作为 IAM app-api origin、`appId` 作为租户应用 id；其自身设置分区只保留展示与登录开关。`cloudRouterUrl` 为「个人主页」分区的管理中心链接提供地址。托管认证页——浏览器登录及其退出登录页——属于 OEM profile 的 `iamAuthorizeBaseUrl`，因此二者始终位于同一个 origin。
@@ -68,6 +70,10 @@ host 注册会把启动环境投影到命名空间的组合 `base` 层，因此 
 
 插件还会把活动 profile 发布到 SDKWork 浏览器运行时桥（`globalThis.SDKWORK_RUNTIME_ENV`：`SDKWORK_API_BASE_URL`、`SDKWORK_IM_API_BASE_URL`、`SDKWORK_ENVIRONMENT`），并在环境切换时更新，使共享 SDK 解析器访问当前网关，而不是 SDK 发布时内置的基址。
 
+## 运行时不变量
+
+不发布运行时不变量伴随检查；环境服务是纯 settings 镜像——所有消费插件都通过同一服务面读取激活 profile，profile 一致性直接由本包的客户端行为规格测试覆盖。
+
 ## Model Experience
 
 无，因为环境服务是纯设置表面，这里的内容不会进入模型请求。
@@ -76,11 +82,13 @@ host 注册会把启动环境投影到命名空间的组合 `base` 层，因此 
 
 无；本包既不组装也不发送 provider 请求。
 
+<a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与后续工作
 
 - **access token 按环境共享**——profile 为所有 API 客户端携带一个静态 token；按消费者隔离凭据需要 credential-reference 集成。
 - **环境切换是设置文档编辑**——暂无应用内环境选择器；切换在下一次作用域移动时生效，无需重载。
 
+<a id="dev-note"></a>
 ### 开发备注
 
 <details>
@@ -89,7 +97,3 @@ host 注册会把启动环境投影到命名空间的组合 `base` 层，因此 
 解析顺序是 schema 默认值 → 启动环境 `base` 层 → 用户设置文档——用户编辑过的 `ui-sdkwork-env:` 分区始终优先，因此 env 文件是部署默认值而非强制覆盖。每个 sdkwork 集成插件都从这一个 `ctx.env` 服务读取部署值；新增消费方意味着在这里扩展 profile 语义，而不是再立一个设置命名空间。
 
 </details>
-
-## 运行时不变量
-
-不发布运行时不变量伴随检查；环境服务是纯 settings 镜像——所有消费插件都通过同一服务面读取激活 profile，profile 一致性直接由本包的客户端行为规格测试覆盖。

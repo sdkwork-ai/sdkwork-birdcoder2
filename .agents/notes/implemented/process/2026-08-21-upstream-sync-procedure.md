@@ -6,9 +6,9 @@ English | [中文](2026-08-21-upstream-sync-procedure.zh.md)
 
 ## Problem
 
-`main` is a fork of `deepseek-ai/deepseek-harness` that keeps merging upstream while carrying SDKWork-specific functionality. A sync that overwrites fork features, squashes upstream history, or resolves conflicts in the wrong direction destroys either the open-source lineage or the product. The first full sync (2026-08-21, upstream `528c682e06`) established the working procedure; this note records it so every later sync follows the same steps and the same conflict rules.
+`main` is a fork of `deepseek-ai/deepseek-harness` that keeps merging upstream while carrying SDKWork-specific functionality. A sync that overwrites fork features, squashes upstream history, or resolves conflicts in the wrong direction destroys either the open-source lineage or the product. The first full sync (2026-08-21) established the working procedure; this note records it so every later sync follows the same steps and the same conflict rules.
 
-## Procedure
+## Decision
 
 1. **Checkpoint any in-progress work first.** Uncommitted staged/unstaged changes (a previous SDKWork sync, renames, docs) must be preserved: commit them onto a `wip/<topic>-<date>` branch with `--no-verify` (the WIP state does not pass hygiene gates by definition), then reset `main` clean. Never merge on top of a dirty tree — git will refuse or half-merge.
 2. **Fetch and merge with real history.** `git fetch upstream && git merge upstream/master` creates a merge commit that carries upstream's commits and messages verbatim. Never squash, rebase-flatten, or cherry-pick upstream onto main: the fork's merge history is what keeps future diffs small and the open-source lineage intact.
@@ -26,7 +26,7 @@ English | [中文](2026-08-21-upstream-sync-procedure.zh.md)
 10. **Re-converge the release family version (2026-09-11 lesson).** `DshFamily.verifyVersions` requires one shared version across every publishable member (`packages/!(experimental)/*/package.json` plus `apps/*/package.json`, minus `private: true`), and both merge parents enforce it. Upstream's bump lands only on the files upstream edits: a fork-only member has no upstream counterpart, so it never conflicts and keeps the previous version line. The 2026-09-11 sync left 49 fork manifests at `0.1.5-alpha.1`/`0.1.5-alpha.2` while upstream moved 266 to `0.1.5-rc.2`, the drift was committed, and every `release:pack --family dsh` aborted on the family version gate before packing anything. After resolving the merge, read the merged root version, write it onto every lagging member manifest, then `pnpm install --lockfile-only` and confirm the family reports one version.
 11. **Advance the sibling pins with the lockfile (2026-09-11 lesson).** CI clones the `scripts/sdkwork-sources.manifest.json` pins into `../sdkwork-*` and then runs `pnpm install --frozen-lockfile`, but `pnpm-lock.yaml` records the specifiers resolved from the *local* sibling checkouts. A pin behind its local HEAD therefore installs cleanly on the maintainer's machine and fails on every CI runner with `ERR_PNPM_OUTDATED_LOCKFILE`, which reads as a lockfile problem rather than a pin problem. Push the sibling repositories, point each pin at the pushed HEAD, and only then re-record and verify the lockfile — before pushing the merge.
 
-## Conflict decision table
+### Conflict decision table
 
 | Surface | Take | Why |
 |---|---|---|
@@ -40,6 +40,12 @@ English | [中文](2026-08-21-upstream-sync-procedure.zh.md)
 | Logo / brand-mark surfaces | ours (`BirdLogo`) | fork product identity is the BirdCoder bird; upstream fish fallbacks never land on fork surfaces |
 | Service interface upstream changed | implement new interface in fork code | reverting the interface would fork upstream's contract |
 
-## Outcome
+## Consequences
 
 The 2026-08-21 sync merged 172 upstream commits with 277 conflicted files, added the fork's `sdkwork-` naming contract to AGENTS.md, fixed two real interface gaps (desktop-carrier `renderIndex`; test boot-marker assertion), and landed with zero merge-introduced typecheck or test regressions. The remaining failures (sdkwork sibling API drift, stale bilingual pairs) are pre-existing fork debt tracked by the WIP branch.
+
+## Alternatives considered
+
+**Rebase the fork onto upstream instead of merging.** Rejected: a rebase rewrites fork history and replays every conflict synthetically, losing the merge-base record the next sync depends on.
+
+**Squash upstream into one commit.** Rejected: it destroys upstream history and makes the next incremental sync unable to compute its merge base.

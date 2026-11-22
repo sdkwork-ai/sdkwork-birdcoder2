@@ -7,17 +7,15 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-## Summary
+## 概述
 
 每个带清单的 SDKWork 应用根都按 Profile 持有一个公共应用访问令牌（`APP_ACCESS_TOKEN_SPEC.md` §2）。本插件从工作区行入口初始化这套矩阵：右键名称以 `sdkwork-` 开头的工程目录并选择 **初始化 Access Token**。弹窗会发现应用根（工程根本身或其 `apps/*` 子目录），读取各自的 `agent.app.config.json`，让操作者选择 Token 级别、应用类型、运行时目标与环境，预览声明后再把确定性的令牌写入各格式已提交的 Profile 文件。
 
-## Table of Contents
+## 目录
 
 - [Use this package](#use-this-package)
 - [Understand the implementation](#understand-the-implementation)
 - [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
-
------
 
 <a id="use-this-package"></a>
 
@@ -99,7 +97,7 @@ kind: "package-reference"
 
 <a id="known-limitations-and-deferred-work"></a>
 
-## Dev Note
+## 开发备注
 
 这是遵循仓库命名契约的 fork 包（`sdkwork` 标记）。Host 侧拥有标准设置分区与 DSH home 投影；浏览器侧是动态插件，文件访问经过受治理的 `uiWorkspace` 目录桥（单次文本写入上限 1 MiB，父目录必须已存在），签名流程使用生成式 SDKWork 客户端，基于已挂载 IAM 会话或密码登录。
 

@@ -2,7 +2,7 @@
 
 The only owner of Capacitor configuration, plugin implementation, generated native projects, and platform-specific host implementations.
 
-- Surface: `[object Object]`
+- Surface: `h5`
 - Layer role: `host`
 - Standard: `MODULE_SPEC.md`, `APP_H5_ARCHITECTURE_SPEC.md`
 

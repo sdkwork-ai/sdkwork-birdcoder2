@@ -9,9 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-一个设置页——「语音模型」——掌管*语音合成与转写可以调用到哪里*：sdkwork-models 目录已收录的语音官方厂商，以及用户用自有 Base URL 指过来的任意数量中转站。每个服务商行都带有自己的 Base URL、协议、区域、密钥来源与模型清单，因此「同一语音模型经由厂商」与「经由中转站」是两行互不查询的独立配置。初始行来自目录本身：每个厂商带上传其目录公布的 API 根地址与该厂商全部语音模型，默认停用且无密钥，直到用户提供凭据。
-
-该设置段还会被投影成一个文件——宿主 home 下 `sdkwork` 目录中的 `voice-models.sdkwork.json`——因为技能无法读取设置文档。该文件正是本设置段对外可读的形态：启动时与每次提交被接受后重写，从不手工编辑，也从不构成第二个权威。
+一个设置页——「语音模型」——掌管语音合成与转写可以调用到哪里：sdkwork-models 目录已收录的语音官方厂商，以及用户用自有 Base URL 指过来的任意数量中转站。每个服务商行都带有自己的 Base URL、协议、区域、密钥来源与模型清单，因此同一语音模型经由厂商与经由中转站是两行互不查询的独立配置。宿主半边把该设置段投影为宿主 home 下的 `voice-models.sdkwork.json` 供技能读取。
 
 ## 目录
 
@@ -23,6 +21,7 @@ kind: "package-reference"
 - [Model Experience](#model-experience)
 - [已知限制与后续工作](#known-limitations-and-deferred-work)
 
+<a id="surface"></a>
 ## 对外表面
 
 两处贡献，正好对应本功能跨越的两层：
@@ -30,6 +29,7 @@ kind: "package-reference"
 - **语音模型页** —— 浏览器半边注册一个 `settings.section`（id 为 `voice-models`，order 22，标题取自本包字典），由设置外壳渲染在内容列，并补上外壳并不知情的导航行。该页列出服务商卡片；每张卡片把文本字段与模型暂存在本地草稿中并在「保存」时提交，而含义唯一明确的开关（启用服务商、设为默认、投影密钥）立即提交。
 - **设置段与投影** —— 宿主半边把持久化的 `ui-sdkwork-voice-models` 设置段声明为自己的 `Config`，因此设置服务无需任何 `register` 调用即可提供它，同时写出 `.sdkwork.` 文档。写入是原子的（同目录临时文件改名覆盖目标）并按插件实例串行；写入失败只记录日志，绝不让插件失败。
 
+<a id="configuration"></a>
 ## 配置
 
 | 字段 | 含义 |
@@ -62,6 +62,7 @@ kind: "package-reference"
 | `speed` | 语速倍率，取值 `0.25`–`4`、步进 `0.05`；服务商默认为 `1`。 |
 | `language` | 朗读或转写所用语言的 BCP-47 标签（`zh-CN`），跟随绑定音色的 `primaryLocale`；为空表示使用音色自身默认。 |
 
+<a id="the-voice-modelssdkworkjson-document"></a>
 ### `voice-models.sdkwork.json` 文档
 
 ```json
@@ -103,12 +104,14 @@ kind: "package-reference"
 
 读取方通过 `defaultProviderId` 或 `id` 选择服务商，按 `enabled` 过滤，并在 `credential.env` 非空时从该环境变量取密钥。只有在 `writeSecrets` 打开**且**确有密钥原文时才会出现 `credential.value`；设置文档始终是密钥必须存在的那一处，这也是默认不把密钥写入文件的原因。
 
+<a id="providers-relays-and-credentials"></a>
 ### 服务商、中转站与密钥
 
 两种 kind 的区别在于「知道什么」，而不在于「能做什么」。官方行由目录播种，告诉用户有哪些厂商、它们在哪里应答；中转站行从空白开始，存在的原因是同一模型往往还能经由某个拥有自有 Base URL、密钥与命名的站点访问。二者都不享有特权：都带 Base URL、协议与模型清单，因此一次部署可以完全经由中转站打通全部模型，而不触碰任何官方行。
 
 密钥有两种可能来源，且该行同时保留两者。`apiKeyEnv` 命名一个环境变量并在调用时优先；`apiKey` 保存用户粘贴的原文。页面从不接收已保存的原文——它只显示「已配置」，未改动的字段保存为「保持原值」——因此一次设置往返不可能悄悄抹掉密钥。
 
+<a id="where-the-presets-come-from"></a>
 ### 预设数据从何而来
 
 `src/model-presets.ts` 由同级仓库 `sdkwork-models` 目录生成：
@@ -119,6 +122,12 @@ node scripts/generate-sdkwork-model-presets.mjs
 
 它读取每个厂商的 `vendor.json` 与模型文件，取每厂商规范的 `https://<host><pathPrefix>` 根地址，输出具备 voice 能力的厂商，以及所有主能力为 `audio` 的目录模型。目录升级后重新生成即可；该文件记录了生成所用的目录版本与时间。
 
+## 理解实现
+
+一个设置页——「语音模型」——掌管*语音合成与转写可以调用到哪里*：sdkwork-models 目录已收录的语音官方厂商，以及用户用自有 Base URL 指过来的任意数量中转站。每个服务商行都带有自己的 Base URL、协议、区域、密钥来源与模型清单，因此「同一语音模型经由厂商」与「经由中转站」是两行互不查询的独立配置。初始行来自目录本身：每个厂商带上传其目录公布的 API 根地址与该厂商全部语音模型，默认停用且无密钥，直到用户提供凭据。
+
+该设置段还会被投影成一个文件——宿主 home 下 `sdkwork` 目录中的 `voice-models.sdkwork.json`——因为技能无法读取设置文档。该文件正是本设置段对外可读的形态：启动时与每次提交被接受后重写，从不手工编辑，也从不构成第二个权威。
+
 ## Model Experience
 
 None, as the package configures where speech synthesis and transcription calls go and registers no prompt section, tool, or session event.
@@ -127,6 +136,7 @@ None, as the package configures where speech synthesis and transcription calls g
 
 None directly: the file and the section are read by voice consumers, which own their own request prefixes.
 
+<a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与后续工作
 
 - 本包不发起语音合成或转写调用：设置段与其投影都是配置，读取文件或设置段的消费方自行负责请求、重试与错误呈现。

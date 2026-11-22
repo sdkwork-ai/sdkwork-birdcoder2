@@ -1,8 +1,8 @@
 /**
- * Host-backed app packaging for the publish-as-template flow.
+ * Host-backed app packaging for the publish-as-scaffold flow.
  *
  * A project's `apps/` root lives on the local filesystem; the renderer may
- * read it only through the Host template bridge. The bridge lists the
+ * read it only through the Host scaffold bridge. The bridge lists the
  * packaging-eligible regular files and returns bounded base64 batches; this
  * module turns those batches into the lazy file face the existing
  * `.gitignore`-aware {@link packDirectory} packer consumes. Nothing is
@@ -10,18 +10,18 @@
  * files it actually includes.
  *
  * Sensitive local files are excluded before the packer sees them, so a
- * scaffold template can never ship a developer's `.env`, registry token, or
+ * scaffold can never ship a developer's `.env`, registry token, or
  * private key even when the app's `.gitignore` forgot to list it.
  */
 import { packDirectory, type DirectoryPack, type PackableFile } from './directoryArchive.ts'
 
 /** The Host bridge face this module consumes. */
-export interface TemplateArchivePort {
-  listTemplateFiles(directory: string): Promise<{
+export interface ScaffoldArchivePort {
+  listScaffoldFiles(directory: string): Promise<{
     readonly files: readonly { readonly path: string; readonly size: number }[]
     readonly truncated: boolean
   } | undefined>
-  readTemplateFiles(directory: string, paths: readonly string[]): Promise<readonly {
+  readScaffoldFiles(directory: string, paths: readonly string[]): Promise<readonly {
     readonly path: string
     readonly contentBase64: string
     readonly bytes: number
@@ -29,7 +29,7 @@ export interface TemplateArchivePort {
 }
 
 /** Progress through the host read phase. */
-export interface TemplateArchiveReadProgress {
+export interface ScaffoldArchiveReadProgress {
   /** Files read from the host so far. */
   readonly read: number
   /** Packaging-eligible files the listing reported. */
@@ -37,26 +37,26 @@ export interface TemplateArchiveReadProgress {
 }
 
 /** The app listing exceeded the host's file/depth bound. */
-export class TemplateArchiveTruncatedError extends Error {
+export class ScaffoldArchiveTruncatedError extends Error {
   constructor() {
-    super('template package: the app has more files than the host packaging bound')
-    this.name = 'TemplateArchiveTruncatedError'
+    super('scaffold package: the app has more files than the host packaging bound')
+    this.name = 'ScaffoldArchiveTruncatedError'
   }
 }
 
 /** The Host bridge is absent or failed, so no archive can be built. */
-export class TemplateArchiveUnavailableError extends Error {
+export class ScaffoldArchiveUnavailableError extends Error {
   constructor(directory: string) {
-    super(`template package: cannot read the app at "${directory}"`)
-    this.name = 'TemplateArchiveUnavailableError'
+    super(`scaffold package: cannot read the app at "${directory}"`)
+    this.name = 'ScaffoldArchiveUnavailableError'
   }
 }
 
 /** One packed app directory plus the packaging facts the UI reports. */
-export interface TemplateAppArchive extends DirectoryPack {
+export interface ScaffoldAppArchive extends DirectoryPack {
   /** Files the host listing reported. */
   readonly listedFiles: number
-  /** Sensitive local files deliberately kept out of the template. */
+  /** Sensitive local files deliberately kept out of the scaffold. */
   readonly excludedSensitive: readonly string[]
 }
 
@@ -67,31 +67,31 @@ const BATCH_FILES = 24
 const BATCH_BYTES = 16 * 1024 * 1024
 
 /** Packaging options. */
-export interface TemplatePackOptions {
+export interface ScaffoldPackOptions {
   /** Progress through the host read phase. */
-  readonly onReadProgress?: ((progress: TemplateArchiveReadProgress) => void) | undefined
+  readonly onReadProgress?: ((progress: ScaffoldArchiveReadProgress) => void) | undefined
 }
 
 /**
- * Pack one app root into a zip through the Host template bridge.
+ * Pack one app root into a zip through the Host scaffold bridge.
  * @param port - the host listing/read capabilities.
  * @param directory - absolute app root.
  * @param maxBytes - inclusive byte cap over the included files.
  * @param options - progress reporting.
  * @returns the archive, checksum, and packaging facts.
- * @throws TemplateArchiveUnavailableError when the host bridge is absent or
- *   the listing failed, TemplateArchiveTruncatedError when the listing was
+ * @throws ScaffoldArchiveUnavailableError when the host bridge is absent or
+ *   the listing failed, ScaffoldArchiveTruncatedError when the listing was
  *   cut by a host bound, and the packer's own empty/over-cap errors.
  */
-export async function packTemplateApp(
-  port: TemplateArchivePort,
+export async function packScaffoldApp(
+  port: ScaffoldArchivePort,
   directory: string,
   maxBytes: number,
-  options: TemplatePackOptions = {},
-): Promise<TemplateAppArchive> {
-  const listing = await port.listTemplateFiles(directory)
-  if (listing === undefined) throw new TemplateArchiveUnavailableError(directory)
-  if (listing.truncated) throw new TemplateArchiveTruncatedError()
+  options: ScaffoldPackOptions = {},
+): Promise<ScaffoldAppArchive> {
+  const listing = await port.listScaffoldFiles(directory)
+  if (listing === undefined) throw new ScaffoldArchiveUnavailableError(directory)
+  if (listing.truncated) throw new ScaffoldArchiveTruncatedError()
   const sensitive: string[] = []
   const packable: { readonly path: string; readonly size: number }[] = []
   for (const file of listing.files) {
@@ -102,7 +102,7 @@ export async function packTemplateApp(
     packable.push(file)
   }
   if (packable.length === 0) {
-    throw new Error('template package: the app has no packaging-eligible files')
+    throw new Error('scaffold package: the app has no packaging-eligible files')
   }
   const cache = new Map<string, Uint8Array>()
   const indexOf = new Map(packable.map((file, index) => [file.path, index]))
@@ -115,7 +115,7 @@ export async function packTemplateApp(
     const cached = cache.get(path)
     if (cached !== undefined) return cached
     const start = indexOf.get(path)
-    if (start === undefined) throw new TemplateArchiveUnavailableError(directory)
+    if (start === undefined) throw new ScaffoldArchiveUnavailableError(directory)
     const batch: string[] = []
     let bytes = 0
     for (let index = start; index < packable.length && batch.length < BATCH_FILES; index += 1) {
@@ -125,13 +125,13 @@ export async function packTemplateApp(
       batch.push(file.path)
       bytes += file.size
     }
-    const read = await port.readTemplateFiles(directory, batch)
-    if (read === undefined) throw new TemplateArchiveUnavailableError(directory)
+    const read = await port.readScaffoldFiles(directory, batch)
+    if (read === undefined) throw new ScaffoldArchiveUnavailableError(directory)
     for (const file of read) {
       cache.set(file.path, decodeBase64(file.contentBase64))
     }
     const loaded = cache.get(path)
-    if (loaded === undefined) throw new TemplateArchiveUnavailableError(directory)
+    if (loaded === undefined) throw new ScaffoldArchiveUnavailableError(directory)
     report()
     return loaded
   }
@@ -149,15 +149,15 @@ export async function packTemplateApp(
 }
 
 /**
- * True for files that carry machine-local secrets a template must never
- * publish. Dotfiles are otherwise legitimate template content.
+ * True for files that carry machine-local secrets a scaffold must never
+ * publish. Dotfiles are otherwise legitimate scaffold content.
  * @param path - app-relative posix path.
  * @returns whether the file is a sensitive local carrier.
  */
 export function isSensitiveSourcePath(path: string): boolean {
   const name = (path.split('/').at(-1) ?? path).toLowerCase()
   // `.env` and local overrides are machine-private. Checked-in per-profile
-  // templates (`.env.<mode>.<environment>`) are source the scaffold needs;
+  // scaffolds (`.env.<mode>.<environment>`) are source the scaffold needs;
   // the packer's `.gitignore` cascade already drops whatever the repository
   // ignores, including a locally kept `.env.production`.
   if (name === '.env' || name === '.env.local') return true

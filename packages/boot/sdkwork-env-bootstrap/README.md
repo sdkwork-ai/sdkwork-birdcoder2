@@ -9,20 +9,16 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-SDKWork bootstrap env glue for the harness app bins: resolve the deployment profile the launch environment declares (`SDKWORK_PROFILE_ID` / `SDKWORK_BIRDCODER_ENVIRONMENT` / `SDKWORK_ENVIRONMENT`) and ensure a bootstrap access token exists, reusing `@sdkwork/iam-credential-entry` for token generation and env-file parsing. Source checkouts (`pnpm dsh web`, `pnpm desktop:dev`, and Vite builds under `apps/web`) first honor the repo-root `.env` when present, then fall back to the tracked `.env.standalone.<environment>` materialization for the selected lifecycle environment; packaged, npx, and container launches still fall back to `https://api.birdcoder.com`.
-
-Per sdkwork-specs `ENVIRONMENT_SPEC.md` section 6.1, an explicitly configured `SDKWORK_ACCESS_TOKEN`, the IAM application-bootstrap registration output (`.sdkwork.local.env`), and an existing credential-bundle token win without loading `@sdkwork/iam-credential-entry`. The development tier generates a disposable local JWT into the user-private credential bundle `~/.sdkwork/<application-code>/credentials/<profile-id>.json` (`IAM_APPLICATION_BOOTSTRAP_SPEC.md` section 5.4.1) wherever its gateway lives: section 6.1 attaches no locality clause to development, and the tracked development gateway accepts the generated fixture. Every other tier generates only when the active SDKWork gateway reaches this machine — a loopback literal (`localhost`, any `127.0.0.0/8` address, `::1`) or a hostname the system hosts file maps to a loopback address, which is how a developer publishes the local platform gateway under the tier's domain. Test additionally requires `--allow-test-token-generation`. Reuse is claims-based per `IAM_APPLICATION_BOOTSTRAP_SPEC.md` section 5.4.2 — expiry, lifecycle, and manifest identity decide, never the JWT issuer, because the production gateway signs its own bootstrap credentials with the same `iss: sdkwork-iam-local` a local IAM uses; a token minted by the wrong gateway fails at request time and is regenerated then. Before any of that, IAM application bootstrap provisioning runs for every tier when operator credentials allow it (`~/.sdkwork/iam-bootstrap/<lifecycle>.json` or `SDKWORK_IAM_BOOTSTRAP_OPERATOR_USERNAME`/`PASSWORD`) — a production or staging launch with such credentials self-provisions and caches the profile-scoped credential bundle, so an expired token renews on the next launch with no manual step; staging and production fail closed only when no credentials provisioned a token (`IAM_APPLICATION_BOOTSTRAP_SPEC.md` section 5.4.3 binds the fail-closed rule to fixture generation). Failures never throw: the caller continues with interactive IAM login as the credential fallback.
-
-The module deliberately copies none of the canonical SDKWork logic: JWT creation, manifest identity lookup, env merge, bootstrap env-file parsing, and serialization all stay in `@sdkwork/iam-credential-entry`, which is loaded dynamically so a harness without the SDKWork sibling checkouts still boots. An existing overlay is parsed with `node:util.parseEnv` so `pnpm desktop:dev` still projects the token when that dynamic import cannot resolve.
-
-The `<application-code>` directory of the bundle is resolved from `SDKWORK_APPLICATION_CODE` when the launch declares it, otherwise from the manifest `app.key` with its vendor prefix removed, otherwise from the invoking directory name. An installed application has no manifest and its Host runs from `<home>/profiles/desktop`, a name that identifies nothing, so a launcher exports the code explicitly; a source launcher derives it from the manifest, and both then address the same `~/.sdkwork/<application-code>/` store a `pnpm env:token:ensure` run provisions on that machine.
+SDKWork bootstrap env glue for the harness app bins: resolve the deployment profile the launch environment declares and ensure a bootstrap access token exists, reusing `@sdkwork/iam-credential-entry` for token generation and env-file parsing. Source checkouts honor the repo-root `.env` first and otherwise materialize the tracked tier file; packaged, npx, and container launches fall back to the hosted gateway. Token generation follows the tier: a disposable local JWT in development, a loopback gateway elsewhere; failures never throw and leave the caller on interactive IAM login.
 
 ## Table of Contents
 
 - [Usage](#usage)
+- [Understand the implementation](#understand-the-implementation)
 - [Model Experience](#model-experience)
 - [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
 - [Dev Note](#dev-note)
+
 ## Usage
 ```sh
 pnpm env:token:ensure [--allow-test-token-generation] [--environment <tier>]
@@ -34,10 +30,29 @@ pnpm env:token:ensure [--allow-test-token-generation] [--environment <tier>]
 A deployment another application injected is not an operator override: `applySdkworkLaunchEnv` first drops inherited SDKWork values that still match the marker `markInjectedSdkworkEnv` recorded (`clearInheritedInjectedSdkworkEnv`). A packaged Desktop application resolves its deployment into `process.env`, every process it spawns inherits it, so without that rule a source launch started from such a shell would adopt the packaged deployment's gateway. A value changed after the injection differs from the marker and still wins. A packaged build predating the marker leaves no provenance at all, so a source launch also drops an inherited deployment that is still exactly this module's production defaults — the production profile id together with the production gateway URL, with every other deployment key present unchanged. A partial or customized set never matches, so an operator override survives, and a developer who genuinely wants production from a source checkout still selects it through the repository `.env` layer, which is applied after the drop.
 
 A source checkout that pins production itself (`pnpm desktop:prod`) keeps the invoking directory as its project layer, so the checkout `.env` never joins that launch, but it still applies the tracked `.env.standalone.production` materialization and that profile's credential bundle. That materialization owns the deployment's public application access token, which does not expire in normal operation (`exp` is a rotation ceiling, and its `0` sentinel means "never"): a launch whose configured token is stale, or that resolved no token at all, runs on the committed one instead of failing closed, and only a staging/production launch without any committed token defers to interactive IAM login.
+
+## Runtime invariants
+
+No runtime invariant companion is published; this package owns no durable package-local event stream; the overlay file effect is covered by unit tests, and env-file parsing stays in the canonical `@sdkwork/iam-credential-entry` package.
+
+## Understand the implementation
+
+SDKWork bootstrap env glue for the harness app bins: resolve the deployment profile the launch environment declares (`SDKWORK_PROFILE_ID` / `SDKWORK_BIRDCODER_ENVIRONMENT` / `SDKWORK_ENVIRONMENT`) and ensure a bootstrap access token exists, reusing `@sdkwork/iam-credential-entry` for token generation and env-file parsing. Source checkouts (`pnpm dsh web`, `pnpm desktop:dev`, and Vite builds under `apps/web`) first honor the repo-root `.env` when present, then fall back to the tracked `.env.standalone.<environment>` materialization for the selected lifecycle environment; packaged, npx, and container launches still fall back to `https://api.birdcoder.com`.
+
+Per sdkwork-specs `ENVIRONMENT_SPEC.md` section 6.1, an explicitly configured `SDKWORK_ACCESS_TOKEN`, the IAM application-bootstrap registration output (`.sdkwork.local.env`), and an existing credential-bundle token win without loading `@sdkwork/iam-credential-entry`. The development tier generates a disposable local JWT into the user-private credential bundle `~/.sdkwork/<application-code>/credentials/<profile-id>.json` (`IAM_APPLICATION_BOOTSTRAP_SPEC.md` section 5.4.1) wherever its gateway lives: section 6.1 attaches no locality clause to development, and the tracked development gateway accepts the generated fixture. Every other tier generates only when the active SDKWork gateway reaches this machine — a loopback literal (`localhost`, any `127.0.0.0/8` address, `::1`) or a hostname the system hosts file maps to a loopback address, which is how a developer publishes the local platform gateway under the tier's domain. Test additionally requires `--allow-test-token-generation`. Reuse is claims-based per `IAM_APPLICATION_BOOTSTRAP_SPEC.md` section 5.4.2 — expiry, lifecycle, and manifest identity decide, never the JWT issuer, because the production gateway signs its own bootstrap credentials with the same `iss: sdkwork-iam-local` a local IAM uses; a token minted by the wrong gateway fails at request time and is regenerated then. Before any of that, IAM application bootstrap provisioning runs for every tier when operator credentials allow it (`~/.sdkwork/iam-bootstrap/<lifecycle>.json` or `SDKWORK_IAM_BOOTSTRAP_OPERATOR_USERNAME`/`PASSWORD`) — a production or staging launch with such credentials self-provisions and caches the profile-scoped credential bundle, so an expired token renews on the next launch with no manual step; staging and production fail closed only when no credentials provisioned a token (`IAM_APPLICATION_BOOTSTRAP_SPEC.md` section 5.4.3 binds the fail-closed rule to fixture generation). Failures never throw: the caller continues with interactive IAM login as the credential fallback.
+
+The module deliberately copies none of the canonical SDKWork logic: JWT creation, manifest identity lookup, env merge, bootstrap env-file parsing, and serialization all stay in `@sdkwork/iam-credential-entry`, which is loaded dynamically so a harness without the SDKWork sibling checkouts still boots. An existing overlay is parsed with `node:util.parseEnv` so `pnpm desktop:dev` still projects the token when that dynamic import cannot resolve.
+
+The `<application-code>` directory of the bundle is resolved from `SDKWORK_APPLICATION_CODE` when the launch declares it, otherwise from the manifest `app.key` with its vendor prefix removed, otherwise from the invoking directory name. An installed application has no manifest and its Host runs from `<home>/profiles/desktop`, a name that identifies nothing, so a launcher exports the code explicitly; a source launcher derives it from the manifest, and both then address the same `~/.sdkwork/<application-code>/` store a `pnpm env:token:ensure` run provisions on that machine.
+
 ## Model Experience
+
 None, as the package runs on the host side only and writes the user-private credential bundle without touching a model request.
+
 #### KV Cache effect
+
 None; this package neither assembles nor sends provider requests.
+
 ## Known Limitations and Deferred Work
 - **Token refresh is manual**: an overlay token is reused until the file is deleted (or the overlay is removed), so an expired 24-hour fixture JWT requires deleting the overlay and restarting. The canonical package owns token validity; this module only reads a token's `app_id` claim, without validating it.
 - **Browser runtimes never register or generate**: token generation happens in host launchers only, per `IAM_APPLICATION_BOOTSTRAP_SPEC.md`.
@@ -50,7 +65,3 @@ None; this package neither assembles nor sends provider requests.
 The token-resolution order (explicit `SDKWORK_ACCESS_TOKEN` > IAM registration output > existing overlay > generated fixture) mirrors sdkwork-specs `ENVIRONMENT_SPEC.md` §6.1; keep that section and this module in step when the spec moves. The dynamic `@sdkwork/iam-credential-entry` import is load-bearing for sibling-less checkouts — do not hoist it to a static import.
 
 </details>
-
-## Runtime invariants
-
-No runtime invariant companion is published; this package owns no durable package-local event stream; the overlay file effect is covered by unit tests, and env-file parsing stays in the canonical `@sdkwork/iam-credential-entry` package.

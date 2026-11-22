@@ -9,10 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-
-`@deepseek-ai/dsh-client-ui-sdkwork-token-plan` contributes the `token-plan` application mode. Its rail entry is the final mode entry, immediately above the independent Settings seat. It also contributes the settings-menu wallet card (`settings.menu.plan`): the signed-in account's plan name and Token Bank balance (plan from Membership, balance from the Token Bank account the purchase modal tops up), with an upgrade action that opens the mode and a top-up action that opens the points purchase modal (`settings.pointsRecharge`) instead of navigating away. The same service backs a `套餐与积分` settings section (`settings.section` id `points`) with the available/frozen wallet split, recent points ledger, overview progress, and an upgrade route.
-
-The page renders the SDKWork membership subscription catalog and composes SDKWork Order checkout, compute-account recharge, and coupon redemption dialogs. Membership owns catalog and plan behavior; Order owns payment and recharge operations.
+`@deepseek-ai/dsh-client-ui-sdkwork-token-plan` contributes the `token-plan` application mode, its rail entry, and the settings-menu wallet card that shows the signed-in account's plan name and Token Bank balance with upgrade and top-up actions. The page renders the SDKWork membership subscription catalog and composes SDKWork Order checkout, compute-account recharge, and coupon redemption dialogs, and the same service backs a `套餐与积分` settings section with the wallet split, points ledger, and upgrade route.
 
 ## Table of Contents
 
@@ -37,6 +34,16 @@ Recharge orders and coupon redemptions are user-initiated mutations and require 
 
 The active environment must provide an API base URL before the page can issue catalog or commerce requests. The page reports the missing configuration instead of selecting another deployment implicitly.
 
+## Runtime invariants
+
+No runtime invariant companion is published; the token-plan surface reads the authoritative usage and plan facts from the owning controller and renders them statelessly; refresh agreement is covered directly by this package client behavior specs.
+
+## Understand the implementation
+
+`@deepseek-ai/dsh-client-ui-sdkwork-token-plan` contributes the `token-plan` application mode. Its rail entry is the final mode entry, immediately above the independent Settings seat. It also contributes the settings-menu wallet card (`settings.menu.plan`): the signed-in account's plan name and Token Bank balance (plan from Membership, balance from the Token Bank account the purchase modal tops up), with an upgrade action that opens the mode and a top-up action that opens the points purchase modal (`settings.pointsRecharge`) instead of navigating away. The same service backs a `套餐与积分` settings section (`settings.section` id `points`) with the available/frozen wallet split, recent points ledger, overview progress, and an upgrade route.
+
+The page renders the SDKWork membership subscription catalog and composes SDKWork Order checkout, compute-account recharge, and coupon redemption dialogs. Membership owns catalog and plan behavior; Order owns payment and recharge operations.
+
 ## Model Experience
 
 None, as the Token Plan page is browser-side SDKWork commerce UI and its business HTTP requests remain separate from Harness model requests.
@@ -59,7 +66,3 @@ None; this package neither assembles nor sends provider requests.
 IAM session tokens are the checkout credentials; the static environment token only fills Access-Token when the IAM session omits it and is the anonymous catalog credential when signed out, while Membership checkout requires both Access-Token and authToken. The page fails loud on a missing API base URL rather than implicitly selecting another deployment.
 
 </details>
-
-## Runtime invariants
-
-No runtime invariant companion is published; the token-plan surface reads the authoritative usage and plan facts from the owning controller and renders them statelessly; refresh agreement is covered directly by this package client behavior specs.

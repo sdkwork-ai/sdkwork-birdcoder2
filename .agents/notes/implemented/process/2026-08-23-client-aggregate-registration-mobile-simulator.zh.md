@@ -19,3 +19,7 @@ Client tsc 阶段现在会为模拟器包生成 `lib/types`，Client tsdown 阶�
 ## 测试
 
 干净树复演：`tsc -b tsconfig.host.json`、Host tsdown 阶段、`tsc -b tsconfig.client.json`、Client tsdown 阶段全部完成。
+
+## 备选方案
+
+**保留当前行为。** 否决原因：问题一节记录的就是该行为造成的具体故障。

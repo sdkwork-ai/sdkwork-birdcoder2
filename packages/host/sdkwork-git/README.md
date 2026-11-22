@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Host capability for the session-header git pill: `sdkworkGit.status(cwd)` reports the checked-out branch (null on detached HEAD), the HEAD commit, the uncommitted file count (every staged, modified, and untracked path one `git status` reports), and ahead/behind counts; `sdkworkGit.branches(cwd)` lists the local branches (current first, then name order); `sdkworkGit.checkout(cwd, branch)` switches to an existing local branch after confirming it exists; `sdkworkGit.createAndCheckout(cwd, name)` validates the name through `git check-ref-format` before creating and switching; `sdkworkGit.log(cwd, limit)` returns recent commits with their parent topology and ref decorations (HEAD branch, local branches, remote-tracking refs classified against `refs/remotes`, tags). Every call validates the directory (absolute, existing, a directory) and its repository status (`git rev-parse` through simple-git's `checkIsRepo`) before any git command runs. Git subprocesses run with a 15-second wall-clock block timeout, so a wedged repository cannot hang the wire. The wire face over this seam is the [`sdkwork-git-controller`](../../api/sdkwork-git-controller/README.md) Remote; this package owns no transport.
+Host capability for the session-header git pill. `sdkworkGit.status(cwd)` reports the checked-out branch (null on detached HEAD), the HEAD commit, the uncommitted file count, and ahead/behind counts; `branches(cwd)` lists the local branches with the current one first; `checkout(cwd, branch)` switches to an existing local branch, `createAndCheckout(cwd, name)` validates the name through `git check-ref-format` first, and `log(cwd, limit)` returns recent commits with their parent topology and ref decorations. Every call validates the directory and its repository status before any git command runs.
 
 ## Table of Contents
 
@@ -31,6 +31,8 @@ Mount the service in a host profile (`static inject = ['sdkworkGit']` from the c
 ## Understand the implementation
 
 Each call builds a fresh simple-git handle bound to the resolved directory (stateless; no cached repository state). Branch listings parse `git branch --format=%(refname:short) %(objectname) %(HEAD)` — refnames never contain spaces, so each row is name, sha, and the optional ` *` marker. The graph log parses `log --pretty=format:%x1e…%x1f…` control-character-separated rows (hash, parents, author, time, %D decorations, subject) and classifies the decorations against a `for-each-ref refs/remotes` set, since a local branch may legitimately contain a slash; the HEAD branch is attributed from rev-parse, which does not depend on the decoration format. `checkout` confirms the branch exists locally before switching, so a missing branch fails as `checkout-failed` instead of leaking raw git output; `createAndCheckout` checks the ref format before touching HEAD, failing as `branch-name-invalid`.
+
+Every staged, modified, and untracked path one `git status` reports counts as uncommitted; `branches` orders the current branch first, then by name; `log`'s ref decorations classify HEAD branch, local branches, remote-tracking refs against `refs/remotes`, and tags. Git subprocesses run with a 15-second wall-clock block timeout, so a wedged repository cannot hang the wire. The wire face over this seam is the [`sdkwork-git-controller`](../../api/sdkwork-git-controller/README.md) Remote; this package owns no transport.
 
 <a id="further-exploration"></a>
 

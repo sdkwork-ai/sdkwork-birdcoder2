@@ -2,7 +2,7 @@
 
 Shell scaffold, tab bar, navigation, route projection input.
 
-- Surface: `[object Object]`
+- Surface: `mini-program`
 - Layer role: `shell`
 - Standard: `MODULE_SPEC.md`, `MINI_PROGRAM_APP_ARCHITECTURE_SPEC.md`
 

@@ -45,3 +45,13 @@ Completed in the WIP branch `wip/sdkwork-sync-2026-08-21` (checkpointed 2026-08-
 - `sdkwork-env-bootstrap` (boot) — already conforming
 
 Any fork package not listed here that still uses a plain name must be renamed before its next upstream sync, and this ledger updated.
+
+## Consequences
+
+Fork-owned packages are distinguishable from upstream's before conflict resolution starts: a merge can keep the fork's version of a marked package without adjudicating it file by file, and a plain name now identifies legitimate rename debt. The rename ledger extends that rule into imports, tsconfig paths, cordis rows, docs, and tests, so no dual-name compatibility path can creep back.
+
+## Alternatives considered
+
+**Keep plain names and rely on merge review.** Rejected: the 2026-08-21 sync showed conflict resolution cannot tell a fork package from upstream's without the marker.
+
+**Rescope only the packages that collide.** Rejected: a collision surfaces during a merge, which is exactly when a rename is most expensive.

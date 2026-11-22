@@ -9,23 +9,26 @@
   en: b5e0fa6d8cb5134d
   zh: d1ceef5c967256fd
 /deepseek-ai-dsh-client-ui-sdkwork-git-pullrequest/summary:
-  en: 5a03a29d10b6f540
-  zh: f010f547574f556c
+  en: f608ed07967dbee7
+  zh: 5e2b82bba34401cf
 /deepseek-ai-dsh-client-ui-sdkwork-git-pullrequest/table-of-contents:
   en: 638dd73bc5b9dc7a
   zh: 71fc381c13b627ee
+/deepseek-ai-dsh-client-ui-sdkwork-git-pullrequest/understand-the-implementation:
+  en: 0d7ac69eff7bad76
+  zh: 34dea411cc9354fb
+/deepseek-ai-dsh-client-ui-sdkwork-git-pullrequest/runtime-invariants:
+  en: ce0c5dd41d9b1003
+  zh: 6cbc435ac13d47e4
 /deepseek-ai-dsh-client-ui-sdkwork-git-pullrequest/model-experience:
   en: a3e56ee74f0340f0
   zh: c16ca3100099e188
 /deepseek-ai-dsh-client-ui-sdkwork-git-pullrequest/model-experience/kv-cache-effect:
   en: 6250c7744b2590b1
-  zh: 0f61970b090dee4b
+  zh: 18333807bb57c362
 /deepseek-ai-dsh-client-ui-sdkwork-git-pullrequest/known-limitations-and-deferred-work:
   en: a7f45a21ddef912a
-  zh: 24385220d0ad6505
+  zh: eed76a1462c80f16
 /deepseek-ai-dsh-client-ui-sdkwork-git-pullrequest/known-limitations-and-deferred-work/dev-note:
   en: e9cee36a5b4b740e
   zh: fd47f07289d4eab4
-/deepseek-ai-dsh-client-ui-sdkwork-git-pullrequest/runtime-invariants:
-  en: ce0c5dd41d9b1003
-  zh: 6cbc435ac13d47e4

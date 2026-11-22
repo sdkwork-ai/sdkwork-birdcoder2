@@ -9,7 +9,6 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-
 Browser-based mobile device simulator: renders web content inside an authentic device frame (iPhone, Samsung Galaxy, Huawei Mate/P, Xiaomi, OPPO, Google Pixel, OnePlus) with inline and modal display modes, supporting screen rotation, device switching, and user-agent emulation for both web and Electron compositions.
 
 The simulator is a pure presentation plugin — it contributes no host-side behavior, emits no Cordis events, and owns no cross-plugin mutable state. It mounts a target URL inside a scaled iframe that preserves the device's native aspect ratio, with the physical frame drawn entirely in HTML and CSS (inline SVG for notch/cutout shapes, no image assets).
@@ -70,9 +69,13 @@ The catalog covers 17+ devices across 8 brands. Each entry captures the physical
 
 Device metrics (screen dimensions, pixel ratio, notch style, safe-area insets, bezel radius, frame colors) follow Apple's developer documentation and the OEM spec sheets.
 
+## Runtime invariants
+
+No runtime invariant companion is published; it is a pure presentation plugin — it emits no cordis events and owns no cross-plugin mutable state; the device frame rendering and user-agent emulation are asserted by the component specs and the slot registrations by the plugin spec.
+
 ## Model Experience
 
-None, as the package is a pure presentation tool. The simulator renders web content in an iframe but does not submit messages, add session events, or change model requests.
+None, as the package is a pure presentation tool that renders web content in an iframe without submitting messages, adding session events, or changing model requests.
 
 #### KV Cache effect
 
@@ -95,7 +98,3 @@ None; the package never assembles or sends provider requests.
 The simulator is a pure presentation plugin: no host-side behavior, no Cordis events, no cross-plugin mutable state — keep new features on that side of the line. Both `shell.overlay` slots accept the same `SimulatorSlotInjected` face, so inline and modal consumers stay interchangeable, and the device catalog's metrics follow Apple's documentation and the OEM spec sheets when extended.
 
 </details>
-
-## Runtime invariants
-
-No runtime invariant companion is published; it is a pure presentation plugin — it emits no cordis events and owns no cross-plugin mutable state; the device frame rendering and user-agent emulation are asserted by the component specs and the slot registrations by the plugin spec.

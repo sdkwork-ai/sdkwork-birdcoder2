@@ -2,7 +2,8 @@
 
 - Date: 2026-08-20
 - Kind: feature
-- Status: implemented
+
+Status: implemented
 
 [English](2026-08-20-sdkwork-birdcoder2-deployment-standard.md) | 中文
 
@@ -29,3 +30,13 @@ node ../sdkwork-specs/tools/check-app-manifest-deployment-standard.mjs --root . 
 ```
 
 全部通过；部署校验对非规范的 `apps/web` 布局发出预期警告。
+
+## 影响
+
+仓库现在提供 `deployments/deploy.yaml`、`specs/topology.spec.json`、十个 profile 投影、`agent.workflow.json` 与 `deployments/kubernetes/`，且三个校验器在默认检查通道中通过。部署描述符是构建与发布通道读取的权威，因此 profile 变更只需改一处，而不是各 surface 各存一份。
+
+## 备选方案
+
+**保留各 surface 各自的部署描述符。** 否决原因：标准校验器读的是仓库根描述符，而重复的 surface 副本正是 v2 契约要消除的漂移。
+
+**在后续版本再采纳标准。** 否决原因：严格的 manifest 发布对齐当时已经失败，不采纳就无法发布。

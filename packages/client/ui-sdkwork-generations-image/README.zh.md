@@ -20,15 +20,21 @@ SDKWork Agents 图片生成应用模式。此浏览器插件持有 `image` 模�
 - [已知限制与延后工作](#known-limitations-and-deferred-work)
 - [开发备注](#dev-note)
 
+<a id="embedded-surface"></a>
 ## 嵌入页面
 
 BirdCoder 不在本地重新实现生成 UI。宿主适配器（`creativeHost.ts`）将 [ui-sdkwork-env](../ui-sdkwork-env/README.zh.md) 与 [ui-sdkwork-iam](../ui-sdkwork-iam/README.zh.md) 映射到 Agents PC 会话存储与 SDK 客户端 provider，随后挂载 `@sdkwork/agents-pc-creative` 的 `CreativeView` 及 Agents 工作台 i18n 目录。嵌入输入框默认选中**图片**生成；视频与其他模态仍可在同一对话框中切换。视频生成由兄弟插件 [ui-sdkwork-generations-video](../ui-sdkwork-generations-video/README.zh.md) 承载同一页面，默认选中**视频**。
 
+<a id="runtime-requirements"></a>
 ## 运行要求
 
 活动的 [ui-sdkwork-env](../ui-sdkwork-env/README.zh.md) profile 提供 API 网关 origin、应用 id 与可选的静态 access token。基础 URL 为空时跳过 SDK 客户端装配；嵌入页面仍会挂载，但在配置网关前生成请求无法成功。静态环境 token 或交互式 [ui-sdkwork-iam](../ui-sdkwork-iam/README.zh.md) 会话（同时含 `accessToken` 与 `authToken`）为 Agents PC token manager 供凭据。环境切换或登录账号变化会重新挂载嵌入页面：生成会话列表属于账号范围内的服务端状态，必须按新账号重新加载，而不是把上一账号的会话留在界面上；同一账号的 token 刷新只重同步凭据传输，页面保持现有状态。
 
 该页面**前置**声明登录要求。生成需要会话来承载其创建的作品，因此嵌入的 creative 页面只在 [ui-sdkwork-iam](../ui-sdkwork-iam/README.zh.md) 报告已登录会话后才挂载；未登录时页面就地渲染登录提示（标题、说明与“登录”按钮）替代页面本身，且只有该按钮会打开登录浮层。宿主适配器保留该要求的传输层一半——`createSignInRequestInterceptor` 仍会把页面挂载期间会话失效的用户主动请求挂在拦截器链中，避免匿名发送——但未登录时不会发起任何生成调用。
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；模式状态保存在布局 store 的声明动作集合中，入口/页面注册遵循 rail shell 的 keyed 分发；store/模式一致性直接由本包的客户端行为规格测试覆盖。
 
 ## Model Experience
 
@@ -38,12 +44,14 @@ BirdCoder 不在本地重新实现生成 UI。宿主适配器（`creativeHost.ts
 
 无；本包既不组装也不发送 provider 请求。
 
+<a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与延后工作
 
 - **image 模式承载完整生成页** — 模式栏 key 为 `image`，但嵌入的是 Agents 完整 creative 工作台（全部生成模态），与 sdkwork-agents 侧栏 **生成** 一致，而非仅图片子集。
 - **切换账号只清服务端列表，不清嵌入页的浏览器缓存** — remount 会按新账号重新加载会话，但嵌入的 creative 包把 prompt 历史存放在一个未按账号隔离的浏览器全局 key 下；该副本需由 sdkwork-agents 侧按账号隔离后才会消失。
 - **在线认证生成** — 当部署的 Agents 或 Generations API 要求带 tenant 上下文的 SDKWork access token 时，没有离线缓存或匿名回退。未登录时模式就地声明该要求，不会尝试调用；页面已挂载而会话失效时，下一笔用户主动请求会在传输层门禁处等待登录。
 
+<a id="dev-note"></a>
 ### 开发备注
 
 <details>
@@ -52,7 +60,3 @@ BirdCoder 不在本地重新实现生成 UI。宿主适配器（`creativeHost.ts
 模式栏 key 是 `image`，但嵌入的是与 ui-sdkwork-generations-video 共享的 Agents 完整 creative 工作台——两个插件只在对话框的默认模态上不同，Agents PC 表面变更时 `creativeHost.ts` 与兄弟视频插件的适配器必须同步修改。基础 URL 为空时页面仍会挂载，但配置网关前生成请求无法成功。登录要求由页面前置声明（`AuthenticatedSdkworkModePage` 的 shell 用登录提示替代页面），并由 `createSignInRequestInterceptor` 在传输层兜住页面挂载期间失效的会话；Agents PC 表面变更时两者都要保留。
 
 </details>
-
-## 运行时不变量
-
-不发布运行时不变量伴随检查；模式状态保存在布局 store 的声明动作集合中，入口/页面注册遵循 rail shell 的 keyed 分发；store/模式一致性直接由本包的客户端行为规格测试覆盖。

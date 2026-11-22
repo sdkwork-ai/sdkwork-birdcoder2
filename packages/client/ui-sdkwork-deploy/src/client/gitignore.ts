@@ -1,5 +1,5 @@
 /**
- * Git-ignore matching for directory packaging (the publish-as-template source
+ * Git-ignore matching for directory packaging (the publish-as-scaffold source
  * packer). Implements the `.gitignore` language subset git itself documents:
  * comments, `!` negation (last matching rule in one file wins), trailing `/`
  * directory-only patterns, anchoring (a pattern containing a `/` anywhere but
@@ -7,7 +7,7 @@
  * `?` `[...]` globs that never cross `/`, and the precedence rule that a
  * deeper `.gitignore` overrides a shallower one inside its subtree.
  *
- * Deliberately NOT modeled: core.excludesfile / global ignores (a template
+ * Deliberately NOT modeled: core.excludesfile / global ignores (a scaffold
  * pack is repo-local), CRLF-only normalization beyond stripping `\r`, and
  * re-inclusion under an excluded directory (git prunes there — the packer
  * mirrors that by never consulting rule sets below a pruned directory).

@@ -4,7 +4,7 @@
  * Two resolutions run from the project manifest:
  *
  * - {@link resolveLinkedApp} reads the recorded linkage and fetches the app —
- *   the publish-as-template flow's step.
+ *   the publish-as-scaffold flow's step.
  * - {@link resolveProjectApp} reads the whole project app state first, so the
  *   publish action can tell "no app yet" (offer creation) apart from "app
  *   recorded but gone" (offer re-creation and relinking) without a second read.

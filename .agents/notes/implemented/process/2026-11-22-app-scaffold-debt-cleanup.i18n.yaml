@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-22-app-scaffold-debt-cleanup.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-11-22-app-scaffold-debt-cleanup.md
+/agent-note-the-scaffold-app-roots-shed-their-pre-scaffold-template-debt:
+  en: f6462c0ae0ab7c38
+  zh: b0be34bab5d49e83
+/agent-note-the-scaffold-app-roots-shed-their-pre-scaffold-template-debt/problem:
+  en: 30ce4801d83a225f
+  zh: 7b9e7ae0d65c563d
+/agent-note-the-scaffold-app-roots-shed-their-pre-scaffold-template-debt/decision:
+  en: 939c18cc560ddf53
+  zh: a39e2a1d0ce6701d
+/agent-note-the-scaffold-app-roots-shed-their-pre-scaffold-template-debt/alternatives-considered:
+  en: 7a140bd10b22540a
+  zh: 47a535dae6397f2f
+/agent-note-the-scaffold-app-roots-shed-their-pre-scaffold-template-debt/consequences:
+  en: 09b7f5fcba16e45c
+  zh: 266f43ea63e6513e
+/agent-note-the-scaffold-app-roots-shed-their-pre-scaffold-template-debt/verification:
+  en: be56430b116517b2
+  zh: 466f09108367eb7c

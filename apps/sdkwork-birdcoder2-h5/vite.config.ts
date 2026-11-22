@@ -1,6 +1,7 @@
 import { createSdkworkCredentialEntryBootstrapVitePlugin } from '@sdkwork/iam-credential-entry/vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv, type PluginOption } from 'vite';
@@ -91,6 +92,29 @@ function configureSdkworkProxyProblemResponse(proxy: {
 }
 
 /**
+ * Read the deploy-time runtime document the canonical build runner materialized.
+ *
+ * `build-browser-client.mjs` materializes `public/runtime-env.json` from
+ * `etc/browser/runtime-env.<profileId>.json` before it invokes Vite, so the file
+ * is present when the config is evaluated by a real build. Reading it here — at
+ * `generateBundle`, never in `public/` as a authored file — keeps the built
+ * document and the dev document on one contract (BROWSER_RUNTIME_ENV_SPEC.md §3).
+ */
+function readMaterializedRuntimeEnvDocument(): Record<string, unknown> {
+  const documentPath = path.join(appRoot, 'public', 'runtime-env.json');
+  let source: string;
+  try {
+    source = readFileSync(documentPath, 'utf8');
+  } catch {
+    throw new Error(
+      'public/runtime-env.json is missing; run the canonical browser build runner '
+      + '(sdkwork-specs/tools/build-browser-client.mjs materializes it from etc/browser/).',
+    );
+  }
+  return JSON.parse(source) as Record<string, unknown>;
+}
+
+/**
  * Serve the ONE dev runtime document through a serve-only middleware
  * (BROWSER_RUNTIME_ENV_SPEC.md §2/§4).
  *
@@ -100,6 +124,10 @@ function configureSdkworkProxyProblemResponse(proxy: {
  * the canonical builders, and the contract asserted on every request is the
  * shared one — so a loopback absolute or a process-only topology key fails
  * loudly instead of reaching the browser.
+ *
+ * The same plugin emits the build document at `generateBundle`
+ * (BROWSER_RUNTIME_ENV_SPEC.md §3): the static `/runtime-env.js` in `index.html`
+ * must exist in a hosted artifact too, not only under the dev server.
  */
 function birdcoder2RuntimeEnvDocumentPlugin(profileId: string, deploymentProfile: string): PluginOption {
   return createBrowserRuntimeEnvVitePlugin({
@@ -112,6 +140,9 @@ function birdcoder2RuntimeEnvDocumentPlugin(profileId: string, deploymentProfile
         buildBrowserRuntimeEnvGlobalBridge(document, { deploymentProfile }),
       );
     },
+    resolveBuildAsset: () => buildBrowserRuntimeEnvGlobalScript(
+      buildBrowserRuntimeEnvGlobalBridge(readMaterializedRuntimeEnvDocument(), { deploymentProfile }),
+    ),
   }) as PluginOption;
 }
 

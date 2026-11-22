@@ -35,6 +35,7 @@ Status: implemented
 
 包的 apply spec 钉住席位填充、账户服务、主题镜像与 teardown；组件 spec 驱动菜单行、外观子菜单选中、弹窗关闭路径与 onboarding 协调器。e2e 层：settings-chrome 流程经菜单打开弹窗（共享 `openSettingsDialog` 辅助函数），其 golden 集新增菜单快照；新增 settings-menu e2e 覆盖 hover 开关、子菜单真实主题级联、帮助 toast 与 web 隐藏的更新行。
 
+<a id="update-2026-09-23-upstream-made-the-settings-namespace-the-row-id"></a>
 ## 更新（2026-09-23）：上游把设置命名空间改成了行 id
 
 上游的 [profile 拥有实时配置](../architecture/2026-09-19-profile-owned-live-configuration.zh.md) 改动（PR #4587，2026-09-21）把「profile 承载的设置命名空间」从显式注册的名字改成了 **Cordis loader entry 自己的 `id`**：只有当某个该 id 的生效行用 `.volatile()` 声明了字段时命名空间才存在，Host 用 `configEditor.entries().find(row => row.options.id === ns)` 解析 `settings.mutate(ns, …)`，其余命名空间一律以 `No configurable plugin entry "<ns>"` 拒绝。

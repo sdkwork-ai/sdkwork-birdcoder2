@@ -57,7 +57,7 @@ export interface ProjectAppState {
   readonly linkedAppId?: string
   /** Canonical target key the id was resolved for (`<mode>.<environment>`). */
   readonly profileId?: string
-  /** The parsed linkage, including fork provenance (template identity, names). */
+  /** The parsed linkage, including fork provenance (scaffold identity, names). */
   readonly link?: DeployAppConfigLink
   /** Canonical source root resolved from `config.workspaceRoot`. */
   readonly sourceDirectory?: string

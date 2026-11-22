@@ -118,11 +118,11 @@ root 作用域的 `sidebar.session.action` 是包裹新建会话行内容的 HOC
 -----
 
 <a id="model-experience"></a>
-## 模型体验
+## Model Experience
 
-无。该包是浏览器端 UI 插件层，不注册任何面向模型的内容。
+无，因为该包是浏览器端 UI 插件层，不注册任何面向模型的内容。
 
-#### KV Cache 影响
+#### KV Cache effect
 
 无；该包既不组装也不发送提供方请求。
 

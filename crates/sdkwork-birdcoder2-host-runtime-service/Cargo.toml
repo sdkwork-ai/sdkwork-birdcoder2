@@ -13,7 +13,6 @@ name = "sdkwork_birdcoder2_host_runtime_service"
 path = "src/lib.rs"
 
 [dependencies]
-async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

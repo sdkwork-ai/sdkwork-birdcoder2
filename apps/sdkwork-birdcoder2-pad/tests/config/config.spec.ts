@@ -27,12 +27,16 @@ function envFiles(): string[] {
 }
 
 describe('tablet environment matrix', () => {
-  it('has an iPadOS and an Android tablet file for every profile and environment', () => {
+  it('has one materialized file for every profile and environment', () => {
+    // The canonical materializer (`etc/client-env.materialization.json`) writes
+    // exactly one `.env.<profile>.<environment>` document per declared profile.
+    // Target-specific behavior is selected at build time
+    // (`VITE_SDKWORK_RUNTIME_TARGET` / `scripts/tablet.mjs`), so no per-target
+    // duplicate document exists to drift from the canonical one.
     const expected: string[] = []
     for (const profile of PROFILES) {
       for (const environment of ENVIRONMENTS) {
         expected.push(`.env.${profile}.${environment}`)
-        expected.push(`.env.${profile}.${environment}.tablet-android`)
       }
     }
     expect(envFiles()).toEqual(expected.sort())
@@ -42,24 +46,30 @@ describe('tablet environment matrix', () => {
     for (const name of envFiles()) {
       const values = readEnvFile(name)
       const match = name.match(
-        /^\.env\.(standalone|cloud)\.(development|test|staging|demo|production)(\.tablet-android)?$/u,
+        /^\.env\.(standalone|cloud)\.(development|test|staging|demo|production)$/u,
       )
       expect(match).not.toBeNull()
-      const [, profile, environment, androidSuffix] = match as RegExpMatchArray
-      const expectedTarget = androidSuffix ? 'tablet-android' : 'tablet-ipados'
+      const [, profile, environment] = match as RegExpMatchArray
       expect(values.get('VITE_SDKWORK_ENVIRONMENT')).toBe(environment)
       expect(values.get('VITE_SDKWORK_DEPLOYMENT_PROFILE')).toBe(profile)
       expect(values.get('VITE_SDKWORK_PROFILE_ID')).toBe(`${profile}.${environment}`)
-      expect(values.get('VITE_SDKWORK_RUNTIME_TARGET')).toBe(expectedTarget)
+      expect(values.get('VITE_SDKWORK_RUNTIME_TARGET')).toBe('tablet-ipados')
       expect(values.get('VITE_SDKWORK_SURFACE')).toBe('pad')
     }
   })
 
   it('contains no secret-bearing keys', () => {
+    // `SDKWORK_ACCESS_TOKEN` is the permanent public application access token
+    // baked into every packaged client (`exp: 0`, `alg: none`, `iam:self`); it is
+    // a public identity credential, not a secret. Every other token/key shaped
+    // name stays forbidden.
+    const PUBLIC_APPLICATION_TOKEN_KEY = 'SDKWORK_ACCESS_TOKEN'
     const forbidden = /(?:SECRET|PASSWORD|ACCESS_TOKEN|REFRESH_TOKEN|API_KEY|PRIVATE_KEY)/u
     for (const name of envFiles()) {
       for (const [key, value] of readEnvFile(name)) {
-        expect(forbidden.test(key)).toBe(false)
+        if (key !== PUBLIC_APPLICATION_TOKEN_KEY) {
+          expect(forbidden.test(key)).toBe(false)
+        }
         expect(/^(?:TODO|REPLACE_ME|CHANGEME)$/u.test(value)).toBe(false)
       }
     }

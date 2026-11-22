@@ -40,7 +40,14 @@ pnpm --filter @deepseek-ai/dsh-client-ui-sdkwork-apikey bundle
 
 The modal is browser-only: the host half of the api-keys service lives in its own package, and this package consumes it exclusively through the generated cloudrouter clients plus the injectable `configureApiKeyServiceClients` seam, so the web bundle stays free of host-side credentials code.
 
-<a id="known-limitations-and-deferred-work"></a>
+## Model Experience
+
+None, as the modal only manages relay API keys through browser-side SDKWork HTTP calls and registers no prompt section, tool, or session event.
+
+#### KV Cache effect
+
+None; this package neither assembles nor sends provider requests.
+
 ## Known Limitations and Deferred Work
 
 - The embed's cascade-layer position is a contract with the shell: `apps/web/src/index.css` must declare `dsh-sdkwork-apikey-embed` after `utilities` and after `dsh-sdkwork-embedded-app`. A shell that drops the statement leaves the position to bundle load order, which is the collision the containment exists to remove.

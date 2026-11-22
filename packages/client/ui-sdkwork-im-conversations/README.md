@@ -9,27 +9,30 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-The plugin owns the `chat` app mode: a rail entry (with the inbox unread badge
-and the chat/contacts glyph set) and the keyed `mode.page` page. The page is a
-two-column shell — the mounted IM conversation list on the left, the selected
-conversation on the right — and declares the `im.chat.pane` seat so the
-conversation UI is contributed by its own plugin.
+The plugin owns the `chat` app mode: a rail entry (with the inbox unread badge and the chat/contacts glyph set) and the keyed `mode.page` page. The page is a two-column shell — the mounted IM conversation list on the left, the selected conversation on the right — and declares the `im.chat.pane` seat so the conversation UI is contributed by its own plugin.
 
-Selection and unread totals come from `ctx.im` (ui-sdkwork-im). The page never
-talks to IM transport directly and never imports IM sources: the list is mounted
-from the deployment's embed bundle through `ctx.im.mountSurface`, and the pane
-seat is rendered by ui-sdkwork-im-chat.
+## Table of Contents
+
+- [Runtime requirements](#runtime-requirements)
+- [Understand the implementation](#understand-the-implementation)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
 
 ## Runtime requirements
 
-Requires the rail and mode-page slot contracts (`ui-sdkwork-app-modes`,
-`ui-layout`), the IAM gate (`ui-sdkwork-iam`), and `ctx.im`. Signed out, the
-IAM shell replaces the page with its sign-in notice.
+Requires the rail and mode-page slot contracts (`ui-sdkwork-app-modes`, `ui-layout`), the IAM gate (`ui-sdkwork-iam`), and `ctx.im`. Signed out, the IAM shell replaces the page with its sign-in notice.
+
+## Understand the implementation
+
+Selection and unread totals come from `ctx.im` (ui-sdkwork-im). The page never talks to IM transport directly and never imports IM sources: the list is mounted from the deployment's embed bundle through `ctx.im.mountSurface`, and the pane seat is rendered by ui-sdkwork-im-chat.
+
+## Dev Note
+
+The chat mode page mounts the embed bundle’s list and pane; selection and unread totals stay in the browser.
 
 ## Model Experience
 
-None, as the plugin renders a human-facing messaging surface and does not add
-prompt content, tools, or session events.
+None, as the plugin renders a human-facing messaging surface and does not add prompt content, tools, or session events.
 
 #### KV Cache effect
 
@@ -37,9 +40,5 @@ None.
 
 ## Known Limitations and Deferred Work
 
-- **Conversation search is not wired** — the IM list keeps its own search field
-  behavior; the host does not pass a search term yet.
-- **Failures stay inside the product shell** — the two-column page keeps its
-  list and pane visible with a product-shaped placeholder while the shared
-  Toast names a failed bundle load, a missing gateway, or an unauthenticated
-  session; there is no retry control until the host adds one.
+- **Conversation search is not wired** — the IM list keeps its own search field behavior; the host does not pass a search term yet.
+- **Failures stay inside the product shell** — the two-column page keeps its list and pane visible with a product-shaped placeholder while the shared Toast names a failed bundle load, a missing gateway, or an unauthenticated session; there is no retry control until the host adds one.

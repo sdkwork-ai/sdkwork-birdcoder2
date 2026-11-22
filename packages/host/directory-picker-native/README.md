@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-An operator at the host's display picks a workspace directory through a native OS chooser: `dsh-host-directory-picker-native` opens one platform directory chooser per pick and resolves the chosen absolute path (`null` on cancel). macOS drives a scripted AppKit panel that carries the standard Edit menu, Linux uses Zenity with a KDialog fallback, and Windows opens the modern `IFileOpenDialog` in a spawned child process. The selected `PWSTR` is decoded with Koffi's string decoder, which does not create an external buffer and therefore remains valid under Electron. Only viable when the operator sits at the host's display — remote deployments compose the [browse backend](../directory-picker-browse/README.md) instead. One composition row also registers the matching browser-side interaction in the workspace flow, so it selects both sides.
+An operator at the host's display picks a workspace directory through a native OS chooser: the package opens one platform directory chooser per pick and resolves the chosen absolute path (`null` on cancel). macOS drives a scripted AppKit panel that carries the standard Edit menu, Linux uses Zenity with a KDialog fallback, and Windows opens the modern `IFileOpenDialog` in a spawned child process. Only viable when the operator sits at the host's display — remote deployments compose the [browse backend](../directory-picker-browse/README.md) instead — and one composition row registers the matching browser-side interaction too.
 
 ## Table of Contents
 
@@ -43,6 +43,8 @@ A cancel returns `null`, not an error. Missing platform tooling, a failed choose
 
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
+
+The selected `PWSTR` is decoded with Koffi's string decoder, which does not create an external buffer and therefore remains valid under Electron.
 
 <details>
 <summary>Implementation internals — click to expand</summary>

@@ -2,21 +2,33 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-05-desktop-packaging-fixes.md
-/desktop-packaging-boot-and-closure-fixes:
-  en: 55b03f2a8a152f3b
-  zh: f7e6b2546b73fcc3
-/desktop-packaging-boot-and-closure-fixes/sdkwork-api-gateway-inlines-src-imports:
-  en: ba3d47cc72eb7c09
-  zh: e7aae465e050d043
-/desktop-packaging-boot-and-closure-fixes/session-persistence-jsonl-delays-the-fs-ext-load:
-  en: 882c2b037ad4fcf0
-  zh: 92cc160e827a1787
-/desktop-packaging-boot-and-closure-fixes/desktop-packaged-dependency-closure-synced:
-  en: 92b81e4245a133c2
-  zh: 05d197983d5b53d5
-/desktop-packaging-boot-and-closure-fixes/connection-tsdown-entries-emit-to-the-right-filenames:
-  en: da04f07346bb7948
-  zh: 95e3a0d58bb8ca69
-/desktop-packaging-boot-and-closure-fixes/typert-lookup-host-context-configure-accepts-duplicate-registration:
-  en: e4b39ff3d787ade1
-  zh: 9713b9ae8bdc74ad
+/agent-note-desktop-packaging-boot-and-closure-fixes:
+  en: 31a15702f89f6792
+  zh: fbc11c12da311b39
+/agent-note-desktop-packaging-boot-and-closure-fixes/problem:
+  en: 0ea2073e68083239
+  zh: cb7a4d65aae6fae7
+/agent-note-desktop-packaging-boot-and-closure-fixes/problem/sdkwork-api-gateway-inlines-src-imports:
+  en: 11fe9154bb01a6b1
+  zh: a81812a3be5f8a4c
+/agent-note-desktop-packaging-boot-and-closure-fixes/problem/session-persistence-jsonl-delays-the-fs-ext-load:
+  en: 6328ee963f288c05
+  zh: 12110add374a31ab
+/agent-note-desktop-packaging-boot-and-closure-fixes/problem/desktop-packaged-dependency-closure-synced:
+  en: ba53dab3b40d0f2c
+  zh: d71d7ce67144dac7
+/agent-note-desktop-packaging-boot-and-closure-fixes/problem/connection-tsdown-entries-emit-to-the-right-filenames:
+  en: d9de76ee05183a54
+  zh: d60338ad05cdf099
+/agent-note-desktop-packaging-boot-and-closure-fixes/problem/typert-lookup-host-context-configure-accepts-duplicate-registration:
+  en: 2da7a798d1571bf6
+  zh: 97ef5a3cfb4be9f5
+/agent-note-desktop-packaging-boot-and-closure-fixes/decision:
+  en: 12cf3d0746591bc9
+  zh: 5482ea094f6bc953
+/agent-note-desktop-packaging-boot-and-closure-fixes/consequences:
+  en: 31592ceab1f1950c
+  zh: 5b18d647512883b4
+/agent-note-desktop-packaging-boot-and-closure-fixes/alternatives-considered:
+  en: 4c1abe7f9c7ffce5
+  zh: 54225dfff9f0d4b3

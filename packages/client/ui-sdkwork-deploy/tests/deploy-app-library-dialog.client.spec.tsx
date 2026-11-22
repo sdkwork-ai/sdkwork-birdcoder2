@@ -498,7 +498,7 @@ describe('DeployAppLibraryDialog', () => {
     await act(async () => { button(element, '源码').click() })
     expect(element.textContent).toContain('源码绑定')
     await act(async () => { button(element, 'Git 仓库').click() })
-    const urlInput = [...element.querySelectorAll('input')].find(item => item.placeholder === zh['template.git.urlPlaceholder'])
+    const urlInput = [...element.querySelectorAll('input')].find(item => item.placeholder === zh['scaffold.git.urlPlaceholder'])
     if (urlInput === undefined) throw new Error('the git url input is missing')
     await act(async () => {
       const setter = Object.getOwnPropertyDescriptor(globalThis.HTMLInputElement.prototype, 'value')?.set

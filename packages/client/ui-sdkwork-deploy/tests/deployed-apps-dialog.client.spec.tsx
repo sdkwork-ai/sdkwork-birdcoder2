@@ -19,8 +19,8 @@ afterEach(cleanup)
 
 /** Shipped Chinese copy with `{name}` interpolation. */
 const t = ((key: DeployKey, params?: Record<string, unknown>) => {
-  const template = (zh as Record<string, string>)[key] ?? key
-  return template.replace(/\{(\w+)\}/gu, (_match, name: string) => {
+  const scaffold = (zh as Record<string, string>)[key] ?? key
+  return scaffold.replace(/\{(\w+)\}/gu, (_match, name: string) => {
     const value = params?.[name]
     return typeof value === 'string' || typeof value === 'number' ? String(value) : ''
   })
@@ -290,8 +290,8 @@ interface DialogState {
   readClients?: () => DeployHostClients
 }
 
-/** One owned template listing the drawer's template tab renders. */
-function templateRow(over: {
+/** One owned scaffold listing the drawer's scaffold tab renders. */
+function scaffoldRow(over: {
   id?: string
   displayName?: string
   templateKey?: string
@@ -327,19 +327,19 @@ function templateRow(over: {
 /** Clients for both ledgers, with the recorded calls exposed to the assertions. */
 function drawerClients(options: {
   apps?: AppResponse[]
-  templates?: ApplicationScaffoldResponse[]
+  scaffolds?: ApplicationScaffoldResponse[]
 } = {}): {
   clients: DeployHostClients
   listApps: ReturnType<typeof vi.fn>
-  listTemplates: ReturnType<typeof vi.fn>
+  listScaffolds: ReturnType<typeof vi.fn>
   listVersions: ReturnType<typeof vi.fn>
 } {
   const listApps = vi.fn(async () => ({
     items: options.apps ?? [app()],
     pageInfo: { mode: 'offset', hasMore: false },
   }))
-  const listTemplates = vi.fn(async () => ({
-    items: options.templates ?? [templateRow({ latestVersionUuid: 'version-1' })],
+  const listScaffolds = vi.fn(async () => ({
+    items: options.scaffolds ?? [scaffoldRow({ latestVersionUuid: 'version-1' })],
     pageInfo: { mode: 'offset', hasMore: false },
   }))
   const listVersions = vi.fn(async () => ({
@@ -351,14 +351,14 @@ function drawerClients(options: {
       app: {
         list: listApps,
         scaffolds: {
-          list: listTemplates,
+          list: listScaffolds,
           versions: { list: listVersions },
         },
       },
     },
     driveClient: {},
   } as unknown as DeployHostClients
-  return { clients, listApps, listTemplates, listVersions }
+  return { clients, listApps, listScaffolds, listVersions }
 }
 
 /** Composed props over one host adapter, so a test can reopen the drawer. */
@@ -427,55 +427,55 @@ describe('DeployedAppsDialog', () => {
     const { view } = dialog()
     expect(await view.findByText('Store')).toBeTruthy()
     expect(screen.getByRole('tab', { name: zh['deployments.tab.apps'] }).getAttribute('aria-selected')).toBe('true')
-    expect(screen.getByRole('tab', { name: zh['deployments.tab.templates'] }).getAttribute('aria-selected')).toBe('false')
+    expect(screen.getByRole('tab', { name: zh['deployments.tab.scaffolds'] }).getAttribute('aria-selected')).toBe('false')
     expect(screen.getByRole('tabpanel', { name: zh['deployments.tab.apps'] })).toBeTruthy()
-    // The template tab has not been visited, so its ledger is neither mounted
+    // The scaffold tab has not been visited, so its ledger is neither mounted
     // nor announced.
-    expect(screen.queryByRole('tabpanel', { name: zh['deployments.tab.templates'] })).toBeNull()
+    expect(screen.queryByRole('tabpanel', { name: zh['deployments.tab.scaffolds'] })).toBeNull()
     expect(document.querySelectorAll('[role="tabpanel"]')).toHaveLength(2)
   })
 
   it('keeps both tabpanels addressable from their tabs', async () => {
     const { view } = dialog()
     await view.findByText('Store')
-    for (const label of [zh['deployments.tab.apps'], zh['deployments.tab.templates']]) {
+    for (const label of [zh['deployments.tab.apps'], zh['deployments.tab.scaffolds']]) {
       const controls = screen.getByRole('tab', { name: label }).getAttribute('aria-controls')
       expect(controls).toBeTruthy()
       expect(document.getElementById(controls!)).not.toBeNull()
     }
   })
 
-  it('switches to the caller’s app templates and back without re-reading either ledger', async () => {
+  it('switches to the caller’s app scaffolds and back without re-reading either ledger', async () => {
     const { view, drawer } = dialog()
     await view.findByText('Store')
-    fireEvent.click(screen.getByRole('tab', { name: zh['deployments.tab.templates'] }))
+    fireEvent.click(screen.getByRole('tab', { name: zh['deployments.tab.scaffolds'] }))
 
-    const templatePanel = screen.getByRole('tabpanel', { name: zh['deployments.tab.templates'] })
+    const scaffoldPanel = screen.getByRole('tabpanel', { name: zh['deployments.tab.scaffolds'] })
     expect(await view.findByText('Starter App')).toBeTruthy()
-    expect(screen.getByRole('tab', { name: zh['deployments.tab.templates'] }).getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByRole('tab', { name: zh['deployments.tab.scaffolds'] }).getAttribute('aria-selected')).toBe('true')
     // The visited app ledger stays mounted but hidden: its rows leave the
     // accessibility tree while its state stays available for the switch back.
     expect(screen.queryByRole('tabpanel', { name: zh['deployments.tab.apps'] })).toBeNull()
     expect(screen.getByText('Store')).toBeTruthy()
-    expect(await within(templatePanel).findByText('v1.2.0')).toBeTruthy()
+    expect(await within(scaffoldPanel).findByText('v1.2.0')).toBeTruthy()
 
     fireEvent.click(screen.getByRole('tab', { name: zh['deployments.tab.apps'] }))
     expect(screen.getByRole('tabpanel', { name: zh['deployments.tab.apps'] })).toBeTruthy()
-    expect(screen.queryByRole('tabpanel', { name: zh['deployments.tab.templates'] })).toBeNull()
+    expect(screen.queryByRole('tabpanel', { name: zh['deployments.tab.scaffolds'] })).toBeNull()
     expect(screen.getByText('Store')).toBeTruthy()
     // Neither ledger reloaded: switching only changes which panel is hidden.
     // One app read is two requests (USER + ORGANIZATION).
     expect(drawer.listApps).toHaveBeenCalledTimes(2)
-    expect(drawer.listTemplates).toHaveBeenCalledTimes(1)
+    expect(drawer.listScaffolds).toHaveBeenCalledTimes(1)
   })
 
-  it('resets to 我的应用 when reopened and does not mount the template ledger', async () => {
+  it('resets to 我的应用 when reopened and does not mount the scaffold ledger', async () => {
     const drawer = drawerClients()
     const view = render(<DeployedAppsDialog {...composedProps(true, () => drawer.clients)} />)
     await view.findByText('Store')
-    fireEvent.click(screen.getByRole('tab', { name: zh['deployments.tab.templates'] }))
+    fireEvent.click(screen.getByRole('tab', { name: zh['deployments.tab.scaffolds'] }))
     await view.findByText('Starter App')
-    expect(drawer.listTemplates).toHaveBeenCalledTimes(1)
+    expect(drawer.listScaffolds).toHaveBeenCalledTimes(1)
 
     view.rerender(<DeployedAppsDialog {...composedProps(false, () => drawer.clients)} />)
     expect(screen.queryByRole('dialog')).toBeNull()
@@ -485,7 +485,7 @@ describe('DeployedAppsDialog', () => {
     expect(screen.getByRole('tab', { name: zh['deployments.tab.apps'] }).getAttribute('aria-selected')).toBe('true')
     // Two opens, two scopes each.
     expect(drawer.listApps).toHaveBeenCalledTimes(4)
-    expect(drawer.listTemplates).toHaveBeenCalledTimes(1)
+    expect(drawer.listScaffolds).toHaveBeenCalledTimes(1)
   })
 
   it('re-reads the clients when the environment revision moves', () => {

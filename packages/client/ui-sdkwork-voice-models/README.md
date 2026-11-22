@@ -9,9 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-One settings page — 语音模型 (Voice models) — that owns *where speech synthesis and transcription may call out to*: the official vendors the sdkwork-models catalog publishes for speech, and any number of relay stations the user points at their own base URL. Every provider row carries its own base URL, protocol, region, credential source, and model list, so the same voice reached through a vendor and through a relay are two independent rows that never consult each other. The seeded rows come from the catalog itself: each vendor lands with the API root the catalog publishes and every one of that vendor's voice models, disabled and key-less until the user supplies a credential.
-
-The section is also projected into a file — `voice-models.sdkwork.json` under the harness home's `sdkwork` directory — because a skill cannot read a settings document. The file is the outside-readable form of exactly this section: rewritten at startup and after every accepted commit, never edited by hand, and never a second authority.
+A settings page, 语音模型, that owns where speech synthesis and transcription may call out: the official speech vendors the sdkwork-models catalog publishes and any number of relay stations pointed at a custom base URL. Each provider row carries its own base URL, protocol, region, credential source, and model list, so one voice reached through a vendor and through a relay stays two independent rows. The Host half projects the section into `voice-models.sdkwork.json` under the harness home for skills to read.
 
 ## Table of Contents
 
@@ -118,6 +116,12 @@ node scripts/generate-sdkwork-model-presets.mjs
 ```
 
 It reads every vendor's `vendor.json` and model files, takes the canonical `https://<host><pathPrefix>` root per vendor, and emits the vendors with a voice capability plus every catalog model whose primary capability is `audio`. Regenerate it after a catalog bump; the file records the catalog version and timestamp it was generated from.
+
+## Understand the implementation
+
+One settings page — 语音模型 (Voice models) — that owns *where speech synthesis and transcription may call out to*: the official vendors the sdkwork-models catalog publishes for speech, and any number of relay stations the user points at their own base URL. Every provider row carries its own base URL, protocol, region, credential source, and model list, so the same voice reached through a vendor and through a relay are two independent rows that never consult each other. The seeded rows come from the catalog itself: each vendor lands with the API root the catalog publishes and every one of that vendor's voice models, disabled and key-less until the user supplies a credential.
+
+The section is also projected into a file — `voice-models.sdkwork.json` under the harness home's `sdkwork` directory — because a skill cannot read a settings document. The file is the outside-readable form of exactly this section: rewritten at startup and after every accepted commit, never edited by hand, and never a second authority.
 
 ## Model Experience
 

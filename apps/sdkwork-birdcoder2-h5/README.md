@@ -56,9 +56,8 @@ untouched by this root.
 sdkwork-birdcoder2-h5/
   .sdkwork/            # application skills and plugins
   bin/                 # ios/ and android/ operational helpers
-  etc/                 # source-controlled deployment profile projection
+  etc/                 # source-controlled deployment projection (profiles + etc/browser/runtime-env.<profile>.json)
   config/
-    browser/           # public browser runtime-env templates
     host/              # Capacitor platform templates, permission and deep-link metadata
     server/            # only when this root owns a server/preview process
     container/         # only when this root owns a container process
@@ -110,8 +109,8 @@ support and a `paths` row resolves straight to a file, bypassing package `export
 ## Implementation status
 
 The renderer, the composition root, the route registry, both capability packages, and the Rust
-backend are implemented and covered by tests. Not implemented: the Capacitor native host (the
+backend are implemented and covered by tests. The canonical browser build passes end to end
+(`pnpm build:dev` → `dist/standalone/dev/`), and its deploy-time runtime document is materialized
+from `etc/browser/runtime-env.<profile>.json`. Not implemented: the Capacitor native host (the
 `bin/ios` and `bin/android` helpers are still placeholders) and the browser-side host adapters'
 native implementations beyond the browser fallbacks.
-
-A full `vite build` additionally needs the workspace packages linked by a real `pnpm install`.

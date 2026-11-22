@@ -13,31 +13,31 @@
   zh: 5c5e4bd1a4a9c5da
 /deepseek-ai-dsh-client-ui-sdkwork-feedback/table-of-contents:
   en: a05b9fe9ddc7a439
-  zh: 81e99b3da9139799
+  zh: 23a43ef74162a32f
 /deepseek-ai-dsh-client-ui-sdkwork-feedback/surface:
   en: 8d6cb8047608c474
-  zh: f5e9c18fd47bbd75
+  zh: 189713e69bb7bdd5
 /deepseek-ai-dsh-client-ui-sdkwork-feedback/configuration:
   en: 6dd7b17611195ff6
-  zh: dc29ed93bd077a7f
+  zh: 5f0b03a4a3fd06b2
 /deepseek-ai-dsh-client-ui-sdkwork-feedback/auth:
   en: 97039f029421ceae
-  zh: 08ef41fa70ec320d
+  zh: 13523922a61d5bd0
 /deepseek-ai-dsh-client-ui-sdkwork-feedback/implementation-notes:
   en: f9c2df2041be8683
   zh: 78db0d4b324d7c86
+/deepseek-ai-dsh-client-ui-sdkwork-feedback/runtime-invariants:
+  en: bd05fde08b627466
+  zh: 203ed444e39878c4
 /deepseek-ai-dsh-client-ui-sdkwork-feedback/model-experience:
   en: ef32df5e71983926
   zh: 7d6f1ac5d4210602
 /deepseek-ai-dsh-client-ui-sdkwork-feedback/model-experience/kv-cache-effect:
   en: 6250c7744b2590b1
-  zh: bacec35330ccc487
+  zh: 5871c52019cbc7a8
 /deepseek-ai-dsh-client-ui-sdkwork-feedback/known-limitations-and-deferred-work:
   en: 02a38a393ae2419c
-  zh: 48baf474fa6fd8b9
+  zh: 19a942f70261cd4f
 /deepseek-ai-dsh-client-ui-sdkwork-feedback/known-limitations-and-deferred-work/dev-note:
   en: c175c97828c83563
   zh: 2346c7ddbd57b1bf
-/deepseek-ai-dsh-client-ui-sdkwork-feedback/runtime-invariants:
-  en: bd05fde08b627466
-  zh: 203ed444e39878c4

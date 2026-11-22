@@ -9,35 +9,44 @@
   en: a3b5de8f4eb2ecfc
   zh: 00230e5db3f16f76
 /deepseek-ai-dsh-client-ui-sdkwork-skills/summary:
-  en: 47eb8948e47637ea
-  zh: 7ed2a14f82a0f095
+  en: 39fa728ce75aa9a9
+  zh: 799b3f836f53afcb
 /deepseek-ai-dsh-client-ui-sdkwork-skills/table-of-contents:
   en: bfa9cbb6a3ce98ec
-  zh: f0fdd848c851aaec
+  zh: eea89e2edc8037e7
 /deepseek-ai-dsh-client-ui-sdkwork-skills/surface:
   en: beefa5e9df49e685
-  zh: bcd7304b29f9b845
+  zh: b13190a3861168e8
 /deepseek-ai-dsh-client-ui-sdkwork-skills/configuration:
   en: 69b4a73294e36ac8
-  zh: e977b97f79f13892
+  zh: abe5f656170b1246
 /deepseek-ai-dsh-client-ui-sdkwork-skills/configuration/why-two-strip-lists-rather-than-one:
   en: ef7f0a12d5654844
-  zh: dbfcea6810c5e823
+  zh: a1cc853658fd9945
 /deepseek-ai-dsh-client-ui-sdkwork-skills/configuration/the-strip-s-master-switch:
   en: 69df397055c89ef0
-  zh: d950a24ea3e38534
+  zh: a553c60657a82d2f
 /deepseek-ai-dsh-client-ui-sdkwork-skills/how-a-disabled-skill-disappears:
   en: fffbce5ac30438bb
-  zh: ab5995fb3350fbb9
+  zh: ba7652d25977eb9d
 /deepseek-ai-dsh-client-ui-sdkwork-skills/how-a-disabled-skill-disappears/session-catalog-vs-composition-wide-catalog:
   en: a695e14fbbd59cd7
-  zh: c16e0d4aade341d8
+  zh: 78d6fbb9a56b0787
 /deepseek-ai-dsh-client-ui-sdkwork-skills/interaction-with-the-new-session-tag-strip:
   en: 33a0411db4768472
   zh: 184444d0928267cd
-/deepseek-ai-dsh-client-ui-sdkwork-skills/known-limitations-and-deferred-work:
-  en: b362635402a6f8a6
-  zh: 68da56e6784f2199
 /deepseek-ai-dsh-client-ui-sdkwork-skills/dev-note:
   en: 4996e93413ce751d
   zh: 94ce4e816395d7d2
+/deepseek-ai-dsh-client-ui-sdkwork-skills/understand-the-implementation:
+  en: c8c137b6f8efe856
+  zh: 3c8eb2e0b27cc8e9
+/deepseek-ai-dsh-client-ui-sdkwork-skills/model-experience:
+  en: 3241a8cf2eb2001f
+  zh: cc673d0b002b71b3
+/deepseek-ai-dsh-client-ui-sdkwork-skills/model-experience/kv-cache-effect:
+  en: de88260aac39e436
+  zh: e4b970f11253118e
+/deepseek-ai-dsh-client-ui-sdkwork-skills/known-limitations-and-deferred-work:
+  en: b362635402a6f8a6
+  zh: 10e34bdebfdabd61

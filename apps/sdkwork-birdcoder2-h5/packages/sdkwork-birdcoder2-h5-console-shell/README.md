@@ -2,7 +2,7 @@
 
 User-facing mobile console navigation and route assembly.
 
-- Surface: `[object Object]`
+- Surface: `h5`
 - Layer role: `shell`
 - Standard: `MODULE_SPEC.md`, `APP_H5_ARCHITECTURE_SPEC.md`
 

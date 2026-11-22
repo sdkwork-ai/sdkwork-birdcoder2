@@ -2,7 +2,7 @@
 
 Runtime/bootstrap, generated app SDK client injection, appbase IAM runtime, token manager wiring.
 
-- Surface: `[object Object]`
+- Surface: `mini-program`
 - Layer role: `runtime`
 - Standard: `MODULE_SPEC.md`, `MINI_PROGRAM_APP_ARCHITECTURE_SPEC.md`
 

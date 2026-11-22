@@ -2,7 +2,7 @@
 
 Shared mobile presentation primitives, safe-area and gesture helpers, empty/loading/error states.
 
-- Surface: `[object Object]`
+- Surface: `h5`
 - Layer role: `ui`
 - Standard: `MODULE_SPEC.md`, `APP_H5_ARCHITECTURE_SPEC.md`
 

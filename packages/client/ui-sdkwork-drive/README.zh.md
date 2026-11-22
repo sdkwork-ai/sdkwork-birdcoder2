@@ -20,13 +20,19 @@ kind: "package-reference"
 - [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
 - [开发备注](#dev-note)
 
+<a id="runtime-requirements"></a>
 ## 运行要求
 
 插件依赖 `ctx.env`、`ctx.iam` 与 `ctx.locale`。它在注册页面前配置自身的 SDKWork 宿主适配器。当前环境提供 API 基础 URL 与可选静态访问令牌；已配置的静态令牌优先于 IAM 会话凭据。环境变化会重建生成的 Drive 客户端并重新挂载 SDKWork 视图，IAM 与语言变化则通过 SDKWork 订阅传播，无需重新挂载。
 
+<a id="browser-bundle"></a>
 ## 浏览器 bundle
 
 客户端插件只发射一个 `client.js` 闭包，因为 BirdCoder 客户端模块 loader 不发布任意同级分片。其 bundle 构建会编译 SDKWork Tailwind 样式表并只注入一次 SDKWork CSS。内嵌云盘页面仅在打开文本文件预览时从 CDN 加载 Monaco 编辑器，因此闭包保持精简。声明发射跳过对兄弟 SDKWork 实现的严格检查；`tsconfig.tests.json` 使用单一 React 类型身份检查被消费的源码闭包。
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；模式状态保存在布局 store 的声明动作集合中，入口/页面注册遵循 rail shell 的 keyed 分发；store/模式一致性直接由本包的客户端行为规格测试覆盖。
 
 ## Model Experience
 
@@ -42,6 +48,7 @@ kind: "package-reference"
 - **单文件负载** —— 完整 SDKWork 应用与编译后样式位于同一个客户端插件闭包中，因此 Drive 插件的初始下载量高于分片应用。
 - **单一活动宿主适配器** —— SDKWork 云盘 PC 运行时端口是进程级的，因此一个浏览器窗口只承载一个云盘界面；重新配置会释放先前的适配器。
 
+<a id="dev-note"></a>
 ### 开发备注
 
 <details>
@@ -50,7 +57,3 @@ kind: "package-reference"
 SDKWork 云盘 PC 运行时端口是进程级的：一个浏览器窗口只承载一个云盘界面，重新配置会释放先前的适配器。本地安装需要 `../sdkwork-drive` 兄弟 checkout；单文件 `client.js` 闭包源于 BirdCoder 客户端模块 loader 不发布任意同级分片——Monaco 仅在打开文本文件预览时从 CDN 加载，因而不进入闭包。
 
 </details>
-
-## 运行时不变量
-
-不发布运行时不变量伴随检查；模式状态保存在布局 store 的声明动作集合中，入口/页面注册遵循 rail shell 的 keyed 分发；store/模式一致性直接由本包的客户端行为规格测试覆盖。

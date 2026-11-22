@@ -36,7 +36,7 @@ import workspaceRemote from '@deepseek-ai/dsh-api-workspace-controller/remote'
 import terminalRemote from '@deepseek-ai/dsh-api-terminal-controller/remote'
 import sdkworkAppBuildRemote from '@deepseek-ai/dsh-api-sdkwork-app-build-controller/remote'
 import sdkworkGitRemote from '@deepseek-ai/dsh-api-sdkwork-git-controller/remote'
-import sdkworkTemplateInstallRemote from '@deepseek-ai/dsh-api-sdkwork-template-install-controller/remote'
+import sdkworkScaffoldInstallRemote from '@deepseek-ai/dsh-api-sdkwork-scaffold-install-controller/remote'
 import workspaceFilesRemote from '@deepseek-ai/dsh-api-workspace-files/remote'
 import webRemote from '@deepseek-ai/dsh-web/remote'
 import type { ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
@@ -90,8 +90,8 @@ export type {} from '@deepseek-ai/dsh-api-sdkwork-app-build-controller/remote'
 export type * from '@deepseek-ai/dsh-api-sdkwork-app-build-controller/types'
 export type {} from '@deepseek-ai/dsh-api-sdkwork-git-controller/remote'
 export type * from '@deepseek-ai/dsh-api-sdkwork-git-controller/types'
-export type {} from '@deepseek-ai/dsh-api-sdkwork-template-install-controller/remote'
-export type * from '@deepseek-ai/dsh-api-sdkwork-template-install-controller/types'
+export type {} from '@deepseek-ai/dsh-api-sdkwork-scaffold-install-controller/remote'
+export type * from '@deepseek-ai/dsh-api-sdkwork-scaffold-install-controller/types'
 export type {} from '@deepseek-ai/dsh-api-workspace-files/remote'
 export type * from '@deepseek-ai/dsh-api-workspace-files/types'
 export type {} from '@deepseek-ai/dsh-api-terminal-controller/remote'
@@ -219,7 +219,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       fileUploadsRemote, sessionReferencesRemote,
       permissionPresetsRemote, subagentsRemote, sessionRemote, sessionStatusRemote, jobRemote,
       workspaceRemote, workspaceFilesRemote, terminalRemote,
-      officeKitRemote, sdkworkAppBuildRemote, sdkworkGitRemote, sdkworkTemplateInstallRemote, userQuestionsRemote, webRemote,
+      officeKitRemote, sdkworkAppBuildRemote, sdkworkGitRemote, sdkworkScaffoldInstallRemote, userQuestionsRemote, webRemote,
     ]) {
       disposers.push(await ctx.remote.$mount(contribution))
     }

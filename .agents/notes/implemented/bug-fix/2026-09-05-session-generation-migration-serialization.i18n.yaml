@@ -2,15 +2,24 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-05-session-generation-migration-serialization.md
-/session-historical-generation-migrations-run-one-at-a-time:
-  en: 864a6843300a3dd0
-  zh: 0a1146ff1456e3c7
-/session-historical-generation-migrations-run-one-at-a-time/root-cause:
-  en: 91c1225b154676f6
-  zh: c599c8f9431e9a9a
-/session-historical-generation-migrations-run-one-at-a-time/fix:
-  en: a26e2f733ac542f7
-  zh: 918556bd42d2ff77
-/session-historical-generation-migrations-run-one-at-a-time/upstream-note:
-  en: a6ba7e82fcf94af9
-  zh: 5dec689d35dae8d3
+/agent-note-session-historical-generation-migrations-run-one-at-a-time:
+  en: b38a128c6361ea9b
+  zh: c9676f9b749e0387
+/agent-note-session-historical-generation-migrations-run-one-at-a-time/problem:
+  en: 9b4e0156ce2ac4ca
+  zh: dd75226e84737f48
+/agent-note-session-historical-generation-migrations-run-one-at-a-time/problem/root-cause:
+  en: de26f4c645690683
+  zh: eecc42f03f8f76fb
+/agent-note-session-historical-generation-migrations-run-one-at-a-time/decision:
+  en: dc5c048865368880
+  zh: 09c8424f2131761e
+/agent-note-session-historical-generation-migrations-run-one-at-a-time/decision/upstream-note:
+  en: 89df4297153964e9
+  zh: 8ba649ec88ef4310
+/agent-note-session-historical-generation-migrations-run-one-at-a-time/consequences:
+  en: 901730a74d53902c
+  zh: 82817168fb66b7d2
+/agent-note-session-historical-generation-migrations-run-one-at-a-time/alternatives-considered:
+  en: 25f61063afe92847
+  zh: c8f02f3a5b30992a

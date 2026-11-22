@@ -7,24 +7,36 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-## 摘要
+## 概述
 
 本插件只拥有一个位置：ui-sdkwork-im-conversations 在聊天模式页内声明的 `im.chat.pane` 槽位。它通过 `ctx.im.mountSurface` 挂载部署方嵌入包中的对话表层（`ChatWindow`：消息历史、输入框、实时更新），并在页面选中另一个会话时切换已挂载的表层。
 
 本插件不编译 IM 源码，也不持有 IM 数据。聊天页负责选中，宿主适配层负责嵌入包与会话，sdkwork-im 负责对话界面。
 
+## 目录
+
+- [Runtime requirements](#runtime-requirements)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+
+<a id="runtime-requirements"></a>
 ## 运行时要求
 
 需要 `ctx.slots` 与 `ctx.im`。对话框仅在聊天模式页挂载期间渲染；IM 的翻译与 toast 上下文由嵌入包提供。
 
-## 模型体验
+## 开发备注
+
+暂无额外运维备注；契约以上方章节为准。
+
+## Model Experience
 
 无。本插件渲染面向人的消息界面，不增加提示词内容、工具或会话事件。
 
-#### KV Cache 影响
+#### KV Cache effect
 
 无。
 
+<a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与后续工作
 
 - **仅对话窗口** —— 群管理、通话浮层与成员面板仍留在完整应用外壳内；对话框只渲染对话窗口。

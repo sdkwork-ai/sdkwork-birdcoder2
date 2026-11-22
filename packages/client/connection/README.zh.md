@@ -70,7 +70,7 @@ Token 插件拥有供 API 调用方使用的 `GET /connect?token=...&interaction
 <a id="desktop-ipc-carrier"></a>
 ## 桌面 IPC 载体
 
-Electron 桌面壳层（apps/desktop）以 IPC 而非 HTTP/WebSocket 承载同一条线路。浏览器半的 `apply` 依据 preload 暴露的 `window.desktopBridge` 选择载体：存在 → [`IpcApiClient`](src/client/ipc-api-client.ts)（`AbstractApiClient` 子类，其 `doFetch` 与流开启器都走 bridge）外加 `createIpcConnectionRpc`；`?fixture` → fixture；否则为 WebSocket 版 `WebApiClient`。选中 `IpcApiClient` 还会让 `ctx.connection.isLoopback` 为 true：preload bridge 标识本地进程内载体，而 `WebApiClient` 仍按页面 hostname 派生本地性。`./desktop` 节点半入口（[`src/desktop.ts`](src/desktop.ts)）提供 `desktopBridge` host 服务——由 web 节点半的 `HostConnectionService.createSharedFetchHandler` 叠在共享的 [`createApiGatewayFetch`](src/api-gateway.ts)（含特权方法钉死）之上构建的 unary/respond fetch handler，外加 `api.events.mux`/`host` 开启器——主进程再把它接到 `ipcMain` 与 `webContents` 事件泵。web 节点半的 `/api` route 与 WebSocket 注册仍挂在桌面载体上但保持惰性：IPC 是唯一表面。桌面壳层把渲染进程请求归一化到回环权威，这正是栅栏授予同源回环页面的信任的桌面等价物。
+Electron 桌面壳层（apps/desktop）以 IPC 而非 HTTP/WebSocket 承载同一条线路。浏览器半的 `apply` 依据 preload 暴露的 `window.desktopBridge` 选择载体：存在 → [`IpcApiClient`](src/client/ipc-api-client.ts)（`AbstractApiClient` 子类，其 `doFetch` 与流开启器都走 bridge）外加 `createIpcConnectionRpc`；`?fixture` → fixture；否则为 WebSocket 版 `WebApiClient`。选中 `IpcApiClient` 还会让 `ctx.connection.isLoopback` 为 true：preload bridge 标识本地进程内载体，而 `WebApiClient` 仍按页面 hostname 派生本地性。`desktopBridge` 服务由 preload bridge（[`src/client/desktop-bridge.ts`](src/client/desktop-bridge.ts)）声明，由桌面主进程暴露给渲染进程：上文的 IPC 载体通过 `window.desktopBridge` 全局选择它，主进程再把 IPC 通道接到 `ipcMain` 与 `webContents` 事件泵。web 节点半的 `/api` route 与 WebSocket 注册仍挂在桌面载体上但保持惰性：IPC 是唯一表面。桌面壳层把渲染进程请求归一化到回环权威，这正是栅栏授予同源回环页面的信任的桌面等价物。
 
 <a id="model-experience"></a>
 ## 模型体验

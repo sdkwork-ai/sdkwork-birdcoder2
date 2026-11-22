@@ -9,16 +9,22 @@
   en: 4ef4d8a71ac143f0
   zh: 1bfc3149ba8e5543
 /deepseek-harness/run:
-  en: 4e0248e4c6474fc6
-  zh: eb2fb8d78c7d6bc0
+  en: 13f261343918f2ca
+  zh: 40197b8e1ffac4f1
 /deepseek-harness/run/run-from-npm:
-  en: e22005cd42e6cbad
-  zh: 0f536f4208df1d60
+  en: 49d09b0d7d043f0a
+  zh: c339eddd4afeb487
+/deepseek-harness/run/install-the-desktop-application:
+  en: 9ee032d2e3add29c
+  zh: b44502f39e87180c
+/deepseek-harness/run/deploy-with-docker-or-kubernetes:
+  en: e936f021e149526f
+  zh: 2ecb0fae104f1b24
 /deepseek-harness/run/run-from-source:
-  en: 819e3f7c144d0d64
+  en: 701058f2e6bebb1c
   zh: de815f040975dba7
 /deepseek-harness/community-and-support:
-  en: 20acf6451fdc869b
+  en: 60f4ad8f634a2321
   zh: d06246dd019ecef7
 /deepseek-harness/contributing:
   en: cabc2d3e9f8898bd
@@ -32,3 +38,12 @@
 /deepseek-harness/license:
   en: 926995344fc1c72b
   zh: c92fab5abf85932f
+/deepseek-harness/deploy-application-identity:
+  en: 80978e07d2fc8b46
+  zh: 5737145136577a99
+/deepseek-harness/application-roots:
+  en: faada5986a2595b3
+  zh: 851805c77cb352fb
+/deepseek-harness/repository-kind:
+  en: 1bd35860a2b11616
+  zh: 5c0aaa219a907f07

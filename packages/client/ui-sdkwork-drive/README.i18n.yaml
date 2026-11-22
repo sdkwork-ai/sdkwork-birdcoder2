@@ -13,13 +13,16 @@
   zh: d86749a32bb8ed4f
 /deepseek-ai-dsh-client-ui-sdkwork-drive/table-of-contents:
   en: ffd640d553db616a
-  zh: 0f133ecf53b3e0d7
+  zh: ad857ca879b589bb
 /deepseek-ai-dsh-client-ui-sdkwork-drive/runtime-requirements:
   en: 4fe538646e23736d
-  zh: 22dafd81598e33de
+  zh: bf5e9357ae7a9747
 /deepseek-ai-dsh-client-ui-sdkwork-drive/browser-bundle:
   en: bd3c137ebfdf7e15
   zh: 749224b9fbc3461c
+/deepseek-ai-dsh-client-ui-sdkwork-drive/runtime-invariants:
+  en: ca99384ed2f6bae1
+  zh: 1bcf7dd3cd59dba8
 /deepseek-ai-dsh-client-ui-sdkwork-drive/model-experience:
   en: 4a796819f4f56b97
   zh: 26c9c124171dd7eb
@@ -28,10 +31,7 @@
   zh: 4f50bb97e5da00a0
 /deepseek-ai-dsh-client-ui-sdkwork-drive/known-limitations-and-deferred-work:
   en: 8886517c65247f0f
-  zh: d92f8db993576e3c
+  zh: 1a7b3bfc555904e4
 /deepseek-ai-dsh-client-ui-sdkwork-drive/known-limitations-and-deferred-work/dev-note:
   en: f574624f554aadd3
   zh: 2291fdd44a630302
-/deepseek-ai-dsh-client-ui-sdkwork-drive/runtime-invariants:
-  en: ca99384ed2f6bae1
-  zh: 1bcf7dd3cd59dba8

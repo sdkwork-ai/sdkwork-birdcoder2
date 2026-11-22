@@ -12,13 +12,19 @@ English | [中文](README.zh.md)
 
 The Assets app mode as an independent module: its mode-rail entry and its center-column page. The rail shell (ui-sdkwork-app-modes) renders one keyed `mode.rail.entry` seat per mode id and hands each entry the live selection facts; this package registers the `assets` entry — glyph, copy, and chrome — and the `assets` placeholder page into the frame's keyed `mode.page` slot. The mode id joins the frame's `AppModeId` vocabulary in ui-layout; switching to it renders this page until the real Assets surface lands behind the same keyed seat.
 
-Glyphs are self-contained in this package in two weights — outline for the idle entry and the page, filled for the rail's active entry — following the shared icon contract.
-
 ## Table of Contents
 
 - [Model Experience](#model-experience)
 - [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
 - [Dev Note](#dev-note)
+
+## Understand the implementation
+
+Glyphs are self-contained in this package in two weights — outline for the idle entry and the page, filled for the rail's active entry — following the shared icon contract.
+
+## Runtime invariants
+
+No runtime invariant companion is published; the mode state lives in the layout store declared action set, and the entry/page registrations follow the rail shell keyed dispatch; store/mode agreement is covered directly by this package client behavior specs.
 
 ## Model Experience
 
@@ -40,7 +46,3 @@ None; this package neither assembles nor sends provider requests.
 The rail shell (ui-sdkwork-app-modes) owns selection; this package only registers the keyed `assets` entries into `mode.rail.entry` and `mode.page`, and ui-sdkwork-generations-assets shadows them at a lower priority — keep the mode id and keys identical across all three packages or the placeholder and the real surface drift apart.
 
 </details>
-
-## Runtime invariants
-
-No runtime invariant companion is published; the mode state lives in the layout store declared action set, and the entry/page registrations follow the rail shell keyed dispatch; store/mode agreement is covered directly by this package client behavior specs.

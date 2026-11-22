@@ -9,8 +9,8 @@
   en: 78d202e1e9278501
   zh: 1f9693ff319fa33c
 /deepseek-ai-dsh-sdkwork-app-build/summary:
-  en: 20d9f94cbb90feb5
-  zh: 38251373d6d95354
+  en: c96284803694235f
+  zh: 17dd0c6d9d060eef
 /deepseek-ai-dsh-sdkwork-app-build/table-of-contents:
   en: d3559805b3109a7a
   zh: 7e80763e0e1583f7
@@ -21,20 +21,23 @@
   en: 7aa0ef1f7427e212
   zh: fe78ca9a6363d1e4
 /deepseek-ai-dsh-sdkwork-app-build/understand-the-implementation:
-  en: 3c6e253ee4716a14
-  zh: 7bea4e03bbee29e7
+  en: 272ec64eecd1f481
+  zh: 4c27b6d666e0cbff
 /deepseek-ai-dsh-sdkwork-app-build/further-exploration:
-  en: da077237f7a0646f
-  zh: 71ad2efe7a66b555
-/deepseek-ai-dsh-sdkwork-app-build/model-experience:
-  en: aeae0d69679ad49e
-  zh: ce7cf94bff145b86
-/deepseek-ai-dsh-sdkwork-app-build/known-limitations-and-deferred-work:
-  en: 08eb5042cbf77c9e
-  zh: 4b6e7f0bef38556d
+  en: 1ebe27f6b80b4fc2
+  zh: eb46c3132e2e3a57
 /deepseek-ai-dsh-sdkwork-app-build/dev-note:
   en: 97ebbec248ba2d81
   zh: 3062a7786e0f161e
 /deepseek-ai-dsh-sdkwork-app-build/runtime-invariants:
-  en: 65d1565811d5894d
-  zh: d92cac1c78723e11
+  en: 06a9ec0f698923e2
+  zh: ce61422088a78dcb
+/deepseek-ai-dsh-sdkwork-app-build/model-experience:
+  en: c3d83da37d800a12
+  zh: 3c0874ddfba6bb4e
+/deepseek-ai-dsh-sdkwork-app-build/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: 123b450ae1406e9d
+/deepseek-ai-dsh-sdkwork-app-build/known-limitations-and-deferred-work:
+  en: 808088deb1f1f8d9
+  zh: ffedd4d0a997c79a

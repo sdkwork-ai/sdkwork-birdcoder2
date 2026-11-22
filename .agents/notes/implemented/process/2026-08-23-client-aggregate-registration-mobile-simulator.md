@@ -19,3 +19,7 @@ The Client tsc pass now emits `lib/types` for the simulator package, and the Cli
 ## Testing
 
 Clean-tree rehearsal: `tsc -b tsconfig.host.json`, the Host tsdown pass, `tsc -b tsconfig.client.json`, and the Client tsdown pass all complete.
+
+## Alternatives considered
+
+**Leave the current behavior in place.** Rejected: the Problem records the concrete failure that behavior produced.

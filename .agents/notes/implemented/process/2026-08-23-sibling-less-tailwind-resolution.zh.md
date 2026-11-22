@@ -21,3 +21,7 @@ Client 阶段在有无 sibling `node_modules` 时构建结果一致：本地 che
 ## 测试
 
 本地模拟发布 runner（隐藏 sibling 根 `node_modules`）：Client tsdown 阶段完成。恢复 sibling 后同一阶段零警告完成。
+
+## 备选方案
+
+**保留当前行为。** 否决原因：问题一节记录的就是该行为造成的具体故障。
