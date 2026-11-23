@@ -1,0 +1,138 @@
+/* "我的域名" modal content: the root-domain list, one selected domain's
+   hostnames, and its ownership verification files. The shared WideModal
+   primitive owns the overlay, mask, header and dismissal geometry; this module
+   styles only the content. */
+
+.workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+
+.notice {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--dsw-surface-raised, rgba(127, 127, 127, 0.08));
+  color: var(--dsw-text-secondary, #555);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.error {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(214, 62, 62, 0.1);
+  color: #b43232;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--dsw-border, rgba(127, 127, 127, 0.22));
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.hint {
+  margin: 0;
+  color: var(--dsw-text-tertiary, #777);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--dsw-border, rgba(127, 127, 127, 0.16));
+  vertical-align: top;
+}
+
+.table th {
+  color: var(--dsw-text-tertiary, #777);
+  font-weight: 500;
+}
+
+.mono {
+  font-family: var(--dsw-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  word-break: break-all;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+  flex: 1 1 160px;
+}
+
+.field > span {
+  font-size: 11px;
+  color: var(--dsw-text-tertiary, #777);
+}
+
+.field input,
+.field select,
+.field textarea {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--dsw-border, rgba(127, 127, 127, 0.28));
+  background: var(--dsw-surface, transparent);
+  color: inherit;
+  font-size: 12px;
+}
+
+.button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--dsw-border, rgba(127, 127, 127, 0.28));
+  background: var(--dsw-surface-raised, rgba(127, 127, 127, 0.08));
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.buttonPrimary {
+  composes: button;
+  border-color: var(--dsw-accent, #2f6feb);
+  background: var(--dsw-accent, #2f6feb);
+  color: #fff;
+}
+
+.selected {
+  background: var(--dsw-surface-raised, rgba(47, 111, 235, 0.08));
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
