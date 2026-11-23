@@ -1,0 +1,25 @@
+# Bilingual-pair consistency record for 2026-11-23-quota-failure-row-top-up-seat.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-23-quota-failure-row-top-up-seat.md
+/agent-note-a-quota-failure-row-keeps-a-top-up-gesture:
+  en: 27aa88e27ec2e95b
+  zh: 3084861e48070a91
+/agent-note-a-quota-failure-row-keeps-a-top-up-gesture/problem:
+  en: 8c609d5f4990dd3d
+  zh: 98351f0fe5015815
+/agent-note-a-quota-failure-row-keeps-a-top-up-gesture/decision:
+  en: f89e0f4387e7924f
+  zh: dd4bc3f62ff8cfe7
+/agent-note-a-quota-failure-row-keeps-a-top-up-gesture/alternatives-considered:
+  en: 8093dfb0325cfb2f
+  zh: 398687fc9b0aca44
+/agent-note-a-quota-failure-row-keeps-a-top-up-gesture/consequences:
+  en: 620cdfdf0adac2d1
+  zh: 0230b9b6134f75b1
+/agent-note-a-quota-failure-row-keeps-a-top-up-gesture/testing:
+  en: e0e9dfc16cd85fa6
+  zh: afa82bccf56576de
+/agent-note-a-quota-failure-row-keeps-a-top-up-gesture/related:
+  en: 1fee293c83bb1788
+  zh: 29d79dbbd43ad72c

@@ -90,6 +90,7 @@ export function registerChatNodeRenderers(
     children: {
       'conversation.chat.turn-error.sign-in': { kind: 'single', scope: 'session' },
       'conversation.chat.turn-error.model-settings': { kind: 'single', scope: 'session' },
+      'conversation.chat.turn-error.top-up': { kind: 'single', scope: 'session' },
     },
   }, TurnErrorNodeView))
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register(

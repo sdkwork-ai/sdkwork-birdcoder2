@@ -18,7 +18,7 @@
     },
     "production": {
       "applicationOrigin": "https://harness.sdkwork.com/",
-      "cloudApiBaseUrl": "https://api.sdkwork.com;https://api.birdcoder.com;https://api.dtupay.com;https://api.noaper.com;https://api.sdkwork.cn;https://api.birdcoder.cn;https://api.dtupay.cn;https://api.noaper.cn;https://api.skubc.com;https://api.skubc.cn;https://api.zowalk.com;https://api.zowalk.cn;https://api.offer86.com;https://api.offer86.cn;https://api.86offer.com;https://api.86offer.cn"
+      "cloudApiBaseUrl": "https://api.birdcoder.com;https://api.sdkwork.com;https://api.dtupay.com;https://api.noaper.com;https://api.sdkwork.cn;https://api.birdcoder.cn;https://api.dtupay.cn;https://api.noaper.cn;https://api.skubc.com;https://api.skubc.cn;https://api.zowalk.com;https://api.zowalk.cn;https://api.offer86.com;https://api.offer86.cn;https://api.86offer.com;https://api.86offer.cn"
     },
     "demo": {
       "applicationOrigin": "https://harness-demo.sdkwork.com/",

@@ -266,7 +266,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.chat.aside\', () => ctx.slots.register(\n      { name: \'conversation.chat.aside\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:461',
+    source: 'packages/client/ui-chat/src/client/contract/slots.ts:462',
   },
   {
     key: 'conversation.chat.assistant-actions',
@@ -333,7 +333,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.chat.assistant-actions\', () => ctx.slots.register(\n      { name: \'conversation.chat.assistant-actions\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:526',
+    source: 'packages/client/ui-chat/src/client/contract/slots.ts:527',
   },
   {
     key: 'conversation.chat.commandview',
@@ -388,7 +388,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.chat.commandview\', () => ctx.slots.register(\n      { name: \'conversation.chat.commandview\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:508',
+    source: 'packages/client/ui-chat/src/client/contract/slots.ts:509',
   },
   {
     key: 'conversation.chat.flow',
@@ -438,7 +438,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.chat.flow\', () => ctx.slots.register(\n      { name: \'conversation.chat.flow\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:464',
+    source: 'packages/client/ui-chat/src/client/contract/slots.ts:465',
   },
   {
     key: 'conversation.chat.markdown.fence',
@@ -508,7 +508,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'wraps-owner-content',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.chat.markdown.fence\', () => ctx.slots.register(\n      { name: \'conversation.chat.markdown.fence\', id: \'my-layer\', order: 100 },\n      ({ children }) => React.createElement(\'div\', null, children),\n    ))\n  },\n}',
-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:447',
+    source: 'packages/client/ui-chat/src/client/contract/slots.ts:448',
   },
   {
     key: 'conversation.chat.message.images',
@@ -558,7 +558,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.chat.message.images\', () => ctx.slots.register(\n      { name: \'conversation.chat.message.images\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:500',
+    source: 'packages/client/ui-chat/src/client/contract/slots.ts:501',
   },
   {
     key: 'conversation.chat.node',
@@ -634,7 +634,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.chat.node\', () => ctx.slots.register(\n      { name: \'conversation.chat.node\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:476',
+    source: 'packages/client/ui-chat/src/client/contract/slots.ts:477',
   },
   {
     key: 'conversation.chat.reasoning.body',
@@ -681,7 +681,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.chat.reasoning.body\', () => ctx.slots.register(\n      { name: \'conversation.chat.reasoning.body\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:514',
+    source: 'packages/client/ui-chat/src/client/contract/slots.ts:515',
   },
   {
     key: 'conversation.chat.text-interaction',
@@ -736,7 +736,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.chat.text-interaction\', () => ctx.slots.register(\n      { name: \'conversation.chat.text-interaction\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:445',
+    source: 'packages/client/ui-chat/src/client/contract/slots.ts:446',
   },
   {
     key: 'conversation.chat.turn-error.model-settings',
@@ -746,7 +746,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     doc: 'The in-sentence Models-page fix for a missing model credential (see `turn-error.sign-in`).',
     registerOptions: [],
     ownerProps: [
-      '/**\n * Owner currency of one repair seat inside a terminal Turn failure\'s copy. A\n * feature contributes the affordance its product offers (sign in, open the\n * surface that holds the provider credential) and renders the label the row\n * passes in, so the sentence keeps one localized source of truth. The row\n * itself hands out only the stable failure code, never the provider diagnostic.\n */\nexport interface TurnErrorRepairOwnerProps {\n  /** Stable failure code, absent when the failure carried none. */\n  readonly code: string | undefined\n  /** Localized link text the sentence already carries at this position. */\n  readonly label: string\n}',
+      '/**\n * Owner currency of one repair seat inside a terminal Turn failure\'s copy. A\n * feature contributes the affordance its product offers (sign in, open the\n * surface that holds the provider credential, replenish the exhausted balance)\n * and renders the label the row passes in, so the sentence keeps one localized\n * source of truth. The row itself hands out only the stable failure code, never\n * the provider diagnostic.\n */\nexport interface TurnErrorRepairOwnerProps {\n  /** Stable failure code, absent when the failure carried none. */\n  readonly code: string | undefined\n  /** Localized link text the sentence already carries at this position. */\n  readonly label: string\n}',
     ],
     ownerPropsReferences: [],
     standardProps: [
@@ -782,7 +782,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.chat.turn-error.model-settings\', () => ctx.slots.register(\n      { name: \'conversation.chat.turn-error.model-settings\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:535',
+    source: 'packages/client/ui-chat/src/client/contract/slots.ts:536',
   },
   {
     key: 'conversation.chat.turn-error.sign-in',
@@ -792,7 +792,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     doc: 'The in-sentence fix a terminal failure row offers for a missing model\ncredential: a feature makes the phrase the row already carries act as a\nsign-in link, or leaves it plain text when it has no such gesture. The\nrow renders the label itself when the seat has no registrant.',
     registerOptions: [],
     ownerProps: [
-      '/**\n * Owner currency of one repair seat inside a terminal Turn failure\'s copy. A\n * feature contributes the affordance its product offers (sign in, open the\n * surface that holds the provider credential) and renders the label the row\n * passes in, so the sentence keeps one localized source of truth. The row\n * itself hands out only the stable failure code, never the provider diagnostic.\n */\nexport interface TurnErrorRepairOwnerProps {\n  /** Stable failure code, absent when the failure carried none. */\n  readonly code: string | undefined\n  /** Localized link text the sentence already carries at this position. */\n  readonly label: string\n}',
+      '/**\n * Owner currency of one repair seat inside a terminal Turn failure\'s copy. A\n * feature contributes the affordance its product offers (sign in, open the\n * surface that holds the provider credential, replenish the exhausted balance)\n * and renders the label the row passes in, so the sentence keeps one localized\n * source of truth. The row itself hands out only the stable failure code, never\n * the provider diagnostic.\n */\nexport interface TurnErrorRepairOwnerProps {\n  /** Stable failure code, absent when the failure carried none. */\n  readonly code: string | undefined\n  /** Localized link text the sentence already carries at this position. */\n  readonly label: string\n}',
     ],
     ownerPropsReferences: [],
     standardProps: [
@@ -828,7 +828,53 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.chat.turn-error.sign-in\', () => ctx.slots.register(\n      { name: \'conversation.chat.turn-error.sign-in\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:533',
+    source: 'packages/client/ui-chat/src/client/contract/slots.ts:534',
+  },
+  {
+    key: 'conversation.chat.turn-error.top-up',
+    kind: 'single',
+    scope: 'session',
+    summary: 'The durable repair a terminal quota failure row offers: a feature that can replenish the exhausted balance renders the row\'s label as its gesture.',
+    doc: 'The durable repair a terminal quota failure row offers: a feature that can\nreplenish the exhausted balance renders the row\'s label as its gesture.\nThe seat\'s output follows the neutral quota copy directly — the feature\nsupplies its own leading space — so an unoccupied seat leaves that copy\nstanding alone instead of naming an action nobody can perform.',
+    registerOptions: [],
+    ownerProps: [
+      '/**\n * Owner currency of one repair seat inside a terminal Turn failure\'s copy. A\n * feature contributes the affordance its product offers (sign in, open the\n * surface that holds the provider credential, replenish the exhausted balance)\n * and renders the label the row passes in, so the sentence keeps one localized\n * source of truth. The row itself hands out only the stable failure code, never\n * the provider diagnostic.\n */\nexport interface TurnErrorRepairOwnerProps {\n  /** Stable failure code, absent when the failure carried none. */\n  readonly code: string | undefined\n  /** Localized link text the sentence already carries at this position. */\n  readonly label: string\n}',
+    ],
+    ownerPropsReferences: [],
+    standardProps: [
+      'useRemoteAccess: (action: RemoteEndpoint) => boolean',
+      'useResource: UseResource',
+      'useSessions: SnapshotSelectorHook<SessionListState>',
+      'useWorkspaces: SnapshotSelectorHook<import(\'./workspaces/service.ts\').WorkspaceListState>',
+      'useContextMenu: UseContextMenu',
+      'useWorkspaces: SnapshotSelectorHook<WorkspaceSnapshot>',
+      'usePanelInfo: UsePanelInfo',
+      'useSessionStatus: UseSessionStatus',
+      'useSessions: UseSessions',
+      'useSessionRetainInfo: UseSessionRetainInfo',
+      'useSessionAccess: (sessionId: SessionId, action: RemoteEndpoint) => boolean',
+      'useWorkspaceAccess: (workspaceId: WorkspaceId, action: RemoteEndpoint) => boolean',
+      'useSession: SnapshotSelectorHook<ConversationSnapshot>',
+      'sessionId: SessionId',
+      'useProjection: UseProjection',
+      'useChat: UseChat',
+      'useConversation: UseConversation',
+      'useInput: SnapshotSelectorHook<InputState>',
+      'inputActions: InputActions',
+      'useSession: SessionSnapshotSelector',
+      'useAccess: (action: RemoteEndpoint) => boolean',
+      'useTrajectory: UseTrajectory',
+    ],
+    keyDomain: '',
+    hookContext: '',
+    slotInject: '',
+    declaredBy: 'an entry in \'conversation.chat.node\' (client-ui-chat), so it exists while that entry is mounted',
+    occupants: [
+      'client-ui-settings-account QuotaTopUpAction',
+    ],
+    replaceRisk: 'shadows-shipped-ui',
+    example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.chat.turn-error.top-up\', () => ctx.slots.register(\n      { name: \'conversation.chat.turn-error.top-up\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+    source: 'packages/client/ui-chat/src/client/contract/slots.ts:544',
   },
   {
     key: 'conversation.chat.turnTail',
@@ -896,7 +942,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.chat.turnTail\', () => ctx.slots.register(\n      { name: \'conversation.chat.turnTail\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:520',
+    source: 'packages/client/ui-chat/src/client/contract/slots.ts:521',
   },
   {
     key: 'conversation.chat.user.before',
@@ -949,7 +995,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.chat.user.before\', () => ctx.slots.register(\n      { name: \'conversation.chat.user.before\', select: owner => null },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:490',
+    source: 'packages/client/ui-chat/src/client/contract/slots.ts:491',
   },
   {
     key: 'conversation.chat.user.images',
@@ -999,7 +1045,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.chat.user.images\', () => ctx.slots.register(\n      { name: \'conversation.chat.user.images\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:502',
+    source: 'packages/client/ui-chat/src/client/contract/slots.ts:503',
   },
   {
     key: 'conversation.composer',
@@ -6103,7 +6149,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'shell.quota-notice\', () => ctx.slots.register(\n      { name: \'shell.quota-notice\', select: owner => null },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:543',
+    source: 'packages/client/ui-chat/src/client/contract/slots.ts:552',
   },
   {
     key: 'shell.window-title',

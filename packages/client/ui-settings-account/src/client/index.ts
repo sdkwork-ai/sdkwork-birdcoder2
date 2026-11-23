@@ -26,6 +26,7 @@ import { AccountSection, type AccountSnapshot, type AccountSectionInjected } fro
 import { accountClientMetadata } from './client-metadata.ts'
 import { en, ja, es, fr, de, ru, pt, zh, type AccountKey } from './locales.ts'
 import { AccountQuotaNotice, type AccountQuotaNoticeInjected } from './AccountQuotaNotice.tsx'
+import { QuotaTopUpAction, type QuotaTopUpActionInjected } from './QuotaTopUpAction.tsx'
 import { DESKTOP_ONBOARDING_NAMESPACE, type OnboardingSettings } from '../onboarding-settings.ts'
 import { DesktopOnboardingController } from './onboarding-state.ts'
 import { DesktopOnboardingEntry, type DesktopOnboardingInjected } from './DesktopOnboardingEntry.tsx'
@@ -308,6 +309,17 @@ export function apply(ctx: Context): void {
       ...nativePlatform === undefined ? {} : { openPlatformPage: platformPageOpener(refreshAccount) },
     }),
   }, AccountQuotaNotice)))
+  // The durable counterpart of that notice: a quota failure row keeps a top-up
+  // gesture for as long as the transcript shows it. Desktop always offers the
+  // embedded balance page (it carries its own sign-in); a browser tab needs a
+  // stored credential, so there the entry declines while signed out.
+  ctx.remoteAccess.whenAccess('account/watch', () => ctx.slots.inject('conversation.chat.turn-error.top-up', () => ctx.slots.register({
+    name: 'conversation.chat.turn-error.top-up',
+    inject: (): QuotaTopUpActionInjected => ({
+      hooks: { account: operations.hooks.account },
+      ...nativePlatform === undefined ? {} : { openPlatformPage: platformPageOpener(refreshAccount) },
+    }),
+  }, QuotaTopUpAction)))
   if (nativePlatform !== undefined) {
     ctx.slots.inject('shell.overlay', () => ctx.slots.register({
       name: 'shell.overlay', id: 'account.platform-page', locale: 'settings.account',

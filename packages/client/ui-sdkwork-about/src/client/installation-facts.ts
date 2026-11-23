@@ -64,10 +64,10 @@ export interface AboutInstallationFacts {
  * real destinations instead of dead buttons.
  */
 export const SHIPPED_PRODUCT_LINKS = {
-  websiteUrl: 'https://sdkwork.com/apps/sdkwork-birdcoder',
-  supportUrl: 'https://sdkwork.com/support',
-  privacyPolicyUrl: 'https://sdkwork.com/privacy',
-  termsOfServiceUrl: 'https://sdkwork.com/terms',
+  websiteUrl: 'https://www.birdcoder.com',
+  supportUrl: 'https://www.birdcoder.com/docs/support',
+  privacyPolicyUrl: 'https://www.birdcoder.com/docs/privacy',
+  termsOfServiceUrl: 'https://www.birdcoder.com/docs/terms',
 } as const
 
 /** Vendor shown in the footer before the platform answers. */

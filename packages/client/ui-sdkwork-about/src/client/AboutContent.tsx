@@ -11,7 +11,7 @@ import { useId, type ReactNode } from 'react'
 import clsx from 'clsx'
 import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
 import {
-  BirdLogo, IconCheckOutlineRegular, IconCopyOutlineRegular, IconRefreshOutlineRegular,
+  BirdLogo, IconRefreshOutlineRegular,
   IconRightUpOutlineRegular, IconWarningTriangleOutlineRegular, useClipboardCopy,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
@@ -111,8 +111,9 @@ function FieldRow({
         ? <span className={css.skeleton} aria-hidden="true" />
         : (
           <span className={css.rowValue}>
-            <span className={clsx(css.value, mono && css.mono)} title={value}>{value}</span>
-            {copyText === undefined ? null : <CopyButton text={copyText} t={t} />}
+            {copyText === undefined
+              ? <span className={clsx(css.value, mono && css.mono)} title={value}>{value}</span>
+              : <CopyValue display={value} text={copyText} label={label} t={t} mono={mono} />}
           </span>
         )}
     </div>
@@ -120,22 +121,33 @@ function FieldRow({
 }
 
 /**
- * Copy one exact value with local success feedback.
- * @param props - the text to copy and localized labels.
- * @returns the copy button.
+ * Copy one exact value by clicking its text, with local success feedback.
+ *
+ * The value itself is the control: it reads as plain text, turns into a pointer
+ * on hover, and swaps to the localized success label for one second after the
+ * clipboard write so the row never grows a second alignment edge.
+ * @param props - the displayed value, the exact text to copy, its row label, and localized copy.
+ * @returns the clickable value.
  */
-function CopyButton({ text, t }: { text: string; t: AboutTranslate }) {
+function CopyValue({
+  display, text, label, t, mono,
+}: {
+  display: string
+  text: string
+  label: string
+  t: AboutTranslate
+  mono: boolean
+}) {
   const { copied, onCopy } = useClipboardCopy(text)
-  const label = copied ? t('action.copied') : t('action.copy')
   return (
     <button
       type="button"
-      className={clsx(css.copy, copied && css.copied)}
-      aria-label={label}
-      title={label}
+      className={clsx(css.value, css.copyValue, mono && css.mono, copied && css.copiedValue)}
+      aria-label={copied ? t('action.copied') : `${t('action.copy')} ${label}`}
+      title={copied ? t('action.copied') : text}
       onClick={onCopy}
     >
-      {copied ? <IconCheckOutlineRegular size={12} /> : <IconCopyOutlineRegular size={12} />}
+      {copied ? t('action.copied') : display}
     </button>
   )
 }

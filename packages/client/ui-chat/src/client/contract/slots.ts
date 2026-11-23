@@ -71,9 +71,10 @@ export interface AssistantActionOwnerProps {
 /**
  * Owner currency of one repair seat inside a terminal Turn failure's copy. A
  * feature contributes the affordance its product offers (sign in, open the
- * surface that holds the provider credential) and renders the label the row
- * passes in, so the sentence keeps one localized source of truth. The row
- * itself hands out only the stable failure code, never the provider diagnostic.
+ * surface that holds the provider credential, replenish the exhausted balance)
+ * and renders the label the row passes in, so the sentence keeps one localized
+ * source of truth. The row itself hands out only the stable failure code, never
+ * the provider diagnostic.
  */
 export interface TurnErrorRepairOwnerProps {
   /** Stable failure code, absent when the failure carried none. */
@@ -533,6 +534,14 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'conversation.chat.turn-error.sign-in': { kind: 'single'; scope: 'session'; owner: TurnErrorRepairOwnerProps }
     /** The in-sentence Models-page fix for a missing model credential (see `turn-error.sign-in`). */
     'conversation.chat.turn-error.model-settings': { kind: 'single'; scope: 'session'; owner: TurnErrorRepairOwnerProps }
+    /**
+     * The durable repair a terminal quota failure row offers: a feature that can
+     * replenish the exhausted balance renders the row's label as its gesture.
+     * The seat's output follows the neutral quota copy directly — the feature
+     * supplies its own leading space — so an unoccupied seat leaves that copy
+     * standing alone instead of naming an action nobody can perform.
+     */
+    'conversation.chat.turn-error.top-up': { kind: 'single'; scope: 'session'; owner: TurnErrorRepairOwnerProps }
     /**
      * Frame-wide quota notice chain. The Chat-owned host in `shell.overlay`
      * offers the one live notice; the first entry whose selector claims its

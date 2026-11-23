@@ -25,6 +25,7 @@ import { AccountPlatformHost } from '../src/client/AccountPlatformHost.tsx'
 import type { AccountPlatformHostInjected } from '../src/client/AccountPlatformHost.tsx'
 import { AccountQuotaNotice } from '../src/client/AccountQuotaNotice.tsx'
 import type { AccountQuotaNoticeInjected } from '../src/client/AccountQuotaNotice.tsx'
+import type { QuotaTopUpActionInjected } from '../src/client/QuotaTopUpAction.tsx'
 
 // FORK DIVERGENCE: the fork's web composition disables ui-settings-general
 // (ui-sdkwork-settings-menu re-declares every settings seat) and account
@@ -92,6 +93,7 @@ it('registers account sign-in in a plain browser without the Desktop-only surfac
     expect(c.ctx.slots.entries('settings.launcher')).toHaveLength(1)
     expect(c.ctx.slots.entries('settings.models.sign-in')).toHaveLength(1)
     expect(quotaNoticeEntry(c)).toBeDefined()
+    expect(c.ctx.slots.entries('conversation.chat.turn-error.top-up')).toHaveLength(1)
     expect(platformHostEntry(c)).toBeUndefined()
     expect(c.ctx.slots.entries('shell.overlay').some(entry => entry.options.id === 'desktop-onboarding')).toBe(false)
     expect(operations(c).hooks.account.getSnapshot().desktopOnboardingVisible).toBe(false)
@@ -103,6 +105,7 @@ withoutAccountAccess('opens no account stream and registers no account surface w
   expect(c.mock.streams.end('account/watch')).toBe(0)
   expect(c.ctx.slots.entries('settings.launcher')).toHaveLength(0)
   expect(quotaNoticeEntry(c)).toBeUndefined()
+  expect(c.ctx.slots.entries('conversation.chat.turn-error.top-up')).toHaveLength(0)
   expect(c.ctx.slots.entries('settings.models.sign-in')).toHaveLength(0)
   expect(c.ctx.slots.entries('settings.section').some(entry => entry.options.id === 'account')).toBe(false)
   // FORK DIVERGENCE: this case boots the plain web roster on its own (the other
@@ -408,6 +411,9 @@ it('uses the Desktop stream origin and exposes the native platform bridge', asyn
   expect('platformPages' in actions).toBe(false)
   expect('platformPages' in notice).toBe(false)
   expect(notice.hooks.platformPage.getSnapshot()).toBeNull()
+  const rowTopUp = injectedOf(c.ctx.slots.entries('conversation.chat.turn-error.top-up')[0]!) as QuotaTopUpActionInjected
+  expect(typeof rowTopUp.openPlatformPage).toBe('function')
+  expect('platformPages' in rowTopUp).toBe(false)
 
   // One surface requests a page; the viewer returning through the host's own
   // close action retires that owner exactly once and clears the observable.

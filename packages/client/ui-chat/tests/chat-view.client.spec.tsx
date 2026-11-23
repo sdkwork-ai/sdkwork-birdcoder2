@@ -480,7 +480,11 @@ function makeHarness(
   let imageSlotOverride: ImageRenderer | undefined
   let turnErrorFixRender: ((name: string, owner: TurnErrorRepairOwnerProps) => React.ReactNode) | undefined
   const renderTurnErrorFix: TurnErrorFixRenderer = (name, owner, opts) => {
-    if (name !== 'conversation.chat.turn-error.sign-in' && name !== 'conversation.chat.turn-error.model-settings') {
+    if (
+      name !== 'conversation.chat.turn-error.sign-in'
+      && name !== 'conversation.chat.turn-error.model-settings'
+      && name !== 'conversation.chat.turn-error.top-up'
+    ) {
       throw new Error(`Undeclared turn-error child: ${name}`)
     }
     return turnErrorFixRender?.(name, owner) ?? opts?.fallback ?? null
@@ -2731,11 +2735,35 @@ describe('ChatView', () => {
       '任务已停止DSH 进程在本轮完成前退出（例如被强制结束、崩溃或关闭超时），重新启动后本轮已中止。未完成的工具调用结果未知。',
       '本轮运行失败缺少模型凭据：请先登录账号（登录后可使用官方配置的模型），或在 设置 → 模型 中填写该提供方的 API 密钥。MISSING_CREDENTIAL',
     ])
-    // The transient notice is the frame-wide host's job; the failure row keeps
-    // neither a recharge affordance nor a toast of its own.
+    // The transient notice is the frame-wide host's job. The row itself offers
+    // no repair here because no feature fills its top-up seat.
     expect(view.queryByRole('alert')).toBeNull()
     expect(view.queryByRole('dialog')).toBeNull()
     expect(view.queryByRole('button', { name: '去充值' })).toBeNull()
+  })
+
+  it('appends the registered top-up gesture to each quota failure row', () => {
+    const h = makeHarness({ nodes: [
+      user(1, 'try'), turnError(2, 'AUTH'), turnError(3, 'QUOTA'), turnError(4, 'ACCOUNT_QUOTA'),
+    ] })
+    const seen: Array<{ name: string; code: string | undefined; label: string }> = []
+    h.setTurnErrorFix((name, owner) => {
+      seen.push({ name, code: owner.code, label: owner.label })
+      return <button type="button">{owner.label}</button>
+    })
+    const view = render(<h.ChatView {...h.props} />)
+    // Both quota codes reach the seat; the non-quota failure gives it nothing.
+    expect(seen).toEqual([
+      { name: 'conversation.chat.turn-error.top-up', code: 'QUOTA', label: '去充值' },
+      { name: 'conversation.chat.turn-error.top-up', code: 'ACCOUNT_QUOTA', label: '去充值' },
+    ])
+    const actions = view.getAllByRole('button', { name: '去充值' })
+    expect(actions).toHaveLength(2)
+    for (const action of actions) {
+      // The action rides in the failure row, not in a separate strip.
+      expect(action.closest('[role="status"]')?.textContent).toContain('当前请求的额度已用尽')
+    }
+    expect(view.getByText('AUTH').closest('[role="status"]')?.textContent).toBe('本轮运行失败API 密钥无效AUTH')
   })
 
   it('embeds the registered repairs inside the missing-credential sentence', () => {

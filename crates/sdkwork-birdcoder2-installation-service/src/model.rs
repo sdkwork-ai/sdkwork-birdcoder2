@@ -251,10 +251,10 @@ impl InstallationProductProfile {
             app_key: "sdkwork-birdcoder2".to_owned(),
             icon_url: "https://cdn.sdkwork.com/apps/sdkwork-birdcoder/assets/icon-1024.png"
                 .to_owned(),
-            website_url: "https://sdkwork.com/apps/sdkwork-birdcoder".to_owned(),
-            support_url: "https://sdkwork.com/support".to_owned(),
-            privacy_policy_url: "https://sdkwork.com/privacy".to_owned(),
-            terms_of_service_url: "https://sdkwork.com/terms".to_owned(),
+            website_url: "https://www.birdcoder.com".to_owned(),
+            support_url: "https://www.birdcoder.com/docs/support".to_owned(),
+            privacy_policy_url: "https://www.birdcoder.com/docs/privacy".to_owned(),
+            terms_of_service_url: "https://www.birdcoder.com/docs/terms".to_owned(),
         }
     }
 

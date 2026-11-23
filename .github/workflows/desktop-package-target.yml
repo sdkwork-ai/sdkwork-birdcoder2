@@ -90,7 +90,7 @@ env:
   SDKWORK_DEPLOY_APPLICATION_ID: ${{ vars.SDKWORK_DEPLOY_APPLICATION_ID_SDKWORK_BIRDCODER2_DESKTOP || '382429273660592128' }}
   # This lane builds the Web frontend with Vite's `production` mode, so
   # `apps/web/vite.config.ts` reads the committed `.env.cloud.production` and
-  # bakes the SDKWork cloud edge (`https://api.sdkwork.com`) and
+  # bakes the BirdCoder cloud edge (`https://api.birdcoder.com`) and
   # `SDKWORK_ACCESS_TOKEN` into the page the installed application loads. There
   # is no packaging-time projection and no `resources/sdkwork-release.env`: the
   # environment is selected by the build mode, exactly like any other Vite

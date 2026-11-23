@@ -74,6 +74,18 @@ function failureMessage(
 }
 
 /**
+ * The repair seats a terminal failure row declares. A missing credential splits
+ * its sentence around two in-place gestures; a quota failure keeps its neutral
+ * copy and appends the one replenishment gesture a feature can offer.
+ */
+type TurnErrorRepairSlot =
+  | 'conversation.chat.turn-error.sign-in'
+  | 'conversation.chat.turn-error.model-settings'
+  | 'conversation.chat.turn-error.top-up'
+
+type TurnErrorRepairRenderer = PropsRenderSlots<TurnErrorRepairSlot>['renderSlot']
+
+/**
  * The missing-credential sentence with its two repair seats in place: the
  * sign-in and Models-page phrases become the feature-provided links exactly
  * where the sentence names them, and stay plain text when no feature fills the
@@ -81,7 +93,7 @@ function failureMessage(
  */
 function MissingCredentialCopy({ node, renderSlot, t }: {
   node: TurnErrorNode
-  renderSlot: PropsRenderSlots<'conversation.chat.turn-error.sign-in' | 'conversation.chat.turn-error.model-settings'>['renderSlot']
+  renderSlot: TurnErrorRepairRenderer
   t: ChatViewSlotProps['t']
 }) {
   const signIn = t('message.failure.missingCredential.signIn')
@@ -93,6 +105,28 @@ function MissingCredentialCopy({ node, renderSlot, t }: {
       {t('message.failure.missingCredential.between')}
       {renderSlot('conversation.chat.turn-error.model-settings', { code: node.code, label: models }, { fallback: models })}
       {t('message.failure.missingCredential.after')}
+    </>
+  )
+}
+
+/**
+ * The neutral quota sentence with the optional replenishment gesture a feature
+ * contributes. That feature owns whether a top-up can repair this failure (its
+ * account state, its product's billing surface) and the gesture's own spacing,
+ * so an empty seat adds nothing at all: the row never names an action the
+ * composition cannot perform.
+ */
+function QuotaFailureCopy({ node, renderSlot, t }: {
+  node: TurnErrorNode
+  renderSlot: TurnErrorRepairRenderer
+  t: ChatViewSlotProps['t']
+}) {
+  return (
+    <>
+      {t('message.failure.quota')}
+      {renderSlot('conversation.chat.turn-error.top-up', {
+        code: node.code, label: t('message.failure.quota.action'),
+      })}
     </>
   )
 }
@@ -169,8 +203,9 @@ function ModelRetryItem({ node, active, t }: {
 function TurnErrorItem({ node, t, renderSlot }: {
   node: TurnErrorNode
   t: ChatViewSlotProps['t']
-  renderSlot: PropsRenderSlots<'conversation.chat.turn-error.sign-in' | 'conversation.chat.turn-error.model-settings'>['renderSlot']
+  renderSlot: TurnErrorRepairRenderer
 }) {
+  const quota = node.code === 'QUOTA' || node.code === 'ACCOUNT_QUOTA'
   return (
     <div className={css.turnErrorRow} role="status">
       <StateDot state="error" className={css.turnErrorDot} />
@@ -179,7 +214,9 @@ function TurnErrorItem({ node, t, renderSlot }: {
         <span className={css.turnErrorMessage}>
           {node.code === 'MISSING_CREDENTIAL'
             ? <MissingCredentialCopy node={node} renderSlot={renderSlot} t={t} />
-            : failureMessage(node.message, node.code, t)}
+            : quota
+              ? <QuotaFailureCopy node={node} renderSlot={renderSlot} t={t} />
+              : failureMessage(node.message, node.code, t)}
         </span>
       </div>
       {node.code !== undefined && node.code !== 'INTERRUPTED' && <code className={css.turnErrorCode}>{node.code}</code>}
@@ -455,9 +492,7 @@ export const RetryNodeView = memo(function RetryNodeView({ node, t }: ChatNodeVi
 /** Terminal turn-error keyed Chat renderer. */
 export const TurnErrorNodeView = memo(function TurnErrorNodeView({
   node, renderSlot, t,
-}: ChatNodeViewProps<'turn-error'> & PropsRenderSlots<
-  'conversation.chat.turn-error.sign-in' | 'conversation.chat.turn-error.model-settings'
->) {
+}: ChatNodeViewProps<'turn-error'> & PropsRenderSlots<TurnErrorRepairSlot>) {
   return <TurnErrorItem node={node.data} renderSlot={renderSlot} t={t} />
 })
 
