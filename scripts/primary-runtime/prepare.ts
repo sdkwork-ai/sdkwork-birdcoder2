@@ -237,7 +237,11 @@ export async function preparePrimaryRuntime(options: PreparePrimaryRuntimeOption
     const output = join(staging, 'payload')
     const dependencies = join(output, 'dependencies')
     mkdirSync(dependencies, { recursive: true })
-    const platform = target === 'win-x64' ? 'win32' : target.startsWith('linux-') ? 'linux' : 'darwin'
+    // FORK DIVERGENCE: `win-arm64` is a fork target, so the platform follows the
+    // target prefix; `target === 'win-x64'` would prune pnpm's bundled native
+    // packages as if the payload were darwin and ship a win-arm64 runtime without
+    // its Windows reflink helpers.
+    const platform = target.startsWith('win') ? 'win32' : target.startsWith('linux-') ? 'linux' : 'darwin'
     const arch = target.endsWith('-arm64') ? 'arm64' : 'x64'
     let pnpmVersion: string | undefined
     if (!options.pythonOnly) {
