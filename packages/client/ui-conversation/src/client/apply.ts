@@ -205,14 +205,20 @@ export function apply(ctx: Context, config: SyncedConfig<ConversationConfig>): v
 
   const viewTabs = (): ViewTab[] => {
     const tabs: ViewTab[] = []
-    for (const entry of slots.entries('conversation.view')) {
+    // Project the row from the slot's shadowing winners: a lower-priority
+    // registration of an already occupied View cell owns no cell of its own
+    // and is not a second tab. Two Views may also resolve to one visible
+    // label; a user cannot tell such tabs apart, so only the first one in row
+    // order becomes a tab.
+    const labels = new Set<string>()
+    for (const entry of slots.entriesOfSlot('conversation.view')) {
       /* v8 ignore next -- list registration validates id at load. */
       if (entry.options.id === undefined) continue
       if (!ctx.configForms.developerTools.enabled.getSnapshot() && entry.options.id === TRAJECTORY_VIEW_ID) continue
-      tabs.push({
-        id: entry.options.id,
-        label: resolveSlotLabel(entry.options.label) ?? entry.options.id,
-      })
+      const label = resolveSlotLabel(entry.options.label) ?? entry.options.id
+      if (labels.has(label)) continue
+      labels.add(label)
+      tabs.push({ id: entry.options.id, label })
     }
     return tabs
   }

@@ -597,17 +597,7 @@ describe('recorded provider listings', () => {
 })
 
 describe('harness relay model discovery', () => {
-  it('answers a harness relay route from its endpoint, not its seed catalog', async () => {
-    const server = await listingServer({ body: JSON.stringify({ data: [{ id: 'from-the-endpoint' }] }) })
-    const ctx = await harness()
-
-    const models = await ctx.llm.discoverModels('llm-pi-ai', { provider: 'birdcoder', baseURL: server.url })
-
-    expect(models).toEqual([{ id: 'from-the-endpoint', name: 'from-the-endpoint' }])
-    expect(server.paths).toEqual(['/models'])
-  })
-
-  it('asks the shipped relay endpoint when the draft names none, or clears one', async () => {
+  it('answers a relay route from its shipped catalog, and only asks an endpoint the draft names', async () => {
     const urls: string[] = []
     vi.stubGlobal('fetch', async (url: string | URL) => {
       urls.push(String(url))
@@ -617,14 +607,79 @@ describe('harness relay model discovery', () => {
       })
     })
 
-    await discoverModels({ provider: 'birdcoder' })
-    await discoverModels({ provider: 'birdcoder', baseURL: '' })
-    await discoverModels({ provider: 'sdkwork' })
+    // No endpoint facts = "what does this route serve": the seed answers, with
+    // the same contract the official DeepSeek route keeps (its built-in
+    // catalog), and no network call is made.
+    const shipped = await discoverModels({ provider: 'birdcoder' })
+    const cleared = await discoverModels({ provider: 'sdkwork', baseURL: '' })
+
+    expect(urls).toEqual([])
+    expect(shipped.map(model => model.id)).toContain('deepseek/deepseek-flash')
+    expect(cleared.map(model => model.id)).toEqual(shipped.map(model => model.id))
+    expect(shipped.every(model => model.contextWindow !== undefined && model.name !== model.id)).toBe(true)
+  })
+
+  it('asks a relay endpoint the draft names instead of its seed', async () => {
+    const urls: string[] = []
+    vi.stubGlobal('fetch', async (url: string | URL) => {
+      urls.push(String(url))
+      return new Response(JSON.stringify({ data: [{ id: 'from-the-endpoint' }] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    })
+
+    const models = await discoverModels({ provider: 'birdcoder', baseURL: 'https://api.birdcoder.com/anthropic' })
+
+    expect(models).toEqual([{ id: 'from-the-endpoint', name: 'from-the-endpoint' }])
+    expect(urls).toEqual(['https://api.birdcoder.com/v1/models'])
+  })
+
+  it('lists a relay on its OpenAI-compatible face whichever protocol face the draft selects', async () => {
+    const urls: string[] = []
+    const headers: Headers[] = []
+    vi.stubGlobal('fetch', async (url: string | URL, init?: RequestInit) => {
+      urls.push(String(url))
+      headers.push(new Headers(init?.headers))
+      return new Response(JSON.stringify({ data: [{ id: 'from-the-endpoint' }] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    })
+
+    // The BirdCoder route defaults to the Anthropic Messages face; its catalog
+    // is still the gateway's OpenAI-compatible listing.
+    await discoverModels({
+      provider: 'birdcoder',
+      api: 'anthropic-messages',
+      baseURL: 'https://api.birdcoder.com/anthropic',
+      apiKey: 'probe-key',
+    })
+    await discoverModels({ provider: 'birdcoder', api: 'openai-responses', baseURL: 'https://api.birdcoder.com/v1/' })
 
     expect(urls).toEqual([
       'https://api.birdcoder.com/v1/models',
       'https://api.birdcoder.com/v1/models',
-      'https://api.sdkwork.com/v1/models',
     ])
+    // The listing is read as OpenAI Chat Completions, so the credential travels
+    // as a bearer token rather than the Anthropic face's `x-api-key`.
+    expect(headers.map(header => [header.get('authorization'), header.get('x-api-key')])).toEqual([
+      ['Bearer probe-key', null],
+      [null, null],
+    ])
+  })
+
+  it('asks the endpoint a draft repoints at another deployment', async () => {
+    const server = await listingServer({ body: JSON.stringify({ data: [{ id: 'from-the-endpoint' }] }) })
+    const ctx = await harness()
+
+    const models = await ctx.llm.discoverModels('llm-pi-ai', {
+      provider: 'birdcoder',
+      api: 'anthropic-messages',
+      baseURL: `${server.url}/anthropic`,
+    })
+
+    expect(models).toEqual([{ id: 'from-the-endpoint', name: 'from-the-endpoint' }])
+    expect(server.paths).toEqual(['/anthropic/v1/models?limit=1000'])
   })
 })

@@ -81,6 +81,29 @@ it('inherits catalog inputs once an incomplete draft has a model id', async () =
   expect(onChange).toHaveBeenCalledTimes(1)
 })
 
+it('lists the catalog an inherited route serves, and never takes ownership of it', async () => {
+  const onChange = vi.fn()
+  render(<ModelListEditor
+    models={[]} overridden={false} onChange={onChange} catalogProvider="birdcoder"
+    probe={{ settingsNs: 'llm-pi-ai', provider: 'birdcoder' }} disabled={false} t={key => en[key]} onBusyChange={() => {}}
+    operations={operations(() => Promise.resolve({
+      kind: 'found',
+      models: [
+        { id: 'deepseek/deepseek-flash', name: 'DeepSeek: V4.1 Flash', contextWindow: 1048576 },
+        { id: 'anthropic/claude-opus-5', name: 'Anthropic: Claude Opus 5', maxTokens: 131072 },
+      ],
+    }))}
+  />)
+  // The rows are what the route serves, so the card lists them instead of the
+  // "no models" placeholder — but they stay the adapter's, not the draft's.
+  expect(await screen.findByDisplayValue('deepseek/deepseek-flash')).toBeDefined()
+  expect(screen.getByDisplayValue('anthropic/claude-opus-5')).toBeDefined()
+  expect(screen.queryByText(en.modelsEmpty)).toBeNull()
+  expect(screen.getByText(en.modelsInherited)).toBeDefined()
+  expect(screen.getByLabelText<HTMLInputElement>(`${en.modelId} 1`).disabled).toBe(true)
+  expect(onChange).not.toHaveBeenCalled()
+})
+
 it('restores inherited image input after a failed catalog read is retried manually', async () => {
   const discover = vi.fn<ModelsOperations['discoverModels']>()
     .mockResolvedValueOnce({ kind: 'refused', message: 'Catalog unavailable' })

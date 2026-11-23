@@ -2,12 +2,13 @@
  * Answering "which models can this provider serve?" for the configuration
  * surface's "fetch available models" action.
  *
- * A route the installed pi-ai catalog ships is answered **from that catalog**,
- * with no network call at all: pi-ai's registry is the authoritative list for
- * its own providers, and it carries the capacities a listing endpoint would
- * not disclose. Only a route the catalog does not describe — a harness-shipped
- * relay (whose seed is the SDKWork catalog projection, not the endpoint's own
- * listing), a gateway, a self-hosted server — is interrogated over the wire.
+ * A route the adapter describes is answered **from that description**, with no
+ * network call at all: pi-ai's registry is the authoritative list for its own
+ * providers, and a harness-shipped relay ships its seed catalog the same way.
+ * Both carry the capacities a listing endpoint does not disclose. Only a route
+ * the adapter cannot describe — a gateway or self-hosted server someone added —
+ * or a draft that carries endpoint facts (the "fetch available models" action)
+ * is interrogated over the wire.
  *
  * Neither path is a catalog refresh. Nothing here is stored: the request
  * carries a draft the user is still editing, and the reply is candidate
@@ -29,7 +30,8 @@ import { INVALID_CREDENTIAL_CODE, LlmError } from '@deepseek-ai/dsh-llm'
 import type { LlmDiscoveredModel, LlmModelDiscoveryOperation } from '@deepseek-ai/dsh-llm'
 import { attributionHeaders } from '@deepseek-ai/dsh-llm'
 import { catalogModels } from './catalog.ts'
-import { harnessRelay } from './relay.ts'
+import { harnessModels, harnessRelay } from './relay.ts'
+import type { HarnessRelayEntry } from './relay.ts'
 
 /**
  * Protocols whose model listing this module can read. OpenAI protocols use
@@ -304,6 +306,16 @@ function usableProbeKey(raw: string): string {
   )
 }
 
+/**
+ * The endpoints a harness relay ships for its two protocol faces, without
+ * trailing slashes so a draft's spelling compares equally.
+ * @param relay - the harness-shipped relay route.
+ * @returns the relay's OpenAI-compatible and Anthropic Messages base URLs.
+ */
+function relayFaces(relay: HarnessRelayEntry): string[] {
+  return [relay.baseUrl, relay.anthropicBaseUrl].map(face => face.replace(/\/+$/, ''))
+}
+
 /** Host-owned profile inputs that a configuration draft deliberately omits. */
 export interface StoredModelDiscoveryProfile {
   /** Deployment headers configured on the named route. */
@@ -326,15 +338,23 @@ export async function discoverModels(
   request: LlmModelDiscoveryOperation,
   storedProfile?: () => StoredModelDiscoveryProfile | undefined,
 ): Promise<readonly LlmDiscoveredModel[]> {
-  // A route the installed pi-ai registry describes already has its answer, and
-  // a better one: the installed entries carry context windows and output caps
-  // no listing endpoint reports. A harness-shipped relay is not in that
-  // registry — its seed is the SDKWork catalog projection, not the endpoint's
-  // own listing — so its endpoint answers instead.
-  if (request.provider !== undefined && harnessRelay(request.provider) === undefined) {
-    const installed = catalogModels(request.provider)
-    if (installed.size > 0) {
-      return [...installed.values()].map(model => ({
+  // A route the adapter itself describes already has its answer, and a better
+  // one: the declared entries carry context windows and output caps no listing
+  // endpoint reports. That is the contract every provider keeps — the DeepSeek
+  // official route answers from its built-in catalog the same way — so a
+  // harness-shipped relay answers from the seed it ships, project policy
+  // included. Asking the endpoint is a separate request: a draft that carries
+  // endpoint facts (the "fetch available models" action) is asking what this
+  // deployment actually serves, and that reply wins.
+  const relay = request.provider === undefined ? undefined : harnessRelay(request.provider)
+  const declared = request.baseURL !== undefined && request.baseURL.length > 0 ? request.baseURL : undefined
+  const asksEndpoint = declared !== undefined || request.api !== undefined || request.apiKey !== undefined
+  if (request.provider !== undefined) {
+    const declaredModels = relay === undefined
+      ? [...catalogModels(request.provider).values()]
+      : asksEndpoint ? [] : [...(harnessModels(request.provider)?.values() ?? [])]
+    if (declaredModels.length > 0) {
+      return declaredModels.map(model => ({
         id: model.id,
         name: model.name,
         contextWindow: model.contextWindow,
@@ -345,9 +365,15 @@ export async function discoverModels(
   }
   // A harness relay names no endpoint in the draft but ships one, so it is
   // asked there; every other route must state its own.
-  const baseURL = request.baseURL !== undefined && request.baseURL.length > 0
-    ? request.baseURL
-    : request.provider === undefined ? undefined : harnessRelay(request.provider)?.baseUrl
+  // A relay lists on its OpenAI-compatible face, whichever protocol face the
+  // draft selects for requests. A vendor face such as the relay's `/anthropic`
+  // endpoint mirrors that vendor's own API; only the gateway's `/v1` face
+  // serves this deployment's catalog, so the Anthropic Messages default would
+  // otherwise ask `/anthropic/v1/models` and read no models at all. A draft
+  // repointing the route at another deployment keeps that endpoint instead.
+  const listFromRelay = relay !== undefined
+    && (declared === undefined || relayFaces(relay).includes(declared.replace(/\/+$/, '')))
+  const baseURL = listFromRelay ? relay.baseUrl : declared ?? relay?.baseUrl
   if (baseURL === undefined || baseURL.length === 0) {
     throw new LlmError(
       `pi-ai ships no catalog for provider "${request.provider ?? ''}", so its models can only come from its`
@@ -361,7 +387,9 @@ export async function discoverModels(
   // the action from the case it exists for. The cost is a misdirected message
   // when the endpoint speaks something else (an Anthropic gateway answers 401,
   // which reads as a credential problem), and hand-entry remains the way out.
-  const api = request.api ?? 'openai-completions'
+  // A relay listing is read from its OpenAI-compatible face, so its draft
+  // protocol does not describe the answer.
+  const api = listFromRelay ? 'openai-completions' : request.api ?? 'openai-completions'
   if (!LISTABLE_PROTOCOLS.has(api)) {
     throw new LlmError(
       `pi-ai protocol "${api}" has no model listing this build can read; enter this provider's models by hand`,
