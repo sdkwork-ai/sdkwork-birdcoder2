@@ -21,8 +21,9 @@
  * `scripts/generate-sdkwork-relay-models.mjs`), so a catalog bump refreshes
  * what the picker offers instead of leaving a hand-kept list behind. A seed
  * model borrows the wire facts and compatibility block of the same model in
- * the installed OpenRouter catalog when pi-ai describes it, and otherwise
- * states only what the SDKWork catalog states. The endpoint's own
+ * the installed OpenRouter catalog when pi-ai describes it — under its own id,
+ * or by composed display name when the installed catalog renamed the id — and
+ * otherwise states only what the SDKWork catalog states. The endpoint's own
  * `GET /models` (the Models page "fetch models" action) remains the authority
  * on what a deployment actually serves.
  *
@@ -217,7 +218,8 @@ function openRouterCandidates(preset: SdkworkRelayModelPreset): string[] {
  * The installed catalog entry describing one SDKWork catalog model, when
  * pi-ai knows it. That entry is the only source of the wire facts the SDKWork
  * catalog does not carry: compatibility switches, thinking dispatch, and
- * image limits.
+ * image limits. An id the installed catalog has renamed is matched by its
+ * composed display name instead.
  * @param preset - one SDKWork catalog row.
  * @returns the borrowed entry, or `undefined` when pi-ai does not describe it.
  */
@@ -227,7 +229,33 @@ function borrowedSeed(preset: SdkworkRelayModelPreset): Model<Api> | undefined {
     const model = source.get(id)
     if (model !== undefined) return model
   }
-  return undefined
+  return nameMatchedSeed(preset)
+}
+
+/**
+ * The installed catalog entry carrying one SDKWork catalog model's wire facts
+ * under a renamed id.
+ *
+ * The installed catalog sometimes spells the same model differently — the
+ * SDKWork catalog's `deepseek/deepseek-flash` is OpenRouter's
+ * `deepseek/deepseek-v4.1-flash` — so an id lookup misses and the seed would
+ * lose the model's thinking dispatch. Fall back to the composed display name
+ * (`<vendorName>: <displayName>`) inside the same vendor family, and accept it
+ * only when exactly one entry claims that name.
+ * @param preset - one SDKWork catalog row.
+ * @returns the borrowed entry, or `undefined` when no single entry matches.
+ */
+function nameMatchedSeed(preset: SdkworkRelayModelPreset): Model<Api> | undefined {
+  const wanted = `${preset.vendorName}: ${preset.displayName}`
+  const vendors = [preset.vendorCode, ...(OPENROUTER_VENDOR_ALIASES[preset.vendorCode] ?? [])]
+  let match: Model<Api> | undefined
+  for (const model of openRouterCatalog().values()) {
+    if (model.name !== wanted) continue
+    if (!vendors.some(vendor => model.id.startsWith(`${vendor}/`))) continue
+    if (match !== undefined) return undefined
+    match = model
+  }
+  return match
 }
 
 /**

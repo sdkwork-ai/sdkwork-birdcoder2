@@ -1399,6 +1399,33 @@ describe('harness-shipped relay routes', () => {
     expect([...catalogModels('birdcoder').keys()]).toEqual(catalogKeys)
   })
 
+  it('borrows wire facts for a catalog model the installed catalog renamed', () => {
+    // The SDKWork catalog calls this model `deepseek/deepseek-flash`; the
+    // installed catalog spells the same model `deepseek/deepseek-v4.1-flash`.
+    // An id-only borrow left the seed non-reasoning, so the composer menu
+    // offered no reasoning levels for it while its id-matched sibling had them.
+    const installed = getBuiltinModels('openrouter')
+    const source = installed.find(model => model.id === 'deepseek/deepseek-v4.1-flash')
+    expect(source?.reasoning).toBe(true)
+    const seed = catalogModels('birdcoder').get('deepseek/deepseek-flash')
+    expect(seed).toBeDefined()
+    // The whole thinking dispatch travels, so the picker offers the levels the
+    // installed catalog declares for this exact model.
+    expect(seed?.reasoning).toBe(source?.reasoning)
+    expect(seed?.thinkingLevelMap).toEqual(source?.thinkingLevelMap)
+    expect(getSupportedThinkingLevels(seed!)).toEqual(getSupportedThinkingLevels(source!))
+    expect(getSupportedThinkingLevels(seed!)).toEqual(['off', 'low', 'high', 'max'])
+  })
+
+  it('offers reasoning efforts for a relay model the installed catalog renamed', async () => {
+    // What the composer's model menu reads: the adapter reports the borrowed
+    // levels, so a model whose installed-catalog id differs from the SDKWork
+    // catalog key still exposes its reasoning control.
+    const ctx = await harness({ providers: { birdcoder: { apiKeyEnv: KEY_ENV } } })
+    const info = await ctx.llm.resolveModelInfo('birdcoder', 'deepseek/deepseek-flash')
+    expect(info.reasoning?.efforts.map(effort => effort.id)).toEqual(['off', 'low', 'high', 'max'])
+  })
+
   it('never seeds a model the catalog keeps off code surfaces', () => {
     // `codingVisible: false` marks a specialized endpoint — OCR, translation,
     // role-play, character, live audio, robotics — that a coding picker must not
@@ -1453,10 +1480,11 @@ describe('harness-shipped relay routes', () => {
       input: ['text'],
     })
     expect(models.get('openai/gpt-6-astra')?.name).toBe('OpenAI: GPT-6 Astra')
-    // A catalog model the installed pi-ai catalog does not describe still
-    // seeds — without borrowed dispatch facts, but with a usable window.
-    const unborrowed = models.get('deepseek/deepseek-flash')
-    expect(unborrowed).toMatchObject({ name: 'DeepSeek: DeepSeek V4.1 Flash', reasoning: false })
+    // A catalog model the installed pi-ai catalog does not describe (under any
+    // spelling) still seeds — without borrowed dispatch facts, but with a
+    // usable window.
+    const unborrowed = models.get('meituan/longcat-2.5-preview')
+    expect(unborrowed).toMatchObject({ name: 'Meituan: LongCat 2.5 Preview', reasoning: false })
     expect(unborrowed?.contextWindow).toBeGreaterThan(0)
   })
 
