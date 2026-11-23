@@ -73,8 +73,8 @@ export const SHIPPED_PRODUCT_LINKS = {
 /** Vendor shown in the footer before the platform answers. */
 export const SHIPPED_PRODUCT_VENDOR = 'SDKWORK'
 
-/** Product key this repository publishes (`agent.app.config.json` `app.key`). */
-export const SHIPPED_PRODUCT_APP_KEY = 'sdkwork-birdcoder2'
+/** Public product key the About surface displays. */
+export const SHIPPED_PRODUCT_APP_KEY = 'birdcoder'
 
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null

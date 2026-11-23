@@ -28,7 +28,7 @@ SDKWork IAM 公众号账号管理插件（浏览器侧）：在设置菜单弹�
 - `src/client/officialAccountsHost.ts` 同时按本应用的声明式上传意图（`specs/upload.declaration.json`，经 `src/client/officialAccountLogoUpload.ts` 带入代码）构建 Drive `DriveUploadImageService`，并交给面板的 Logo 字段：编辑时以账号 id 作为归属锚点立即上传，新建时先暂存选择、账号创建后再补传（`DRIVE_SPEC.md` 第 18 节）。声明值不在此处内联，`appId` 由运行时令牌决定。
 - 抽屉的「服务器信息」页签列出部署公布的服务器出口 IP，供运营复制到公众号 IP 白名单；适配器从当前环境 profile 读取（由 `SDKWORK_OFFICIAL_ACCOUNT_SERVER_IPS` 投影），列表为空时明确提示该部署未公布，而不是编造地址。
 - 域名配置页签的每条域名都可上传微信下发的 `MP_verify_*.txt`：适配器用 Deploy 应用 API 把域名解析到所属 DNS Zone，读写该 Zone 已有的验证文件（边缘对该 Zone 的每个主机名原样提供该文件），域名不在受管 Zone 时明确提示无法代托管。
-- 面板的 Tailwind 工具类由本包自己的样式表 `src/client/officialAccountsView.css` 针对 IAM app 级模块、`@sdkwork/ui-pc-react` 与 Drive 图片上传组件源码根编译；该表只引入 Tailwind 子表，并为面板根写入作用域内的 reset，因此不会重排 Harness 界面。编译后的样式表收敛在 `dsh-sdkwork-official-accounts-embed` 级联层（由 `apps/web/src/index.css` 声明），并作用于嵌入根节点以及面板挂到 `document.body` 的覆盖层；`src/client/embedScope.ts` 保存组件与构建共享的属性名和选择器。
+- 面板的 Tailwind 工具类由本包自己的样式表 `src/client/officialAccountsView.css` 针对 IAM app 级模块、`@sdkwork/ui-pc-react` 与 Drive 图片上传组件源码根编译；该表只引入 Tailwind 子表，并为面板根写入作用域内的 reset，因此不会重排 Harness 界面。编译后的样式表收敛在 `dsh-sdkwork-official-accounts-embed` 级联层（由 `apps/web/src/index.css` 声明），并作用于嵌入根节点以及面板挂到 `document.body` 的覆盖层；`src/client/embedScope.ts` 保存组件与构建共享的属性名和选择器。这份 body 作用域同时把页面的抽屉与遮罩停在桌面标题栏（顶栏）下方，与 Harness 原语一致：那条 strip 是窗口的原生拖拽区域，画在其中的关闭控件收不到点击。抽屉绘制宿主的记录抽屉表面别名，因此从 IAM 页面打开的抽屉与 Harness 工作区打开的抽屉是同一种材质。
 - `SdkworkThemeProvider` 提供 SDKWork 设计令牌以及面板 `dark:` 变体所绑定的 `.dark` 类；`SdkworkI18nProvider` 把模块的 zh-CN/en-US 语言目录限定到宿主语言：弹窗位于 Harness（自带主题契约的 CSS Module 应用）中，而不是 SDKWork 应用外壳里。
 
 <a id="build"></a>

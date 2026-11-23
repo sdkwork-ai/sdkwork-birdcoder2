@@ -3,8 +3,8 @@
   "kind": "agent.app",
   "app": {
     "key": "sdkwork-birdcoder2",
-    "name": "SDKWork Birdcoder",
-    "displayName": "SDKWork Birdcoder",
+    "name": "Birdcoder",
+    "displayName": "Birdcoder",
     "description": "SDKWork BirdCoder coding workbench application.",
     "vendor": "SDKWork",
     "officialWebsiteUrl": "https://www.birdcoder.com",

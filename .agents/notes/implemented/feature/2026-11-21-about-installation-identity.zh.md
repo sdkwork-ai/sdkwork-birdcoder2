@@ -16,7 +16,7 @@ Status: implemented
 
 生成的 TypeScript 传输层（`sdks/sdkwork-birdcoder2-app-sdk`）由规范生成器依据更新后的 OpenAPI 权威产出该操作。`ui-sdkwork-about` 在 apply 闭包中用已登录 IAM 会话凭据构建该客户端，在网络边界重新校验响应，并在读取无法完成时展示本地信息、提示与重试。
 
-每一种应用方式注册各自的部署应用，构建把该方式的锚点物化为 `SDKWORK_APP_ID`；`ui-sdkwork-env` 将其投影到 profile 的 `appId`，使客户端命名的安装实例与页面构建所选一致。关于页使用已登录 IAM 会话的 `authToken`/`accessToken` 双令牌读取，这正是 app-api 期望的凭据组合，平台会先校验两半再作答。“已注册 App ID”一行只展示平台返回值：构建锚点与本地令牌声明都只是部署事实，读取中显示忙碌行，不可达或未登录时显示“未获取”。供应商与产品标识回退到随包身份（`SDKWORK`、`sdkwork-birdcoder2`）。客户端构建未携带版本时，经轻量的 About facts 桥取桌面外壳已安装版本。
+每一种应用方式注册各自的部署应用，构建把该方式的锚点物化为 `SDKWORK_APP_ID`；`ui-sdkwork-env` 将其投影到 profile 的 `appId`，使客户端命名的安装实例与页面构建所选一致。关于页使用已登录 IAM 会话的 `authToken`/`accessToken` 双令牌读取，这正是 app-api 期望的凭据组合，平台会先校验两半再作答。“已注册 App ID”一行只展示平台返回值：构建锚点与本地令牌声明都只是部署事实，读取中显示忙碌行，不可达或未登录时显示“未获取”。供应商与产品标识回退到随包身份（`SDKWORK`、`birdcoder`）。客户端构建未携带版本时，经轻量的 About facts 桥取桌面外壳已安装版本。生产环境隐藏部署信息卡，因此 release 界面只保留产品身份与产品链接。
 
 桌面关于命令迁移到 `apps/desktop/src/about-command.ts`：`sdkwork:about:open` 向渲染进程广播命令，`sdkwork:about:takePending` 让点击之后才挂载的页面消费一次。`iam-preload.ts` 把两者暴露在既有 `window.sdkworkDesktop` 桥下，桌面壳因此只增加一个切片，而不是第二套桥。
 

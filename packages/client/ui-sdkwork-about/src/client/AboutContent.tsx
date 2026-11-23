@@ -167,14 +167,41 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
+/** Canonical product site the About links must stay on. */
+const PRODUCT_SITE_ORIGIN = 'https://www.birdcoder.com'
+
+/**
+ * Keep one platform product link on the product's canonical route.
+ *
+ * A platform row that predates the docs routes may still name the legacy site or
+ * a path outside `/docs/`; the About surface never sends a reader there, and a
+ * link the product cannot serve falls back to the shipped destination.
+ * @param value - platform-supplied product URL.
+ * @param key - which shipped destination the URL belongs to.
+ * @returns the accepted URL or the shipped canonical destination.
+ */
+function productLink(value: string | undefined, key: keyof typeof SHIPPED_PRODUCT_LINKS): string {
+  const fallback = SHIPPED_PRODUCT_LINKS[key]
+  const text = value?.trim()
+  if (text === undefined || text === '') return fallback
+  try {
+    const url = new URL(text)
+    if (url.origin !== PRODUCT_SITE_ORIGIN) return fallback
+    if (key !== 'websiteUrl' && !url.pathname.startsWith('/docs/')) return fallback
+    return text
+  } catch {
+    return fallback
+  }
+}
+
 /** Product links shown for the resolved installation or the shipped identity. */
 function productLinks(product: AboutProductFacts | undefined) {
   if (product === undefined) return SHIPPED_PRODUCT_LINKS
   return {
-    websiteUrl: product.websiteUrl || SHIPPED_PRODUCT_LINKS.websiteUrl,
-    supportUrl: product.supportUrl || SHIPPED_PRODUCT_LINKS.supportUrl,
-    privacyPolicyUrl: product.privacyPolicyUrl || SHIPPED_PRODUCT_LINKS.privacyPolicyUrl,
-    termsOfServiceUrl: product.termsOfServiceUrl || SHIPPED_PRODUCT_LINKS.termsOfServiceUrl,
+    websiteUrl: productLink(product.websiteUrl, 'websiteUrl'),
+    supportUrl: productLink(product.supportUrl, 'supportUrl'),
+    privacyPolicyUrl: productLink(product.privacyPolicyUrl, 'privacyPolicyUrl'),
+    termsOfServiceUrl: productLink(product.termsOfServiceUrl, 'termsOfServiceUrl'),
   }
 }
 
@@ -195,6 +222,9 @@ export function AboutContent({ t, local, installation, variant, onRefresh }: Abo
   const registeredAppId = application?.appId
   const appKey = product?.appKey ?? SHIPPED_PRODUCT_APP_KEY
   const environment = application?.environment ?? local.environment
+  // The deployment card is diagnostic material; a release (production)
+  // environment keeps it off the end-user surface.
+  const showDeployment = environment !== 'production'
   const mode = application?.deploymentMode
   const scope = application?.releaseScope
   const organization = application?.organizationId
@@ -264,48 +294,50 @@ export function AboutContent({ t, local, installation, variant, onRefresh }: Abo
         <FieldRow label={t('field.vendor')} value={vendor} t={t} />
       </Card>
 
-      <Card title={t('section.deployment')}>
-        <FieldRow label={t('field.appMode')} value={t(APP_MODE_KEYS[local.appMode])} t={t} />
-        <FieldRow label={t('field.environment')} value={t(ENVIRONMENT_KEYS[environment])} t={t} />
-        <FieldRow
-          label={t('field.deploymentMode')}
-          value={mode === undefined ? t('value.unknown') : t(MODE_KEYS[mode])}
-          t={t}
-          pending={loading && mode === undefined}
-        />
-        <FieldRow
-          label={t('field.releaseScope')}
-          value={scope === undefined ? t('value.unknown') : t(SCOPE_KEYS[scope])}
-          t={t}
-          pending={loading && scope === undefined}
-        />
-        <FieldRow
-          label={t('field.tenant')}
-          value={tenant ?? t('value.unknown')}
-          t={t}
-          mono
-          pending={loading && tenant === undefined}
-        />
-        {showOrganization && (
-          <FieldRow label={t('field.organization')} value={organization} t={t} mono />
-        )}
-        <FieldRow
-          label={t('field.apiBaseUrl')}
-          value={local.apiBaseUrl === '' ? t('value.unknown') : local.apiBaseUrl}
-          t={t}
-          mono
-          copyText={local.apiBaseUrl === '' ? undefined : local.apiBaseUrl}
-        />
-        {commitLabel !== undefined && (
+      {showDeployment && (
+        <Card title={t('section.deployment')}>
+          <FieldRow label={t('field.appMode')} value={t(APP_MODE_KEYS[local.appMode])} t={t} />
+          <FieldRow label={t('field.environment')} value={t(ENVIRONMENT_KEYS[environment])} t={t} />
           <FieldRow
-            label={t('field.commit')}
-            value={commitLabel}
+            label={t('field.deploymentMode')}
+            value={mode === undefined ? t('value.unknown') : t(MODE_KEYS[mode])}
+            t={t}
+            pending={loading && mode === undefined}
+          />
+          <FieldRow
+            label={t('field.releaseScope')}
+            value={scope === undefined ? t('value.unknown') : t(SCOPE_KEYS[scope])}
+            t={t}
+            pending={loading && scope === undefined}
+          />
+          <FieldRow
+            label={t('field.tenant')}
+            value={tenant ?? t('value.unknown')}
             t={t}
             mono
-            copyText={local.commit}
+            pending={loading && tenant === undefined}
           />
-        )}
-      </Card>
+          {showOrganization && (
+            <FieldRow label={t('field.organization')} value={organization} t={t} mono />
+          )}
+          <FieldRow
+            label={t('field.apiBaseUrl')}
+            value={local.apiBaseUrl === '' ? t('value.unknown') : local.apiBaseUrl}
+            t={t}
+            mono
+            copyText={local.apiBaseUrl === '' ? undefined : local.apiBaseUrl}
+          />
+          {commitLabel !== undefined && (
+            <FieldRow
+              label={t('field.commit')}
+              value={commitLabel}
+              t={t}
+              mono
+              copyText={local.commit}
+            />
+          )}
+        </Card>
+      )}
 
       <section className={css.card} aria-label={t('section.links')}>
         <h3 className={css.cardTitle}>{t('section.links')}</h3>

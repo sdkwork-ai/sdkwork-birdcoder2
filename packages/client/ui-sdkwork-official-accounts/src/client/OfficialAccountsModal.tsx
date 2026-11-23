@@ -26,7 +26,9 @@
  * host adapter reads from the active environment profile. The page's own
  * create/edit drawer and confirm dialog portal to `document.body`;
  * `officialAccountsView.css` lifts them above this harness layer so they stay
- * operable.
+ * operable, opens the drawer from the left, and stops it and its mask below the
+ * desktop caption strip — the window's native drag region, which would
+ * otherwise swallow the drawer's own close control.
  */
 import { useEffect, useState, type ReactNode } from 'react'
 import { WideModal } from '@deepseek-ai/dsh-client-ui-primitives'

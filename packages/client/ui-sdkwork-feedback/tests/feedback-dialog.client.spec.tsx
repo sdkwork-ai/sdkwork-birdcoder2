@@ -118,7 +118,7 @@ describe('FeedbackDialog', () => {
     fireEvent.change(within(form).getByRole('textbox', { name: '反馈内容' }), { target: { value: 'hello' } })
     fireEvent.click(within(form).getByRole('button', { name: '提交反馈' }))
     await vi.waitFor(() => {
-      expect(screen.getByRole('alert').textContent).toContain('请先登录 SDKWork 账号后再提交反馈')
+      expect(screen.getByRole('alert').textContent).toContain('请先登录账号后再提交反馈')
     })
   })
 

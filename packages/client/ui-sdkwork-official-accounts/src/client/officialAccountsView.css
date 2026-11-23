@@ -117,15 +117,36 @@
   z-index: 1170;
 }
 
+/* Every full-viewport overlay the page portals starts below the window's
+   caption strip, like the harness masks (`ui-primitives/Drawer.module.css` and
+   `WideModal.module.css` inset theirs by the same token): on the desktop
+   shells that strip is the window's native drag region, which hit-tests by
+   geometry and ignores paint order, so anything the page paints there is
+   visible but never receives a click — a press there drags the window instead
+   of reaching the control. A plain browser document publishes no value and
+   keeps the full viewport. */
+:is([data-sdk-ui='drawer-overlay'], [data-sdk-ui='modal-overlay']) {
+  top: var(--dsh-frame-chrome-top, 0px);
+}
+
 /* The page renders its create/edit drawer on the right; every record drawer in
    the harness opens from the left, so mirror the panel and its slide direction
-   inside this embed only. */
+   inside this embed only. The panel also fills the clear viewport below the
+   caption: `top` and `height: auto` replace the variant's viewport-relative
+   `inset-y-0`/`h-full`, which would otherwise hang past the bottom edge by the
+   caption's height. Its sheet paints the host's record-drawer alias, which the
+   harness `Drawer` also reads, so a drawer opened from either workspace reads as
+   the same material. */
 :is([data-sdk-ui='drawer-content']) {
+  top: var(--dsh-frame-chrome-top, 0px);
+  bottom: 0;
+  height: auto;
   left: 0;
   right: auto;
   border-right-width: 1px;
   border-left-width: 0;
   border-radius: 0 var(--sdk-radius-panel, 24px) var(--sdk-radius-panel, 24px) 0;
+  background-color: var(--dsw-alias-bg-drawer, var(--sdk-color-surface-panel));
 }
 
 :is([data-sdk-ui='drawer-content'][data-state='closed']) {

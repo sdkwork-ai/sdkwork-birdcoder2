@@ -17,7 +17,7 @@ export const zh = {
   'account.environment': '登录环境',
   'account.empty': '未提供',
   'linked.section': '关联账号',
-  'linked.hint': 'SDKWork 产品套件使用同一账号，登录状态与积分互通。',
+  'linked.hint': '平台产品使用同一账号，登录状态与积分互通。',
   'linked.birdcoder': 'BirdCoder',
   'linked.cloudrouter': 'Cloud Router',
   'linked.primary': '主账号',
@@ -34,7 +34,7 @@ export const zh = {
   'signOut.hint': '退出登录会停止所有正在执行中的任务，并结束当前账号会话。',
   'signOut.action': '退出登录',
   'signedOut.title': '未登录',
-  'signedOut.detail': '登录 SDKWork 账号后，可在这里管理个人与企业信息。',
+  'signedOut.detail': '登录账号后，可在这里管理个人与企业信息。',
   'signedOut.action': '登录 / 注册',
 } satisfies Record<string, string>
 
@@ -58,7 +58,7 @@ export const en = {
   'account.environment': 'Environment',
   'account.empty': 'Not provided',
   'linked.section': 'Linked accounts',
-  'linked.hint': 'SDKWork products share one account, so your sign-in and points carry across them.',
+  'linked.hint': 'Platform products share one account, so your sign-in and points carry across them.',
   'linked.birdcoder': 'BirdCoder',
   'linked.cloudrouter': 'Cloud Router',
   'linked.primary': 'Primary',
@@ -75,6 +75,6 @@ export const en = {
   'signOut.hint': 'Signing out stops every running task and ends this account session.',
   'signOut.action': 'Sign out',
   'signedOut.title': 'Not signed in',
-  'signedOut.detail': 'Sign in with your SDKWork account to manage personal and enterprise details here.',
+  'signedOut.detail': 'Sign in to manage personal and enterprise details here.',
   'signedOut.action': 'Sign in / Register',
 } satisfies Record<ProfileKey, string>

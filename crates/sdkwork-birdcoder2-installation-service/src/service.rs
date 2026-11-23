@@ -107,7 +107,7 @@ mod tests {
             application.deployment_mode,
             InstallationDeploymentMode::Saas
         );
-        assert_eq!(application.product.app_key, "sdkwork-birdcoder2");
+        assert_eq!(application.product.app_key, "birdcoder");
         assert_eq!(application.product.name, service.product().name);
     }
 
@@ -116,7 +116,7 @@ mod tests {
         assert_eq!(InstallationProductProfile::birdcoder().validate(), Ok(()));
         assert_eq!(
             InstallationApplicationService::shipped().product().app_key,
-            "sdkwork-birdcoder2"
+            "birdcoder"
         );
     }
 
