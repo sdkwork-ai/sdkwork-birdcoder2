@@ -117,6 +117,7 @@
 
 #### 合并后的 fork 变更（2026-11-21 起）
 
+* **模型调用失败诊断**（`7f45a280fc`、`e40b6de8d3`）：`llm-pi-ai` 在 provider 调用失败时上报精确的请求体，便于定位网关改写与凭据问题；对应断言补了对缺失日志调用的保护。
 * **子模块前移到远端默认分支 HEAD**：`plugins/dsh-mcp-connector` 0.2.119 → 0.2.120（OAuth 回调兼容修复），`plugins/dsh-better-sidebar` 0.32.1 → 0.33.0（0.2.3 的 admit 注入 `connection.authentication`）；其余六个子模块已在最新指针。
 * **品牌清单驱动构建与安装产品名**：`apps/web/scripts/build-brand.ts` 从 `brands/<key>.json` 取 `displayName` 注入 HTML `<title>` 与 PWA `manifest.webmanifest`，显式 `DSH_BRAND` / `DSH_CLIENT_TITLE` 可覆盖且失败即报错；桌面安装器的八份 locale 用 `{product}` 占位符由 `renderInstallerStrings()` 填入 `desktop.productName`，原生 window-frame 报告标题从构建期生成的 `installer-product.h` 读取（缺省回落到签入的 `installer-product-name.h`）。`LocaleRuntime.setBrand` 同时覆盖 fork 名、上游名与误拼写的 `Birdcoder`，并新增 `readOemCompanyName()` 投影；`agent.app.config.json` 统一为 `BirdCoder`。
 * **设置菜单「我的域名」**：`ui-sdkwork-deploy` 增加域名中心对话框与验证逻辑，从设置入口直接管理域名；`llm-pi-ai` 在重命名 catalog id 下沿用 relay 模型事实并补测试；关于面板的安装身份与抽屉表面同步刷新。
