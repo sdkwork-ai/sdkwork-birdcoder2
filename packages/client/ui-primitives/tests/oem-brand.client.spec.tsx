@@ -4,9 +4,9 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
 import { BirdWordmark } from '../src/BirdWordmark.tsx'
 import {
-  DEFAULT_BRAND_NAME, DEFAULT_IAM_CLIENT_ID, DEFAULT_IAM_REDIRECT_URI, OEM_BOOT_GLOBAL,
-  readOemBrandName, readOemEnvironment, readOemIamAuthorizeBaseUrl, readOemIamBaseUrl, readOemIamClientId,
-  readOemIamRedirectUri, readOemShowApiKeyEntry,
+  DEFAULT_BRAND_NAME, DEFAULT_COMPANY_NAME, DEFAULT_IAM_CLIENT_ID, DEFAULT_IAM_REDIRECT_URI, OEM_BOOT_GLOBAL,
+  readOemBrandName, readOemCompanyName, readOemEnvironment, readOemIamAuthorizeBaseUrl, readOemIamBaseUrl,
+  readOemIamClientId, readOemIamRedirectUri, readOemShowApiKeyEntry,
 } from '../src/oem-brand.ts'
 
 const BOOT = { brand: { name: 'Acme Coder', companyName: 'Acme' } }
@@ -29,6 +29,21 @@ describe('readOemBrandName', () => {
     expect(readOemBrandName(BOOT)).toBe('Acme Coder')
     expect(readOemBrandName({ brand: { name: 'Acme' }, extra: true })).toBe('Acme')
     expect(readOemBrandName({ brand: { name: 'Acme' } })).toBe('Acme')
+  })
+})
+
+describe('readOemCompanyName', () => {
+  it('falls back to the shipped vendor without a usable projection', () => {
+    expect(readOemCompanyName()).toBe(DEFAULT_COMPANY_NAME)
+    expect(readOemCompanyName({ brand: { name: 'Acme' } })).toBe(DEFAULT_COMPANY_NAME)
+    expect(readOemCompanyName({ brand: { companyName: '  ' } })).toBe(DEFAULT_COMPANY_NAME)
+    expect(readOemCompanyName({ brand: { companyName: 7 } })).toBe(DEFAULT_COMPANY_NAME)
+    expect(readOemCompanyName({ brand: { companyName: 'bad\u0001vendor' } })).toBe(DEFAULT_COMPANY_NAME)
+  })
+
+  it('reads the deployment vendor from the projection', () => {
+    expect(readOemCompanyName(BOOT)).toBe('Acme')
+    expect(readOemCompanyName({ brand: { companyName: ' Acme Labs ' } })).toBe('Acme Labs')
   })
 })
 

@@ -47,12 +47,24 @@ export interface DesktopBrandDesktop {
   readonly artifactPrefix: string
 }
 
+/** Product links the signed-out landing offers and the window may open. */
+export interface DesktopBrandLinks {
+  /** Privacy policy page. */
+  readonly privacy: string
+  /** Terms of service page. */
+  readonly terms: string
+  /** Documentation origin (no trailing slash) that serves the network-proxy guide. */
+  readonly docs: string
+}
+
 /** One validated brand manifest. */
 export interface DesktopBrand {
   readonly schemaVersion: 1
   readonly key: string
   readonly displayName: string
   readonly companyName: string
+  /** Product links; absent keeps the shipped brand's pages. */
+  readonly links?: DesktopBrandLinks
   readonly home: DesktopBrandHome
   readonly desktop: DesktopBrandDesktop
 }

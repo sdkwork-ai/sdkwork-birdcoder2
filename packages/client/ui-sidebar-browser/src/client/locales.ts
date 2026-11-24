@@ -62,7 +62,7 @@ export const en = {
   'address.unknown': 'The page navigated; this carrier cannot read its new URL.',
 } satisfies Record<SidebarBrowserKey, string>
 
-declare module '@deepseek-ai/BirdCoder-client-ui-slots' {
+declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     /** Sidebar Browser labels, navigation controls, and failures. */
     sidebarBrowser: SidebarBrowserKey

@@ -18,6 +18,9 @@ export type DomainVerificationPlatform =
 
 export type DomainVerificationExtension = 'txt' | 'html' | 'xml'
 
+/** Platform the registration form starts on, matching the server's default catalog entry. */
+export const DEFAULT_VERIFICATION_PLATFORM: DomainVerificationPlatform = 'WECHAT_OFFICIAL_ACCOUNT'
+
 export interface DomainVerificationPlatformSpec {
   platform: DomainVerificationPlatform
   /** File name the platform issues, e.g. `MP_verify_<token>.txt`. */

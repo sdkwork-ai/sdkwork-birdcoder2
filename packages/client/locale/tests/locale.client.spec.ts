@@ -86,6 +86,29 @@ describe('LocaleRuntime', () => {
     expect(t('brand')).toBe('Acme')
   })
 
+  it('replaces every shipped spelling of the product name under an OEM brand', () => {
+    const { svc } = make()
+    svc.register('oem', 'en', {
+      upstream: 'Restart DeepSeek Harness to apply.',
+      acronym: 'DSH is still starting.',
+      miscased: 'Import to Birdcoder',
+      identifiers: 'Read $DSH_HOME/.env, then run dsh plugin add dsh-plugin-x.',
+    })
+    const t = svc.bind('oem')
+    // The shipped build renders the upstream wording it ships.
+    expect(t('upstream')).toBe('Restart DeepSeek Harness to apply.')
+    svc.setBrand('Acme')
+    expect(t('upstream')).toBe('Restart Acme to apply.')
+    expect(t('acronym')).toBe('Acme is still starting.')
+    expect(t('miscased')).toBe('Import to Acme')
+    // Identifiers, the home variable and the lower-case CLI keep their spelling:
+    // they name the program, not the displayed product.
+    expect(t('identifiers')).toBe('Read $DSH_HOME/.env, then run dsh plugin add dsh-plugin-x.')
+    // A brand that itself spells the acronym is inserted once, not rescanned.
+    svc.setBrand('DSH Labs')
+    expect(t('acronym')).toBe('DSH Labs is still starting.')
+  })
+
   it('falls through to the common vocabulary after the namespace misses (production keys)', () => {
     const { svc } = make()
     // The shipped common pair is registered by apply; the bench registers it

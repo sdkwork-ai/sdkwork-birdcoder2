@@ -3,6 +3,11 @@
   "key": "birdcoder",
   "displayName": "BirdCoder",
   "companyName": "SDKWork",
+  "links": {
+    "privacy": "https://sdkwork.com/privacy",
+    "terms": "https://sdkwork.com/terms",
+    "docs": "https://docs.sdkwork.com"
+  },
   "home": {
     "dirName": ".birdcoder"
   },

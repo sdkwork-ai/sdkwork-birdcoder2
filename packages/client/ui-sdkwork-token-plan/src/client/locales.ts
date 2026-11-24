@@ -1,13 +1,13 @@
 /** `tokenPlan` namespace dictionaries for navigation and commerce states. */
 export const zh = {
-  'mode.tokenPlan': 'Token Plan',
-  'mode.tokenPlan.label': 'Token Plan',
-  'page.loading': '正在加载 Token Plan...',
+  'mode.tokenPlan': '会员套餐',
+  'mode.tokenPlan.label': '会员套餐',
+  'page.loading': '正在加载会员套餐...',
   'page.unconfigured': '请先在设置中配置 API 环境。',
-  'page.failed': 'Token Plan 加载失败，请稍后重试。',
+  'page.failed': '会员套餐加载失败，请稍后重试。',
   'page.retry': '重新加载',
-  'page.back': 'Token Plan 套餐、算力账户与兑换',
-  'checkout.title': 'Token Plan 支付',
+  'page.back': '会员套餐、算力账户与兑换',
+  'checkout.title': '会员套餐支付',
   'checkout.payByQr': '扫码支付',
   'checkout.close': '关闭',
   'checkout.completed': '支付完成',
@@ -145,10 +145,10 @@ export const zh = {
 export type TokenPlanKey = keyof typeof zh
 /** English Token Plan messages. */
 export const en: Record<TokenPlanKey, string> = {
-  'mode.tokenPlan': 'Token Plan', 'mode.tokenPlan.label': 'Token Plan',
-  'page.loading': 'Loading Token Plan...', 'page.unconfigured': 'Configure the API environment in Settings first.',
-  'page.failed': 'Token Plan failed to load. Try again later.', 'page.retry': 'Retry',
-  'page.back': 'Token plans, compute account, and redemption', 'checkout.title': 'Token Plan payment',
+  'mode.tokenPlan': 'Membership plan', 'mode.tokenPlan.label': 'Membership plan',
+  'page.loading': 'Loading membership plans...', 'page.unconfigured': 'Configure the API environment in Settings first.',
+  'page.failed': 'Membership plans failed to load. Try again later.', 'page.retry': 'Retry',
+  'page.back': 'Membership plans, compute account, and redemption', 'checkout.title': 'Membership plan payment',
   'checkout.payByQr': 'Pay by QR code', 'checkout.close': 'Close', 'checkout.completed': 'Payment completed',
   'checkout.creatingPayment': 'Creating payment QR code...', 'checkout.paymentUnavailable': 'Payment unavailable',
   'checkout.paymentUnavailableDescription': 'The payment QR code could not be created. Try again later.',

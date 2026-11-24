@@ -48,6 +48,10 @@ const APP_ID_PATTERN = /^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/u
 const REGISTRY_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u
 const ARTIFACT_PREFIX_PATTERN = /^[A-Za-z0-9][A-Za-z0-9 ._-]{0,63}$/u
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/u
+/** Product page a brand ships: absolute HTTPS with a path. */
+const BRAND_LINK_PATTERN = /^https:\/\/[^\s/?#]+(?:\/[^\s?#]*)?$/u
+/** Documentation origin: absolute HTTPS with no path, query or fragment. */
+const BRAND_ORIGIN_PATTERN = /^https:\/\/[^\s/?#]+$/u
 
 /**
  * @typedef {object} DesktopBrandHome
@@ -87,6 +91,28 @@ function rejectUpstream(value, forbidden, where) {
   if (value.toLowerCase() === forbidden.toLowerCase()) {
     throw new Error(`brand: ${where} must not be ${JSON.stringify(forbidden)}; that identity belongs to the upstream application`)
   }
+}
+
+/**
+ * Read the brand's product links, if it names any.
+ *
+ * The signed-out landing offers exactly these three destinations and the main
+ * process opens nothing else, so they are validated here rather than at the
+ * click: an OEM build that ships its own pages cannot end up with a footer link
+ * the window would refuse to open.
+ * @param {Record<string, unknown>} root - Manifest root.
+ * @returns {{ links?: Readonly<{ privacy: string, terms: string, docs: string }> }} the section, or nothing when absent.
+ */
+function optionalLinks(root) {
+  if (root.links === undefined) return {}
+  const links = section(root, 'links')
+  const privacy = requiredString(links, 'privacy', 'links.privacy')
+  matches(privacy, BRAND_LINK_PATTERN, 'links.privacy', 'an absolute HTTPS page URL')
+  const terms = requiredString(links, 'terms', 'links.terms')
+  matches(terms, BRAND_LINK_PATTERN, 'links.terms', 'an absolute HTTPS page URL')
+  const docs = requiredString(links, 'docs', 'links.docs')
+  matches(docs, BRAND_ORIGIN_PATTERN, 'links.docs', 'an HTTPS origin without a path or trailing slash')
+  return { links: Object.freeze({ privacy, terms, docs }) }
 }
 
 /**
@@ -191,6 +217,7 @@ export function parseBrandManifest(raw, source = 'brand manifest') {
     key,
     displayName: requiredString(root, 'displayName', 'displayName'),
     companyName: requiredString(root, 'companyName', 'companyName'),
+    ...optionalLinks(root),
     home: Object.freeze({ dirName }),
     desktop: Object.freeze({
       appId, productName, executableName, protocol, commandName, registryKey, updaterCacheDirName, artifactPrefix,

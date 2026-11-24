@@ -70,9 +70,6 @@ export const SHIPPED_PRODUCT_LINKS = {
   termsOfServiceUrl: 'https://www.birdcoder.com/docs/terms',
 } as const
 
-/** Vendor shown in the footer before the platform answers. */
-export const SHIPPED_PRODUCT_VENDOR = 'SDKWORK'
-
 /** Public product key the About surface displays. */
 export const SHIPPED_PRODUCT_APP_KEY = 'birdcoder'
 

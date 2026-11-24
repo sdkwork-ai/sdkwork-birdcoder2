@@ -117,6 +117,9 @@
 
 #### 合并后的 fork 变更（2026-11-21 起）
 
+* **品牌清单驱动构建与安装产品名**：`apps/web/scripts/build-brand.ts` 从 `brands/<key>.json` 取 `displayName` 注入 HTML `<title>` 与 PWA `manifest.webmanifest`，显式 `DSH_BRAND` / `DSH_CLIENT_TITLE` 可覆盖且失败即报错；桌面安装器的八份 locale 用 `{product}` 占位符由 `renderInstallerStrings()` 填入 `desktop.productName`，原生 window-frame 报告标题从构建期生成的 `installer-product.h` 读取（缺省回落到签入的 `installer-product-name.h`）。`LocaleRuntime.setBrand` 同时覆盖 fork 名、上游名与误拼写的 `Birdcoder`，并新增 `readOemCompanyName()` 投影；`agent.app.config.json` 统一为 `BirdCoder`。
+* **设置菜单「我的域名」**：`ui-sdkwork-deploy` 增加域名中心对话框与验证逻辑，从设置入口直接管理域名；`llm-pi-ai` 在重命名 catalog id 下沿用 relay 模型事实并补测试；关于面板的安装身份与抽屉表面同步刷新。
+
 * **关于面板：安装身份**（`feat(about): add installation identity about surface and installation app api`、`add deploy anchor, surface profile and installation facts surfaces`）：About 表面新增部署锚点、profile 与安装事实（安装身份、安装位置、应用 id），由安装侧 API 提供；`dsh-desktop` 的 About 命令测试按 `IpcMainInvokeEvent` 补类型。
 * **欢迎窗登录收敛**（`feat(welcome): gate the continue action on a signed-in workspace`、`add welcome links and OAuth session end handling`）：继续动作要求已登录工作区，欢迎页新增链接与 OAuth 会话结束处理；落地页 locale 载荷与渲染夹具随之对齐。
 * **IAM 离屏登录提示**（`feat(iam): surface a sign-in notice when browser login finishes off-surface`）：浏览器侧完成登录而模态已关闭时，`SignInOverlay` 给出可恢复的提示，而不是静默失败。

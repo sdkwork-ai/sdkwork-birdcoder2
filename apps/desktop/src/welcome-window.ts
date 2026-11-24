@@ -5,10 +5,30 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { app, BrowserWindow, ipcMain, shell, type BrowserWindowConstructorOptions, type IpcMainInvokeEvent } from 'electron'
 import { resolveWindowIcon } from './app-icon.ts'
+import { resolveRuntimeBrand } from './brand.ts'
 import type { DesktopLocale } from './locale.ts'
 import { DESKTOP_DEFAULT_BRAND } from './locale.ts'
 import { WELCOME_IPC, type WelcomeOperations } from './welcome-api.ts'
-import { isWelcomeFooterHref } from './welcome-links.ts'
+import {
+  isWelcomeFooterHref,
+  SHIPPED_WELCOME_LINKS,
+  welcomeLinkDestinations,
+  type WelcomeLinkDestinations,
+} from './welcome-links.ts'
+
+/**
+ * Project one destination set onto the preload's argv channel.
+ * @param destinations - the deployment's links.
+ * @returns the encoded argument, or undefined for the shipped destinations.
+ */
+function welcomeLinksArgument(destinations: WelcomeLinkDestinations): string | undefined {
+  // The shipped set stays implicit: the preload already ships those defaults,
+  // and a default build keeps the exact argument list it always had.
+  if (destinations.privacy === SHIPPED_WELCOME_LINKS.privacy
+    && destinations.terms === SHIPPED_WELCOME_LINKS.terms
+    && destinations.docs === SHIPPED_WELCOME_LINKS.docs) return undefined
+  return `--dsh-welcome-links=${encodeURIComponent(JSON.stringify(destinations))}`
+}
 
 /**
  * Resolve the fixed-size welcome window's native material and controls.
@@ -17,6 +37,7 @@ import { isWelcomeFooterHref } from './welcome-links.ts'
  * @param iamSignIn - offer the workspace's IAM login instead of the account flow.
  * @param showApiKeyEntry - offer the API-key fallback next to Sign in.
  * @param continueAvailable - offer the quiet "continue without signing in" action.
+ * @param destinations - the deployment's product links; shipped defaults when omitted.
  * @returns sandboxed window options with a locale-only preload.
  */
 export function welcomeWindowOptions(
@@ -25,7 +46,9 @@ export function welcomeWindowOptions(
   iamSignIn = false,
   showApiKeyEntry = false,
   continueAvailable = false,
+  destinations: WelcomeLinkDestinations = SHIPPED_WELCOME_LINKS,
 ): BrowserWindowConstructorOptions {
+  const linksArgument = welcomeLinksArgument(destinations)
   return {
     width: 600,
     height: 700,
@@ -59,6 +82,9 @@ export function welcomeWindowOptions(
         ...iamSignIn ? ['--dsh-welcome-iam-signin=1'] : [],
         ...showApiKeyEntry ? ['--dsh-welcome-api-key=1'] : [],
         ...continueAvailable ? ['--dsh-welcome-continue=1'] : [],
+        // The preload cannot read the brand manifest, so a deployment whose
+        // links differ from the shipped pages rides the same argv channel.
+        ...(linksArgument === undefined ? [] : [linksArgument]),
       ],
       nodeIntegration: false,
       contextIsolation: true,
@@ -87,7 +113,10 @@ export async function openWelcomeWindow(
   showApiKeyEntry = false,
   continueAvailable = false,
 ): Promise<BrowserWindow> {
-  const options = welcomeWindowOptions(process.platform, locale, iamSignIn, showApiKeyEntry, continueAvailable)
+  // The footer links belong to the deployment: resolve them from the manifest
+  // this launch runs as, so an OEM build both renders and admits its own pages.
+  const destinations = welcomeLinkDestinations(resolveRuntimeBrand())
+  const options = welcomeWindowOptions(process.platform, locale, iamSignIn, showApiKeyEntry, continueAvailable, destinations)
   // The Welcome window is the first surface a launch shows, so it must carry
   // the product icon itself rather than inherit whatever the host executable
   // happens to draw: an icon-less window falls back to the default Electron
@@ -164,11 +193,11 @@ export async function openWelcomeWindow(
     await operations.iamSignIn()
   })
   // The landing footer is the window's only navigation. The renderer is
-  // sandboxed and cannot open anything itself, so the main process opens the
-  // shipped product links and rejects every other destination.
+  // sandboxed and cannot open anything itself, so the main process opens this
+  // deployment's product links and rejects every other destination.
   ipcMain.handle(WELCOME_IPC.openExternal, async (event, href: unknown) => {
     assertSender(event)
-    if (typeof href !== 'string' || !isWelcomeFooterHref(href)) {
+    if (typeof href !== 'string' || !isWelcomeFooterHref(href, destinations)) {
       throw new Error('desktop welcome: rejected external link')
     }
     await shell.openExternal(href)
@@ -183,7 +212,7 @@ export async function openWelcomeWindow(
     if (!window.isDestroyed()) window.destroy()
     throw error
   }
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Another window can replace ownership during loadFile.
+  // Another window can replace ownership while loadFile is in flight.
   if (active && !window.isDestroyed()) {
     window.show()
     void operations.analytics?.('auth_page_view', {})

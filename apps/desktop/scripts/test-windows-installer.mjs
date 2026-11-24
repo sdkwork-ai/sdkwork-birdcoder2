@@ -1,5 +1,10 @@
 /** Builds an isolated native payload through the production NSIS configuration and exercises its UI. */
-import { readInstallerLocales, renderInstallerStrings } from './installer-locales.mjs'
+import {
+  PRODUCT_HEADER_FILENAME,
+  readInstallerLocales,
+  renderInstallerProductHeader,
+  renderInstallerStrings,
+} from './installer-locales.mjs'
 import { execFile } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
@@ -62,6 +67,10 @@ try {
   const childOptions = { env: scrubWindowsSigningEnvironment(process.env), windowsHide: true, maxBuffer: 8 * 1024 * 1024 }
   await execute('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
     join(appRoot, 'tests', 'windows-installer-process-test.ps1'), '-OutputDirectory', output], childOptions)
+  // The helper draws this lane's product name, exactly as packaging writes the
+  // selected brand's name before compiling.
+  await mkdir(join(output, 'ui'), { recursive: true })
+  await writeFile(join(output, 'ui', PRODUCT_HEADER_FILENAME), renderInstallerProductHeader(productName), 'utf8')
   await execute('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
     join(appRoot, 'scripts', 'prepare-windows-installer.ps1'), '-OutputDirectory', join(output, 'ui'), '-CompileProgressOnly'], childOptions)
   const progressTest = join(output, 'ui', 'progress-test.exe')
@@ -136,7 +145,7 @@ SectionEnd
     const languageOutput = join(output, language)
     await mkdir(languageOutput)
     const strings = join(languageOutput, 'strings.nsh')
-    await writeFile(strings, renderInstallerStrings([locale]), 'utf8')
+    await writeFile(strings, renderInstallerStrings([locale], productName), 'utf8')
     const include = join(languageOutput, 'include.nsh')
     await writeFile(include, `!define DSH_COMMAND_MUTEX "Local\\DSHUninstallTests-${guid}"\n!define DSH_COMMAND_ENVIRONMENT_KEY "Software\\DSHUninstallTests\\${guid}\\CommandEnvironment"\n!define DSH_COMMAND_OWNER_KEY "Software\\DSHUninstallTests\\${guid}\\CommandOwner"\n!define DSH_PROTOCOL_KEY "Software\\Classes\\dsh-test-${guid}"\n!define INSTALLER_BUILD_DIR "${join(output, 'ui')}"\n!define INSTALLER_STRINGS_FILE "${strings}"\n!include "${join(appRoot, 'scripts', 'installer.nsh')}"\n`)
     await build({ projectDir: appRoot, prepackaged: payload, targets: Platform.WINDOWS.createTarget(['nsis'], Arch.x64), publish: 'never',

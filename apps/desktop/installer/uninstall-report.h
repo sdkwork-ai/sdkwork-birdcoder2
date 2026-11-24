@@ -1,12 +1,13 @@
 // Manual uninstall diagnostics and native dialogs. The NSIS caller owns one session until process exit.
 #pragma once
+#include "installer-product-name.h"
 #include <commdlg.h>
 #include "uninstall-data.h"
 #include "extract-report.h"
 
 namespace uninstall_report {
 struct Session {
-    std::wstring text = L"DeepSeek Harness uninstall report\r\n";
+    std::wstring text = DSH_INSTALLER_PRODUCT_NAME L" uninstall report\r\n";
     std::wstring path;
     bool issues = false;
     bool mainBlocked = false;

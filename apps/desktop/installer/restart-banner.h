@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <new>
 #include "restart-text.h"
+#include "installer-product-name.h"
 namespace restart_banner {
 constexpr wchar_t stateKey[] = L"HarnessInstaller.RestartBanner";
 constexpr int iconId = 0xffff, titleId = 76, bodyId = 1030;
@@ -113,7 +114,7 @@ static void InstallerStyleRestartBanner(HWND window, LPCWSTR text,
         (outer.top + outer.bottom - newHeight) / 2, newWidth, newHeight, SWP_NOACTIVATE | SWP_NOZORDER);
     const HWND title = GetDlgItem(window, restart_banner::titleId);
     SetWindowLongPtrW(title, GWL_STYLE, (GetWindowLongPtrW(title, GWL_STYLE) & ~SS_TYPEMASK) | SS_LEFT | SS_NOPREFIX);
-    SetWindowTextW(title, L"DeepSeek Harness");
+    SetWindowTextW(title, DSH_INSTALLER_PRODUCT_NAME);
     SendMessageW(title, WM_SETFONT, reinterpret_cast<WPARAM>(state->titleFont), FALSE);
     SetWindowPos(title, nullptr, padding + iconSize + gap, (height - textHeight) / 2,
         width - 2 * padding - gap - iconSize, titleHeight, SWP_NOZORDER | SWP_SHOWWINDOW);

@@ -276,6 +276,17 @@ function requestHeaders(
   }
 }
 
+/** Keep OpenAI-compatible request routing bound to the model selected by the Session. */
+function withSelectedOpenAiModel(payload: unknown, model: Model<Api>): Record<string, unknown> {
+  if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) {
+    throw new LlmError('pi-ai produced a non-object OpenAI Chat Completions payload', 'INVALID_CONFIG')
+  }
+  if (model.id.trim().length === 0) {
+    throw new LlmError(`pi-ai provider "${model.provider}" resolved an empty model id`, 'INVALID_CONFIG')
+  }
+  return { ...payload, model: model.id }
+}
+
 /**
  * pi-ai-backed multi-provider adapter. Each operation reads the current
  * profiles, so a configuration change reaches the next request without a
@@ -495,6 +506,9 @@ export class PiAiAdapter extends LlmAdapter {
       })
       const events = snapshot.models.streamSimple(model, context, {
         ...profileOptions(profile, reasoning, apiKey),
+        ...model.api === 'openai-completions'
+          ? { onPayload: payload => withSelectedOpenAiModel(payload, model) }
+          : {},
         ...options.temperature === undefined ? {} : { temperature: options.temperature },
         ...options.maxTokens === undefined ? {} : { maxTokens: options.maxTokens },
         ...options.sessionId === undefined ? {} : { sessionId: String(options.sessionId) },

@@ -115,6 +115,12 @@ export const FALLBACK_LOCALE: BuiltInLocaleId = 'en'
 // `@deepseek-ai/dsh-client-ui-primitives`'s OEM default.
 /** Product name the shipped dictionaries spell. */
 export const DEFAULT_BRAND_NAME = 'BirdCoder'
+/** Upstream product name some patches still spell; an OEM brand replaces it too. */
+const UPSTREAM_BRAND_NAME = 'DeepSeek Harness'
+/** Mis-cased spelling of the shipped name, never acceptable on display copy. */
+const MISCASED_BRAND_NAME = 'Birdcoder'
+/** Upstream acronym; word boundaries keep `DSH_HOME`, `dsh` and package ids intact. */
+const UPSTREAM_BRAND_ACRONYM = /\bDSH\b/g
 
 /** Shared namespace for shell-level texts. */
 export const COMMON_NS = 'common'
@@ -239,7 +245,9 @@ export class LocaleRuntime {
   }
 
   /**
-   * Replace the product name every dictionary spells as `BirdCoder`.
+   * Replace the product name every dictionary spells as `BirdCoder`, plus the
+   * upstream names (`DeepSeek Harness`, `DSH`) and the mis-cased `Birdcoder`
+   * that dictionaries upstream still carries.
    *
    * An OEM deployment publishes its brand in the page bootstrap; the client
    * OEM plugin hands it here once at boot. Substitution happens on the
@@ -501,12 +509,33 @@ export class LocaleRuntime {
     const template = this.lookup(ns, key, chain)
       ?? (ns !== COMMON_NS ? this.lookup(COMMON_NS, key, chain) : undefined)
       ?? key
-    const branded = this.brandName === DEFAULT_BRAND_NAME
-      ? template
-      : template.replaceAll(DEFAULT_BRAND_NAME, this.brandName)
+    const branded = this.branded(template)
     if (!params) return branded
     return branded.replace(/\{(\w+)\}/g, (match, name: string) =>
       name in params ? String(params[name]) : match)
+  }
+
+  /**
+   * Render one template under the deployment brand.
+   *
+   * The shipped dictionaries spell the shipped product name; an OEM profile's
+   * brand replaces it, plus the upstream names some unpatched dictionaries
+   * still carry, so a deployment never shows another product's name. Without
+   * an OEM brand the template renders verbatim, which keeps the upstream
+   * wording those files ship for merge stability (AGENTS.md).
+   * @param template - resolved dictionary value.
+   * @returns the template with every display-name spelling replaced.
+   */
+  private branded(template: string): string {
+    if (this.brandName === DEFAULT_BRAND_NAME) return template
+    const brand = this.brandName
+    // Acronym first: the brand itself may spell `DSH`, and an inserted brand
+    // must never be rescanned by a later pattern.
+    return template
+      .replace(UPSTREAM_BRAND_ACRONYM, brand)
+      .replaceAll(UPSTREAM_BRAND_NAME, brand)
+      .replaceAll(DEFAULT_BRAND_NAME, brand)
+      .replaceAll(MISCASED_BRAND_NAME, brand)
   }
 
   private lookup(ns: string, key: string, chain: readonly LocaleId[]): string | undefined {

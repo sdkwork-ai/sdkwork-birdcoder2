@@ -45,8 +45,8 @@ export const zh = {
   'catalog.demandHall.description': '发布与认领开发需求',
   'catalog.automation': '定时任务',
   'catalog.automation.description': '计划任务与运行历史',
-  'catalog.tokenPlan': 'Token Plan',
-  'catalog.tokenPlan.description': '会员套餐与 Token 充值',
+  'catalog.tokenPlan': '会员套餐',
+  'catalog.tokenPlan.description': '会员套餐与算力充值',
 } satisfies Record<string, string>
 
 /** The search namespace key union. */
@@ -97,6 +97,6 @@ export const en = {
   'catalog.demandHall.description': 'Publish and claim development demands',
   'catalog.automation': 'Scheduled tasks',
   'catalog.automation.description': 'Planned tasks and run history',
-  'catalog.tokenPlan': 'Token Plan',
-  'catalog.tokenPlan.description': 'Membership plans and token top-ups',
+  'catalog.tokenPlan': 'Membership plan',
+  'catalog.tokenPlan.description': 'Membership plans and compute top-ups',
 } satisfies Record<SearchKey, string>

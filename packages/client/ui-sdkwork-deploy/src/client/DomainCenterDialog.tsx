@@ -27,6 +27,7 @@ import type {
 import type { DeployHost, DeployHostClients } from './deployHost.ts'
 import { createDomainCenterService, type DomainCenterService } from './domainCenter.ts'
 import {
+  DEFAULT_VERIFICATION_PLATFORM,
   DOMAIN_VERIFICATION_PLATFORMS,
   domainVerificationPlatform,
   isServableVerificationFileName,
@@ -61,7 +62,7 @@ type VerificationForm = {
 }
 
 const EMPTY_VERIFICATION_FORM: VerificationForm = {
-  platform: 'WECHAT_OFFICIAL_ACCOUNT',
+  platform: DEFAULT_VERIFICATION_PLATFORM,
   fileName: '',
   content: '',
 }
@@ -417,7 +418,7 @@ export function DomainCenterDialog(props: DomainCenterDialogProps): ReactNode {
                       <input
                         value={hostnameForm}
                         onChange={event => setHostnameForm(event.target.value)}
-                        placeholder="www"
+                        placeholder={t('domain.field.hostnamePlaceholder')}
                       />
                     </label>
                     <button
@@ -515,7 +516,7 @@ export function DomainCenterDialog(props: DomainCenterDialogProps): ReactNode {
                         className={css.mono}
                         value={verificationForm.fileName}
                         onChange={event => setVerificationForm(current => ({ ...current, fileName: event.target.value }))}
-                        placeholder={spec?.fixedFileName ?? spec?.fileNameHint ?? 'MP_verify_xxx.txt'}
+                        placeholder={spec?.fixedFileName ?? spec?.fileNameHint ?? t('domain.field.verificationFileNamePlaceholder')}
                       />
                     </label>
                     <label className={css.field}>

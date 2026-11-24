@@ -84,10 +84,10 @@ export type { BirdWordmarkProps } from './BirdWordmark.tsx'
 export { LoginPanel } from './LoginPanel.tsx'
 export type { LoginAction, LoginFooterLink, LoginPanelProps, LoginWelcomeCopy } from './LoginPanel.tsx'
 export {
-  DEFAULT_BRAND_NAME, DEFAULT_IAM_AUTHORIZE_BASE_URL, DEFAULT_IAM_BASE_URL, DEFAULT_IAM_CLIENT_ID,
-  DEFAULT_IAM_REDIRECT_URI, OEM_BOOT_GLOBAL,
-  readOemBrandName, readOemEnvironment, readOemIamAuthorizeBaseUrl, readOemIamBaseUrl, readOemIamClientId,
-  readOemIamRedirectUri, readOemShowApiKeyEntry,
+  DEFAULT_BRAND_NAME, DEFAULT_COMPANY_NAME, DEFAULT_IAM_AUTHORIZE_BASE_URL, DEFAULT_IAM_BASE_URL,
+  DEFAULT_IAM_CLIENT_ID, DEFAULT_IAM_REDIRECT_URI, OEM_BOOT_GLOBAL,
+  readOemBrandName, readOemCompanyName, readOemEnvironment, readOemIamAuthorizeBaseUrl, readOemIamBaseUrl,
+  readOemIamClientId, readOemIamRedirectUri, readOemShowApiKeyEntry,
 } from './oem-brand.ts'
 export { BrandWordmark } from './BrandWordmark.tsx'
 export type { BrandWordmarkProps } from './BrandWordmark.tsx'

@@ -41,6 +41,8 @@ it exists. At runtime the shell reads `resources/brand.json`; a source checkout
 | `key` | Lower-case brand key; names the file and appears in logs | `birdcoder` |
 | `displayName` | Product name for surfaces that read the manifest directly | `BirdCoder` |
 | `companyName` | Vendor name for packaging metadata | `SDKWork` |
+| `links.privacy` / `links.terms` | Product pages the signed-out welcome footer opens, and nothing else may be opened | `https://sdkwork.com/privacy` |
+| `links.docs` | Documentation origin (no trailing slash) serving the network-proxy guide | `https://docs.sdkwork.com` |
 | `home.dirName` | Harness home directory under the user's home; dot-prefixed and lower case so two brands cannot collide on a case-insensitive filesystem | `.birdcoder` |
 | `desktop.appId` | Reverse-DNS identifier; `DSH_DESKTOP_APP_ID` still wins for release lanes | `com.sdkwork.birdcoder` |
 | `desktop.productName` | Electron product name; names userData, the single-instance lock and logs | `BirdCoder` |
@@ -88,7 +90,7 @@ read-only and a user can still override them from `~/.<brand>/oem.json`.
 ## Adding a brand
 
 1. Copy `brands/birdcoder.json` to `brands/<key>.json` and change `key`,
-   `displayName`, `companyName`, `home.dirName` and every `desktop` value.
+   `displayName`, `companyName`, `links` and every `desktop` value.
 2. Replace the build-time rasters for that brand: `build/icon.{ico,icns,png}`,
    `resources/icon{,-windows,-macos}.png`, the installer brand images
    (`pnpm --dir apps/desktop run generate-icons` and

@@ -107,7 +107,8 @@ describe('AboutContent', () => {
     expect(screen.queryByText('382429273778032640')).toBeNull()
     // The release environment keeps the deployment card off the surface.
     expect(screen.queryByText('部署信息')).toBeNull()
-    expect(screen.getByText('SDKWORK')).not.toBeNull()
+    // The publisher falls back to the page's OEM projection (shipped: SDKWork).
+    expect(screen.getByText('SDKWork')).not.toBeNull()
     expect(screen.getByText('birdcoder')).not.toBeNull()
     expect(document.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThanOrEqual(1)
   })
@@ -268,7 +269,7 @@ describe('AboutContent', () => {
     expect(writeText).toHaveBeenCalledWith('0123456789abcdef')
   })
 
-  it('keeps the product links on the canonical birdcoder.com docs routes', () => {
+  it('follows the deployment product links instead of a build-time site', () => {
     content({
       installation: {
         phase: 'ready',
@@ -277,20 +278,41 @@ describe('AboutContent', () => {
           product: {
             ...APPLICATION.product,
             websiteUrl: 'https://sdkwork.com/apps/sdkwork-birdcoder',
-            supportUrl: 'https://www.birdcoder.com/support',
-            privacyPolicyUrl: 'https://www.birdcoder.com/privacy',
+            supportUrl: 'https://sdkwork.com/support',
+            privacyPolicyUrl: 'https://sdkwork.com/privacy',
             termsOfServiceUrl: 'https://sdkwork.com/terms',
           },
         },
       },
     })
-    expect(screen.getByRole('link', { name: /官网/ }).getAttribute('href')).toBe('https://www.birdcoder.com')
+    expect(screen.getByRole('link', { name: /官网/ }).getAttribute('href'))
+      .toBe('https://sdkwork.com/apps/sdkwork-birdcoder')
     expect(screen.getByRole('link', { name: /支持/ }).getAttribute('href'))
-      .toBe('https://www.birdcoder.com/docs/support')
+      .toBe('https://sdkwork.com/support')
     expect(screen.getByRole('link', { name: /隐私政策/ }).getAttribute('href'))
-      .toBe('https://www.birdcoder.com/docs/privacy')
+      .toBe('https://sdkwork.com/privacy')
     expect(screen.getByRole('link', { name: /服务条款/ }).getAttribute('href'))
-      .toBe('https://www.birdcoder.com/docs/terms')
+      .toBe('https://sdkwork.com/terms')
+  })
+
+  it('falls back when a platform link is not a plain web destination', () => {
+    content({
+      installation: {
+        phase: 'ready',
+        application: {
+          ...APPLICATION,
+          product: {
+            ...APPLICATION.product,
+            websiteUrl: 'javascript:alert(1)',
+            supportUrl: 'https://user:secret@www.birdcoder.com/docs/support',
+          },
+        },
+      },
+    })
+    expect(screen.getByRole('link', { name: /官网/ }).getAttribute('href'))
+      .toBe(SHIPPED_PRODUCT_LINKS.websiteUrl)
+    expect(screen.getByRole('link', { name: /支持/ }).getAttribute('href'))
+      .toBe(SHIPPED_PRODUCT_LINKS.supportUrl)
   })
 
   it('falls back to the shipped product links for a malformed URL', () => {

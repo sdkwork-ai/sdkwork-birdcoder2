@@ -1508,6 +1508,48 @@ describe('harness-shipped relay routes', () => {
     expect(server.headers[0]?.['x-api-key']).toBe('test-key')
   })
 
+  it('sends the selected BirdCoder model on every OpenAI Chat Completions turn', async () => {
+    const server = await mockServer([{ events: textEvents }, { events: textEvents }])
+    const ctx = await harness({
+      providers: {
+        birdcoder: {
+          api: 'openai-completions',
+          apiKeyEnv: KEY_ENV,
+          baseURL: `${server.url}/v1`,
+        },
+      },
+    })
+    const model = 'deepseek/deepseek-flash'
+    const firstPrompt = createUserMessage({
+      content: [{ type: 'text', text: 'first turn' }],
+      source: { kind: 'user' },
+    })
+
+    const first = await assemble(ctx, {
+      provider: 'birdcoder',
+      model,
+      messages: [firstPrompt],
+    })
+    await assemble(ctx, {
+      provider: 'birdcoder',
+      model,
+      messages: [
+        firstPrompt,
+        first.message,
+        createUserMessage({
+          content: [{ type: 'text', text: 'second turn' }],
+          source: { kind: 'user' },
+        }),
+      ],
+    })
+
+    expect(server.paths).toEqual(['/v1/chat/completions', '/v1/chat/completions'])
+    expect(server.requests).toEqual([
+      expect.objectContaining({ model }),
+      expect.objectContaining({ model }),
+    ])
+  })
+
   it('moves a relay profile onto another protocol face without restating the endpoint', () => {
     const responses = resolveProfiles({ birdcoder: { api: 'openai-responses' } }).get('birdcoder')
     const responseModels = responses?.piProvider?.getModels() ?? []

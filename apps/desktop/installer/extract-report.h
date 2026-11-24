@@ -1,6 +1,7 @@
 // 7-Zip's error output is the primary evidence for an extraction failure; the report preserves it verbatim
 // on disk and in the clipboard while the dialog shows only a headline and a bounded excerpt.
 #pragma once
+#include "installer-product-name.h"
 #include <windows.h>
 #include <commctrl.h>
 #include <shlobj.h>
@@ -114,7 +115,7 @@ inline std::wstring Headline(int code, const std::wstring& output, const std::ws
 
 inline std::wstring Compose(int code, const std::wstring& archive, const std::wstring& destination, const std::wstring& output,
                             const std::wstring& timestamp, const std::wstring& windowsVersion) {
-    std::wstring report = L"BirdCoder installer: extraction failed\r\n";
+    std::wstring report = DSH_INSTALLER_PRODUCT_NAME L" installer: extraction failed\r\n";
     report += L"Time: " + timestamp + L"\r\n";
     report += L"Result: " + DescribeResult(code) + L"\r\n";
     report += L"Archive: " + archive + L"\r\n";

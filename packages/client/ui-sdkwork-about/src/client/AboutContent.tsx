@@ -12,14 +12,14 @@ import clsx from 'clsx'
 import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
 import {
   BirdLogo, IconRefreshOutlineRegular,
-  IconRightUpOutlineRegular, IconWarningTriangleOutlineRegular, useClipboardCopy,
+  IconRightUpOutlineRegular, IconWarningTriangleOutlineRegular, readOemCompanyName, useClipboardCopy,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
   AboutDeploymentMode, AboutEnvironmentTier, AboutInstallationFacts,
   AboutProductFacts, AboutReleaseScope,
 } from './installation-facts.ts'
 import {
-  SHIPPED_PRODUCT_APP_KEY, SHIPPED_PRODUCT_LINKS, SHIPPED_PRODUCT_VENDOR,
+  SHIPPED_PRODUCT_APP_KEY, SHIPPED_PRODUCT_LINKS,
 } from './installation-facts.ts'
 import type {
   AboutAppMode, AboutInstallationSnapshot, AboutLocalFacts, AboutUnavailableReason,
@@ -167,15 +167,14 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
-/** Canonical product site the About links must stay on. */
-const PRODUCT_SITE_ORIGIN = 'https://www.birdcoder.com'
-
 /**
- * Keep one platform product link on the product's canonical route.
+ * Keep one platform product link usable.
  *
- * A platform row that predates the docs routes may still name the legacy site or
- * a path outside `/docs/`; the About surface never sends a reader there, and a
- * link the product cannot serve falls back to the shipped destination.
+ * The platform row is the deployment's own product record, so its links are the
+ * deployment's site: an OEM profile publishes its own destinations there, and
+ * pinning them to the shipped build's domain would silently send the reader to
+ * another brand. Only a value that is not a plain HTTP(S) destination falls back
+ * to the shipped destination, so a malformed row never renders a dead button.
  * @param value - platform-supplied product URL.
  * @param key - which shipped destination the URL belongs to.
  * @returns the accepted URL or the shipped canonical destination.
@@ -186,8 +185,9 @@ function productLink(value: string | undefined, key: keyof typeof SHIPPED_PRODUC
   if (text === undefined || text === '') return fallback
   try {
     const url = new URL(text)
-    if (url.origin !== PRODUCT_SITE_ORIGIN) return fallback
-    if (key !== 'websiteUrl' && !url.pathname.startsWith('/docs/')) return fallback
+    // The About surface only opens web destinations: a non-web scheme or an
+    // embedded credential has no business in a product link.
+    if (!['http:', 'https:'].includes(url.protocol) || url.username !== '' || url.password !== '') return fallback
     return text
   } catch {
     return fallback
@@ -230,7 +230,9 @@ export function AboutContent({ t, local, installation, variant, onRefresh }: Abo
   const organization = application?.organizationId
   const tenant = application?.tenantId
   const links = productLinks(product)
-  const vendor = product?.vendor ?? SHIPPED_PRODUCT_VENDOR
+  // The platform answers for a registered installation; an OEM deployment's own
+  // profile supplies the publisher before the platform does.
+  const vendor = product?.vendor ?? readOemCompanyName()
   const shortCommit = local.commit === undefined ? undefined : local.commit.slice(0, 7)
   const commitLabel = shortCommit === undefined
     ? undefined
