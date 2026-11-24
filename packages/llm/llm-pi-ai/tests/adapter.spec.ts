@@ -475,6 +475,61 @@ describe('PiAiAdapter provider routing', () => {
     expect(server.paths).toEqual(['/chat/completions'])
   })
 
+  it('logs the exact request body when a provider rejects a Chat Completions request', async () => {
+    const server = await mockServer([{
+      status: 400,
+      body: JSON.stringify({ error: { message: 'model is required' } }),
+    }])
+    const ctx = new Context()
+    await ctx.plugin(LlmRuntime)
+    await ctx.plugin(LlmPiAi, {
+      providers: {
+        birdcoder: {
+          api: 'openai-completions',
+          apiKeyEnv: 'PI_TEST_KEY',
+          baseURL: `${server.url}/v1`,
+        },
+      },
+    })
+    const errorLog = vi.spyOn(ctx.logger, 'error')
+    const prompt = 'diagnostic prompt with %s formatting text'
+
+    const result = await assemble(ctx, {
+      provider: 'birdcoder',
+      model: 'deepseek/deepseek-flash',
+      sessionId: 'request-body-diagnostic' as never,
+      messages: [createUserMessage({
+        content: [{ type: 'text', text: prompt }],
+        source: { kind: 'user' },
+      })],
+    })
+
+    expect(result.finish).toMatchObject({ kind: 'error', failure: { code: 'INVALID_REQUEST' } })
+    expect(errorLog).toHaveBeenCalledOnce()
+    const logCall = errorLog.mock.calls[0]
+    expect(logCall?.[0]).toContain('llm-pi-ai: model request failed')
+    expect(logCall).toContain('birdcoder')
+    expect(logCall).toContain('deepseek/deepseek-flash')
+    expect(logCall).toContain('request-body-diagnostic')
+    expect(logCall.some(value => String(value).includes('model is required'))).toBe(true)
+    const loggedBody = logCall?.at(-1)
+    expect(typeof loggedBody).toBe('string')
+    expect(JSON.parse(String(loggedBody))).toEqual(server.requests[0])
+    expect(String(loggedBody)).toContain(prompt)
+    expect(String(loggedBody)).not.toContain('test-key')
+  })
+
+  it('does not log the request body when a Chat Completions request succeeds', async () => {
+    const server = await mockServer([{ events: textEvents }])
+    const ctx = await harness(server.url)
+    const errorLog = vi.spyOn(ctx.logger, 'error')
+
+    const result = await assemble(ctx, { model: 'deepseek-flash', messages: [] })
+
+    expect(result.finish.kind).toBe('stop')
+    expect(errorLog).not.toHaveBeenCalled()
+  })
+
   it('classifies a gateway 500 that relays an upstream 401 as SERVER with the rendered message', async () => {
     vi.stubEnv('PI_TEST_KEY', 'test-key')
     // The Anthropic SDK renders the whole JSON body after the gateway's own status.
