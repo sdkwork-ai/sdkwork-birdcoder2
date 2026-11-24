@@ -511,7 +511,7 @@ describe('PiAiAdapter provider routing', () => {
     expect(logCall).toContain('birdcoder')
     expect(logCall).toContain('deepseek/deepseek-flash')
     expect(logCall).toContain('request-body-diagnostic')
-    expect(logCall.some(value => String(value).includes('model is required'))).toBe(true)
+    expect(logCall?.some(value => String(value).includes('model is required'))).toBe(true)
     const loggedBody = logCall?.at(-1)
     expect(typeof loggedBody).toBe('string')
     expect(JSON.parse(String(loggedBody))).toEqual(server.requests[0])
