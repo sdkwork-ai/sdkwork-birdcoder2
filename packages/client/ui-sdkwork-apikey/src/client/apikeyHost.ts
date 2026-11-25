@@ -112,8 +112,8 @@ export class ApiKeyHost {
 
   /** Start observing host changes; refresh the seam on every transition. */
   mount(): void {
-    this.offEnvironment = this.options.env.subscribe(() => this.refresh())
-    this.offIam = this.options.iam.controller.subscribe(() => this.refresh())
+    this.offEnvironment = this.options.env.subscribe(() =>{  this.refresh() })
+    this.offIam = this.options.iam.controller.subscribe(() =>{  this.refresh() })
     ApiKeyHost.adopt(this)
     this.refresh()
   }

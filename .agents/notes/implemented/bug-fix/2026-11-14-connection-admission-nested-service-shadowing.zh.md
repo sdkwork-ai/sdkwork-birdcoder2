@@ -13,10 +13,10 @@ Error: cannot get property "connection.authentication" without inject
     at Proxy.admit (packages/client/connection/lib/index.js:434)
     at Proxy.requestRejection (...)
     at fence (dsh-better-sidebar/lib/index.js)
-    at checkAuthAndMutation (sdkwork-dsh-agents/lib/...)
+    at checkAuthAndMutation (ui-sdkwork-experts/lib/...)
 ```
 
-这个抛错表现为应用损坏而不是鉴权结果。WebServer 的兜底逻辑会给「handler 失败」的请求回 `400` 且不带响应体，因此 `/sidebar/api/*`、`/sidebar/ws/agent-opens` 升级，以及专家市场的 `/api/michengai/dsh-agency-agents/{sidebar-entry,online-update,composer-recommend}` 全部每次调用都失败，而插件本身仍是 `active`。由于失败点在共享的 admission 路径上，之后任何自行围栏路由的插件都会继承同一个故障。
+这个抛错表现为应用损坏而不是鉴权结果。WebServer 的兜底逻辑会给「handler 失败」的请求回 `400` 且不带响应体，因此 `/sidebar/api/*`、`/sidebar/ws/agent-opens` 升级，以及专家市场的 `/api/sdkwork/experts/{sidebar-entry,composer-recommend}` 全部每次调用都失败，而插件本身仍是 `active`。由于失败点在共享的 admission 路径上，之后任何自行围栏路由的插件都会继承同一个故障。
 
 ## Decision
 

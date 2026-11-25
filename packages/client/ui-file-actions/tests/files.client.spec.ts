@@ -14,7 +14,7 @@ beforeEach(() => {
     constructor(readonly content: Record<string, Promise<Blob>>) {}
   })
   vi.stubGlobal('navigator', { clipboard: { write: vi.fn(async (items: { content: Record<string, Promise<Blob>> }[]) => {
-    await items[0]!.content['image/png']
+    await items[0].content['image/png']
   }) } })
 })
 

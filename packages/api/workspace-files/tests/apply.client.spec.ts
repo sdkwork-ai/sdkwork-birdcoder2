@@ -43,8 +43,8 @@ describe('workspace-files client apply', () => {
     expect(registered.map(provider => provider.protocol)).toEqual(['file'])
     const signal = controller.signal
     // A session address reaches the Host with its relative or absolute path.
-    pulls.push(registered[0]!.open(sessionFileAddress('s1', 'a.txt'), { signal })[Symbol.asyncIterator]().next())
-    pulls.push(registered[0]!.open(sessionFileAddress('s1', '/etc/hosts'), { signal })[Symbol.asyncIterator]().next())
+    pulls.push(registered[0].open(sessionFileAddress('s1', 'a.txt'), { signal })[Symbol.asyncIterator]().next())
+    pulls.push(registered[0].open(sessionFileAddress('s1', '/etc/hosts'), { signal })[Symbol.asyncIterator]().next())
     await Promise.all([remote.waitForChanges(0), remote.waitForChanges(1)])
     expect(remote.opened.map(watch => [watch.sessionId, watch.path])).toEqual([['s1', 'a.txt'], ['s1', '/etc/hosts']])
     expect(remote.stats).toEqual([])

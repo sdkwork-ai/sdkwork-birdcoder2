@@ -113,7 +113,7 @@ describe('OpenInAppPathController association answers', () => {
     const answers: Record<string, Answer> = {
       '/w/notes.txt': answered(app('TextEdit')), '/w/Makefile': answered(app('Xcode')), '/w/.env': answered(app('Zed')),
     }
-    const controller = new OpenInAppPathController(remoteOf({ workspacePathApplications: async ({ path }) => answers[path]! }))
+    const controller = new OpenInAppPathController(remoteOf({ workspacePathApplications: async ({ path }) => answers[path] }))
     const signal = new AbortController().signal
     expect(controller.cachedApplications('/w/notes.txt')).toBeUndefined()
     for (const path of Object.keys(answers)) await controller.applications(path, signal)
@@ -131,24 +131,24 @@ describe('OpenInAppPathController association answers', () => {
     const signal = new AbortController().signal
     const earlier = controller.applications('/w/a.txt', signal)
     const later = controller.applications('/w/b.txt', signal)
-    queries[1]!.answer(answered(app('Sublime Text', 'data:image/png;base64,c3Vi')))
+    queries[1].answer(answered(app('Sublime Text', 'data:image/png;base64,c3Vi')))
     expect(await later).toEqual([app('Sublime Text', 'data:image/png;base64,c3Vi')])
     const published = controller.associations.getSnapshot()
-    queries[0]!.answer(answered(app('TextEdit')))
+    queries[0].answer(answered(app('TextEdit')))
     expect(await earlier).toEqual([app('TextEdit')])
     expect(controller.associations.getSnapshot()).toBe(published)
     expect(controller.cachedApplications('/w/a.txt')).toEqual([app('Sublime Text', 'data:image/png;base64,c3Vi')])
     const unchanged = controller.applications('/w/c.txt', signal)
-    queries[2]!.answer(answered(app('Sublime Text', 'data:image/png;base64,c3Vi')))
+    queries[2].answer(answered(app('Sublime Text', 'data:image/png;base64,c3Vi')))
     await unchanged
     expect(controller.associations.getSnapshot()).toBe(published)
     const changed = controller.applications('/w/c.txt', signal)
-    queries[3]!.answer(answered(app('Sublime Text', 'data:image/png;base64,bmV3'), app('TextEdit')))
+    queries[3].answer(answered(app('Sublime Text', 'data:image/png;base64,bmV3'), app('TextEdit')))
     await changed
     expect(controller.associations.getSnapshot()).not.toBe(published)
     expect(controller.cachedApplications('/w/a.txt')).toEqual([app('Sublime Text', 'data:image/png;base64,bmV3'), app('TextEdit')])
     const other = controller.applications('/w/d.md', signal)
-    queries[4]!.answer(answered(app('Sublime Text', 'data:image/png;base64,bmV3')))
+    queries[4].answer(answered(app('Sublime Text', 'data:image/png;base64,bmV3')))
     await other
     expect(controller.cachedApplications('/w/e.md')).toEqual([app('Sublime Text', 'data:image/png;base64,bmV3')])
     expect(controller.cachedApplications('/w/e.txt')).toHaveLength(2)
@@ -172,7 +172,7 @@ describe('OpenInAppPathController association answers', () => {
     void controller.refreshApplications('/w/a.txt')
     void controller.refreshApplications('/w/b.txt')
     expect(queries.map(query => [query.path, query.signal?.aborted])).toEqual([['/w/a.txt', true], ['/w/b.txt', false]])
-    queries[1]!.answer(answered(app('TextEdit')))
+    queries[1].answer(answered(app('TextEdit')))
     await vi.waitFor(() => { expect(controller.cachedApplications('/w/c.txt')).toEqual([app('TextEdit')]) })
     void controller.refreshApplications('/w/d.md')
     controller.dispose()

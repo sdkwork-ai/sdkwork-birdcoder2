@@ -26,7 +26,7 @@ export const skillReferenceRule: UserTextRule<'skill'> = {
         names = context.read('skillNames')
         if (names === undefined || names.length === 0) return undefined
       }
-      const name = token[1] as string
+      const name = token[1]
       if (names.includes(name)) return {
         id: 'skill', start: token.index, end: token.index + token[0].length, data: { name },
       }

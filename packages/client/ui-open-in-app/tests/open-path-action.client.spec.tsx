@@ -178,7 +178,7 @@ it('ignores an obsolete file query and refreshes the default application when th
   await act(async () => { fireEvent.click(screen.getByRole('button', { name: zh['path.more'] })) })
   expect(screen.queryByRole('menuitem', { name: 'Old（默认）' })).toBeNull()
   expect(screen.getByRole('menuitem', { name: 'Player（默认）' })).toBeTruthy()
-  expect(applications.mock.calls[0]![1].aborted).toBe(true)
+  expect(applications.mock.calls[0][1].aborted).toBe(true)
   expect(applications).toHaveBeenLastCalledWith('/other.mp3', expect.any(AbortSignal))
 })
 
@@ -190,7 +190,7 @@ it('keeps reveal last and makes it the default when the file query fails', async
   const items = screen.getAllByRole('menuitem')
   expect(items.map(item => item.textContent)).toEqual([zh['path.appsError'], '显示文件位置（默认）'])
   expect(items[0]).toHaveProperty('disabled', true)
-  await act(async () => { fireEvent.click(items[1]!) })
+  await act(async () => { fireEvent.click(items[1]) })
   expect(b.openPath).toHaveBeenLastCalledWith(ABSOLUTE_PATH, 'reveal', undefined)
 })
 

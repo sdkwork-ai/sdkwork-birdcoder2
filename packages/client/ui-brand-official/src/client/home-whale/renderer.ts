@@ -89,11 +89,11 @@ export function attachPixelWhale(canvas: HTMLCanvasElement, options: WhaleArtwor
     for (let y = 0; y < ATLAS.height; y++) {
       for (let x = 0; x < ATLAS.width; x++) {
         const offset = ((offsetY + y) * stride + offsetX + x) * 4
-        const alpha = (pixels[offset + 1] as number) / 255
+        const alpha = (pixels[offset + 1]) / 255
         if (alpha < 0.015) continue
         ctx.globalAlpha = alpha * options.activeOpacity * fade * 0.8
         ctx.beginPath()
-        ctx.arc(left + (x + 0.5) * cell, top + (y + 0.5) * cell, (pixels[offset] as number) / 255 * cell, 0, Math.PI * 2)
+        ctx.arc(left + (x + 0.5) * cell, top + (y + 0.5) * cell, (pixels[offset]) / 255 * cell, 0, Math.PI * 2)
         ctx.fill()
       }
     }

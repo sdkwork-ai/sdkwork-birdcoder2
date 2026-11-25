@@ -151,7 +151,7 @@ describe('ui-sdkwork-git browser half', () => {
 
 describe('ui-sdkwork-git node half', () => {
   it('applies as an inert host plugin', () => {
-    expect(() => applyNode()).not.toThrow()
+    expect(() =>{  applyNode() }).not.toThrow()
   })
 })
 
@@ -165,12 +165,12 @@ describe('GitBranchPill trigger', () => {
 
   it('renders nothing when the git status read fails (no repository)', async () => {
     const view = render(<GitBranchPill {...props(fakeGit({ failStatus: true }), { cwd: REPO })} />)
-    await waitFor(() => expect(view.container.innerHTML).toBe(''))
+    await waitFor(() =>{  expect(view.container.innerHTML).toBe('') })
   })
 
   it('shows the checked-out branch once the status read settles', async () => {
     render(<GitBranchPill {...props(fakeGit({ current: 'main' }), { cwd: REPO })} />)
-    await waitFor(() => expect(screen.getByRole('button', { name: en['pill.openAria'] })).toBeDefined())
+    await waitFor(() =>{  expect(screen.getByRole('button', { name: en['pill.openAria'] })).toBeDefined() })
     expect(screen.getByText('main')).toBeDefined()
   })
 
@@ -195,7 +195,7 @@ describe('GitBranchPill trigger', () => {
       additions: 0,
       deletions: 0,
     }) })
-    await waitFor(() => expect(screen.getByText('main')).toBeDefined())
+    await waitFor(() =>{  expect(screen.getByText('main')).toBeDefined() })
     expect(view.container.querySelector('button[disabled]')).toBeNull()
   })
 
@@ -222,7 +222,7 @@ describe('GitBranchPill panel', () => {
     // Expand the inline branch picker under the branch row.
     fireEvent.click(screen.getByRole('button', { name: /main/ }))
     expect(await screen.findByText(en['popover.branchesSection'])).toBeDefined()
-    await waitFor(() => expect(screen.getByText('wip/beta')).toBeDefined())
+    await waitFor(() =>{  expect(screen.getByText('wip/beta')).toBeDefined() })
     // The panel is portaled to document.body, outside the component container.
     expect(document.body.textContent).toContain(en['popover.dirty'].replace('{count}', '73'))
     // Checkout rows exist only for the non-current branches.
@@ -246,8 +246,8 @@ describe('GitBranchPill panel', () => {
     // Checking out a branch runs a status refresh, which invalidates the
     // cache: the next picker open re-reads the repository.
     fireEvent.click(screen.getByRole('button', { name: new RegExp('feature/alpha') }))
-    await waitFor(() => expect(git.checkout).toHaveBeenCalledWith(REPO, 'feature/alpha'))
-    await waitFor(() => expect(git.status).toHaveBeenCalledTimes(2))
+    await waitFor(() =>{  expect(git.checkout).toHaveBeenCalledWith(REPO, 'feature/alpha') })
+    await waitFor(() =>{  expect(git.status).toHaveBeenCalledTimes(2) })
     fireEvent.click(await screen.findByRole('button', { name: /main/ }))
     await screen.findByText('feature/alpha')
     expect(git.branches).toHaveBeenCalledTimes(2)
@@ -267,7 +267,7 @@ describe('GitBranchPill panel', () => {
     fireEvent.click(await screen.findByRole('button', { name: en['pill.openAria'] }))
     fireEvent.click(await screen.findByRole('button', { name: /main/ }))
     await screen.findByText(en['popover.branchesSection'])
-    await waitFor(() => expect(screen.getByText('wip/beta')).toBeDefined())
+    await waitFor(() =>{  expect(screen.getByText('wip/beta')).toBeDefined() })
     fireEvent.change(screen.getByPlaceholderText(en['popover.searchPlaceholder']), { target: { value: 'wip' } })
     expect(screen.queryByText('feature/alpha')).toBeNull()
     expect(screen.getByText('wip/beta')).toBeDefined()
@@ -279,8 +279,8 @@ describe('GitBranchPill panel', () => {
     fireEvent.click(await screen.findByRole('button', { name: en['pill.openAria'] }))
     fireEvent.click(await screen.findByRole('button', { name: /main/ }))
     fireEvent.click(await screen.findByRole('button', { name: new RegExp('feature/alpha') }))
-    await waitFor(() => expect(git.checkout).toHaveBeenCalledWith(REPO, 'feature/alpha'))
-    await waitFor(() => expect(git.status).toHaveBeenCalledTimes(2))
+    await waitFor(() =>{  expect(git.checkout).toHaveBeenCalledWith(REPO, 'feature/alpha') })
+    await waitFor(() =>{  expect(git.status).toHaveBeenCalledTimes(2) })
   })
 
   it('lists the recent-commit history rows in the panel', async () => {
@@ -288,7 +288,7 @@ describe('GitBranchPill panel', () => {
     render(<GitBranchPill {...props(git, { cwd: REPO })} />)
     fireEvent.click(await screen.findByRole('button', { name: en['pill.openAria'] }))
     expect(await screen.findByText(en['panel.historySection'])).toBeDefined()
-    await waitFor(() => expect(screen.getByText('chore: sync repo state')).toBeDefined())
+    await waitFor(() =>{  expect(screen.getByText('chore: sync repo state')).toBeDefined() })
     expect(screen.getByText('commit 1')).toBeDefined()
   })
 
@@ -319,10 +319,10 @@ describe('GitCreateBranchModal', () => {
     const field = screen.getByPlaceholderText(en['create.namePlaceholder'])
     fireEvent.change(field, { target: { value: 'wip/new-work' } })
     fireEvent.click(screen.getByRole('button', { name: en['create.confirm'] }))
-    await waitFor(() => expect(git.createAndCheckout).toHaveBeenCalledWith(REPO, 'wip/new-work'))
+    await waitFor(() =>{  expect(git.createAndCheckout).toHaveBeenCalledWith(REPO, 'wip/new-work') })
     // Success closes the dialog and refreshes the pill status.
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: en['create.title'] })).toBeNull())
-    await waitFor(() => expect(git.status).toHaveBeenCalledTimes(2))
+    await waitFor(() =>{  expect(screen.queryByRole('dialog', { name: en['create.title'] })).toBeNull() })
+    await waitFor(() =>{  expect(git.status).toHaveBeenCalledTimes(2) })
   })
 
   it('keeps the confirm button disabled while the name is blank', async () => {
@@ -397,9 +397,9 @@ describe('GitGraphModal', () => {
     fireEvent.click(await screen.findByRole('button', { name: en['popover.gitGraph'] }))
     await screen.findByRole('dialog', { name: en['graph.title'] })
     // One log read for the panel history, one for the graph dialog.
-    await waitFor(() => expect(git.log).toHaveBeenCalledTimes(2))
+    await waitFor(() =>{  expect(git.log).toHaveBeenCalledTimes(2) })
     fireEvent.click(screen.getByRole('button', { name: en['graph.refresh'] }))
-    await waitFor(() => expect(git.log).toHaveBeenCalledTimes(3))
+    await waitFor(() =>{  expect(git.log).toHaveBeenCalledTimes(3) })
   })
 
   it('shows the availability message when the log read fails', async () => {
@@ -439,10 +439,10 @@ describe('GitCommitModal', () => {
     const commitRow = screen.getAllByRole('button', { name: new RegExp(en['commit.actionCommit']) })
       .find(button => button.textContent?.includes('Ctrl'))
     fireEvent.click(commitRow!)
-    await waitFor(() => expect(git.commit).toHaveBeenCalledWith(REPO, 'fix: the thing', true))
+    await waitFor(() =>{  expect(git.commit).toHaveBeenCalledWith(REPO, 'fix: the thing', true) })
     // Success closes the dialog and refreshes the pill status.
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: en['commit.title'] })).toBeNull())
-    await waitFor(() => expect(git.status).toHaveBeenCalledTimes(2))
+    await waitFor(() =>{  expect(screen.queryByRole('dialog', { name: en['commit.title'] })).toBeNull() })
+    await waitFor(() =>{  expect(git.status).toHaveBeenCalledTimes(2) })
   })
 
   it('commits and pushes through the stacked action row', async () => {
@@ -454,8 +454,8 @@ describe('GitCommitModal', () => {
       target: { value: 'feat: ship it' },
     })
     fireEvent.click(screen.getByRole('button', { name: en['commit.actionCommitPush'] }))
-    await waitFor(() => expect(git.commit).toHaveBeenCalledWith(REPO, 'feat: ship it', true))
-    await waitFor(() => expect(git.push).toHaveBeenCalledWith(REPO))
+    await waitFor(() =>{  expect(git.commit).toHaveBeenCalledWith(REPO, 'feat: ship it', true) })
+    await waitFor(() =>{  expect(git.push).toHaveBeenCalledWith(REPO) })
   })
 
   it('keeps the plain commit disabled while the message is blank', async () => {
@@ -496,7 +496,7 @@ describe('GitCommitModal', () => {
     // The close affordance rides in the header alongside the diff totals;
     // clicking it dismisses the dialog without firing any git mutation.
     fireEvent.click(screen.getByRole('button', { name: en['commit.close'] }))
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: en['commit.title'] })).toBeNull())
+    await waitFor(() =>{  expect(screen.queryByRole('dialog', { name: en['commit.title'] })).toBeNull() })
     expect(git.commit).not.toHaveBeenCalled()
     expect(git.push).not.toHaveBeenCalled()
   })

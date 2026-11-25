@@ -61,12 +61,12 @@ describe('PlanChip', () => {
     // share one slot and CSS shows exactly one of them, so no trailing cross.
     const glyphs = chip().querySelectorAll('svg')
     expect(glyphs).toHaveLength(2)
-    const slot = glyphs[0]!.parentElement!
+    const slot = glyphs[0].parentElement!
     expect(slot).toBe(chip().firstElementChild)
     expect(slot.getAttribute('aria-hidden')).toBe('true')
-    expect(glyphs[0]!.classList.contains(css.restGlyph!)).toBe(true)
-    expect(glyphs[1]!.classList.contains(css.hoverGlyph!)).toBe(true)
-    expect(glyphs[1]!.parentElement).toBe(slot)
+    expect(glyphs[0].classList.contains(css.restGlyph)).toBe(true)
+    expect(glyphs[1].classList.contains(css.hoverGlyph)).toBe(true)
+    expect(glyphs[1].parentElement).toBe(slot)
     expect(chip().lastChild?.textContent).toBe('计划')
   })
 

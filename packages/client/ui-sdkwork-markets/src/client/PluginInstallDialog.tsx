@@ -106,6 +106,10 @@ function terminalLabels(t: PluginInstallDialogProps['t']): TerminalBlockLabels {
 function failureText(detail: string | undefined, t: PluginInstallDialogProps['t']): string {
   if (detail === 'not-running') return t('install.cancel.not-running')
   if (detail === undefined) return t('install.failed.unknown')
+  // A settled run reports the Host's error code; the same code the inspection
+  // screen words is worded here, rather than dropped into the sentence raw.
+  const key = PROBLEM_KEYS[detail as keyof typeof PROBLEM_KEYS]
+  if (key !== undefined) return t(key)
   return t('install.failed', { detail })
 }
 

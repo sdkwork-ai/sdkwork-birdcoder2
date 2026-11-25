@@ -212,4 +212,4 @@ export function ZoomViewport(props: ZoomViewportProps): ReactNode {
 }
 
 /** Shared surface class for actual-size and fit-width layout. */
-export const zoomSurfaceClass = css.surface as string
+export const zoomSurfaceClass = css.surface

@@ -72,7 +72,7 @@ it.each(['bing', 'google'] as const)('binds %s requests to each reasoning Sessio
   const b = await fixture(false, { provider, targetLanguage: 'ja' })
   try {
     const dispose = await mountTranslation(b.ctx, contribution)
-    const entry = b.ctx.slots.entries('conversation.chat.reasoning.body')[0]!
+    const entry = b.ctx.slots.entries('conversation.chat.reasoning.body')[0]
     const first = injectReasoning(entry, sourceSessionId), otherSessionId = brandString<SessionId>('other-reasoning-source')
     const second = injectReasoning(entry, otherSessionId)
     bodyFace(first); bodyFace(second)
@@ -93,7 +93,7 @@ it('registers translated reasoning and preferences, adopts accepted choices, and
   try {
     const fiber = b.ctx.plugin({ inject: [...inject], apply: ctx => mountTranslation(ctx, contribution) })
     await fiber
-    const entry = b.ctx.slots.entries('conversation.chat.reasoning.body')[0]!
+    const entry = b.ctx.slots.entries('conversation.chat.reasoning.body')[0]
     expect(entry.locale).toBe('cotTranslation')
     expect(entry.select).toBeUndefined()
     expect(b.ctx.slots.spec('conversation.chat.reasoning.body')).toMatchObject({ kind: 'single', scope: 'session' })
@@ -105,7 +105,7 @@ it('registers translated reasoning and preferences, adopts accepted choices, and
     b.scope.publish({ value: { provider: 'bing', targetLanguage: 'ja' } })
     await vi.waitFor(() => { expect(body.hooks.preferences.getSnapshot()).toEqual({ provider: 'bing', targetLanguage: 'ja' }) })
     expect(b.ctx.slots.entries('plugins.bundle.config')[0]?.options).toMatchObject({ key: '@deepseek-ai/dsh-experimental-cot-translation-bundle' })
-    expect(b.ctx.slots.entries('plugins.bundle.config')[0]!.inject!()).toHaveProperty('hooks.translationForm')
+    expect(b.ctx.slots.entries('plugins.bundle.config')[0].inject!()).toHaveProperty('hooks.translationForm')
     const request = { text: 'original', provider: 'bing' as const, targetLanguage: 'ja' }, signal = new AbortController().signal
     expect(await body.translate(request, signal)).toBe('translated')
     b.translate.mockResolvedValueOnce({ ok: false, error: new RemoteError('cotTranslation/failed', 'request failed', {}) } as never)
@@ -153,7 +153,7 @@ it('uses Host Google preferences while the settings form is loading', async () =
   try {
     const fiber = b.ctx.plugin({ inject: [...inject], apply: ctx => mountTranslation(ctx, contribution) })
     await fiber
-    const body = injectReasoning(b.ctx.slots.entries('conversation.chat.reasoning.body')[0]!, sourceSessionId)
+    const body = injectReasoning(b.ctx.slots.entries('conversation.chat.reasoning.body')[0], sourceSessionId)
     bodyFace(body)
     expect(body.hooks.preferences.getSnapshot()).toEqual(preferences)
     expect(b.scope.scope.getSnapshot().value).toBeUndefined()
@@ -174,7 +174,7 @@ it('does not install a reasoning renderer before authoritative metadata arrives,
     b.invalidate()
     pending.resolve({ ok: true, value: { maxTextChars: 12, availableProviders: ['bing', 'google'], preferences: { provider: 'bing', targetLanguage: 'auto' } } })
     const dispose = await task
-    const body = injectReasoning(b.ctx.slots.entries('conversation.chat.reasoning.body')[0]!, sourceSessionId)
+    const body = injectReasoning(b.ctx.slots.entries('conversation.chat.reasoning.body')[0], sourceSessionId)
     bodyFace(body)
     expect(body.hooks.preferences.getSnapshot()).toEqual({ provider: 'google', targetLanguage: 'ja' })
     expect(body.hooks.translationLimit.getSnapshot()).toBe(4)
@@ -187,9 +187,9 @@ it('refreshes accepted Host preferences and limits on invalidation and reconnect
   const b = await fixture(false, { provider: 'google', targetLanguage: 'ja' })
   try {
     const dispose = await mountTranslation(b.ctx, contribution)
-    const body = injectReasoning(b.ctx.slots.entries('conversation.chat.reasoning.body')[0]!, sourceSessionId)
+    const body = injectReasoning(b.ctx.slots.entries('conversation.chat.reasoning.body')[0], sourceSessionId)
     bodyFace(body)
-    const form = b.ctx.slots.entries('plugins.bundle.config')[0]!.inject!()
+    const form = b.ctx.slots.entries('plugins.bundle.config')[0].inject!()
     formFace(form)
     form.edit('provider', 'bing')
     expect(body.hooks.preferences.getSnapshot()).toEqual({ provider: 'google', targetLanguage: 'ja' })
@@ -210,7 +210,7 @@ it.each(['resolve', 'reject'] as const)('cancels setup, joins the pending read, 
   try {
     const fiber = b.ctx.plugin({ inject: [...inject], apply: ctx => mountTranslation(ctx, contribution) })
     await vi.waitFor(() => { expect(b.limits).toHaveBeenCalledOnce() })
-    const querySignal = b.limits.mock.calls[0]![0]
+    const querySignal = b.limits.mock.calls[0][0]
     const disposing = fiber.dispose()
     await vi.waitFor(() => { expect(querySignal.aborted).toBe(true) })
     expect(b.unmount).not.toHaveBeenCalled()
@@ -233,7 +233,7 @@ it('holds new fragments during metadata refresh and rejects stale routing or lim
   const b = await fixture(), pending = Promise.withResolvers<RemoteResult<CotTranslationSnapshot>>()
   try {
     const dispose = await mountTranslation(b.ctx, contribution)
-    const body = injectReasoning(b.ctx.slots.entries('conversation.chat.reasoning.body')[0]!, sourceSessionId)
+    const body = injectReasoning(b.ctx.slots.entries('conversation.chat.reasoning.body')[0], sourceSessionId)
     bodyFace(body)
     b.limits.mockImplementationOnce(() => pending.promise)
     b.invalidate()
@@ -258,7 +258,7 @@ it('rechecks the caller abort after a held metadata query completes', async () =
   const b = await fixture(), pending = Promise.withResolvers<RemoteResult<CotTranslationSnapshot>>()
   try {
     const dispose = await mountTranslation(b.ctx, contribution)
-    const body = injectReasoning(b.ctx.slots.entries('conversation.chat.reasoning.body')[0]!, sourceSessionId)
+    const body = injectReasoning(b.ctx.slots.entries('conversation.chat.reasoning.body')[0], sourceSessionId)
     bodyFace(body)
     b.limits.mockImplementationOnce(() => pending.promise)
     b.invalidate()
@@ -290,7 +290,7 @@ it.each(['throw', 'refuse'] as const)('does not submit after a %s metadata refre
   const b = await fixture()
   try {
     const dispose = await mountTranslation(b.ctx, contribution)
-    const body = injectReasoning(b.ctx.slots.entries('conversation.chat.reasoning.body')[0]!, sourceSessionId)
+    const body = injectReasoning(b.ctx.slots.entries('conversation.chat.reasoning.body')[0], sourceSessionId)
     bodyFace(body)
     if (outcome === 'throw') b.limits.mockRejectedValueOnce(new Error('metadata unavailable'))
     else b.limits.mockResolvedValueOnce({ ok: false, error: new RemoteError('cotTranslation/failed', 'metadata unavailable', {}) })
@@ -307,11 +307,11 @@ it.each(['resolve', 'reject'] as const)('joins an in-flight refresh and excludes
   const b = await fixture(), pending = Promise.withResolvers<RemoteResult<CotTranslationSnapshot>>()
   try {
     const dispose = await mountTranslation(b.ctx, contribution)
-    const body = injectReasoning(b.ctx.slots.entries('conversation.chat.reasoning.body')[0]!, sourceSessionId)
+    const body = injectReasoning(b.ctx.slots.entries('conversation.chat.reasoning.body')[0], sourceSessionId)
     bodyFace(body)
     b.limits.mockImplementationOnce(() => pending.promise)
     b.invalidate()
-    const signal = b.limits.mock.calls[1]![0]
+    const signal = b.limits.mock.calls[1][0]
     const disposing = dispose()
     await vi.waitFor(() => { expect(signal.aborted).toBe(true) })
     expect(b.unmount).not.toHaveBeenCalled()
@@ -336,7 +336,7 @@ it('retains an invalidation raised synchronously while a refreshed snapshot is b
   let unsubscribe: (() => void) | undefined
   try {
     const dispose = await mountTranslation(b.ctx, contribution)
-    const body = injectReasoning(b.ctx.slots.entries('conversation.chat.reasoning.body')[0]!, sourceSessionId)
+    const body = injectReasoning(b.ctx.slots.entries('conversation.chat.reasoning.body')[0], sourceSessionId)
     bodyFace(body)
     let invalidated = false
     unsubscribe = body.hooks.preferences.subscribe(() => {
@@ -361,10 +361,10 @@ it('advertises eligible paid routes without changing Bing selection or sending a
     preferences: { provider: 'bing', targetLanguage: 'auto' } })
   try {
     const dispose = await mountTranslation(b.ctx, contribution)
-    const settings = b.ctx.slots.entries('plugins.bundle.config')[0]!.inject!()
+    const settings = b.ctx.slots.entries('plugins.bundle.config')[0].inject!()
     assert(typeof settings.refreshProviders === 'function')
     expect(settings.hooks).toBeTruthy()
-    const body = injectReasoning(b.ctx.slots.entries('conversation.chat.reasoning.body')[0]!, brandString<SessionId>('reasoning-session'))
+    const body = injectReasoning(b.ctx.slots.entries('conversation.chat.reasoning.body')[0], brandString<SessionId>('reasoning-session'))
     bodyFace(body)
     expect(body.hooks.preferences.getSnapshot()).toEqual({ provider: 'bing', targetLanguage: 'auto' })
     expect(b.translate).not.toHaveBeenCalled()
@@ -380,7 +380,7 @@ it.each(['deepseek-account', 'deepseek-official'] as const)('binds selected paid
   try {
     const dispose = await mountTranslation(b.ctx, contribution)
     const sessionId = brandString<SessionId>('existing-viewed-session')
-    const body = injectReasoning(b.ctx.slots.entries('conversation.chat.reasoning.body')[0]!, sessionId)
+    const body = injectReasoning(b.ctx.slots.entries('conversation.chat.reasoning.body')[0], sessionId)
     bodyFace(body)
     expect(b.translate).not.toHaveBeenCalled()
     await body.translate({ text: 'original', provider, targetLanguage: 'zh', sessionId: brandString<SessionId>('other-session') },
@@ -402,7 +402,7 @@ it.each(['llm/adapters-updated', 'deepseek-account/session-expired', 'deepseek-a
   const b = await fixture()
   try {
     const dispose = await mountTranslation(b.ctx, contribution)
-    const settings = b.ctx.slots.entries('plugins.bundle.config')[0]!.inject!()
+    const settings = b.ctx.slots.entries('plugins.bundle.config')[0].inject!()
     const hooks = settings.hooks as { availableProviders: { getSnapshot: () => readonly string[] } }
     expect(hooks.availableProviders.getSnapshot()).toEqual(['bing', 'google'])
     b.setCatalog({ maxTextChars: 12, availableProviders: ['bing', 'google', 'deepseek-official'],

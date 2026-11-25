@@ -61,6 +61,7 @@ export const zh = {
   'heroTag.harmonyos': '鸿蒙原生应用开发',
   'heroTag.iosApp': 'iOS原生开发',
   'heroTag.androidApp': 'Android原生开发',
+  'heroTag.appDeploy': '部署发布',
   'heroTag.unityApp': 'Unity应用开发',
   'heroTag.dshPlugin': 'DSH插件开发',
   'heroTag.workbuddyPlugin': 'Workbuddy插件开发',
@@ -81,6 +82,8 @@ export const zh = {
   'heroTag.visualPoster': '视觉海报',
   'heroTag.marketingPoster': '运营海报',
   'heroTag.meetingNotes': '会议纪要',
+  'heroTag.knowledgeArticle': '知识库文章',
+  'heroTag.contentPublish': '内容发布',
 } satisfies Record<string, string>
 
 /** The appMode namespace key union. */
@@ -142,6 +145,7 @@ export const en = {
   'heroTag.harmonyos': 'HarmonyOS native dev',
   'heroTag.iosApp': 'iOS native dev',
   'heroTag.androidApp': 'Android native dev',
+  'heroTag.appDeploy': 'Deploy & publish',
   'heroTag.unityApp': 'Unity app dev',
   'heroTag.dshPlugin': 'dsh plugin dev',
   'heroTag.workbuddyPlugin': 'Workbuddy plugin dev',
@@ -162,4 +166,6 @@ export const en = {
   'heroTag.visualPoster': 'Visual poster',
   'heroTag.marketingPoster': 'Marketing poster',
   'heroTag.meetingNotes': 'Meeting notes',
+  'heroTag.knowledgeArticle': 'Knowledge article',
+  'heroTag.contentPublish': 'Content publish',
 } satisfies Record<AppModeKey, string>

@@ -164,7 +164,7 @@ describe('Session header Share action', () => {
     await waitFor(() => { expect(screen.getByText(zh['manage.title'])).toBeTruthy() })
     expect(screen.queryByText(zh['dialog.title'])).toBeNull()
 
-    fireEvent.click(screen.getAllByRole('button', { name: zh['manage.done'] })[0] as HTMLElement)
+    fireEvent.click(screen.getAllByRole('button', { name: zh['manage.done'] })[0])
     await waitFor(() => { expect(screen.queryByText(zh['manage.title'])).toBeNull() })
   })
 
@@ -175,7 +175,7 @@ describe('Session header Share action', () => {
     fireEvent.click(screen.getByRole('button', { name: zh['header.action'] }))
     await waitFor(() => { expect(screen.getByText(zh['dialog.title'])).toBeTruthy() })
     // A fresh dialog states no link yet, so its close control is the cancel affordance.
-    fireEvent.click(screen.getAllByRole('button', { name: zh['dialog.cancel'] })[0] as HTMLElement)
+    fireEvent.click(screen.getAllByRole('button', { name: zh['dialog.cancel'] })[0])
 
     await waitFor(() => { expect(screen.queryByText(zh['dialog.title'])).toBeNull() })
     expect(calls.map(call => call.method)).not.toContain('create')

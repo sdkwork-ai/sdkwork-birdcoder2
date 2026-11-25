@@ -26,44 +26,6 @@
   border-bottom: 0.5px solid var(--dsw-alias-border-l3);
 }
 
-.tabs {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-}
-
-.tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 30px;
-  padding: 0 12px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--dsw-alias-label-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 20px;
-  cursor: pointer;
-}
-
-.tab:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
-  color: var(--dsw-alias-label-primary);
-}
-
-.tabActive {
-  background: var(--dsw-alias-interactive-bg-active);
-  border-color: var(--dsw-alias-border-l3);
-  color: var(--dsw-alias-label-primary);
-}
-
-.tabIcon {
-  flex: none;
-}
-
 /* Catalog tools: the search field plus the my-catalog affordance. */
 .tools {
   display: flex;
@@ -303,27 +265,17 @@
   margin-top: 4px;
 }
 
-/* The Plugin Market gate's action row: the install affordance, inside the
-   gate's empty-state column. */
-.emptyActions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-/* The live Plugin Market viewport: the market's own page scrolls inside this
-   box, so the sub-tab strip above stays put while a 4200-entry catalog
-   scrolls. The panel brings its own background and type scale. */
-.marketEmbed {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
-  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+.marketInstallError {
+  flex: none;
+  margin: 8px 16px;
+  padding: 9px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 6px;
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-bg-layer-1);
+  font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
 }
 
 /* An embedded panel drawn in place — the Skills tab's SkillHub market and the

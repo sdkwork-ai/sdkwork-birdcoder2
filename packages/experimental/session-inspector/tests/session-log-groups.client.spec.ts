@@ -57,7 +57,7 @@ it('nests each Step inside its Turn and retains closers at the end of the corres
     ['event:4/chunk:0', { state: 'closed', collapsed: false }],
   ]))
   const sticky = (key: string) => hierarchy.stickyIndexes(hierarchy.rows.findIndex(row => row.key === key))
-    .map(index => hierarchy.rows[index]!.key)
+    .map(index => hierarchy.rows[index].key)
   expect(sticky('event:4/chunk:1')).toEqual(['event:1', 'event:2', 'event:4', 'event:4/chunk:0'])
   expect(sticky('event:5')).toEqual(['event:1', 'event:2'])
   expect(sticky('event:8')).toEqual(['event:1', 'event:7'])
@@ -111,8 +111,8 @@ it('keeps a live Assistant inside its Step through settlement without folding th
     type: 'assistant/attempt', seq: SessionSeq(4), time: 4, data: { turn: 1, step: 1,
       stream: [{ type: 'text-chunks', index: 0, time0: 3, dt: [], texts: ['live'] }] },
   } })
-  source.append(entries([events[4]!])[0]!)
-  source.append(entries([events[9]!])[0]!)
+  source.append(entries([events[4]])[0])
+  source.append(entries([events[9]])[0])
   expect(model.getSnapshot().find(row => row.key === key)).toEqual({ key, parent: 'event:2', depth: 2 })
   expect(new InspectorTableHierarchy(model.getSnapshot(), new Map()).rows.map(row => row.key))
     .toEqual(['event:1', 'event:2', key, `${key}/chunk:0`, 'event:5', 'event:10'])

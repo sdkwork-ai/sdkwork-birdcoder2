@@ -56,7 +56,7 @@ it('filters only on confirmation, preserves contextual ancestors, and reveals pi
   fireEvent.click(ui.getByRole('button', { name: 'reasoning-delta' }))
   expect(ui.getByText('$:').closest('ul')?.textContent).toContain('index: 7')
 
-  fireEvent.click(ui.getAllByRole('button', { name: 'Collapse children' })[1]!)
+  fireEvent.click(ui.getAllByRole('button', { name: 'Collapse children' })[1])
   expect(ui.queryByRole('button', { name: 'reasoning-delta' })).toBeNull()
   ui.rerender(<InspectorTable {...props} pickedRow={{ key: 'delta' }} />)
   expect(ui.getByRole('button', { name: 'reasoning-delta' }).closest('tr')?.getAttribute('aria-selected')).toBe('true')

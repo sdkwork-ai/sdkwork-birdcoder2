@@ -66,12 +66,12 @@ describe('SearchBlock matches kind', () => {
       { path: 'b.ts', matches: [{ lineNumber: 2, line: 'y' }] },
     ]} />)
     const [headerA] = view.container.querySelectorAll('[class^="_fileHeader_"]')
-    expect(headerA!.getAttribute('aria-expanded')).toBe('true')
-    fireEvent.click(headerA!)
+    expect(headerA.getAttribute('aria-expanded')).toBe('true')
+    fireEvent.click(headerA)
     // a.ts collapsed: its match row is gone, b.ts's stays.
-    expect(headerA!.getAttribute('aria-expanded')).toBe('false')
+    expect(headerA.getAttribute('aria-expanded')).toBe('false')
     expect(lines(view.container)).toEqual(['2: y'])
-    fireEvent.click(headerA!)
+    fireEvent.click(headerA)
     expect(lines(view.container)).toEqual(['1: x', '2: y'])
   })
 

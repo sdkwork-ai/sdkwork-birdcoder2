@@ -71,7 +71,7 @@ function harness({ manual = false, completedTurn = 1, selected = true, ready = t
   /** Replace the record with the given fields over the current one. */
   const record = (patch: Partial<SessionReadState>) => {
     const current = state.getSnapshot()
-    state.set({ ready: true, items: { [id]: { ...current.items[id]!, ...patch } } })
+    state.set({ ready: true, items: { [id]: { ...current.items[id], ...patch } } })
   }
   /** Move the main view to or away from the Session. */
   const select = (on: boolean) => { list.update((draft) => { draft.byId[id] = row(on) }) }

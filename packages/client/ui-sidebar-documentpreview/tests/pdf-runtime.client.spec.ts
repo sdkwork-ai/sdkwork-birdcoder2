@@ -69,9 +69,9 @@ function setup(controller = new AbortController(), failed = vi.fn()) {
 describe('PDF Worker lifecycle', () => {
   it('starts a real module-worker port before calling getDocument with complete bytes and local assets', async () => {
     const h = setup()
-    expect(workers[0]!.options).toEqual({ type: 'module', name: 'dsh-pdf' })
+    expect(workers[0].options).toEqual({ type: 'module', name: 'dsh-pdf' })
     expect(api.getDocument).not.toHaveBeenCalled()
-    workers[0]!.ready()
+    workers[0].ready()
     const options = await h.entered.promise as { data: Uint8Array<ArrayBuffer>; BinaryDataFactory: unknown }
     expect(api.createWorker).toHaveBeenCalledWith({ port: workers[0] })
     expect(options).toMatchObject({
@@ -92,7 +92,7 @@ describe('PDF Worker lifecycle', () => {
     await h.session.dispose()
     expect(h.destroy).toHaveBeenCalledOnce()
     expect(api.destroyBridge).toHaveBeenCalledOnce()
-    expect(workers[0]!.terminate).toHaveBeenCalledOnce()
+    expect(workers[0].terminate).toHaveBeenCalledOnce()
     expect(revokeURL).toHaveBeenCalledExactlyOnceWith('blob:pdf-worker')
   })
 
@@ -101,15 +101,15 @@ describe('PDF Worker lifecycle', () => {
     h.controller.abort()
     await expect(h.session.document).rejects.toMatchObject({ name: 'AbortError' })
     await h.session.dispose()
-    workers[0]!.ready()
+    workers[0].ready()
     expect(api.getDocument).not.toHaveBeenCalled()
-    expect(workers[0]!.terminate).toHaveBeenCalledOnce()
+    expect(workers[0].terminate).toHaveBeenCalledOnce()
     expect(revokeURL).toHaveBeenCalledOnce()
   })
 
   it('awaits document destruction before terminating a healthy worker and rejects a late load', async () => {
     const h = setup()
-    workers[0]!.ready()
+    workers[0].ready()
     await h.entered.promise
     const destruction = Promise.withResolvers<undefined>()
     const destroying = Promise.withResolvers<undefined>()
@@ -117,38 +117,38 @@ describe('PDF Worker lifecycle', () => {
     h.destroy.mockImplementation(async () => { destroying.resolve(undefined); await destruction.promise })
     h.controller.abort()
     await destroying.promise
-    expect(workers[0]!.terminate).not.toHaveBeenCalled()
+    expect(workers[0].terminate).not.toHaveBeenCalled()
     h.loading.resolve({ numPages: 99, getPage: vi.fn() })
     destruction.resolve(undefined)
     await expect(h.session.document).rejects.toMatchObject({ name: 'AbortError' })
     await h.session.dispose()
-    expect(workers[0]!.terminate).toHaveBeenCalledOnce()
+    expect(workers[0].terminate).toHaveBeenCalledOnce()
   })
 
   it('reports worker startup failure and releases its Blob without a fake-worker fallback', async () => {
     const h = setup()
     const error = new ErrorEvent('error', { message: 'worker blocked' })
-    workers[0]!.dispatchEvent(error)
+    workers[0].dispatchEvent(error)
     await expect(h.session.document).rejects.toMatchObject({ kind: 'worker', cause: error })
     expect(h.failed).toHaveBeenCalledOnce()
     expect(api.getDocument).not.toHaveBeenCalled()
-    expect(workers[0]!.terminate).toHaveBeenCalledOnce()
+    expect(workers[0].terminate).toHaveBeenCalledOnce()
     expect(revokeURL).toHaveBeenCalledOnce()
   })
 
   it('reports a worker crash after loading and releases the document and worker', async () => {
     const h = setup()
-    workers[0]!.ready()
+    workers[0].ready()
     await h.entered.promise
     h.loading.resolve({ numPages: 1, getPage: vi.fn() })
     await h.session.document
     const error = new ErrorEvent('error', { message: 'worker crashed' })
-    workers[0]!.dispatchEvent(error)
+    workers[0].dispatchEvent(error)
     await h.session.dispose()
     expect(h.failed).toHaveBeenCalledWith(expect.objectContaining({ kind: 'worker', cause: error }))
     expect(h.destroy).toHaveBeenCalledOnce()
     expect(api.destroyBridge).toHaveBeenCalledOnce()
-    expect(workers[0]!.terminate).toHaveBeenCalledOnce()
+    expect(workers[0].terminate).toHaveBeenCalledOnce()
   })
 
   it('allocates nothing for an already-ended document lifetime', async () => {
@@ -165,10 +165,10 @@ describe('PDF Worker lifecycle', () => {
   it('ignores unrelated Worker wire messages until its own startup acknowledgement', async () => {
     const h = setup()
     for (const data of [null, 'noise', { action: 'ready', sourceName: 'worker' }, { type: 'other-worker' }]) {
-      workers[0]!.dispatchEvent(new MessageEvent('message', { data }))
+      workers[0].dispatchEvent(new MessageEvent('message', { data }))
     }
     expect(api.getDocument).not.toHaveBeenCalled()
-    workers[0]!.ready()
+    workers[0].ready()
     await h.entered.promise
     h.loading.resolve({ numPages: 1, getPage: vi.fn() })
     await h.session.document
@@ -179,17 +179,17 @@ describe('PDF Worker lifecycle', () => {
     const failed = vi.fn(() => { throw callbackError })
     const log = vi.spyOn(console, 'error').mockImplementation(() => {})
     const h = setup(new AbortController(), failed)
-    workers[0]!.dispatchEvent(new MessageEvent('messageerror'))
+    workers[0].dispatchEvent(new MessageEvent('messageerror'))
     await expect(h.session.document).rejects.toBeInstanceOf(PdfWorkerFailure)
     await h.session.dispose()
     expect(log).toHaveBeenCalledExactlyOnceWith('[pdf] failure callback threw', callbackError)
-    expect(workers[0]!.terminate).toHaveBeenCalledOnce()
+    expect(workers[0].terminate).toHaveBeenCalledOnce()
     expect(revokeURL).toHaveBeenCalledOnce()
   })
 
   it('suppresses late failure reports and finishes abort cleanup when the worker crashes', async () => {
     const h = setup()
-    workers[0]!.ready()
+    workers[0].ready()
     await h.entered.promise
     h.loading.resolve({ numPages: 1, getPage: vi.fn() })
     await h.session.document
@@ -199,17 +199,17 @@ describe('PDF Worker lifecycle', () => {
     h.destroy.mockImplementation(async () => { destroying.resolve(undefined); await destruction.promise })
     h.controller.abort()
     await destroying.promise
-    workers[0]!.dispatchEvent(new MessageEvent('messageerror'))
+    workers[0].dispatchEvent(new MessageEvent('messageerror'))
     await h.session.dispose()
     expect(h.failed).not.toHaveBeenCalled()
-    expect(workers[0]!.terminate).toHaveBeenCalledOnce()
+    expect(workers[0].terminate).toHaveBeenCalledOnce()
     destruction.resolve(undefined)
   })
 
   it('logs a library teardown rejection after releasing the bridge, Worker, and Blob', async () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => {})
     const h = setup()
-    workers[0]!.ready()
+    workers[0].ready()
     await h.entered.promise
     h.loading.resolve({ numPages: 1, getPage: vi.fn() })
     await h.session.document
@@ -218,7 +218,7 @@ describe('PDF Worker lifecycle', () => {
     await expect(h.session.dispose()).resolves.toBeUndefined()
     expect(log).toHaveBeenCalledExactlyOnceWith('[pdf] cleanup failed', failure)
     expect(api.destroyBridge).toHaveBeenCalledOnce()
-    expect(workers[0]!.terminate).toHaveBeenCalledOnce()
+    expect(workers[0].terminate).toHaveBeenCalledOnce()
     expect(revokeURL).toHaveBeenCalledOnce()
   })
 

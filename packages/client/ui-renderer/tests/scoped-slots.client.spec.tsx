@@ -56,7 +56,7 @@ function miniStore<T extends object>(
       const actions: Record<string, (...params: never[]) => void> = {}
       for (const key of Object.keys(mutators)) {
         actions[key] = (...params: never[]) => {
-          state = mutators[key]!(state, ...params)
+          state = mutators[key](state, ...params)
           for (const fn of [...listeners]) fn()
         }
       }
@@ -400,7 +400,7 @@ describe('child outlets and the renderSlot binding', () => {
     act(() => { h.add('root', { component: () => null }) })
     expect(seen.length).toBeGreaterThan(1)
     expect(seen.at(-1)).toBe(seen[0])
-    expect(() => seen[0]!('k.undeclared', {})).toThrow(SlotOwnershipError)
+    expect(() => seen[0]('k.undeclared', {})).toThrow(SlotOwnershipError)
   })
 
   it('isolates a crashing entry without collapsing siblings', () => {
@@ -1057,7 +1057,7 @@ describe('inject: execution point, parameter derivation, cache granularity', () 
     expect(rootInject).toHaveBeenCalledTimes(1)
     expect(seenRoot.at(-1)!['viaRoot']).toBe(seenRoot.at(-1)!['actions'])
     expect(sessionInject).toHaveBeenCalledTimes(1)
-    expect(sessionInject.mock.calls[0]![0]).toBe('s1')
+    expect(sessionInject.mock.calls[0][0]).toBe('s1')
     expect(seenSession.at(-1)!['viaSession']).toBe(seenSession.at(-1)!['actions'])
   })
 

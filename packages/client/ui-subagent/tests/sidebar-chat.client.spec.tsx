@@ -110,7 +110,7 @@ describe('Sidebar chat registration', () => {
     const childSnapshot = list.getSnapshot
     list.getSnapshot = () => {
       const snapshot = childSnapshot()
-      return { ...snapshot, byId: { ...snapshot.byId, [PARENT]: { ...snapshot.byId[CHILD]!, displayTitle: 'Root title', projectionValues: {} } } }
+      return { ...snapshot, byId: { ...snapshot.byId, [PARENT]: { ...snapshot.byId[CHILD], displayTitle: 'Root title', projectionValues: {} } } }
     }
 
     const openResource = vi.fn()

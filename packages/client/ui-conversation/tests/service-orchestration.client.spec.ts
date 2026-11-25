@@ -208,7 +208,7 @@ describe('ConversationController', () => {
     ], UPLOAD_IMAGES)
     expect(drafts.map(draft => draft.kind)).toEqual(['image', 'file'])
     expect(created).toHaveBeenCalledTimes(1)
-    const [imageDraft, fileDraft] = [drafts[0]!, drafts[1]!]
+    const [imageDraft, fileDraft] = [drafts[0], drafts[1]]
     expect(b.root.fileUploads.getSnapshot()[fileDraft.id]?.status).toBe('uploading')
     expect(b.root.fileUploads.getSnapshot()[imageDraft.id]?.status).toBe('uploading')
     await vi.waitFor(() => {
@@ -222,7 +222,7 @@ describe('ConversationController', () => {
     const [inline] = b.root.createDrafts(session.sessionId, [
       new File([Uint8Array.of(3)], 'child.png', { type: 'image/png' }),
     ], INLINE_IMAGES)
-    expect(b.root.fileUploads.getSnapshot()[inline!.id]).toBeUndefined()
+    expect(b.root.fileUploads.getSnapshot()[inline.id]).toBeUndefined()
     expect(uploadImage).toHaveBeenCalledOnce()
     created.mockRestore()
     await b.runtime.dispose()
@@ -249,15 +249,15 @@ describe('ConversationController', () => {
       ], UPLOAD_IMAGES)
       // A Host refusal keeps its reason; retrying stays available to the service.
       await vi.waitFor(() => {
-        expect(b.root.fileUploads.getSnapshot()[draft!.id])
+        expect(b.root.fileUploads.getSnapshot()[draft.id])
           .toEqual({ status: 'error', message: 'too big', reason: 'IMAGE_TOO_LARGE' })
       })
-      b.root.retryFileUpload(session.sessionId, draft!.id)
+      b.root.retryFileUpload(session.sessionId, draft.id)
       await vi.waitFor(() => { expect(uploadImage).toHaveBeenCalledTimes(2) })
-      expect(b.root.fileUploads.getSnapshot()[draft!.id]?.status).toBe('uploading')
-      b.root.releaseDraftAttachment(draft!.id)
+      expect(b.root.fileUploads.getSnapshot()[draft.id]?.status).toBe('uploading')
+      b.root.releaseDraftAttachment(draft.id)
       expect(signals[1]?.aborted).toBe(true)
-      expect(b.root.fileUploads.getSnapshot()[draft!.id]).toBeUndefined()
+      expect(b.root.fileUploads.getSnapshot()[draft.id]).toBeUndefined()
       expect(revoked).toHaveBeenCalledWith('blob:retry')
     } finally {
       created.mockRestore()
@@ -278,7 +278,7 @@ describe('ConversationController', () => {
         new File([Uint8Array.of(1)], 'flaky.png', { type: 'image/png' }),
       ], UPLOAD_IMAGES)
       await vi.waitFor(() => {
-        expect(b.root.fileUploads.getSnapshot()[draft!.id]).toEqual({ status: 'error', message: 'connection reset' })
+        expect(b.root.fileUploads.getSnapshot()[draft.id]).toEqual({ status: 'error', message: 'connection reset' })
       })
     } finally {
       created.mockRestore()
@@ -345,9 +345,9 @@ describe('ConversationController', () => {
       new File([Uint8Array.of(1)], `${name}.txt`, { type: 'text/plain' })), UPLOAD_IMAGES)
 
     await vi.waitFor(() => { expect(uploadFile.mock.calls.map(call => call[1])).toEqual(['one.txt', 'two.txt']) })
-    await expect(b.root.serializeDraftAttachments([drafts[2]!.id]))
+    await expect(b.root.serializeDraftAttachments([drafts[2].id]))
       .rejects.toThrow('one or more files have not finished uploading')
-    b.root.releaseDraftAttachment(drafts[4]!.id)
+    b.root.releaseDraftAttachment(drafts[4].id)
 
     const complete = (name: string) => gates.get(name)?.resolve({
       ok: true,
@@ -368,7 +368,7 @@ describe('ConversationController', () => {
     })
     expect(maxActive).toBe(2)
     expect(uploadFile.mock.calls.map(call => call[1])).not.toContain('removed.txt')
-    expect(b.root.fileUploads.getSnapshot()[drafts[4]!.id]).toBeUndefined()
+    expect(b.root.fileUploads.getSnapshot()[drafts[4].id]).toBeUndefined()
     await b.runtime.dispose()
   })
 
@@ -462,9 +462,9 @@ describe('ConversationController', () => {
       await b.runtime.sessions.add({ id: 's2', session: { uploadImage: targetUpload } })
       using _target = b.runtime.sessions.retain('s2' as SessionId)
       await _target.ready
-      b.root.rebindDraftFiles(b.runtime.sessions.binding('s2')!.session.sessionId, [image!.id], INLINE_IMAGES)
+      b.root.rebindDraftFiles(b.runtime.sessions.binding('s2')!.session.sessionId, [image.id], INLINE_IMAGES)
       expect(sourceSignal?.aborted).toBe(true)
-      expect(b.root.fileUploads.getSnapshot()[image!.id]).toBeUndefined()
+      expect(b.root.fileUploads.getSnapshot()[image.id]).toBeUndefined()
       expect(targetUpload).not.toHaveBeenCalled()
     } finally {
       created.mockRestore()
@@ -662,7 +662,7 @@ describe('sendSession submission echo', () => {
         new File([Uint8Array.of(1, 2, 3)], 'a.png', { type: 'image/png' }),
       ], INLINE_IMAGES)
       const session = b.runtime.sessions.binding('s1')!.session
-      const sending = b.root.sendSession(session, '带图', [attachment!.id], 'queue')
+      const sending = b.root.sendSession(session, '带图', [attachment.id], 'queue')
       const echo = await b.begun
       expect(echo?.mode).toBe('queue')
       expect(echo?.text).toBe('带图')
@@ -681,10 +681,10 @@ describe('sendSession submission echo', () => {
         'req-echo',
       )
       // The draft stays registered until the echo's observed retirement.
-      expect(b.root.resolveDraftAttachments([attachment!.id])).toHaveLength(1)
+      expect(b.root.resolveDraftAttachments([attachment.id])).toHaveLength(1)
       b.retire.onRetire?.({ reason: 'observed', attachments: [] })
       await expect(sending).resolves.toEqual({ kind: 'success' })
-      expect(b.root.resolveDraftAttachments([attachment!.id])).toEqual([])
+      expect(b.root.resolveDraftAttachments([attachment.id])).toEqual([])
       expect(b.revoked).toHaveBeenCalledWith('blob:echo-1')
     } finally {
       b.restore()
@@ -709,7 +709,7 @@ describe('sendSession submission echo', () => {
         new File([Uint8Array.of(3)], 'last.png', { type: 'image/png' }),
       ], INLINE_IMAGES)
       await vi.waitFor(() => {
-        expect(b.root.fileUploads.getSnapshot()[drafts[1]!.id]?.status).toBe('ready')
+        expect(b.root.fileUploads.getSnapshot()[drafts[1].id]?.status).toBe('ready')
       })
       const sending = b.root.sendSession(session, 'ordered', drafts.map(draft => draft.id), 'steer')
       const echo = await b.begun
@@ -789,12 +789,12 @@ describe('sendSession submission echo', () => {
       const [draft] = b.root.createDrafts(session.sessionId, [
         new File([Uint8Array.of(1)], 'shot.png', { type: 'image/png' }),
       ], UPLOAD_IMAGES)
-      await expect(b.root.sendSession(session, 'look', [draft!.id], 'queue'))
+      await expect(b.root.sendSession(session, 'look', [draft.id], 'queue'))
         .rejects.toThrow('one or more files have not finished uploading')
       expect(b.beginSubmission).not.toHaveBeenCalled()
       uploaded.resolve({ ok: true, value: { receiptId: 'image-receipt-1', image: IMAGE_REF } })
-      await vi.waitFor(() => { expect(b.root.fileUploads.getSnapshot()[draft!.id]?.status).toBe('ready') })
-      const sending = b.root.sendSession(session, 'look', [draft!.id], 'queue')
+      await vi.waitFor(() => { expect(b.root.fileUploads.getSnapshot()[draft.id]?.status).toBe('ready') })
+      const sending = b.root.sendSession(session, 'look', [draft.id], 'queue')
       const echo = await b.begun
       expect(echo.attachments[0]).toMatchObject({ type: 'image', value: { previewUrl: 'blob:echo-1', name: 'shot.png' } })
       await vi.waitFor(() => { expect(b.prompt).toHaveBeenCalledOnce() })
@@ -805,7 +805,7 @@ describe('sendSession submission echo', () => {
       expect(readAsDataURL).not.toHaveBeenCalled()
       b.retire.onRetire?.({ reason: 'observed', attachments: [IMAGE_REF] })
       await expect(sending).resolves.toEqual({ kind: 'success' })
-      expect(b.root.fileUploads.getSnapshot()[draft!.id]).toBeUndefined()
+      expect(b.root.fileUploads.getSnapshot()[draft.id]).toBeUndefined()
     } finally {
       readAsDataURL.mockRestore()
       b.restore()
@@ -846,7 +846,7 @@ describe('sendSession submission echo', () => {
         new File([Uint8Array.of(9)], 'seeded.png', { type: 'image/png' }),
       ], INLINE_IMAGES)
       const session = b.runtime.sessions.binding('s1')!.session
-      const sending = b.root.sendSession(session, '', [attachment!.id], 'queue')
+      const sending = b.root.sendSession(session, '', [attachment.id], 'queue')
       await vi.waitFor(() => { expect(b.prompt).toHaveBeenCalledOnce() })
       const ref = {
         attachmentId: 'att-1' as never,
@@ -858,7 +858,7 @@ describe('sendSession submission echo', () => {
       b.retire.onRetire?.({ reason: 'observed', attachments: [ref] })
       await expect(sending).resolves.toEqual({ kind: 'success' })
       expect(seedImageUrl).toHaveBeenCalledWith('s1', ref, 'blob:echo-1')
-      expect(b.root.resolveDraftAttachments([attachment!.id])).toEqual([])
+      expect(b.root.resolveDraftAttachments([attachment.id])).toEqual([])
       expect(b.revoked).not.toHaveBeenCalled()
       // Failed retirement keeps nothing to do; a second retire of released ids is a no-op.
       b.retire.onRetire?.({ reason: 'observed', attachments: [ref] })
@@ -887,7 +887,7 @@ describe('sendSession submission echo', () => {
         new File([Uint8Array.of(8)], 'kept.txt', { type: 'text/plain' }),
       ], INLINE_IMAGES)
       await vi.waitFor(() => {
-        expect(b.root.fileUploads.getSnapshot()[attachments[1]!.id]?.status).toBe('ready')
+        expect(b.root.fileUploads.getSnapshot()[attachments[1].id]?.status).toBe('ready')
       })
       await expect(b.root.sendSession(session, '失败', attachments.map(attachment => attachment.id), 'queue'))
         .resolves.toEqual({ kind: 'error' })
@@ -916,7 +916,7 @@ describe('sendSession submission echo', () => {
         new File([Uint8Array.of(1)], 'broken.png', { type: 'image/png' }),
       ], INLINE_IMAGES)
       const session = b.runtime.sessions.binding('s1')!.session
-      await expect(b.root.sendSession(session, 'x', [attachment!.id], 'queue'))
+      await expect(b.root.sendSession(session, 'x', [attachment.id], 'queue'))
         .rejects.toThrow('read failed')
       expect(b.abandon).toHaveBeenCalledOnce()
       expect(b.prompt).not.toHaveBeenCalled()

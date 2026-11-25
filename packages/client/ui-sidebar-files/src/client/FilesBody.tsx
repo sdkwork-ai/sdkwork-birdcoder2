@@ -58,7 +58,7 @@ export function FilesBody(props: FilesBodyProps): ReactNode {
     const tree = store.byPane[panel.id]?.tree
     return tree?.root === cwd ? tree?.autoRefresh : undefined
   })
-  const searchBarOpen = useStore(store => store.byPane[panel.id]?.searchBarOpen) === true
+  const searchBarOpen =  useStore(store => store.byPane[panel.id]?.searchBarOpen)
   useEffect(() => cwd === undefined ? undefined : placeBeside(tab.id), [cwd, placeBeside, tab.id])
 
   if (cwd === undefined) {

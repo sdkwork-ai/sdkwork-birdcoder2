@@ -44,7 +44,7 @@ describe('ui-sdkwork-im-chat apply', () => {
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const [entry] = b.slots.entries(PANE)
     expect(entry?.component).toBe(ChatPane)
-    const face = (entry!.inject as unknown as () => ChatPaneInjected)()
+    const face = (entry.inject as unknown as () => ChatPaneInjected)()
     const container = document.createElement('div')
     face.mountSurface(container, { kind: 'conversation', conversationId: 'conversation-5' })
     expect(b.im.mountSurface).toHaveBeenCalledWith(container, { kind: 'conversation', conversationId: 'conversation-5' })
@@ -56,7 +56,7 @@ describe('ui-sdkwork-im-chat apply', () => {
     // provider was never composed: the pane must still register and mount.
     await b.ctx.plugin({ inject: ['slots'], apply }).await()
     const [entry] = b.slots.entries(PANE)
-    const face = (entry!.inject as unknown as () => ChatPaneInjected)()
+    const face = (entry.inject as unknown as () => ChatPaneInjected)()
     const handle = face.mountSurface(document.createElement('div'), { kind: 'conversation', conversationId: 'conversation-5' })
     handle.update({ kind: 'conversation', conversationId: 'conversation-6' })
     handle.dispose()

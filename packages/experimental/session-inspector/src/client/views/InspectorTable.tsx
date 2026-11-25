@@ -221,10 +221,8 @@ export function InspectorTable({ title, flash, showTime, modeSelector, objects, 
     seen.current = next
     return next
   }, [allRows])
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- Virtualizer indexes are bounded by this layout's item count.
-  const keyOf = useCallback((index: number) => layout.items[index]!.key, [layout])
-  // oxlint-disable-next-line typescript/no-non-null-assertion -- Virtualizer indexes are bounded by this layout's item count.
-  const sizeOf = useCallback((index: number) => layout.items[index]!.size, [layout])
+  const keyOf = useCallback((index: number) => layout.items[index].key, [layout])
+  const sizeOf = useCallback((index: number) => layout.items[index].size, [layout])
   const virtualRef = useRef<Virtualizer<HTMLDivElement, HTMLTableRowElement> | undefined>(undefined)
   const extractRange = useCallback((range: Range) => {
     // oxlint-disable-next-line typescript/no-non-null-assertion -- The enabled Virtualizer initializes its offset before range extraction.
@@ -308,8 +306,7 @@ export function InspectorTable({ title, flash, showTime, modeSelector, objects, 
         <tbody>
           {items.map((item, position) => {
             const gap = item.start - (items[position - 1]?.end ?? INSPECTOR_ROW_HEIGHT)
-            // oxlint-disable-next-line typescript/no-non-null-assertion -- The virtual item comes from this layout's count.
-            const entry = layout.items[item.index]!
+            const entry = layout.items[item.index]
             // oxlint-disable-next-line typescript/no-non-null-assertion -- Every layout row belongs to the arrival map's allRows input.
             const arrival = arrivals.get(entry.row.key)!
             return <Fragment key={item.key}>

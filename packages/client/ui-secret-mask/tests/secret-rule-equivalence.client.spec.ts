@@ -45,7 +45,7 @@ function generated(count: number, seed: number, maxFragments = 60): string[] {
   return Array.from({ length: count }, () => {
     const length = 1 + Math.floor(random() * maxFragments)
     return Array.from({ length }, () => {
-      const fragment = FRAGMENTS[Math.floor(random() * FRAGMENTS.length)]!
+      const fragment = FRAGMENTS[Math.floor(random() * FRAGMENTS.length)]
       // Repeat short fragments so length thresholds are crossed on both sides.
       return fragment.length <= 2 ? fragment.repeat(1 + Math.floor(random() * 40)) : fragment
     }).join('')

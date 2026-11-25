@@ -1,6 +1,12 @@
+Open folder
+Copy path
+Open in terminal
+Copy session ID
+Export session log
+Publish app
+Publish as scaffold
+Install from scaffold
 Pin session
 Rename
-Mark as unread
 Fork session
-Copy Session ID
 Archive session

@@ -94,7 +94,7 @@
     {
       "name": "sdkwork-plugins",
       "url": "https://github.com/sdkwork-ai/sdkwork-plugins.git",
-      "commit": "8c06d3a58521fd00faad22674c64575022e5554f"
+      "commit": "b1f937e56b8dd2a39a0b64fe98155c65de639282"
     },
     {
       "name": "sdkwork-skills",

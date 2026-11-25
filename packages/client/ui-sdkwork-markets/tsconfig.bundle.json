@@ -10,6 +10,12 @@
       ],
       "@sdkwork/utils/money": [
         "../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src/money.ts"
+      ],
+      "@sdkwork/plugins-app-sdk": [
+        "../../../../sdkwork-plugins/sdks/sdkwork-plugins-app-sdk/sdkwork-plugins-app-sdk-typescript/src/index.ts"
+      ],
+      "@sdkwork/plugins-pc-marketplace": [
+        "../../../../sdkwork-plugins/apps/sdkwork-plugins-pc/packages/sdkwork-plugins-pc-marketplace/src/index.tsx"
       ]
     }
   }

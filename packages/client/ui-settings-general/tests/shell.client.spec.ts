@@ -41,7 +41,7 @@ const withoutSettingsAccess = createClientTest({ roster: webApp }, { access: act
 const COLD_BOOT_TIMEOUT_MS = 60_000
 
 function injectedOf(c: TestClient): SettingsRootInjected {
-  const entry = c.ctx.slots.entries('sidebar.settings')[0]!
+  const entry = c.ctx.slots.entries('sidebar.settings')[0]
   return (entry.inject as () => SettingsRootInjected)()
 }
 
@@ -87,7 +87,7 @@ describe.skip('ui-settings-general shell', () => {
     onTestFinished(() => { vi.unstubAllGlobals(); initial.resolve({ phase: 'idle' }) })
     const c = await start()
     const row = injectedOf(c)
-    const badge = (c.ctx.slots.entries('sidebar.toggle.badge')[0]!.inject as () => Pick<SettingsRootInjected, 'hooks'>)()
+    const badge = (c.ctx.slots.entries('sidebar.toggle.badge')[0].inject as () => Pick<SettingsRootInjected, 'hooks'>)()
     expect(badge.hooks.desktopUpdate).toBe(row.hooks.desktopUpdate)
     expect(subscribe).toHaveBeenCalledOnce()
     const status = { phase: 'available' as const, version: '1.0.1' }

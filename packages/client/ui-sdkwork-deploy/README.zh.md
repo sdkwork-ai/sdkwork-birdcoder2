@@ -11,6 +11,8 @@ kind: "package-reference"
 
 头部火箭图标打开**应用库**：对会话 workspace 做一次有界遍历，发现每一个携带 `agent.app.config.json` 的项目，按清单自身的名称、类型、图标与关联状态列表展示。每一行的右侧可以直接发布、上传代码或打包该项目；底部「新建应用」打开控制台的完整创建表单；空扫描渲染可点击的占位块，动作与底部一致。创建会写出完整的 APP_MANIFEST_SPEC v3 清单——身份、按类型的运行时、发布、媒体与关联——并且应用库随会话 cwd 切换实时重扫。
 
+同一包负责应答 `sdkwork-deploy/request`，即宿主工具的对话发布请求：它在浏览器内解析或创建清单对应的应用、打包构建产物、上传制品、切出 release 并创建 deployment，因为 IAM 会话只在浏览器里。结果作为已发布站点卡片渲染在对话中——包含应用封面、名称、域名（规范主机名，或绑定尚未建立时平台默认的 `<label>.app.<suffix>`）、环境与版本——并打开右侧 `sdkwork-deploy-site` 页签；页签的观测数据、站点管理、部署历史与日志视图读取实时仪表盘。
+
 ## 目录
 
 - [使用本包](#use-this-package)
@@ -104,6 +106,10 @@ kind: "package-reference"
 - `src/client/scaffoldPlatforms.ts` — 平台维度词表（storefront 规范四值 + 其余 SDKWork 应用族）及其到制品包类型的映射。
 - `src/client/scaffoldInstall.ts` — 消费侧地基：经 Drive content API 下载产物字节（产物自带 `driveNodeId`，安装已发布脚手架不需要任何新增后端端点）、fflate 解压、zip-slip 与平台保留名筛查、展开上限，以及供目标目录写入器执行的文本/二进制切分。
 - `src/client/deployPorts.ts` — 各发布表面共享的响应式主题/locale 端口与 locale→deployments-locale 映射。两个脚手架弹窗的亮/暗配色都由 `data-theme` 根元素驱动（`DeployDialogs.module.css` + `ScaffoldDialog.module.css`）。
+- `src/client/deployConversation.ts` — `sdkwork-deploy/request` 背后的对话发布执行器：登录门禁、项目读取、应用创建与关联、构建产物定位、打包、下一版本推导、平台目标、四阶段 publisher 调用、源码记录、部署回读与站点读取。它接受请求的制品形态、平台目标与部署 kind/target 覆盖，并把每个停下的位置映射为具名阶段与错误码，而不是重试。
+- `src/client/deploySite.ts` — `sdkwork-deploy-site` 页签类型、站点事实导航参数、经生成客户端读取的仪表盘（每个列表独立容错）、规范主机名选择与面板时间格式化。
+- `src/client/DeploySiteCard.tsx` — 已发布结果渲染的对话卡片：运行中行、带封面图（清单预览、其次截图、最后图标）、复制与面板入口的站点行，或已报告的失败。它读取工具记录的呈现元数据，而不是解析模型文本。
+- `src/client/DeploySitePanel.tsx` — 面板正文：站点头、观测指标与健康检查、应用/域名/平台目标、部署与版本历史、最近一次部署的日志事实，并带刷新与读取失败状态。
 - 发布/上传对话框位于 `@sdkwork/deployments-pc-console-publishing`；本包提供客户端、语言、主题、目录选择端口与持久化。
 
 设置菜单 popover 的「我的应用」行打开双页签只读弹窗：「我的应用」列出当前账号拥有的 `deploy_app` 记录——个人应用（应用 API 的 `USER` 归属作用域）与所属组织内共享的应用（`ORGANIZATION`）——按更新时间倒序，并可按应用类型筛选；「我的应用脚手架」列出当前用户名下的脚手架列表（`app.scaffolds.list`，本身即账号作用域），按更新时间倒序，可按脚手架状态筛选，并标注每个列表的最新语义版本与安装次数。两个页签都读取与发布流程相同的宿主构造客户端，且从不写入。
@@ -125,6 +131,12 @@ kind: "package-reference"
 无；SDKWork 部署请求与清单写入属于独立的浏览器流量，不会改变 Harness 的模型提供方请求。
 
 ## 已知限制与后续工作
+
+- 对话发布需要本浏览器客户端与已登录 IAM 会话：宿主工具把请求转交到这里，因为部署 API 拒绝用公共应用 token 执行用户所属的写操作。仅终端会话返回 `NO_CLIENT`，未登录返回 `signedOut`。
+- 对话执行器只在创建后立即回读一次部署。仍在滚动发布的 deployment 在卡片上显示已受理状态；面板刷新会重新读取实时记录。
+- 对话执行器按控制台类型卡片推导平台目标，并为每张卡片映射一个部署方案（Web 目标用 `WEB_NODE`、API 服务用 `CONTAINER`、商店卡片用其审核或商店目标）。需要其他目标的平台在 deployments 控制台调整；缺失的构建产物会被报告，绝不猜测。
+- 卡片封面使用清单的目录素材（首个预览、其次截图、最后图标），而不是已发布页面的实时截图。实时截图需要客户端浏览器捕获路径，列为后续工作。
+- 卡片域名使用平台返回的规范主机名；绑定尚未建立时使用平台默认的 `<appDomainLabel>.app.<suffix>`（标记 `domainDefault`），仅在平台未暴露 suffix 目录时回退到 `<label>.<brand suffix>`。自定义域名及其 DNS 验证仍属于控制台操作。
 
 - 组合清单只填写创建流程能真实得知的内容。`app.officialWebsiteUrl` 与主图标（创建表单未上传时）保持缺席，因此规范校验器 `check-app-manifest-standard.mjs` 会恰好报告这两个字段，直到应用仓库的作者补全；截图与包矩阵同样延后。绝不伪造。
 - 服务端合并按选择器的页大小（50）拉取名下应用；名下应用超过上限时，其余应用仍在 deployments 控制台可见。

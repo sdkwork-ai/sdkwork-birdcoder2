@@ -264,7 +264,7 @@ export function formatScheduleFrequency(
     const fields = ruleFields(record.rrule)
     if (kind === 'once') return t('frequency.once')
     // hostFrequencyKind returns custom for a rule without a DTSTART clock.
-    const clock = (/T(\d{6})/.exec(record.rrule) as RegExpExecArray)[1] as string
+    const clock = (/T(\d{6})/.exec(record.rrule) as RegExpExecArray)[1]
     const hour = String(Number(fields.get('BYHOUR') ?? clock.slice(0, 2))).padStart(2, '0')
     const minute = String(Number(fields.get('BYMINUTE') ?? clock.slice(2, 4))).padStart(2, '0')
     const time = clockLabel(`${hour}:${minute}:${clock.slice(4)}`)
@@ -284,7 +284,7 @@ export function formatScheduleFrequency(
       const unit = kind === 'minutely' ? 'minute' : 'hour'
       return t('frequency.every', { value: interval, unit: unitLabel(unit, interval, t) })
     }
-    const days = (fields.get('BYMONTHDAY') as string).split(',')[0] as string
+    const days = (fields.get('BYMONTHDAY') as string).split(',')[0]
     return withZone(t(interval === 1 ? 'frequency.hostMonthly' : 'frequency.hostMonthlyInterval', { days, time, interval }))
   }
   switch (record.kind) {

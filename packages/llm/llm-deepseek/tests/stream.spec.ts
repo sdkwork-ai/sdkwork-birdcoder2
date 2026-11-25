@@ -88,11 +88,36 @@ describe('Messages stream', () => {
     await expect(chunks(translate(events(values as Record<string, unknown>[]), MODEL))).rejects.toMatchObject({ code: 'MALFORMED_RESPONSE' })
   })
 
-  it.each(['{', '[]'])('refuses completed non-object tool JSON %s without repairing it', async (partial_json) => {
+  it.each(['[]', '3'])('refuses completed non-object tool JSON %s without repairing it', async (partial_json) => {
     await expect(chunks(translate(events([start,
       { type: 'content_block_start', index: 0, content_block: { type: 'tool_use', id: 'a', name: 'read', input: {} } },
       { type: 'content_block_delta', index: 0, delta: { type: 'input_json_delta', partial_json } },
       { type: 'content_block_stop', index: 0 }, ...end('tool_use')]), MODEL))).rejects.toMatchObject({ code: 'MALFORMED_RESPONSE' })
+  })
+
+  it.each(['{', '{"path": "a', '{"content": "# Title\\n\\nThe provider cut this'])(
+    'settles a truncated tool input %s as max-tokens and prunes the incomplete call',
+    async (partialJson) => {
+      const result = await assemble(translate(events([start,
+        { type: 'content_block_start', index: 0, content_block: { type: 'tool_use', id: 'a', name: 'write', input: {} } },
+        { type: 'content_block_delta', index: 0, delta: { type: 'input_json_delta', partial_json: partialJson } },
+        { type: 'content_block_stop', index: 0 }, ...end('tool_use')]), MODEL))
+      // The provider claimed completion, so the truncated call must not reach an
+      // executor, and the turn must survive as a truncation rather than a
+      // malformed-response failure.
+      expect(result.message.content).toEqual([])
+      expect(result.message.source.replayState).toMatchObject({ blocks: [] })
+      expect(result.output.at(-1)).toMatchObject({ type: 'finish', reason: { kind: 'max-tokens' } })
+    },
+  )
+
+  it('still prunes a tool call the provider itself reports as max-tokens', async () => {
+    const result = await assemble(translate(events([start,
+      { type: 'content_block_start', index: 0, content_block: { type: 'tool_use', id: 'a', name: 'write', input: {} } },
+      { type: 'content_block_delta', index: 0, delta: { type: 'input_json_delta', partial_json: '{"content": "cut' } },
+      { type: 'content_block_stop', index: 0 }, ...end('max_tokens')]), MODEL))
+    expect(result.message.content).toEqual([])
+    expect(result.output.at(-1)).toMatchObject({ type: 'finish', reason: { kind: 'max-tokens' } })
   })
 
   it('refuses unsupported response content, empty responses and premature EOF', async () => {

@@ -121,9 +121,9 @@ describe('ClientJobsModel observation', () => {
     model.observeOutput(ID, { type: 'output', chunks: [{ at: 0, text: emoji }], next: emoji.length * 2 })
     const live = model.getSnapshot().observed[String(ID)]
     expect(live?.gapBefore).toBe(true)
-    expect(live!.text.length).toBeLessThanOrEqual(128 * 1024)
+    expect(live.text.length).toBeLessThanOrEqual(128 * 1024)
     // The bound landed between pairs: the surviving text still round-trips.
-    expect(/^(?:😀)+$/u.test(live!.text)).toBe(true)
+    expect(/^(?:😀)+$/u.test(live.text)).toBe(true)
   })
 
   it('trims a plain-ASCII tail without a boundary shift', () => {
@@ -295,10 +295,10 @@ describe('ClientJobs roster streams', () => {
     const second = jobs.watchRows(S1)
     jobs.watchRows(S2)
     expect(streams.map(entry => entry.options.name)).toEqual(['job rows alice', 'job rows bob'])
-    streams[0]!.options.open(new AbortController().signal)
+    streams[0].options.open(new AbortController().signal)
     expect(rowsCalls.at(-1)).toEqual({ sessionId: 'alice' })
 
-    const { stream } = streams[0]!
+    const { stream } = streams[0]
     stream.push({ type: 'rows', jobs: [view()] })
     await tick()
     expect(model.getSnapshot().rows[S1]).toEqual([view()])
@@ -314,13 +314,13 @@ describe('ClientJobs roster streams', () => {
     await tick()
     expect(stream.disposed).toBe(true)
     expect(S1 in model.getSnapshot().rows).toBe(false)
-    expect(streams[1]!.stream.disposed).toBe(false)
+    expect(streams[1].stream.disposed).toBe(false)
   })
 
   it('classifies a roster end as retryable only after the first frame', () => {
     const { jobs, streams } = bench()
     jobs.watchRows(S1)
-    const { options } = streams[0]!
+    const { options } = streams[0]
     expect(options.ended(true).name).toBe('RemoteStreamCarrierError')
     expect(options.ended(false).name).toBe('Error')
   })
@@ -328,7 +328,7 @@ describe('ClientJobs roster streams', () => {
   it('drops the roster on a terminal stream failure', async () => {
     const { model, jobs, streams } = bench()
     jobs.watchRows(S1)
-    const { stream } = streams[0]!
+    const { stream } = streams[0]
     stream.push({ type: 'rows', jobs: [view()] })
     await tick()
     expect(model.getSnapshot().rows[S1]).toBeDefined()
@@ -340,7 +340,7 @@ describe('ClientJobs roster streams', () => {
   it('stays silent when the carrier teardown itself throws after the last release', async () => {
     const { model, jobs, streams } = bench()
     const stop = jobs.watchRows(S1)
-    const { stream } = streams[0]!
+    const { stream } = streams[0]
     stream.throwOnDispose = true
     stream.push({ type: 'rows', jobs: [view()] })
     await tick()
@@ -355,7 +355,7 @@ describe('ClientJobs roster streams', () => {
   it('a re-watch inside the dispose round-trip keeps its fresh rows', async () => {
     const { model, jobs, streams } = bench()
     const stop = jobs.watchRows(S1)
-    const first = streams[0]!.stream
+    const first = streams[0].stream
     first.deferDispose = true
     first.push({ type: 'rows', jobs: [view()] })
     await tick()
@@ -363,7 +363,7 @@ describe('ClientJobs roster streams', () => {
     stop()
     // Re-watch while the previous generation's dispose is still in flight.
     jobs.watchRows(S1)
-    const second = streams[1]!.stream
+    const second = streams[1].stream
     second.push({ type: 'rows', jobs: [view({ label: 'fresh' })] })
     await tick()
 
@@ -378,8 +378,8 @@ describe('ClientJobs observation streams', () => {
   it('feeds anchor, output, and terminal frames into the model, then closes', async () => {
     const { model, jobs, streams } = bench()
     jobs.observe(undefined, ID)
-    const { stream } = streams[0]!
-    expect(streams[0]!.options.name).toBe('job observation bash-1')
+    const { stream } = streams[0]
+    expect(streams[0].options.name).toBe('job observation bash-1')
     stream.push(anchor())
     stream.push({ type: 'output', chunks: [{ at: 0, text: 'hi' }], next: 2 })
     await tick()
@@ -397,29 +397,29 @@ describe('ClientJobs observation streams', () => {
     const first = jobs.observe(undefined, ID)
     const second = jobs.observe(undefined, ID)
     expect(streams).toHaveLength(1)
-    streams[0]!.stream.push(anchor())
+    streams[0].stream.push(anchor())
     await tick()
 
     first()
     first()
-    expect(streams[0]!.stream.disposed).toBe(false)
+    expect(streams[0].stream.disposed).toBe(false)
     second()
     await tick()
-    expect(streams[0]!.stream.disposed).toBe(true)
+    expect(streams[0].stream.disposed).toBe(true)
     expect(model.getSnapshot().observed[String(ID)]).toBeUndefined()
   })
 
   it('a late release of a superseded observation neither tears down nor clears its successor', async () => {
     const { model, jobs, streams } = bench()
     const firstStop = jobs.observe(undefined, ID)
-    const first = streams[0]!.stream
+    const first = streams[0].stream
     first.push(anchor())
     first.push({ type: 'status', job: view({ status: 'completed' }) })
     await tick()
     // A successor observation replaces the settled entry while the first
     // observer still holds its releaser.
     const secondStop = jobs.observe(undefined, ID)
-    const second = streams[1]!.stream
+    const second = streams[1].stream
     second.push(anchor())
     await tick()
 
@@ -437,7 +437,7 @@ describe('ClientJobs observation streams', () => {
   it('a re-observation inside the dispose round-trip keeps its fresh view', async () => {
     const { model, jobs, streams } = bench()
     const stop = jobs.observe(undefined, ID)
-    const first = streams[0]!.stream
+    const first = streams[0].stream
     first.deferDispose = true
     first.push(anchor())
     await tick()
@@ -445,7 +445,7 @@ describe('ClientJobs observation streams', () => {
     stop()
     // Re-expand while the previous generation's dispose is still in flight.
     jobs.observe(undefined, ID)
-    const second = streams[1]!.stream
+    const second = streams[1].stream
     second.push(anchor())
     await tick()
 
@@ -461,19 +461,19 @@ describe('ClientJobs observation streams', () => {
   it('opens a fresh stream for a re-observed job and resumes from the model cursor', async () => {
     const { jobs, streams, observeCalls, model } = bench()
     const stop = jobs.observe(S1, ID)
-    streams[0]!.stream.push(anchor())
-    streams[0]!.stream.push({ type: 'output', chunks: [{ at: 0, text: 'abc' }], next: 3 })
+    streams[0].stream.push(anchor())
+    streams[0].stream.push({ type: 'output', chunks: [{ at: 0, text: 'abc' }], next: 3 })
     await tick()
     // The generation opener reads the live cursor at open time and carries the
     // fenced-read session.
-    streams[0]!.options.open(new AbortController().signal)
+    streams[0].options.open(new AbortController().signal)
     expect(observeCalls.at(-1)).toEqual({ jobId: ID, sessionId: 'alice', from: 3 })
 
     stop()
     await tick()
     jobs.observe(undefined, ID)
     expect(streams).toHaveLength(2)
-    streams[1]!.options.open(new AbortController().signal)
+    streams[1].options.open(new AbortController().signal)
     // Stopped observation dropped the cursor: the fresh stream starts unanchored.
     expect(observeCalls.at(-1)).toEqual({ jobId: ID })
     expect(model.cursorOf(ID)).toBeUndefined()
@@ -482,7 +482,7 @@ describe('ClientJobs observation streams', () => {
   it('classifies a premature end as retryable only after the anchor', () => {
     const { jobs, streams } = bench()
     jobs.observe(undefined, ID)
-    const { options } = streams[0]!
+    const { options } = streams[0]
     expect(options.ended(true).name).toBe('RemoteStreamCarrierError')
     expect(options.ended(false).name).toBe('Error')
   })
@@ -490,7 +490,7 @@ describe('ClientJobs observation streams', () => {
   it('records a consumer failure on the live view', async () => {
     const { model, jobs, streams } = bench()
     jobs.observe(undefined, ID)
-    const { stream } = streams[0]!
+    const { stream } = streams[0]
     stream.push(anchor())
     await tick()
     stream.poison(new Error('frame decode broke'))
@@ -503,7 +503,7 @@ describe('ClientJobs observation streams', () => {
   it('treats a release after service disposal as inert and stays silent for post-stop failures', async () => {
     const { ctx, model, jobs, streams } = bench()
     const stop = jobs.observe(undefined, ID)
-    const { stream } = streams[0]!
+    const { stream } = streams[0]
     stream.push(anchor())
     await tick()
     // Poison wakes the consumer, but the synchronous stop lands first, so the
@@ -523,7 +523,7 @@ describe('ClientJobs observation streams', () => {
   it('stays silent when the carrier teardown itself throws after a stop', async () => {
     const { model, jobs, streams } = bench()
     const stop = jobs.observe(undefined, ID)
-    const { stream } = streams[0]!
+    const { stream } = streams[0]
     stream.throwOnDispose = true
     stream.push(anchor())
     await tick()
@@ -550,10 +550,10 @@ describe('ClientJobs observation streams', () => {
     expect(streams.every(entry => entry.stream.disposed)).toBe(true)
     expect(settled).toBe(false)
 
-    streams[0]!.stream.releaseDispose()
+    streams[0].stream.releaseDispose()
     await tick()
     expect(settled).toBe(false)
-    streams[1]!.stream.releaseDispose()
+    streams[1].stream.releaseDispose()
     await disposal
     expect(settled).toBe(true)
   })
@@ -561,7 +561,7 @@ describe('ClientJobs observation streams', () => {
   it('records a terminal stream failure and service disposal closes live streams', async () => {
     const { ctx, model, jobs, streams } = bench()
     jobs.observe(undefined, ID)
-    const failing = streams[0]!.stream
+    const failing = streams[0].stream
     failing.push(anchor())
     await tick()
     // Simulate a terminal consumer failure by disposing the underlying stream:

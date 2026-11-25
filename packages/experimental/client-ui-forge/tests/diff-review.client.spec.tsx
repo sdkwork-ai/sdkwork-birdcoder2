@@ -300,11 +300,11 @@ it('writes a left and a right comment at once, each under its own column of the 
   const row = left.closest<HTMLElement>('[data-forge-notes]')!
   expect(right.closest('[data-forge-notes]')).toBe(row)
   const [leftCell, rightCell] = Array.from(row.children)
-  expect(leftCell!.contains(left)).toBe(true)
-  expect(rightCell!.contains(right)).toBe(true)
+  expect(leftCell.contains(left)).toBe(true)
+  expect(rightCell.contains(right)).toBe(true)
   // Each cell continues the background of its side's line.
-  expect(leftCell!.className).toContain('del')
-  expect(rightCell!.className).toContain('add')
+  expect(leftCell.className).toContain('del')
+  expect(rightCell.className).toContain('add')
   expect(m.line('L3').getAttribute('aria-pressed')).toBe('false')
   fireEvent.change(within(right).getByRole('textbox'), { target: { value: 'Draft' } })
   open('R3')
@@ -322,17 +322,17 @@ it('places side-by-side records in their columns and keeps an editor whose line 
     for (const side of ['L', 'R'] as const) m.records.recordAgent({ source, comment: { ...selectReviewLines(file, side, 3, 4)!, body: side } })
   })
   const threads = Array.from(m.container.querySelectorAll<HTMLElement>('[data-forge-review-thread]'))
-  expect(threads.map(thread => thread.closest('[data-forge-notes]'))).toEqual([threads[0]!.closest('[data-forge-notes]'), threads[0]!.closest('[data-forge-notes]')])
-  const cells = Array.from(threads[0]!.closest('[data-forge-notes]')!.children)
+  expect(threads.map(thread => thread.closest('[data-forge-notes]'))).toEqual([threads[0].closest('[data-forge-notes]'), threads[0].closest('[data-forge-notes]')])
+  const cells = Array.from(threads[0].closest('[data-forge-notes]')!.children)
   expect(threads.map(thread => cells.findIndex(cell => cell.contains(thread)))).toEqual([0, 1])
   // The added blank line has no old line, so the left cell of its row is empty.
   fireEvent.click(m.line('R5'))
   fireEvent.click(m.getByRole('button', { name: 'Add comment' }))
   const editor = m.getByRole('region', { name: 'Comment on R5' })
   const [emptyCell] = Array.from(editor.closest('[data-forge-notes]')!.children)
-  expect(emptyCell!.className).toContain('empty')
-  expect(emptyCell!.querySelector('[data-forge-comments]')!.childElementCount).toBe(0)
-  const shorter = { ...file.hunks[0]!, newLines: 3, lines: file.hunks[0]!.lines.slice(0, -1) }
+  expect(emptyCell.className).toContain('empty')
+  expect(emptyCell.querySelector('[data-forge-comments]')!.childElementCount).toBe(0)
+  const shorter = { ...file.hunks[0], newLines: 3, lines: file.hunks[0].lines.slice(0, -1) }
   m.rerender(<DiffFile {...m.props} file={{ ...file, hunks: [shorter] }} />)
   const code = m.container.querySelector('[data-review]')!
   const rows = Array.from(code.children)
@@ -410,7 +410,7 @@ it('places annotations in the collapsed lines that hold them and after the lines
 })
 
 it('folds the hunks a lens folds into one row that shows them, holding the threads and annotations on their lines', () => {
-  const two: ForgeDiffFile = { ...file, additions: 4, deletions: 3, hunks: [file.hunks[0]!, { oldStart: 10, oldLines: 1, newStart: 11, newLines: 2, lines: ['-o', '+n', '+m'] }] }
+  const two: ForgeDiffFile = { ...file, additions: 4, deletions: 3, hunks: [file.hunks[0], { oldStart: 10, oldLines: 1, newStart: 11, newLines: 2, lines: ['-o', '+n', '+m'] }] }
   const thread = reviewThread({ path: 'a.txt' })
   const m = mount({
     file: two, folded: { hunks: new Set([1]), lens: 'Exports' }, annotationLimit: 10,
@@ -436,7 +436,7 @@ it('folds the hunks a lens folds into one row that shows them, holding the threa
 })
 
 it('keeps a hunk with an open comment form or a comment saved in the browser drawn when a lens would fold it', () => {
-  const two: ForgeDiffFile = { ...file, additions: 4, deletions: 3, hunks: [file.hunks[0]!, { oldStart: 10, oldLines: 1, newStart: 11, newLines: 2, lines: ['-o', '+n', '+m'] }] }
+  const two: ForgeDiffFile = { ...file, additions: 4, deletions: 3, hunks: [file.hunks[0], { oldStart: 10, oldLines: 1, newStart: 11, newLines: 2, lines: ['-o', '+n', '+m'] }] }
   const folded = { hunks: new Set([1]), lens: 'Exports' }
   const m = mount({ file: two })
   fireEvent.click(m.line('R12'))

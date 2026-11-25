@@ -212,7 +212,7 @@ describe('ReviewDetail tabs', () => {
     expect(b.view.getByText('changes body').parentElement?.hidden).toBe(true)
     expect(b.view.queryByText('chat body')).toBeNull()
     expect(within(panel).getByRole('complementary', { name: 'Status' })).toBeTruthy()
-    fireEvent.click(tabs[2]!)
+    fireEvent.click(tabs[2])
     expect(b.props.onTab).toHaveBeenCalledWith('chat')
 
     b.rerender({ tab: 'changes' })

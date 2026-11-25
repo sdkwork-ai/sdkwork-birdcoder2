@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Clicks on the BirdCoder tag strip land `/birdcoder-…` names in the composer, and those names only behave like skills when a catalog answers for them. Enabling this root makes all 35 scene skills resolve everywhere, in the desktop and browser profiles alike: each token decorates as a reference, opens its instruction file in the right Sidebar, and injects that body when a prompt leads with it. Workspaces that carry their own same-named skill still win. Add a skill directory instead when a deployment needs names of its own.
+Clicks on the BirdCoder tag strip land `/birdcoder-…` names in the composer, and those names only behave like skills when a catalog answers for them. Enabling this root makes all 36 scene skills resolve everywhere, in the desktop and browser profiles alike: each token decorates as a reference, opens its instruction file in the right Sidebar, and injects that body when a prompt leads with it. Workspaces that carry their own same-named skill still win. Add a skill directory instead when a deployment needs names of its own.
 
 ## Table of Contents
 
@@ -29,7 +29,7 @@ The plugin takes no configuration. The shipped `dsh-web-app` bundle patch insert
 
 ### What the shipped root provides
 
-- **35 scene skills.** `birdcoder-agent-app`, `birdcoder-android-app`, `birdcoder-business-plan`, `birdcoder-cicd`, `birdcoder-codex-plugin`, `birdcoder-courseware`, `birdcoder-daily-dev`, `birdcoder-docs`, `birdcoder-dsh-plugin`, `birdcoder-flutter-app`, `birdcoder-harmonyos`, `birdcoder-html-web`, `birdcoder-image`, `birdcoder-ios-app`, `birdcoder-lesson-plan`, `birdcoder-marketing-poster`, `birdcoder-meeting-notes`, `birdcoder-miniprogram`, `birdcoder-music`, `birdcoder-poster`, `birdcoder-ppt-design`, `birdcoder-product-ppt`, `birdcoder-react-web`, `birdcoder-short-video`, `birdcoder-skill-dev`, `birdcoder-sound-effect`, `birdcoder-tts`, `birdcoder-uniapp`, `birdcoder-unity-app`, `birdcoder-video`, `birdcoder-visual-poster`, `birdcoder-vue-web`, `birdcoder-web-dev`, `birdcoder-workbuddy-app`, `birdcoder-workbuddy-plugin`. Each is one directory holding a `SKILL.md` with `name` and `description` frontmatter.
+- **36 scene skills.** `birdcoder-agent-app`, `birdcoder-android-app`, `birdcoder-app-deploy`, `birdcoder-business-plan`, `birdcoder-cicd`, `birdcoder-codex-plugin`, `birdcoder-courseware`, `birdcoder-daily-dev`, `birdcoder-docs`, `birdcoder-dsh-plugin`, `birdcoder-flutter-app`, `birdcoder-harmonyos`, `birdcoder-html-web`, `birdcoder-image`, `birdcoder-ios-app`, `birdcoder-lesson-plan`, `birdcoder-marketing-poster`, `birdcoder-meeting-notes`, `birdcoder-miniprogram`, `birdcoder-music`, `birdcoder-poster`, `birdcoder-ppt-design`, `birdcoder-product-ppt`, `birdcoder-react-web`, `birdcoder-short-video`, `birdcoder-skill-dev`, `birdcoder-sound-effect`, `birdcoder-tts`, `birdcoder-uniapp`, `birdcoder-unity-app`, `birdcoder-video`, `birdcoder-visual-poster`, `birdcoder-vue-web`, `birdcoder-web-dev`, `birdcoder-workbuddy-app`, `birdcoder-workbuddy-plugin`. Each is one directory holding a `SKILL.md` with `name` and `description` frontmatter; `birdcoder-app-deploy` also ships its `references/`, `scripts/` and a `skill.manifest.json`.
 - **An absolute instruction path per skill.** The catalog forwards the packaged `SKILL.md` path, which the composer uses to preview the skill's instructions in the right Sidebar.
 
 ### Observable success and failures
@@ -81,7 +81,7 @@ Indirectly, through `dsh-tool-skill`, which renders the provider's catalog entri
 
 #### KV Cache effect
 
-Enabled in the shipped Web and desktop compositions, so every session's request prefix carries the 35 catalog entries this root contributes; loading one inserts that skill's body at the point the tool result renders. Precedence means a same-named project, custom, or user skill replaces the packaged entry in the catalog and in the prefix, while the packaged entry itself changes only on a release.
+Enabled in the shipped Web and desktop compositions, so every session's request prefix carries the 36 catalog entries this root contributes; loading one inserts that skill's body at the point the tool result renders. Precedence means a same-named project, custom, or user skill replaces the packaged entry in the catalog and in the prefix, while the packaged entry itself changes only on a release.
 
 ## Known Limitations and Deferred Work
 

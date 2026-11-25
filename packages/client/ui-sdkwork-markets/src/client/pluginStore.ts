@@ -134,6 +134,10 @@ export interface PluginStore {
   setBundleEnabled: (name: string, enabled: boolean) => Promise<ChangeResult>
   /** Uninstall one bundle's dependency from the profile. */
   removeBundle: (name: string) => Promise<ChangeResult>
+  /** Replace one installed registry dependency with a newer version. */
+  updatePlugin: (name: string, version: string) => Promise<void>
+  /** Uninstall one installed catalog dependency and re-read the tree. */
+  removePlugin: (name: string) => Promise<void>
 
   /** Open the dialog on a fresh session. */
   openInstall: (spec?: string) => void
@@ -242,6 +246,38 @@ export function createPluginStore(ctx: ClientContext): PluginStore {
 
   const removeBundle: PluginStore['removeBundle'] = name =>
     unwrap(() => ctx.remote.pluginManager.removeBundle(name), 'pluginManager.removeBundle')
+
+  /**
+   * Replace an installed registry dependency with a catalog version.
+   * The Host reports the failed step inside the update result, so a refusal
+   * must be raised here rather than mistaken for a successful update.
+   */
+  const updatePlugin: PluginStore['updatePlugin'] = async (name, version) => {
+    const update = await unwrap(
+      () => ctx.remote.pluginManager.updateBundle(name, version),
+      'pluginManager.updateBundle',
+    )
+    const last = update.result
+    if (last.application === 'failed' || last.application === 'cancelled') {
+      throw new PluginStoreError(
+        last.error?.code ?? 'update-failed',
+        last.error?.diagnostic ?? `pluginManager.updateBundle: ${name}@${version}`,
+      )
+    }
+    await refresh()
+  }
+
+  /** Uninstall an installed catalog dependency and publish the new tree. */
+  const removePlugin: PluginStore['removePlugin'] = async (name) => {
+    const result = await removeBundle(name)
+    if (result.application === 'failed' || result.application === 'cancelled') {
+      throw new PluginStoreError(
+        result.error?.code ?? 'remove-failed',
+        result.error?.diagnostic ?? `pluginManager.removeBundle: ${name}`,
+      )
+    }
+    await refresh()
+  }
 
   /** Fold one settled ChangeResult onto the session, then re-read the tree. */
   const settle = (result: ChangeResult, spec: string): void => {
@@ -392,6 +428,8 @@ export function createPluginStore(ctx: ClientContext): PluginStore {
     setPluginEnabled,
     setBundleEnabled,
     removeBundle,
+    updatePlugin,
+    removePlugin,
     openInstall: (spec) => { setInstall(emptyInstallSession(spec ?? '')) },
     closeInstall: () => {
       const current = install

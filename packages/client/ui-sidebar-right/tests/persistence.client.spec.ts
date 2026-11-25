@@ -32,7 +32,7 @@ it('restores current layout independently by Session with a fresh undo history',
   let floating!: TabId
   first.actions.openContent(sessionId, { kind: 'text', contentId: 'file:b', title: 'b' }, (id) => { floating = id })
   first.actions.floatTab(sessionId, floating, { x: 20, y: 30, width: 480, height: 320 })
-  const layout = first.getSnapshot().bySession[sessionId]!.layout
+  const layout = first.getSnapshot().bySession[sessionId].layout
   const split = Object.values(layout.nodes).find(node => node.kind === 'split')!
   first.actions.resizeSplit(sessionId, split.id, [0.3, 0.7])
   first.actions.focusTab(sessionId, file)
@@ -49,7 +49,7 @@ it('restores current layout independently by Session with a fresh undo history',
   restored.actions.redo(sessionId)
   expect(restored.getSnapshot()).toEqual(recovered)
   restored.actions.setExpanded(sessionId, false)
-  expect(createSidebarRightStore(seed).create(sessionId).getSnapshot().bySession[sessionId]!.layout.expanded).toBe(false)
+  expect(createSidebarRightStore(seed).create(sessionId).getSnapshot().bySession[sessionId].layout.expanded).toBe(false)
   restored.clearPersisted()
   expect(createSidebarRightStore(seed).create(sessionId).getSnapshot()).toEqual({ bySession: {} })
   expect(createSidebarRightStore(seed).create('second').getSnapshot()).toEqual(second.getSnapshot())
@@ -64,12 +64,12 @@ it('removes transient occurrences from docked and floating layouts before restor
   open('sidebar://preview', 'sidebar')
   open('sidebar://preview/content/summary', 'sidebar')
   open('sidebar://preview/content/diagram', 'float')
-  const restored = createSidebarRightStore(seed).create(sessionId).getSnapshot().bySession[sessionId]!.layout
+  const restored = createSidebarRightStore(seed).create(sessionId).getSnapshot().bySession[sessionId].layout
   expect(Object.values(restored.tabs).map(tab => tab.contentId)).toEqual(['sidebar://preview'])
   expect(restored.floats).toEqual([])
   expect(restored.expanded).toBe(true)
   const active = restored.nodes[restored.activePaneId]
-  expect(active?.kind === 'pane' && active.activeTabId).toBe(Object.values(restored.tabs)[0]!.id)
+  expect(active?.kind === 'pane' && active.activeTabId).toBe(Object.values(restored.tabs)[0].id)
 })
 
 it('collapses a restored sidebar whose only tab was transient', () => {
@@ -77,7 +77,7 @@ it('collapses a restored sidebar whose only tab was transient', () => {
   const first = createSidebarRightStore(seed).create(sessionId)
   first.actions.openContent(sessionId, { kind: 'preview', contentId: 'sidebar://preview/content/1', title: 'Summary', destination: 'sidebar' }, () => {})
   first.actions.setMode(sessionId, 'fullscreen')
-  const restored = createSidebarRightStore(seed).create(sessionId).getSnapshot().bySession[sessionId]!
+  const restored = createSidebarRightStore(seed).create(sessionId).getSnapshot().bySession[sessionId]
   expect(restored.layout).toMatchObject({ expanded: false, mode: 'push', tabs: {}, floats: [] })
   expect(restored.history.entries).toHaveLength(0)
 })
@@ -120,5 +120,5 @@ it('starts from an empty layout when stored JSON is corrupt and keeps working wh
   expect(instance.getSnapshot()).toEqual({ bySession: {} })
   vi.spyOn(localStorage, 'setItem').mockImplementation(() => { throw new Error('Storage full') })
   instance.actions.setExpanded(sessionId, true)
-  expect(instance.getSnapshot().bySession[sessionId]!.layout.expanded).toBe(true)
+  expect(instance.getSnapshot().bySession[sessionId].layout.expanded).toBe(true)
 })

@@ -31,7 +31,7 @@ it('refreshes the existing workbook on pane resize and disconnects on file repla
   mocked.parse.mockResolvedValue(value)
   const view = render(<ExcelBody {...loadedProps} />)
   await waitFor(() => { expect(observers).toHaveLength(1) })
-  const first = observers[0]!
+  const first = observers[0]
   expect(first.observe).toHaveBeenCalledWith(view.container.querySelector('[data-excel-preview] > div'))
   act(() => { first.callback([], {} as ResizeObserver) })
   expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'resize' }))
@@ -41,7 +41,7 @@ it('refreshes the existing workbook on pane resize and disconnects on file repla
   await waitFor(() => { expect(observers).toHaveLength(2) })
   expect(first.disconnect).toHaveBeenCalledOnce()
   view.unmount()
-  expect(observers[1]!.disconnect).toHaveBeenCalledOnce()
+  expect(observers[1].disconnect).toHaveBeenCalledOnce()
 })
 
 it('shows loading then a workbook with editing and recalculation disabled', async () => {
@@ -51,8 +51,8 @@ it('shows loading then a workbook with editing and recalculation disabled', asyn
   await waitFor(() => { expect(mocked.workbook).toHaveBeenCalledOnce() })
   expect(screen.getByRole('button', { name: en.formulaWarning })).toBeDefined()
   expect(screen.queryByRole('note')).toBeNull()
-  expect(mocked.workbook.mock.calls[0]![0]).toMatchObject({ data: formulaValue.sheets, allowEdit: false, forceCalculation: false, showToolbar: false, showSheetTabs: true, lang: 'en', cellContextMenu: ['copy'] })
-  const signal = mocked.parse.mock.calls[0]![3] as AbortSignal
+  expect(mocked.workbook.mock.calls[0][0]).toMatchObject({ data: formulaValue.sheets, allowEdit: false, forceCalculation: false, showToolbar: false, showSheetTabs: true, lang: 'en', cellContextMenu: ['copy'] })
+  const signal = mocked.parse.mock.calls[0][3] as AbortSignal
   view.unmount()
   expect(signal.aborted).toBe(true)
 })
@@ -101,7 +101,7 @@ it('ignores a retired file result and cancels parsing when the bytes change', as
   let finish!: (value: unknown) => void
   mocked.parse.mockReturnValueOnce(new Promise((resolve) => { finish = resolve })).mockResolvedValueOnce(value)
   const view = render(<ExcelBody {...loadedProps} />)
-  const signal = mocked.parse.mock.calls[0]![3] as AbortSignal
+  const signal = mocked.parse.mock.calls[0][3] as AbortSignal
   view.rerender(<ExcelBody {...loadedProps} content={{ kind: 'bytes', data: new Uint8Array([2]) }} />)
   await waitFor(() => { expect(mocked.workbook).toHaveBeenCalledTimes(1) })
   expect(signal.aborted).toBe(true)
@@ -130,7 +130,7 @@ it.each(['xlsx', 'xls', 'csv', 'tsv'])('loads the spreadsheet chunk for %s', asy
   render(<LazyExcelBody {...props} resourceAddress={`dsh-resource://file/session/s1/book.${format}`} />)
   await waitFor(() => { expect(mocked.workbook).toHaveBeenCalledOnce() })
   expect(screen.queryByRole('button', { name: en.formulaWarning })).toBeNull()
-  expect(mocked.parse.mock.calls[0]![1]).toBe(format)
+  expect(mocked.parse.mock.calls[0][1]).toBe(format)
 })
 
 it('uses generic guidance for non-Error failures and ignores rejection after unmount', async () => {
@@ -141,7 +141,7 @@ it('uses generic guidance for non-Error failures and ignores rejection after unm
   let reject!: (error: Error) => void
   mocked.parse.mockReturnValueOnce(new Promise((_resolve, fail) => { reject = fail }))
   const pending = render(<ExcelBody {...loadedProps} />)
-  const signal = mocked.parse.mock.calls[1]![3] as AbortSignal
+  const signal = mocked.parse.mock.calls[1][3] as AbortSignal
   pending.unmount()
   reject(new Error('closed'))
   await waitFor(() => { expect(signal.aborted).toBe(true) })

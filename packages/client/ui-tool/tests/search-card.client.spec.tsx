@@ -383,8 +383,8 @@ describe('SearchRow keyed card', () => {
     // Both keys claim the conversation locale seat ToolRow's body copy needs.
     expect(registered.map(r => r.locale)).toEqual(['conversation', 'conversation'])
     // One component, two keys.
-    expect(registered[0]!.component).toBe(SearchRow)
-    expect(registered[1]!.component).toBe(SearchRow)
+    expect(registered[0].component).toBe(SearchRow)
+    expect(registered[1].component).toBe(SearchRow)
     expect(searchToolview.inject).toEqual(['slots'])
   })
 })

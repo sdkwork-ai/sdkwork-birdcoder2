@@ -141,7 +141,7 @@ describe('ui-settings-models apply', () => {
     const before = await bench()
     declare(before.slots)
     await before.ctx.plugin({ inject: [...inject], apply }, syncedConfig({})).await()
-    const entry = before.slots.entries('settings.section')[0]!
+    const entry = before.slots.entries('settings.section')[0]
     expect(entry.component).toBe(ModelsSection)
     expect(entry.options).toMatchObject({ id: 'models', order: 10 })
     // The section claims its two extension seats in the same registration.
@@ -182,7 +182,7 @@ describe('ui-settings-models apply', () => {
     expect(after.slots.entries('settings.onboarding')).toHaveLength(0)
     declare(after.slots)
     await Promise.resolve()
-    expect(after.slots.entries('settings.section')[0]!.component).toBe(ModelsSection)
+    expect(after.slots.entries('settings.section')[0].component).toBe(ModelsSection)
     expect(after.slots.entries('settings.onboarding')).toHaveLength(2)
     // The self-inflicted ledger notifications hit the duplicate guard.
     expect(after.slots.entries('settings.section')).toHaveLength(1)
@@ -193,11 +193,11 @@ describe('ui-settings-models apply', () => {
     declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply }, syncedConfig({})).await()
     b.locale.setLocale('en')
-    expect(resolveSlotLabel(b.slots.entries('settings.section')[0]!.options.label)).toBe('Models')
-    const injected = b.slots.entries('settings.section')[0]!.inject as unknown as () => import('../src/client/ModelsSection.tsx').ModelsSectionInjected
+    expect(resolveSlotLabel(b.slots.entries('settings.section')[0].options.label)).toBe('Models')
+    const injected = b.slots.entries('settings.section')[0].inject as unknown as () => import('../src/client/ModelsSection.tsx').ModelsSectionInjected
     expect(injected().t('deleteTitle')).toBe('Delete {provider}?')
     b.locale.setLocale('zh')
-    expect(resolveSlotLabel(b.slots.entries('settings.section')[0]!.options.label)).toBe('模型')
+    expect(resolveSlotLabel(b.slots.entries('settings.section')[0].options.label)).toBe('模型')
     expect(injected().t('deleteTitle')).toBe('删除 {provider}？')
   })
 
@@ -221,11 +221,11 @@ describe('ui-settings-models apply', () => {
     expect(b.slots.entries('settings.onboarding')).toHaveLength(0)
     declare(b.slots)
     await Promise.resolve()
-    expect(b.slots.entries('settings.section')[0]!.component).toBe(ModelsSection)
+    expect(b.slots.entries('settings.section')[0].component).toBe(ModelsSection)
     expect(b.slots.entries('settings.onboarding')).toHaveLength(2)
     // The locale path also recovers through the same ledger re-check.
     b.locale.setLocale('en')
-    expect(resolveSlotLabel(b.slots.entries('settings.section')[0]!.options.label)).toBe('Models')
+    expect(resolveSlotLabel(b.slots.entries('settings.section')[0].options.label)).toBe('Models')
     b.locale.setLocale('zh')
   })
 

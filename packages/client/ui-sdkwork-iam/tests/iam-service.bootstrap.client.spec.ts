@@ -104,7 +104,7 @@ describe('IamService bootstrap persistence', () => {
       clear: () => { storage.clear() },
       get length() { return storage.size },
       key: (index: number) => [...storage.keys()][index] ?? null,
-    } as Storage
+    }
   })
 
   it('restores a persisted session when bootstrap validation clears storage', async () => {    storage.set('dsh.iam.session', JSON.stringify({
@@ -206,5 +206,5 @@ function withDesktopBridge(initialUrl: string): void {
 
 /** Remove the published desktop bridge so later specs see a plain web page. */
 function clearDesktopBridge(): void {
-  Reflect.deleteProperty(globalThis as Record<string, unknown>, 'sdkworkDesktop')
+  Reflect.deleteProperty(globalThis, 'sdkworkDesktop')
 }

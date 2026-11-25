@@ -60,7 +60,7 @@ function declareSeat(slots: SlotRegistry): void {
   slots.register({
     name: 'root',
     children: { 'settings.miniPrograms': { kind: 'single', scope: 'root' } },
-  } as never, () => null)
+  }, () => null)
 }
 
 describe('ui-sdkwork-mini-program-accounts client plugin', () => {
@@ -95,7 +95,7 @@ describe('ui-sdkwork-mini-program-accounts client plugin', () => {
     const second = b.ctx.plugin({ inject: [...inject], apply })
     await second.await()
     await second.dispose()
-    declareSeat(b.ctx.slots as unknown as SlotRegistry)
+    declareSeat(b.ctx.slots)
     const third = b.ctx.plugin({ inject: [...inject], apply })
     await third.await()
     expect(b.ctx.slots.entries('settings.miniPrograms')).toHaveLength(1)
@@ -105,7 +105,7 @@ describe('ui-sdkwork-mini-program-accounts client plugin', () => {
 
   it('projects readiness, session, locale, appearance, and revision through the injected face', async () => {
     const b = await bench()
-    declareSeat(b.ctx.slots as unknown as SlotRegistry)
+    declareSeat(b.ctx.slots)
     const fiber = b.ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     const entry = b.ctx.slots.entries('settings.miniPrograms')[0]

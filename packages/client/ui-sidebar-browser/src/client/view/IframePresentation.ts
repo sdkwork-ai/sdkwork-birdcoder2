@@ -69,7 +69,7 @@ export class IframePresentation implements BrowserPresentation {
     if (current === undefined || host === undefined) return
     this.element?.remove()
     const element = document.createElement('iframe')
-    element.className = css.frame as string
+    element.className = css.frame
     element.src = current.target.url
     element.title = current.target.title
     element.referrerPolicy = 'no-referrer'

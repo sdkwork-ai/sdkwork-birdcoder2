@@ -53,7 +53,7 @@ describe('ui-sdkwork-git-pullrequest apply', () => {
     expect(action?.options.order).toBe(20)
     expect(action?.component).toBe(PullRequestAction)
     expect(action?.locale).toBe('pullRequest')
-    const injected = (action!.inject as unknown as () => PullRequestActionInjected)()
+    const injected = (action.inject as unknown as () => PullRequestActionInjected)()
     injected.setMode()
     // The entry opens the module as a code-surface overlay: the rail selection
     // stays `code` (the code rail entry keeps its highlight), so it drives
@@ -63,7 +63,7 @@ describe('ui-sdkwork-git-pullrequest apply', () => {
     const [page] = b.slots.entries(PAGE)
     expect(page?.options.key).toBe('pull-request')
     expect(page?.component).toBe(PullRequestPage)
-    expect((page!.inject as unknown as () => PullRequestPageInjected)().mode).toBe('pull-request')
+    expect((page.inject as unknown as () => PullRequestPageInjected)().mode).toBe('pull-request')
   })
 
   it('teardown removes the entries and the dictionaries', async () => {

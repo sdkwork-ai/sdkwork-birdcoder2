@@ -51,9 +51,13 @@ function sourceOf(gateway: GatewayProbe): TypertRemoteEventSource {
   return gateway.source
 }
 
+/**
+ * Dispatch an event past the typed event map: the fixture drives names, arities
+ * and payloads a typed emitter cannot express, and the Host bridge must reject
+ * or neutralize exactly those.
+ */
 function emitRaw(ctx: Context, event: string, args: readonly unknown[]): void {
-  const emit = ctx.emit.bind(ctx) as (name: string, ...values: readonly unknown[]) => void
-  emit(event, ...args)
+  Reflect.apply(ctx.emit.bind(ctx), undefined, [event, ...args])
 }
 
 function waterfallRaw(
@@ -63,12 +67,7 @@ function waterfallRaw(
   args: readonly unknown[],
   next: () => Promise<unknown>,
 ): Promise<unknown> {
-  const waterfall = ctx.waterfall.bind(ctx) as (
-    receiver: object,
-    name: string,
-    ...values: readonly unknown[]
-  ) => Promise<unknown>
-  return waterfall(target, event, ...args, next)
+  return Promise.resolve(Reflect.apply(ctx.waterfall.bind(ctx), undefined, [target, event, ...args, next]))
 }
 
 function invocationOf(value: unknown): TypertRemoteEventInvocation {

@@ -299,5 +299,5 @@ it('uses the active provider id for guide dispatch and refuses duplicate entry i
   expect(registry.guide()[0]?.providerId).toBe('extension/terminal')
   remove()
   expect(registry.guide()[0]?.providerId).toBe('builtin/terminal')
-  expect(() => registry.register(typeFor('duplicate', [], { guide: [guide[0]!, guide[0]!] }))).toThrow('duplicate guide entry id')
+  expect(() => registry.register(typeFor('duplicate', [], { guide: [guide[0], guide[0]] }))).toThrow('duplicate guide entry id')
 })

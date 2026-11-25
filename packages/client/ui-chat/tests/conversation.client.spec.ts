@@ -30,7 +30,7 @@ describe('toAssistantBlock', () => {
       { kind: 'tool-call', callId: 'c1', name: 'echo', argsRaw: '{}' },
       { kind: 'image', attachment },
     ])
-    expect(toAssistantBlock(blocks[0] as ContentBlock)).toEqual({ kind: 'text', text: '正文' })
+    expect(toAssistantBlock(blocks[0])).toEqual({ kind: 'text', text: '正文' })
     expect(toAssistantBlock({ type: 'future' } as unknown as ContentBlock))
       .toEqual({ kind: 'other', block: { type: 'future' } })
   })

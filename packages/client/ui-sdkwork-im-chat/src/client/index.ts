@@ -9,7 +9,7 @@ import type {} from '@deepseek-ai/dsh-client-runtime/client'
 // Type-only: the slots service declaration and the pane seat contract.
 import type {} from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-im-conversations/client'
-import type { ImService, ImSurfaceHandle } from '@deepseek-ai/dsh-client-ui-sdkwork-im/client'
+import type { ImSurfaceHandle } from '@deepseek-ai/dsh-client-ui-sdkwork-im/client'
 import { ChatPane, type ChatPaneInjected } from './ChatPane.tsx'
 
 export type { ChatPaneInjected, ChatPaneProps } from './ChatPane.tsx'
@@ -25,7 +25,7 @@ export const inject = ['slots', 'im']
  * @param ctx - client root context.
  */
 export function apply(ctx: ClientContext): void {
-  const im = ctx.get('im') as ImService | undefined
+  const im = ctx.get('im')
   ctx.slots.inject('im.chat.pane', () => ctx.slots.register({
     name: 'im.chat.pane',
     inject: (): ChatPaneInjected => ({

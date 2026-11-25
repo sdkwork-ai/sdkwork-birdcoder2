@@ -141,7 +141,7 @@ describe('lifecycle cascade (one axis)', () => {
     const core = new SlotCore()
     mountFrame(core)
     const dispose = core.register({ name: 'test.single' }, Comp)
-    const entry = core.entries('test.single')[0]!
+    const entry = core.entries('test.single')[0]
     expect(core.isLive(entry)).toBe(true)
     dispose()
     expect(core.isLive(entry)).toBe(false)
@@ -206,7 +206,7 @@ describe('kind semantics', () => {
     expect(() => core.register({ name: 'test.chain' }, Comp)).toThrow('requires options.select')
     const select = ({ tags }: { tags: string[] }) => tags[0] ?? null
     core.register({ name: 'test.chain', select, priority: 5 }, Comp as never)
-    const entry = core.entries('test.chain')[0]!
+    const entry = core.entries('test.chain')[0]
     expect(entry.select).toBe(select)
     expect(entry.options.priority).toBe(5)
   })

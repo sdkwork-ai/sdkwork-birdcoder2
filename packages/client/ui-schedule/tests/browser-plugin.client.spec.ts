@@ -171,7 +171,7 @@ async function hostPage(schedule: object): Promise<HostPage> {
   const ctx = await baseContext({ schedule, $on: () => () => {} })
   ctx.slots.register({ name: 'root', children: { main: { kind: 'keyed', scope: 'root' } } } as never, Empty)
   await ctx.plugin({ inject: [...inject], apply }).await()
-  const face = injectedFace(ctx.slots.entries('main')[0]!, undefined as never) as TaskManagerInjected
+  const face = injectedFace(ctx.slots.entries('main')[0], undefined as never) as TaskManagerInjected
   const dispose = face.hooks.catalog.subscribe(vi.fn())
   await face.onRetry()
   return {
@@ -194,7 +194,7 @@ describe('ui-schedule browser half', () => {
       const owner = ctx.slots.register({ name: 'root', children: { main: { kind: 'keyed', scope: 'root' } } } as never, Empty)
       try {
         await ctx.plugin({ inject: [...inject], apply }).await()
-        const face = injectedFace(ctx.slots.entries('main')[0]!, undefined as never) as TaskManagerInjected
+        const face = injectedFace(ctx.slots.entries('main')[0], undefined as never) as TaskManagerInjected
         await expect(face.hostActions.loadNewSessionInterval()).resolves.toBe(7200)
         await expect(face.hostActions.loadNewSessionInterval()).resolves.toBeUndefined()
         await expect(face.hostActions.loadNewSessionInterval()).resolves.toBeUndefined()
@@ -266,7 +266,7 @@ describe('ui-schedule browser half', () => {
     declareHeader(ctx)
     const fiber = ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
-    const entry = ctx.slots.entries('conversation.session.header.utilities')[0]!
+    const entry = ctx.slots.entries('conversation.session.header.utilities')[0]
     const face = injectedFace(entry, sessionId as never) as CatalogInjected
     const other = injectedFace(entry, 'other-session' as never) as CatalogInjected
     const dispose = face.hooks.catalog.subscribe(vi.fn())
@@ -317,14 +317,14 @@ describe('ui-schedule browser half', () => {
     const fiber = ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     try {
-      const overlay = ctx.slots.entries('shell.overlay')[0]!
+      const overlay = ctx.slots.entries('shell.overlay')[0]
       expect(overlay.component).toBe(ScheduleDeleteToast)
       expect(overlay.options).toMatchObject({ id: 'schedule.delete-toast' })
       expect(overlay.locale).toBe('schedule.manager')
       const toast = injectedFace(overlay) as Omit<DeleteToastSource, 'report'>
       expect(toast.hooks.toast.getSnapshot()).toBeNull()
 
-      const entry = ctx.slots.entries('conversation.session.header.utilities')[0]!
+      const entry = ctx.slots.entries('conversation.session.header.utilities')[0]
       const face = injectedFace(entry, 'toast-session' as never) as CatalogInjected
       const dispose = face.hooks.catalog.subscribe(vi.fn())
       try {
@@ -354,7 +354,7 @@ describe('ui-schedule browser half', () => {
     declareHeader(ctx)
     const fiber = ctx.plugin({ inject: inject.filter(key => key !== 'remote.schedule'), apply })
     await fiber.await()
-    const entry = ctx.slots.entries('conversation.session.header.utilities')[0]!
+    const entry = ctx.slots.entries('conversation.session.header.utilities')[0]
     const face = injectedFace(entry, 'original' as never) as CatalogInjected
     const dispose = face.hooks.catalog.subscribe(vi.fn())
     try {
@@ -382,10 +382,10 @@ describe('ui-schedule browser half', () => {
       expect(sidebar.register).toHaveBeenCalledExactlyOnceWith(
         expect.objectContaining({ id: SCHEDULE_TASK_ID, kind: SCHEDULE_TASK_KIND, priority: 'builtin' }),
       )
-      const body = ctx.slots.entries('sidebar.right.pane.tab')[0]!
+      const body = ctx.slots.entries('sidebar.right.pane.tab')[0]
       expect(body.component).toBe(ScheduleTaskTab)
       expect(body.options).toMatchObject({ key: SCHEDULE_TASK_ID })
-      const title = ctx.slots.entries('sidebar.right.pane.tab.title')[0]!
+      const title = ctx.slots.entries('sidebar.right.pane.tab.title')[0]
       expect(title.component).toBe(ScheduleTaskTabTitle)
       expect(title.options).toMatchObject({ key: SCHEDULE_TASK_ID })
     } finally {
@@ -413,7 +413,7 @@ describe('ui-schedule browser half', () => {
       const sessionId = 'bound-session' as SessionId
       const page = { id: 'tab-1', kind: SCHEDULE_TASK_KIND, contentId: SCHEDULE_TASK_ID }
       const body = injectedFace(
-        ctx.slots.entries('sidebar.right.pane.tab')[0]!, sessionId as never,
+        ctx.slots.entries('sidebar.right.pane.tab')[0], sessionId as never,
       ) as ScheduleTaskTabInjected
       body.taskBindings.write(sessionId, page, { sessionId, id: 'bound-task' as ScheduleId })
       // A write reads the committed tab ids of the Session that owns the tab.
@@ -421,11 +421,11 @@ describe('ui-schedule browser half', () => {
       expect(body.taskBindings.read(sessionId, page)).toEqual({ sessionId, id: 'bound-task' })
       // The chip reads the same binding and the same Host catalog as the body.
       const chip = injectedFace(
-        ctx.slots.entries('sidebar.right.pane.tab.title')[0]!, sessionId as never,
+        ctx.slots.entries('sidebar.right.pane.tab.title')[0], sessionId as never,
       ) as ScheduleTaskCatalogInjected & ScheduleTaskBindingInjected
       expect(chip.taskBindings).toBe(body.taskBindings)
       expect(chip.hooks.catalog).toBe(body.hooks.catalog)
-      const panel = injectedFace(ctx.slots.entries('main')[0]!, undefined as never) as TaskManagerInjected
+      const panel = injectedFace(ctx.slots.entries('main')[0], undefined as never) as TaskManagerInjected
       expect(Object.keys(managerLocales).sort()).toEqual(['de', 'en', 'es', 'fr', 'ja', 'pt', 'ru', 'zh'])
       for (const [language, dictionary] of Object.entries(managerLocales)) {
         expect(dictionary['host.createPrompt']).not.toContain('\n')
@@ -458,7 +458,7 @@ describe('ui-schedule browser half', () => {
     const fiber = ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     try {
-      const panel = injectedFace(ctx.slots.entries('main')[0]!, undefined as never) as TaskManagerInjected
+      const panel = injectedFace(ctx.slots.entries('main')[0], undefined as never) as TaskManagerInjected
       for (const dictionary of Object.values(managerLocales)) {
         const prompts = Object.entries(dictionary).filter(([key]) => key.startsWith('recommend.') && key.endsWith('.prompt'))
         expect(prompts).toHaveLength(8)
@@ -496,7 +496,7 @@ describe('ui-schedule browser half', () => {
     declareHeader(ctx)
     const fiber = ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
-    const entry = ctx.slots.entries('conversation.session.header.utilities')[0]!
+    const entry = ctx.slots.entries('conversation.session.header.utilities')[0]
     expect(entry.component).toBe(ScheduleCatalogAction)
     expect(entry.options).toMatchObject({ id: 'schedule-catalog' })
     const face = injectedFace(entry, 'catalog-session' as never) as { readonly openTaskDetail: (id: ScheduleId) => void }
@@ -522,7 +522,7 @@ describe('ui-schedule browser half', () => {
       // the `tool.call.toolview` cell for `schedule_create`, so this plugin
       // registers no competing entry for that wire name.
       expect(ctx.slots.entries('tool.call.toolview')).toHaveLength(0)
-      const entry = ctx.slots.entries('conversation.chat.turnTail')[0]!
+      const entry = ctx.slots.entries('conversation.chat.turnTail')[0]
       expect(entry.component).toBe(ScheduleTurnCard)
       expect(entry.options).toMatchObject({ id: 'schedule-created', order: 20 })
       expect(entry.locale).toBe('schedule.manager')
@@ -563,9 +563,9 @@ describe('ui-schedule browser half', () => {
         'sidebar.panellist': { kind: 'list', scope: 'root' },
       },
     } as never, Empty)
-    const entry = ctx.slots.entries('main')[0]!
+    const entry = ctx.slots.entries('main')[0]
     expect(entry.options.key).toBe('schedules')
-    const panel = ctx.slots.entries('sidebar.panellist')[0]!
+    const panel = ctx.slots.entries('sidebar.panellist')[0]
     expect(panel.options.id).toBe('schedules')
     ctx.locale.setLocale('en')
     expect(resolveSlotLabel(panel.options.label)).toBe('Automation tasks')
@@ -642,8 +642,8 @@ describe('ui-schedule browser half', () => {
     const fiber = ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     try {
-      const face = injectedFace(ctx.slots.entries('main')[0]!, undefined as never) as TaskManagerInjected
-      const toast = injectedFace(ctx.slots.entries('shell.overlay')[0]!) as Omit<DeleteToastSource, 'report' | 'reportClear'>
+      const face = injectedFace(ctx.slots.entries('main')[0], undefined as never) as TaskManagerInjected
+      const toast = injectedFace(ctx.slots.entries('shell.overlay')[0]) as Omit<DeleteToastSource, 'report' | 'reportClear'>
       const dispose = face.hooks.catalog.subscribe(vi.fn())
       try {
         await vi.waitFor(() => { expect(face.hooks.catalog.getSnapshot().records).toEqual([record]) })
@@ -681,8 +681,8 @@ describe('ui-schedule browser half', () => {
     await fiber.await()
     let claimed = false
     try {
-      const face = injectedFace(ctx.slots.entries('main')[0]!, undefined as never) as TaskManagerInjected
-      const toast = injectedFace(ctx.slots.entries('shell.overlay')[0]!) as Omit<DeleteToastSource, 'report' | 'reportClear'>
+      const face = injectedFace(ctx.slots.entries('main')[0], undefined as never) as TaskManagerInjected
+      const toast = injectedFace(ctx.slots.entries('shell.overlay')[0]) as Omit<DeleteToastSource, 'report' | 'reportClear'>
       const clearing = face.onClearEnded()
       // The page panel can unmount while the Host removal is still in flight;
       // the notice store belongs to the plugin, so the outcome still publishes.
@@ -712,18 +712,18 @@ describe('ui-schedule browser half', () => {
     const fiber = ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     try {
-      const mark = ctx.slots.entries('sidebar.session.row.leading')[0]!
+      const mark = ctx.slots.entries('sidebar.session.row.leading')[0]
       expect(mark.component).toBe(SessionScheduleMark)
       expect(mark.options).toMatchObject({ id: 'schedule-mark', order: 10 })
       expect(mark.locale).toBe(NS)
-      const hover = ctx.slots.entries('sidebar.session.row.hover')[0]!
+      const hover = ctx.slots.entries('sidebar.session.row.hover')[0]
       expect(hover.component).toBe(SessionScheduleHover)
       expect(hover.options).toMatchObject({ id: 'schedule-tasks', order: 10 })
       expect(hover.locale).toBe(NS)
       // A root-scope list entry receives no owner values in `inject`. Both row
       // seats inject the one Host catalog the page reads, and neither creates a
       // per-Session Remote source, so N visible rows issue one query.
-      const page = injectedFace(ctx.slots.entries('main')[0]!, undefined as never) as SessionCatalogFace
+      const page = injectedFace(ctx.slots.entries('main')[0], undefined as never) as SessionCatalogFace
       for (const entry of [mark, hover]) {
         const face = injectedFace(entry) as SessionCatalogFace
         expect(face.hooks.catalog).toBe(page.hooks.catalog)
@@ -794,7 +794,7 @@ describe('Host task Remote injection', () => {
       catalog.mockRejectedValueOnce(error)
       expect(await face.hostActions.edit(edit)).toEqual(outcome)
       expect(face.hooks.catalog.getSnapshot()).toMatchObject({ records: [refreshed], status: 'error' })
-      expect(remoteEdit.mock.calls[0]![0]).toBe(edit)
+      expect(remoteEdit.mock.calls[0][0]).toBe(edit)
     } finally {
       await close()
     }
@@ -819,8 +819,8 @@ describe('Host task Remote injection', () => {
         catalog.mockClear()
         expect(await face.hostActions.edit(edit)).toEqual({ failed: saveFailure })
         expect(await face.onCreateTask(createRequest)).toEqual({ failed: createFailure })
-        expect(remoteEdit.mock.calls[0]![0]).toBe(edit)
-        expect(create.mock.calls[0]![0]).toBe(createRequest)
+        expect(remoteEdit.mock.calls[0][0]).toBe(edit)
+        expect(create.mock.calls[0][0]).toBe(createRequest)
         // The Host stored nothing, so the page keeps its records and sends no read.
         expect(catalog).not.toHaveBeenCalled()
         expect(face.hooks.catalog.getSnapshot().records).toEqual([hostTask])
@@ -886,7 +886,7 @@ describe('Host task Remote injection', () => {
       read.resolve({ ok: true, value: [hostTask, created] })
       expect(await creating).toEqual({ created })
       expect(face.hooks.catalog.getSnapshot()).toMatchObject({ records: [hostTask, created], status: 'ready' })
-      expect(create.mock.calls[0]![0]).toBe(createRequest)
+      expect(create.mock.calls[0][0]).toBe(createRequest)
     } finally {
       await close()
     }

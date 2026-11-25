@@ -169,8 +169,7 @@ const fixtureThemeRuntime = { getTheme: () => ({ active: { colorScheme: 'light' 
 let registeredPage = null
 const ctxDouble = new Proxy({
   effect: () => () => {},
-  // Optional service injection (the dshmarket control): the probe renders
-  // without it, so the registration is a no-op.
+  // The SDKWork catalog host is configured by the market plugin itself.
   inject: () => {},
   // Declaring a seat's children registers them through the reflect service.
   reflect: { provide: () => () => {} },
@@ -270,7 +269,6 @@ try {
       onConfigure: () => {},
       bundleRequest: staticObservable(undefined),
       onBundleRequestHandled: () => {},
-      marketControl: staticObservable(undefined),
       // The other two embedded panels publish nothing on this probe's ledger,
       // so both stay undefined; the connector bridge is never reached from the
       // Experts tab but the page reads its shape at render.

@@ -137,7 +137,7 @@ describe('RowMenusEntry (the list-slot dispatch component)', () => {
     const onRename = vi.fn()
     render(
       <RowMenusEntry
-        sessionId={'s9' as never}
+        sessionId={'s9'}
         title="Nine"
         onRename={onRename}
         onFork={vi.fn()}
@@ -347,7 +347,7 @@ describe('right-click command channel (contextMenu.open)', () => {
     )
     act(() => { channel.open(50, 60) })
     expect(screen.getAllByRole('menuitem', { name: '分叉会话' }).length).toBeGreaterThanOrEqual(1)
-    fireEvent.click(screen.getAllByRole('menuitem', { name: '分叉会话' })[0]!)
+    fireEvent.click(screen.getAllByRole('menuitem', { name: '分叉会话' })[0])
     expect(onFork).toHaveBeenCalledWith('s1')
   })
 
@@ -553,7 +553,7 @@ describe('SDKWork path/export actions in the row menus', () => {
       )
       fireEvent.click(screen.getByRole('button', { name: '工作区“Project”的操作' }))
       fireEvent.click(screen.getByRole('menuitem', { name: '复制路径' }))
-      await vi.waitFor(() => expect(writeText).toHaveBeenCalledWith('/w/alpha'))
+      await vi.waitFor(() =>{  expect(writeText).toHaveBeenCalledWith('/w/alpha') })
     } finally {
       vi.unstubAllGlobals()
     }
@@ -586,10 +586,10 @@ describe('SDKWork path/export actions in the row menus', () => {
       )
       fireEvent.click(screen.getByRole('button', { name: '会话“One”的操作' }))
       fireEvent.click(screen.getByRole('menuitem', { name: '复制会话ID' }))
-      await vi.waitFor(() => expect(writeText).toHaveBeenCalledWith('s1'))
+      await vi.waitFor(() =>{  expect(writeText).toHaveBeenCalledWith('s1') })
       fireEvent.click(screen.getByRole('button', { name: '会话“One”的操作' }))
       fireEvent.click(screen.getByRole('menuitem', { name: '导出会话日志' }))
-      await vi.waitFor(() => expect(download).toHaveBeenCalledWith('s1'))
+      await vi.waitFor(() =>{  expect(download).toHaveBeenCalledWith('s1') })
     } finally {
       vi.unstubAllGlobals()
     }

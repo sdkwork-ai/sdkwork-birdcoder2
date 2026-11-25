@@ -62,11 +62,11 @@ describe('Running status entrance after admitted steering', () => {
     const view = read('ChatView.module.css')
     const normalize = (selector: string) => selector.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, ' ').trim()
     // Structure alone names the move, so lifting the switch never adds an animation name and replays it.
-    const moves = [...view.matchAll(/([^{}]+)\{\s*animation: running-[\w-]+ /g)].map(match => normalize(match[1]!))
+    const moves = [...view.matchAll(/([^{}]+)\{\s*animation: running-[\w-]+ /g)].map(match => normalize(match[1]))
     expect(moves).toHaveLength(1)
     expect(moves[0]).toMatch(/^:where\(/)
     expect(moves[0]).not.toMatch(/data-input-fold/)
-    const switches = [...view.matchAll(/([^{}]+)\{\s*animation-duration: 0s;\s*\}/g)].map(match => normalize(match[1]!))
+    const switches = [...view.matchAll(/([^{}]+)\{\s*animation-duration: 0s;\s*\}/g)].map(match => normalize(match[1]))
     expect(switches).toEqual(['.column[data-input-fold] .running'])
   })
 

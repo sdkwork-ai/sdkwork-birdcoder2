@@ -96,10 +96,10 @@ describe('Button', () => {
   it('selects the outline stylesheet for outlined actions only', () => {
     const { rerender } = render(<Button variant="outline">Cancel</Button>)
     const button = screen.getByRole('button', { name: 'Cancel' })
-    expect(button.classList.contains(buttonCss.outline!)).toBe(true)
+    expect(button.classList.contains(buttonCss.outline)).toBe(true)
     for (const variant of ['primary', 'ghost', 'toolbar'] as const) {
       rerender(<Button variant={variant}>Cancel</Button>)
-      expect(button.classList.contains(buttonCss.outline!)).toBe(false)
+      expect(button.classList.contains(buttonCss.outline)).toBe(false)
     }
   })
 
@@ -791,9 +791,9 @@ describe('Menu', () => {
     const menus = screen.getAllByRole('menu')
     const first = screen.getByRole('button', { name: 'First' }).parentElement!
     const second = screen.getByRole('button', { name: 'Second' }).parentElement!
-    expect(menus[0]!.style.positionAnchor).toBe(first.style.anchorName)
-    expect(menus[1]!.style.positionAnchor).toBe(second.style.anchorName)
-    expect(menus[0]!.style.positionAnchor).not.toBe(menus[1]!.style.positionAnchor)
+    expect(menus[0].style.positionAnchor).toBe(first.style.anchorName)
+    expect(menus[1].style.positionAnchor).toBe(second.style.anchorName)
+    expect(menus[0].style.positionAnchor).not.toBe(menus[1].style.positionAnchor)
     view.unmount()
   })
 

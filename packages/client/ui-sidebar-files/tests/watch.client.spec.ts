@@ -55,7 +55,7 @@ describe('createWatch', () => {
     const h = mount()
     const first = h.iterator.next()
     const watch = await h.remote.waitForChanges(0)
-    const options = h.supervise.mock.calls[0]![0]
+    const options = h.supervise.mock.calls[0][0]
     const ended = vi.spyOn(options, 'ended')
     let pending = first
     if (ready) {

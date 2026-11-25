@@ -119,7 +119,7 @@ describe('BrowserController', () => {
     const controller = new BrowserController({ tabId: TAB, signal: lifetime().signal, applicationOrigin: APP,
       actions: store.actions, initial: saved, createPage: pageFactory, openTab })
     disposables.push(controller)
-    const provider = callbacks[0]!
+    const provider = callbacks[0]
     provider.openRequested('file:/secret')
     expect(controller.getSnapshot().addressFailure).toBe('protocol')
     provider.openRequested('https://new.example/path')
@@ -185,7 +185,7 @@ describe('BrowserController', () => {
     expect(state.getSnapshot().frame.target?.url).toBe('https://example.test/one')
     face.goForward(TAB)
     expect(state.getSnapshot().frame.target?.url).toBe('https://example.test/two')
-    const beforeReload = store.getSnapshot().byTab[TAB]!.request!.revision
+    const beforeReload = store.getSnapshot().byTab[TAB].request!.revision
     face.reload(TAB)
     expect(store.getSnapshot().byTab[TAB]?.request?.revision).toBe(beforeReload + 1)
     face.loadUrl(TAB, 'https://example.test/two')
@@ -231,7 +231,7 @@ describe('BrowserController', () => {
       sandboxEnabled: true,
       target: { url: 'http://localhost:5173/app' },
     })
-    const beforeToggle = store.getSnapshot().byTab[TAB]!.request!.revision
+    const beforeToggle = store.getSnapshot().byTab[TAB].request!.revision
 
     face.setSandbox(TAB, false)
     expect(state.getSnapshot().frame.sandboxEnabled).toBe(false)

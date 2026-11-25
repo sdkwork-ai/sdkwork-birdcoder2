@@ -298,7 +298,7 @@
     {
       "id": "sdkwork-plugins",
       "repository": "sdkwork-ai/sdkwork-plugins",
-      "ref": "8c06d3a58521fd00faad22674c64575022e5554f",
+      "ref": "b1f937e56b8dd2a39a0b64fe98155c65de639282",
       "refInput": "SDKWORK_PLUGINS_REF",
       "tokenSecret": "SDKWORK_RELEASE_TOKEN"
     },

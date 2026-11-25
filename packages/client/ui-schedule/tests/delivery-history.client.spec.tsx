@@ -26,7 +26,7 @@ function result(start = 0, end = 20, legacy = false): Result {
   return { ok: true, value: {
     id, records: records.slice(start, end), earlierRecordsUnavailable: legacy,
     earlierRecordsPruned: false, retention: { days: 30, records: 200 },
-    ...(end < records.length ? { nextBefore: records[end - 1]!.messageId } : {}),
+    ...(end < records.length ? { nextBefore: records[end - 1].messageId } : {}),
   } }
 }
 function failure(code: 'schedule_not_found' | 'delivery_cursor_not_found'): Result {
@@ -39,7 +39,7 @@ function unlinked() {
 }
 function mount(dictionary: typeof en | typeof zh = en) {
   const loadHistory = vi.fn<DeliveryHistoryInjected['loadHistory']>().mockResolvedValue(result())
-  const props = { id, ...unlinked(), latestMessageId: records[0]!.messageId, loadHistory, t: makeTranslate(dictionary) }
+  const props = { id, ...unlinked(), latestMessageId: records[0].messageId, loadHistory, t: makeTranslate(dictionary) }
   const view = render(<DeliveryHistory {...props} />)
   return { loadHistory, props, view }
 }
@@ -72,7 +72,7 @@ afterEach(cleanup)
 // host. The zone is chosen by that offset rather than by name, because two names
 // can hold the same offset at one instant.
 const RUNNER_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone
-const SAMPLED_INSTANT = records[0]!.scheduledAt
+const SAMPLED_INSTANT = records[0].scheduledAt
 const TASK_ZONE = zoneDifferingFrom(SAMPLED_INSTANT, RUNNER_ZONE)
 
 describe.each([en, zh])('saved delivery records', (dictionary) => {
@@ -85,22 +85,22 @@ describe.each([en, zh])('saved delivery records', (dictionary) => {
     const regions = screen.getAllByRole('region', { name: dictionary['delivery.label'] })
     expect(regions).toHaveLength(20)
     for (const [index, region] of regions.entries()) {
-      expect(region.querySelector<HTMLElement>(`.${css.savedPrompt}`)!.textContent).toBe(records[index]!.prompt)
+      expect(region.querySelector<HTMLElement>(`.${css.savedPrompt}`)!.textContent).toBe(records[index].prompt)
       const times = region.querySelectorAll('time')
-      expect(Array.from(times, time => time.dateTime)).toEqual([records[index]!.scheduledAt])
-      expect(times[0]!.textContent).toBe(formatScheduleNextRun(records[index]!.scheduledAt, dictionary['time.locale']))
+      expect(Array.from(times, time => time.dateTime)).toEqual([records[index].scheduledAt])
+      expect(times[0].textContent).toBe(formatScheduleNextRun(records[index].scheduledAt, dictionary['time.locale']))
       expect(region.querySelector('img')).toBeNull()
       const open = within(region).getByRole('button')
       expect(open.textContent).toBe(dictionary['host.openDeliverySession'])
       expect(open.hasAttribute('disabled')).toBe(true)
-      expect(region.textContent).not.toContain(records[index]!.messageId)
+      expect(region.textContent).not.toContain(records[index].messageId)
     }
     expect(screen.queryByText(dictionary['delivery.empty'])).toBeNull()
   })
 
   it('indents each saved instruction into the text column beside the clock glyph', async () => {
     mount()
-    const region = (await screen.findAllByRole('region', { name: en['delivery.label'] }))[0]!
+    const region = (await screen.findAllByRole('region', { name: en['delivery.label'] }))[0]
     const glyph = region.querySelector<SVGElement>(`.${css.deliveryGlyph}`)!
     expect(glyph.tagName.toLowerCase()).toBe('svg')
     expect(region.firstElementChild).toBe(glyph)
@@ -110,14 +110,14 @@ describe.each([en, zh])('saved delivery records', (dictionary) => {
     expect(body.previousElementSibling).toBe(glyph)
     expect(body.parentElement).toBe(region)
     const occurrence = body.querySelector<HTMLTimeElement>(`.${css.deliveryTime}`)!
-    expect(occurrence.textContent).toBe(formatScheduleNextRun(records[0]!.scheduledAt, en['time.locale']))
+    expect(occurrence.textContent).toBe(formatScheduleNextRun(records[0].scheduledAt, en['time.locale']))
     // The row's time is the locale-owned month name plus the clock field pair,
     // never the retired zero-padded `MM-DD` pair.
     expect(occurrence.textContent).toMatch(/^[A-Za-z]{3,}\s\d{1,2}[, ]/)
     expect(occurrence.textContent).toMatch(/\d{1,2}:\d{2}/)
     expect(occurrence.textContent).not.toMatch(/\d{2}-\d{2}/)
     const prompt = body.querySelector<HTMLElement>(`.${css.savedPrompt}`)!
-    expect(prompt.textContent).toBe(records[0]!.prompt)
+    expect(prompt.textContent).toBe(records[0].prompt)
     expect(prompt.parentElement).toBe(body)
     const head = body.querySelector<HTMLElement>(`.${css.deliveryHead}`)!
     expect(occurrence.parentElement).toBe(head)
@@ -187,17 +187,17 @@ describe.each([en, zh])('saved delivery records', (dictionary) => {
     try {
       mount(dictionary)
       const [first, second] = await screen.findAllByRole('region', { name: dictionary['delivery.label'] })
-      const prompt = first!.querySelector<HTMLElement>(`.${css.savedPrompt}`)!
-      const toggle = within(first!).getByRole('button', { name: dictionary['delivery.expand'] })
+      const prompt = first.querySelector<HTMLElement>(`.${css.savedPrompt}`)!
+      const toggle = within(first).getByRole('button', { name: dictionary['delivery.expand'] })
       expect(toggle.getAttribute('aria-expanded')).toBe('false')
       expect(toggle.getAttribute('aria-controls')).toBe(prompt.id)
       expect(prompt.hasAttribute('data-expanded')).toBe(false)
-      expect(prompt.textContent).toBe(records[0]!.prompt)
+      expect(prompt.textContent).toBe(records[0].prompt)
       fireEvent.click(toggle)
       expect(toggle.getAttribute('aria-expanded')).toBe('true')
       expect(toggle.textContent).toBe(dictionary['delivery.collapse'])
       expect(prompt.hasAttribute('data-expanded')).toBe(true)
-      const other = within(second!).getByRole('button', { name: dictionary['delivery.expand'] })
+      const other = within(second).getByRole('button', { name: dictionary['delivery.expand'] })
       expect(other.getAttribute('aria-expanded')).toBe('false')
       fireEvent.click(toggle)
       expect(toggle.getAttribute('aria-expanded')).toBe('false')
@@ -214,7 +214,7 @@ describe.each([en, zh])('saved delivery records', (dictionary) => {
     render(<DeliveryHistory
       id={id} {...unlinked()} latestMessageId={undefined} loadHistory={loadHistory} t={makeTranslate(dictionary)}
     />)
-    const { prompt: _prompt, ...receipt } = records[0]!
+    const { prompt: _prompt, ...receipt } = records[0]
     await resolve(pending, { ok: true, value: {
       id, records: [receipt], earlierRecordsUnavailable: true,
       earlierRecordsPruned: false, retention: { days: 30, records: 200 },
@@ -295,7 +295,7 @@ describe.each([en, zh])('saved delivery records', (dictionary) => {
   it('opens the Session that accepted each saved delivery once that Session is available', async () => {
     const other = 'other-session' as SessionId
     const loadHistory = vi.fn<DeliveryHistoryInjected['loadHistory']>().mockResolvedValue({ ok: true, value: {
-      id, records: [records[0]!, { ...records[1]!, targetSessionId: other }], earlierRecordsUnavailable: false,
+      id, records: [records[0], { ...records[1], targetSessionId: other }], earlierRecordsUnavailable: false,
       earlierRecordsPruned: false, retention: { days: 30, records: 200 },
     } })
     const onOpenSession = vi.fn<(session: SessionId) => void>()
@@ -304,9 +304,9 @@ describe.each([en, zh])('saved delivery records', (dictionary) => {
       sessionTitles={{ [sessionId]: 'Report conversation' }} availableSessionIds={[sessionId]}
     />)
     const [titled, untitled] = await screen.findAllByRole('region', { name: dictionary['delivery.label'] })
-    fireEvent.click(within(titled!).getByRole('button', { name: 'Report conversation' }))
+    fireEvent.click(within(titled).getByRole('button', { name: 'Report conversation' }))
     expect(onOpenSession).toHaveBeenCalledExactlyOnceWith(sessionId)
-    const fallback = within(untitled!).getByRole('button', { name: dictionary['host.openDeliverySession'] })
+    const fallback = within(untitled).getByRole('button', { name: dictionary['host.openDeliverySession'] })
     expect(fallback.hasAttribute('disabled')).toBe(true)
     fireEvent.click(fallback)
     expect(onOpenSession).toHaveBeenCalledTimes(1)
@@ -315,10 +315,10 @@ describe.each([en, zh])('saved delivery records', (dictionary) => {
   it('renders each saved occurrence in the task zone rather than the browser zone', async () => {
     const loadHistory = vi.fn<DeliveryHistoryInjected['loadHistory']>().mockResolvedValue(result())
     render(<DeliveryHistory
-      id={id} {...unlinked()} latestMessageId={records[0]!.messageId}
+      id={id} {...unlinked()} latestMessageId={records[0].messageId}
       timeZone={TASK_ZONE} loadHistory={loadHistory} t={makeTranslate(dictionary)}
     />)
-    const region = (await screen.findAllByRole('region', { name: dictionary['delivery.label'] }))[0]!
+    const region = (await screen.findAllByRole('region', { name: dictionary['delivery.label'] }))[0]
     const occurrence = region.querySelector<HTMLTimeElement>(`.${css.deliveryTime}`)!
     // Precondition: the two zones hold different offsets at this instant, so the
     // task-zone render cannot coincide with the browser-zone render.
@@ -417,27 +417,27 @@ it('offers the instruction toggle only while the collapsed instruction overflows
 
 it('appends real-sized pages stably without duplicate IDs and contains overlapping older-page requests', async () => {
   const h = mount()
-  await screen.findByText(formatScheduleNextRun(records[0]!.scheduledAt, en['time.locale']))
+  await screen.findByText(formatScheduleNextRun(records[0].scheduledAt, en['time.locale']))
   const pending = Promise.withResolvers<Result>()
   h.loadHistory.mockReturnValueOnce(pending.promise)
   const more = screen.getByRole('button', { name: en['delivery.loadMore'] })
   act(() => { more.click(); more.click() })
   expect(h.loadHistory).toHaveBeenCalledTimes(2)
-  expect(h.loadHistory).toHaveBeenLastCalledWith({ id, limit: 20, before: records[19]!.messageId })
+  expect(h.loadHistory).toHaveBeenLastCalledWith({ id, limit: 20, before: records[19].messageId })
   expect(more.hasAttribute('disabled')).toBe(true)
   const overlapping = result(19, 39)
   await resolve(pending, overlapping)
   expect(occurrences()).toEqual(records.slice(0, 39).map(record => record.scheduledAt))
   h.loadHistory.mockResolvedValueOnce(result(39, 45))
   fireEvent.click(screen.getByRole('button', { name: en['delivery.loadMore'] }))
-  await screen.findByText(formatScheduleNextRun(records[44]!.scheduledAt, en['time.locale']))
+  await screen.findByText(formatScheduleNextRun(records[44].scheduledAt, en['time.locale']))
   expect(occurrences()).toEqual(records.map(record => record.scheduledAt))
   expect(screen.queryByRole('button', { name: en['delivery.loadMore'] })).toBeNull()
 })
 
 it.each(['remote', 'reject', 'cursor', 'missing'] as const)('preserves records on an older-page %s failure with the correct retry cursor', async (mode) => {
   const h = mount()
-  await screen.findByText(formatScheduleNextRun(records[0]!.scheduledAt, en['time.locale']))
+  await screen.findByText(formatScheduleNextRun(records[0].scheduledAt, en['time.locale']))
   const pending = Promise.withResolvers<Result>()
   h.loadHistory.mockReturnValueOnce(pending.promise)
   fireEvent.click(screen.getByRole('button', { name: en['delivery.loadMore'] }))
@@ -448,15 +448,15 @@ it.each(['remote', 'reject', 'cursor', 'missing'] as const)('preserves records o
   expect(screen.queryByText(en['delivery.empty'])).toBeNull()
   h.loadHistory.mockResolvedValueOnce(mode === 'remote' || mode === 'reject' ? result(20, 40) : result(0, 20))
   fireEvent.click(screen.getByRole('button', { name: en[mode === 'cursor' ? 'delivery.refresh' : 'delivery.retry'] }))
-  await act(async () => { await h.loadHistory.mock.results[2]!.value })
-  expect(h.loadHistory).toHaveBeenLastCalledWith({ id, limit: 20, ...(mode === 'remote' || mode === 'reject' ? { before: records[19]!.messageId } : {}) })
+  await act(async () => { await h.loadHistory.mock.results[2].value })
+  expect(h.loadHistory).toHaveBeenLastCalledWith({ id, limit: 20, ...(mode === 'remote' || mode === 'reject' ? { before: records[19].messageId } : {}) })
   expect(occurrences()).toHaveLength(mode === 'remote' || mode === 'reject' ? 40 : 20)
   expect(screen.queryByRole('alert')).toBeNull()
 })
 
 it.each(['success', 'rejection'] as const)('refreshes the newest page while ignoring an older-page late %s', async (outcome) => {
   const h = mount()
-  await screen.findByText(formatScheduleNextRun(records[0]!.scheduledAt, en['time.locale']))
+  await screen.findByText(formatScheduleNextRun(records[0].scheduledAt, en['time.locale']))
   const older = Promise.withResolvers<Result>()
   const newest = Promise.withResolvers<Result>()
   h.loadHistory.mockReturnValueOnce(older.promise).mockReturnValueOnce(newest.promise)
@@ -478,14 +478,14 @@ it.each(['success', 'rejection'] as const)('refreshes the newest page while igno
 
 it('preserves loaded records on failed receipt refresh and retries newest rather than the old cursor', async () => {
   const h = mount()
-  await screen.findByText(formatScheduleNextRun(records[0]!.scheduledAt, en['time.locale']))
+  await screen.findByText(formatScheduleNextRun(records[0].scheduledAt, en['time.locale']))
   h.loadHistory.mockResolvedValueOnce(transportFailure)
   h.view.rerender(<DeliveryHistory {...h.props} latestMessageId={'new-receipt' as ScheduleDeliveryRecord['messageId']} />)
   await screen.findByRole('alert')
   expect(occurrences()).toHaveLength(20)
   h.loadHistory.mockResolvedValueOnce(result(40, 45))
   fireEvent.click(screen.getByRole('button', { name: en['delivery.retry'] }))
-  await screen.findByText(formatScheduleNextRun(records[44]!.scheduledAt, en['time.locale']))
+  await screen.findByText(formatScheduleNextRun(records[44].scheduledAt, en['time.locale']))
   expect(h.loadHistory).toHaveBeenLastCalledWith({ id, limit: 20 })
   expect(occurrences()).toHaveLength(5)
 })

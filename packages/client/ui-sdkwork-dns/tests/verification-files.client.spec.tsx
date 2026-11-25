@@ -167,7 +167,7 @@ describe('verification files · upload', () => {
     await waitFor(() => {
       expect((view.getByLabelText('文件名') as HTMLInputElement).value).toBe('MP_verify_new.txt')
     })
-    expect((view.getByLabelText('文件内容') as HTMLTextAreaElement).value).toBe('fresh-token')
+    expect((view.getByLabelText('文件内容') as HTMLInputElement).value).toBe('fresh-token')
 
     fireEvent.click(view.getByRole('button', { name: '上传' }))
     await waitFor(() => {

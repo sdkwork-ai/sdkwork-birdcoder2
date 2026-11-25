@@ -13,7 +13,7 @@
  * hands the surface's sign-in gesture back to this application's own login entry
  * ({@link MarketsHostRuntime.requestSignIn}).
  */
-import { createElement, useSyncExternalStore, type FC, type ReactNode } from 'react'
+import { createElement, Fragment, useState, useSyncExternalStore, type FC, type ReactNode } from 'react'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { SdkworkHostThemeSurface, type HostThemeBridge } from './sdkworkHostThemeSurface.tsx'
 import { MarketsAuthSurface } from './MarketsAuthSurface.tsx'
@@ -26,6 +26,19 @@ import {
   type AppstoreMarketsSurfaceSession,
 } from '@sdkwork/appstore-pc-embed'
 import { getSdkworkGlobalTokenManager } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
+import type { PluginArtifactSource, PluginRecord, SdkworkPluginsAppClient } from '@sdkwork/plugins-app-sdk'
+import { createPluginsAppClient } from '@sdkwork/plugins-app-sdk'
+import { MarketplacePage, type MarketplaceInstallationState } from '@sdkwork/plugins-pc-marketplace'
+import type { SdkworkDriveAppClient } from '@sdkwork/drive-app-sdk'
+import { createDriveAppClient } from '@sdkwork/drive-app-sdk'
+import { syncSdkworkGlobalTokenManager } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
+import { parsePluginSource, pluginSourceSpec, parsePluginSourceSpec } from '@deepseek-ai/dsh-plugin-manager/source'
+import type { PluginStore } from './pluginStore.ts'
+import type { MarketsKey } from './locales.ts'
+import {
+  installTargetOf, type MarketplaceInstallation,
+} from './pluginInstallation.ts'
+import css from './MarketsPage.module.css'
 
 /* jscpd:ignore-start -- the SDKWork host adapter is one deliberate template
    shared with ui-sdkwork-appstore's appstoreHost.ts and the other SDKWork
@@ -171,6 +184,215 @@ export interface MarketsHostRenderSnapshot {
   authenticated: boolean
 }
 
+/** SDKWork app client and install callback bound to the active host account. */
+export interface PluginsMarketplaceHost {
+  readonly client: Pick<SdkworkPluginsAppClient, 'plugins'>
+  readonly canInstall: boolean
+  install(plugin: PluginRecord, store: PluginStore): Promise<void>
+  /** Install the catalog version over the installed one. */
+  update(plugin: PluginRecord, installation: MarketplaceInstallation, store: PluginStore): Promise<void>
+  /** Uninstall the profile dependency this catalog record installed. */
+  remove(plugin: PluginRecord, installation: MarketplaceInstallation, store: PluginStore): Promise<void>
+}
+
+/** Why a catalog record cannot be installed from this surface, as a locale key. */
+export type MarketInstallProblem = 'no-target'
+
+/** A refused install whose cause the surface can word in its own language. */
+export class MarketInstallError extends Error {
+  constructor(readonly problem: MarketInstallProblem, detail?: string) {
+    super(detail ?? problem)
+    this.name = 'MarketInstallError'
+  }
+}
+
+/** The source metadata imported from the dsh-market catalog. */
+interface DshMarketMetadata {
+  readonly provider?: unknown
+  readonly catalogUrl?: unknown
+  readonly pageUrl?: unknown
+  readonly url?: unknown
+  readonly npmPackage?: unknown
+  readonly tarballUrl?: unknown
+  readonly repositoryUrl?: unknown
+  readonly repositoryPath?: unknown
+  readonly repositoryRef?: unknown
+  readonly npm?: unknown
+  readonly tarball?: unknown
+  readonly git?: unknown
+  readonly version?: unknown
+  readonly releaseManifest?: unknown
+}
+
+/** A PluginRecord with the optional marketplace projection added by SDKWork. */
+type MarketplacePluginRecord = PluginRecord & { marketplaceMetadata?: unknown }
+
+const NPM_PACKAGE_NAME = /^(?:@[a-z0-9-~][a-z0-9._~-]*\/)?[a-z0-9-~][a-z0-9._~-]*$/iu
+const RELEASE_VERSION = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u
+
+function dshMarketMetadata(plugin: PluginRecord): DshMarketMetadata | undefined {
+  const value = (plugin as MarketplacePluginRecord).marketplaceMetadata
+  if (typeof value !== 'object' || value === null) return undefined
+  const metadata = value as DshMarketMetadata
+  return metadata.provider === 'dsh-market' ? metadata : undefined
+}
+
+function githubSourceFromCatalogUrl(value: string): string | undefined {
+  let parsed: URL
+  try {
+    parsed = new URL(value)
+  } catch {
+    return undefined
+  }
+  if (parsed.protocol !== 'https:' || parsed.hostname.toLowerCase() !== 'github.com'
+    || parsed.username !== '' || parsed.password !== '' || parsed.search !== '' || parsed.hash !== '') return undefined
+  const parts = parsed.pathname.split('/').filter(Boolean)
+  if (parts.length < 2) return undefined
+  const repository = `https://github.com/${parts[0]}/${parts[1]}`
+  if (parts.length === 2) return repository
+  if (parts[2] !== 'tree' || parts.length < 4) return undefined
+  const ref = parts[3]
+  const directory = parts.slice(4).join('/')
+  if (directory === '') return `${repository}#${ref}`
+  return `${repository}#${ref}&path:/${directory}`
+}
+
+function githubReleaseArchiveBelongsToRepository(archive: string, repository: unknown): boolean {
+  if (typeof repository !== 'string') return false
+  try {
+    const archiveUrl = new URL(archive)
+    const repositoryUrl = new URL(repository)
+    if (archiveUrl.protocol !== 'https:' || repositoryUrl.protocol !== 'https:') return false
+    if (archiveUrl.hostname.toLowerCase() !== 'github.com' || repositoryUrl.hostname.toLowerCase() !== 'github.com') return false
+    const repositoryPath = repositoryUrl.pathname.replace(/\.git$/iu, '').replace(/\/$/u, '')
+    return archiveUrl.pathname.startsWith(`${repositoryPath}/releases/`)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Map an imported dsh-market entry to the one source vocabulary accepted by
+ * the Harness plugin manager. The catalog's `install` text is intentionally
+ * ignored because it is display data rather than a trusted target.
+ *
+ * @param plugin - SDKWork catalog record carrying marketplace metadata.
+ * @returns a validated Harness install spec, or undefined when no supported
+ * source was imported.
+ */
+export function marketplaceInstallSpec(plugin: PluginRecord): string | undefined {
+  const metadata = dshMarketMetadata(plugin)
+  if (metadata === undefined) return undefined
+
+  const npmPackage = typeof metadata.npmPackage === 'string' ? metadata.npmPackage : metadata.npm
+  if (typeof npmPackage === 'string' && NPM_PACKAGE_NAME.test(npmPackage)) {
+    const version = typeof metadata.version === 'string' && RELEASE_VERSION.test(metadata.version)
+      ? metadata.version
+      : undefined
+    return `${npmPackage}${version === undefined ? '' : `@${version}`}`
+  }
+
+  const releaseManifest = typeof metadata.releaseManifest === 'object' && metadata.releaseManifest !== null
+    ? metadata.releaseManifest as { tarball?: unknown }
+    : undefined
+  const tarball = typeof metadata.tarballUrl === 'string' ? metadata.tarballUrl : metadata.tarball
+  const archive = typeof tarball === 'string' && tarball.trim() !== ''
+    ? tarball
+    : typeof releaseManifest?.tarball === 'string' && releaseManifest.tarball.trim() !== ''
+      ? releaseManifest.tarball
+      : undefined
+  if (archive !== undefined && githubReleaseArchiveBelongsToRepository(archive, metadata.repositoryUrl)) {
+    try {
+      return pluginSourceSpec(parsePluginSource({ kind: 'archive', url: archive }))
+    } catch {
+      // A malformed optional release asset must not hide a valid repository
+      // target. Continue with the same source precedence used by the catalog
+      // importer and let the Harness inspector validate the repository.
+    }
+  }
+
+  const repositoryUrl = typeof metadata.repositoryUrl === 'string' ? metadata.repositoryUrl : metadata.git
+  const repositoryPath = typeof metadata.repositoryPath === 'string' && metadata.repositoryPath !== '.'
+    ? metadata.repositoryPath
+    : undefined
+  const repositoryRef = typeof metadata.repositoryRef === 'string' && metadata.repositoryRef.trim() !== ''
+    ? metadata.repositoryRef.trim()
+    : undefined
+  const git = typeof repositoryUrl === 'string' && repositoryUrl.trim() !== ''
+    ? repositoryUrl.replace(/^git\+/iu, '')
+    : typeof metadata.url === 'string'
+      ? githubSourceFromCatalogUrl(metadata.url)
+      : typeof metadata.catalogUrl === 'string'
+        ? githubSourceFromCatalogUrl(metadata.catalogUrl)
+        : typeof metadata.pageUrl === 'string' ? githubSourceFromCatalogUrl(metadata.pageUrl) : undefined
+  if (git === undefined) return undefined
+  const separator = git.indexOf('#')
+  const url = separator === -1 ? git : git.slice(0, separator)
+  const fragment = separator === -1 ? '' : git.slice(separator + 1)
+  const [fragmentRef, path] = fragment.split('&path:/')
+  const ref = fragmentRef === '' ? repositoryRef ?? '' : fragmentRef
+  try {
+    return pluginSourceSpec(parsePluginSource({
+      kind: 'git',
+      url,
+      ...(ref === '' ? {} : { ref }),
+      ...(path === undefined || path === '' ? repositoryPath === undefined ? {} : { directory: repositoryPath } : { directory: path }),
+    }))
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Resolve a GitHub ref to the commit that dsh-market pins before installing.
+ *
+ * The pinned spec keeps the source's own directory: re-deriving it from
+ * catalog metadata used to drop a curated subdirectory and install the
+ * repository root instead. An unreachable API leaves the spec unpinned rather
+ * than refusing a target the Host can fetch itself.
+ *
+ * @param plugin - SDKWork catalog record carrying marketplace metadata.
+ * @param spec - the install spec the catalog resolved.
+ * @returns the pinned spec when a commit could be read, else the spec unchanged.
+ */
+export async function pinMarketplaceGitSpec(plugin: PluginRecord, spec: string): Promise<string> {
+  let source
+  try {
+    source = parsePluginSourceSpec(spec)
+  } catch {
+    return spec
+  }
+  if (source?.kind !== 'git') return spec
+  let parsed: URL
+  try { parsed = new URL(source.url) } catch { return spec }
+  if (parsed.protocol !== 'https:' || parsed.hostname.toLowerCase() !== 'github.com') return spec
+  const parts = parsed.pathname.split('/').filter(Boolean)
+  if (parts.length < 2) return spec
+  const owner = parts[0]
+  const repo = parts[1].replace(/\.git$/iu, '')
+  const ref = source.ref ?? 'HEAD'
+  try {
+    const response = await fetch(
+      `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/commits/${encodeURIComponent(ref)}`,
+      { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'BirdCoder-plugin-market' } },
+    )
+    if (!response.ok) return spec
+    const payload: unknown = await response.json()
+    const sha = typeof payload === 'object' && payload !== null && 'sha' in payload
+      ? (payload as { sha?: unknown }).sha
+      : undefined
+    if (typeof sha !== 'string' || !/^[0-9a-f]{40}$/iu.test(sha)) return spec
+    return pluginSourceSpec({
+      kind: 'git',
+      url: source.url,
+      ref: sha,
+      ...(source.directory === undefined ? {} : { directory: source.directory }),
+    })
+  } catch {
+    return spec
+  }
+}
+
 /**
  * Convert the host IAM state into SDKWork's session format.
  * The host forwards credentials only; the embedded surface derives identity
@@ -232,6 +454,7 @@ export interface MarketsHostRuntime extends MarketsHostAdapter {
   resolveHostLanguage(): string
   /** @returns the render snapshot for the embedded host component. */
   getHostSnapshot(): MarketsHostRenderSnapshot
+  getPluginsMarketplaceHost(): PluginsMarketplaceHost
   /** Open the application's own sign-in surface from a catalog's gate. */
   requestSignIn(): void
 }
@@ -245,6 +468,10 @@ class MarketsHostRuntimeImpl implements MarketsHostRuntime {
   private offIam: (() => void) | undefined
   private offLocale: (() => void) | undefined
   private disposed = false
+  private pluginsClient: SdkworkPluginsAppClient | undefined
+  private pluginsClientBaseUrl: string | undefined
+  private driveClient: SdkworkDriveAppClient | undefined
+  private driveClientBaseUrl: string | undefined
 
   constructor(private readonly options: ConfigureMarketsHostOptions) {}
 
@@ -321,6 +548,84 @@ class MarketsHostRuntimeImpl implements MarketsHostRuntime {
     return this.cachedSnapshot
   }
 
+  /** Build or reuse the generated Plugins and Drive clients for this host. */
+  getPluginsMarketplaceHost(): PluginsMarketplaceHost {
+    const baseUrl = this.options.env.apiBaseUrl().trim()
+    const session = this.options.iam.controller.getState().session
+    const staticAccessToken = this.options.env.accessToken()
+    syncSdkworkGlobalTokenManager(session, staticAccessToken)
+    if (baseUrl === '') throw new Error('ui-sdkwork-markets: SDKWork base URL is not configured')
+    if (this.pluginsClient === undefined || this.pluginsClientBaseUrl !== baseUrl) {
+      this.pluginsClientBaseUrl = baseUrl
+      this.pluginsClient = createPluginsAppClient({
+        baseUrl,
+        authMode: 'dual-token',
+        tokenManager: getSdkworkGlobalTokenManager(),
+      })
+    }
+    if (this.driveClient === undefined || this.driveClientBaseUrl !== baseUrl) {
+      this.driveClientBaseUrl = baseUrl
+      this.driveClient = createDriveAppClient({
+        baseUrl,
+        authMode: 'dual-token',
+        tokenManager: getSdkworkGlobalTokenManager(),
+      })
+    }
+    const client = this.pluginsClient
+    const driveClient = this.driveClient
+    const canInstall = this.options.iam.controller.getState().session !== null || staticAccessToken.trim() !== ''
+    return {
+      client,
+      canInstall,
+      install: async (plugin, store) => {
+        if (!canInstall) {
+          this.requestSignIn()
+          return
+        }
+        const spec = await this.resolveInstallSpec(plugin, client, driveClient)
+        store.openInstall(await pinMarketplaceGitSpec(plugin, spec))
+        await store.runInstall()
+      },
+      update: async (plugin, installation, store) => {
+        if (!canInstall) {
+          this.requestSignIn()
+          return
+        }
+        const version = installation.version
+        if (version === undefined) throw new MarketInstallError('no-target', 'the catalog declares no version')
+        await store.updatePlugin(installation.packageName, version)
+      },
+      remove: async (_plugin, installation, store) => {
+        if (!canInstall) {
+          this.requestSignIn()
+          return
+        }
+        await store.removePlugin(installation.packageName)
+      },
+    }
+  }
+
+  /**
+   * Resolve the one target installation uses: the catalog record's own target,
+   * or the imported catalog projection for a record from a catalog revision
+   * that predates the target.
+   *
+   * Installation is a local Host action, so the server exposes the target as
+   * record data rather than an endpoint this client has to call.
+   */
+  private async resolveInstallSpec(
+    plugin: PluginRecord,
+    _client: SdkworkPluginsAppClient,
+    driveClient: SdkworkDriveAppClient,
+  ): Promise<string> {
+    if (plugin.source != null) return pluginsInstallSpec(plugin.source, driveClient)
+    const target = installTargetOf(plugin)
+    if (target !== undefined) return target.spec
+    const spec = marketplaceInstallSpec(plugin)
+    if (spec === undefined) throw new MarketInstallError('no-target')
+    return spec
+  }
+
   /** @returns the host theme bridge for the embedded market page. */
   readThemeBridge(): HostThemeBridge {
     return this.options.theme
@@ -345,6 +650,10 @@ class MarketsHostRuntimeImpl implements MarketsHostRuntime {
     this.offEnvironment = undefined
     this.offIam = undefined
     this.offLocale = undefined
+    this.pluginsClient = undefined
+    this.pluginsClientBaseUrl = undefined
+    this.driveClient = undefined
+    this.driveClientBaseUrl = undefined
     this.listeners.clear()
     if (activeAdapter === this) activeAdapter = undefined
   }
@@ -356,6 +665,41 @@ class MarketsHostRuntimeImpl implements MarketsHostRuntime {
     this.cachedSnapshot = undefined
     for (const listener of this.listeners) listener()
   }
+}
+
+/** Convert the app API artifact descriptor into the Host plugin-manager spec. */
+export async function pluginsInstallSpec(source: PluginArtifactSource, driveClient: SdkworkDriveAppClient): Promise<string> {
+  if (source.kind === 'git') {
+    return pluginSourceSpec(parsePluginSource({
+      kind: 'git',
+      url: source.repositoryUrl,
+      ...(source.gitRef == null ? {} : { ref: source.gitRef }),
+      ...(source.repositoryPath === '.' ? {} : { directory: source.repositoryPath }),
+    }))
+  }
+  const driveUri = source.driveUri
+  const parts = /^drive:\/\/spaces\/([^/]+)\/nodes\/([^/]+)$/.exec(driveUri)
+  if (parts === null) throw new Error('Plugin Drive source is invalid')
+  const [, , nodeId] = parts
+  let downloadUrl: string
+  if (source.kind === 'drive_file') {
+    if (!/^[a-f0-9]{64}$/i.test(source.checksumSha256)) {
+      throw new Error('Plugin artifact checksum is invalid')
+    }
+    downloadUrl = (await driveClient.drive.nodes.downloadUrls.retrieve(nodeId)).signedSourceUrl
+  } else {
+    const packageResponse = await driveClient.drive.downloadPackages.create({
+      nodeIds: [nodeId],
+      packageName: 'sdkwork-plugin.zip',
+    })
+    downloadUrl = packageResponse.signedSourceUrl
+  }
+  const archive = parsePluginSource({
+    kind: 'archive',
+    url: downloadUrl,
+    ...(source.kind === 'drive_file' ? { sha256: source.checksumSha256 } : {}),
+  })
+  return pluginSourceSpec(archive)
 }
 
 let activeAdapter: MarketsHostRuntimeImpl | undefined
@@ -443,6 +787,115 @@ export function MarketsApp(props: MarketsAppProps): ReactNode {
         return adapter.readThemeBridge().subscribe(() => { listener(adapter.readThemeBridge().getColorScheme()) })
       },
     }),
+  )
+}
+
+/** Props for the SDKWork Plugins marketplace hosted in the Plugins tab. */
+export interface SdkworkPluginsMarketplaceProps {
+  t: TranslateNS<'markets'>
+  store: PluginStore
+  managementAvailable: boolean
+  installBusy: boolean
+  /** Installed state of one catalog record, joined from the local profile. */
+  installationOf: (plugin: PluginRecord) => MarketplaceInstallation | undefined
+  onManage: () => void
+  onAdd: () => void
+  onSectionChange: (section: 'plugins' | 'skills' | 'partners') => void
+}
+
+/**
+ * Render the SDKWork Plugins marketplace with the active BirdCoder credentials,
+ * theme and locale. Marketplace artifacts use the Host's existing installer.
+ */
+export function SdkworkPluginsMarketplace({
+  t, store, managementAvailable, installBusy, installationOf, onManage, onAdd, onSectionChange,
+}: SdkworkPluginsMarketplaceProps): ReactNode {
+  const [installFailure, setInstallFailure] = useState<{ readonly key: MarketsKey; readonly detail?: string } | undefined>()
+  const [installingKey, setInstallingKey] = useState<string | undefined>()
+  const adapter = activeAdapter
+  if (adapter === undefined) {
+    throw new Error('ui-sdkwork-markets: SDKWork host runtime is not configured')
+  }
+  const readSnapshot = (): MarketsHostRenderSnapshot => adapter.getHostSnapshot()
+  const snapshot = useSyncExternalStore(
+    (listener: () => void) => adapter.subscribe(listener),
+    readSnapshot,
+    readSnapshot,
+  )
+  if (snapshot.apiBaseUrl === '') return createElement(MarketsEmptySurface, { t })
+  if (!snapshot.authenticated) {
+    return createElement(MarketsAuthSurface, { t, onSignIn: () => { adapter.requestSignIn() } })
+  }
+
+  const host = adapter.getPluginsMarketplaceHost()
+  const canInstall = host.canInstall && managementAvailable && !installBusy
+  const translate = t as (key: MarketsKey, params?: Record<string, string>) => string
+  const fail = (error: unknown): void => {
+    if (error instanceof MarketInstallError) {
+      setInstallFailure({
+        key: `market.install.problem.${error.problem}` as MarketsKey,
+        ...(error.message === error.problem ? {} : { detail: error.message }),
+      })
+      return
+    }
+    setInstallFailure({ key: 'install.failed', detail: error instanceof Error ? error.message : String(error) })
+  }
+  const install = (plugin: PluginRecord): void => {
+    setInstallFailure(undefined)
+    setInstallingKey(plugin.pluginKey)
+    void host.install(plugin, store).catch(fail).finally(() => { setInstallingKey(undefined) })
+  }
+  const update = (plugin: PluginRecord, _installation: MarketplaceInstallationState): void => {
+    const installed = installationOf(plugin)
+    if (installed === undefined) return
+    setInstallFailure(undefined)
+    setInstallingKey(plugin.pluginKey)
+    void host.update(plugin, installed, store).catch(fail).finally(() => { setInstallingKey(undefined) })
+  }
+  const remove = (plugin: PluginRecord, _installation: MarketplaceInstallationState): void => {
+    const installed = installationOf(plugin)
+    if (installed === undefined) return
+    setInstallFailure(undefined)
+    void host.remove(plugin, installed, store).catch(fail)
+  }
+  const disabledReason = (plugin: PluginRecord): string | undefined => {
+    if (!managementAvailable) return t('market.install.disabled.management')
+    if (installBusy) return t('market.install.disabled.busy')
+    if (!host.canInstall) return t('market.install.disabled.signIn')
+    if (installTargetOf(plugin) === undefined && plugin.source == null && marketplaceInstallSpec(plugin) === undefined) {
+      return t('market.install.disabled.noSource')
+    }
+    return undefined
+  }
+  return createElement(
+    SdkworkHostThemeSurface,
+    { theme: adapter.readThemeBridge(), surface: 'markets-plugins' },
+    createElement(
+      Fragment,
+      null,
+      createElement(MarketplacePage, {
+        appClient: host.client,
+        locale: snapshot.locale === 'zh-CN' ? 'zh-CN' : 'en-US',
+        showSectionNavigation: false,
+        canInstall,
+        onManage,
+        onAdd,
+        onInstall: install,
+        onUpdate: update,
+        onRemove: remove,
+        installationOf,
+        installDisabledReason: disabledReason,
+        installingKeys: new Set(installingKey === undefined ? [] : [installingKey]),
+        onSectionChange,
+      }),
+      installFailure === undefined ? null : createElement(
+        'p',
+        { role: 'alert', className: css.marketInstallError },
+        installFailure.detail === undefined
+          ? translate(installFailure.key)
+          : translate(installFailure.key, { detail: installFailure.detail }),
+      ),
+    ),
   )
 }
 /* jscpd:ignore-end */

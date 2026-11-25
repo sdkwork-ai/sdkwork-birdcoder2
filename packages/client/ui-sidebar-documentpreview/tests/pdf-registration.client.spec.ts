@@ -57,11 +57,11 @@ describe('PDF registration', () => {
       expect(previews.candidates('REPORT.PDF')).toMatchObject([
         { id: PDF_BODY_ID, extensions: ['pdf'], priority: 'builtin', loading: 'bytes-complete', wrap: false },
       ])
-      expect(previews.candidates('report.pdf')[0]!.title()).toBe('PDF')
+      expect(previews.candidates('report.pdf')[0].title()).toBe('PDF')
       expect(dictionaries.get('sidebarPdf')).toEqual({ zh, en, ja, es, fr, de, ru, pt })
       expect(entries[0]).toMatchObject({ name: 'sidebar.right.tab.document', key: PDF_BODY_ID, locale: 'sidebarPdf' })
-      const instance = entries[0]!.store.create()
-      const face = entries[0]!.inject('s1' as SessionId, instance.actions)
+      const instance = entries[0].store.create()
+      const face = entries[0].inject('s1' as SessionId, instance.actions)
       const controller = new AbortController()
       face.retainTab('one' as TabId, controller.signal)
       face.retainTab('one' as TabId, controller.signal)

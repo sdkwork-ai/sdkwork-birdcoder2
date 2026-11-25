@@ -146,7 +146,7 @@ describe('ClientAssistantStream', () => {
       kind: 'committed', eventType: 'assistant/message', seq: 2,
     }))).toEqual({ type: 'publish', entry: durable })
     for (const [turn, step] of [[2, 1], [1, 2]]) {
-      const unrelated = entry({ type: 'step/end', seq: SessionSeq(3), time: 3, data: { turn: turn!, step: step! } })
+      const unrelated = entry({ type: 'step/end', seq: SessionSeq(3), time: 3, data: { turn: turn, step: step } })
       expect(stream.acceptDurable(unrelated)).toEqual({ type: 'publish', entry: unrelated })
     }
     const closed = entry({ type: 'step/end', seq: SessionSeq(4), time: 4, data: { turn: 1, step: 1 } })

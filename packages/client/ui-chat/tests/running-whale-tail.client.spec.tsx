@@ -41,11 +41,11 @@ describe('RunningWhaleTail', () => {
     expect(chunks.at(-1)?.type).toBe('IEND')
     const headers = chunks.filter(chunk => chunk.type === 'IHDR')
     expect(headers).toHaveLength(1)
-    const header = headers[0]!.data
+    const header = headers[0].data
     expect([header.readUInt32BE(0), header.readUInt32BE(4), header[8], header[9]]).toEqual([28, 28, 8, 4])
     const animations = chunks.filter(chunk => chunk.type === 'acTL')
     expect(animations).toHaveLength(1)
-    expect([animations[0]!.data.readUInt32BE(0), animations[0]!.data.readUInt32BE(4)]).toEqual([60, 0])
+    expect([animations[0].data.readUInt32BE(0), animations[0].data.readUInt32BE(4)]).toEqual([60, 0])
     const frames = chunks.filter(chunk => chunk.type === 'fcTL')
     expect(frames).toHaveLength(60)
     let duration = 0

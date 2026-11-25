@@ -68,8 +68,22 @@ describe('readProjectAppState', () => {
       runtimeFramework: 'react',
       platforms: ['WEB'],
       iconUrl: 'https://cdn.sdkwork.com/store.png',
+      coverUrl: 'https://cdn.sdkwork.com/store.png',
       officialWebsiteUrl: 'https://sdkwork.com/apps/store',
     })
+  })
+
+  it('prefers the catalog preview, then a screenshot, then the icon for the cover', () => {
+    const withPreview = manifest({ key: 'k', name: 'n', iconUrl: 'https://cdn.example.com/icon.png' }, {
+      media: { previews: [{ url: 'https://cdn.example.com/preview.png' }], screenshots: [{ url: 'https://cdn.example.com/shot.png' }] },
+    })
+    expect(readProjectAppState(withPreview, {}).identity?.coverUrl).toBe('https://cdn.example.com/preview.png')
+    const withScreenshot = manifest({ key: 'k', name: 'n', iconUrl: 'https://cdn.example.com/icon.png' }, {
+      media: { previews: [], screenshots: [{ url: 'https://cdn.example.com/shot.png' }] },
+    })
+    expect(readProjectAppState(withScreenshot, {}).identity?.coverUrl).toBe('https://cdn.example.com/shot.png')
+    const iconOnly = manifest({ key: 'k', name: 'n', iconUrl: 'https://cdn.example.com/icon.png' })
+    expect(readProjectAppState(iconOnly, {}).identity?.coverUrl).toBe('https://cdn.example.com/icon.png')
   })
 
   it('reads the primary media icon when app.iconUrl is absent, and tolerates an app-less manifest', () => {

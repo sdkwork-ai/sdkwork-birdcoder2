@@ -154,7 +154,7 @@ describe('QueueDock', () => {
     const requestId = 'quote-handoff' as SessionSnapshot['pendingSubmissions'][number]['requestId']
     const content = [{ type: 'text' as const, text: '> @literal /review' }]
     const initial = { ...snapshotWith([]), pendingSubmissions: [{ requestId, placement: 'queued' as const,
-      time: 1000, text: content[0]!.text, attachments: [] }] }
+      time: 1000, text: content[0].text, attachments: [] }] }
     const source = liveSession(initial)
     const view = render(<QueueDock {...kitFor(initial)} useSession={source.useSession} useProjection={source.useProjection} />)
     expect(view.container.querySelector('[data-quote-preview-text]')?.textContent).toBe('@literal /review')
@@ -669,7 +669,7 @@ describe('QueueDock', () => {
     )
 
     fireEvent.click(getByRole('button', { name: '2 条排队消息' }))
-    fireEvent.click(getAllByLabelText('删除排队消息')[0]!)
+    fireEvent.click(getAllByLabelText('删除排队消息')[0])
     await waitFor(() => {
       expect(updateQueue).toHaveBeenCalledWith(iid('i-1'), { kind: 'remove' })
     })

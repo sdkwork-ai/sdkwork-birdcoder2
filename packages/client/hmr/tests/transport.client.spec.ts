@@ -70,7 +70,7 @@ it('forwards the baseline and increments to the entry controller while access al
   h.provideNamespace()
   const fiber = h.ctx.plugin({ apply, inject })
   await fiber.await()
-  const options = h.opened[0]!
+  const options = h.opened[0]
   expect(options.name).toBe('Plugin events')
   const signal = new AbortController().signal
   expect(await collect(options.open(signal))).toEqual(['frame'])
@@ -93,7 +93,7 @@ it('forwards the baseline and increments to the entry controller while access al
   h.stream.push(1, { type: 'rebuilt', id: 'a', rev: 'r2' })
   await vi.waitFor(() => { expect(h.reload).toHaveBeenCalledWith('a', 'r2') })
   expect(h.sync.mock.calls.map(([graph]) => (graph as { rev: string }).rev)).toEqual(['g1', 'g2'])
-  await h.revoke[0]!()
+  await h.revoke[0]()
   expect(h.stream.disposed).toHaveBeenCalledOnce()
   await fiber.dispose()
   expect(h.unmount).toHaveBeenCalledOnce()
@@ -134,7 +134,7 @@ it('logs a terminal stream failure', async () => {
   await fiber.await()
   h.stream.push(1, { type: 'graph', graph: { rev: 'g', entries: [], batches: [] } })
   await vi.waitFor(() => { expect(errors).toHaveBeenCalledOnce() })
-  expect(errors.mock.calls[0]![0]).toContain('plugin events stopped')
+  expect(errors.mock.calls[0][0]).toContain('plugin events stopped')
   await fiber.dispose()
   await h.ctx.fiber.dispose()
 })

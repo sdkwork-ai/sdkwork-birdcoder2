@@ -112,7 +112,7 @@ describe('ui-sdkwork-demand-hall apply', () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const [action] = b.slots.entries(ACTIONS)
-    const injected = (action!.inject as unknown as () => { setMode: () => void })()
+    const injected = (action.inject as unknown as () => { setMode: () => void })()
     // The overlay write, not a mode switch: the code rail entry keeps its
     // highlight while the demand hall renders in the center column.
     injected.setMode()

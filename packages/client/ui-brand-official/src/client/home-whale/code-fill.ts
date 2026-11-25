@@ -30,7 +30,7 @@ export function createCodeFill(
   function opacity(pixels: Uint8ClampedArray, frame: number, x: number, y: number): number {
     const offsetX = (frame % atlas.columns) * atlas.width
     const offsetY = Math.floor(frame / atlas.columns) * atlas.height
-    return pixels[((offsetY + y) * stride + offsetX + x) * 4 + 1] as number
+    return pixels[((offsetY + y) * stride + offsetX + x) * 4 + 1]
   }
 
   return {
@@ -52,7 +52,7 @@ export function createCodeFill(
       const words: { text: string; x: number; y: number; room: number; alpha: number }[] = []
       for (let y = options.fontSize; y < height; y += options.fontSize * 1.2) {
         for (let x = -random() * options.fontSize * 10; x < width;) {
-          const text = options.phrases[Math.floor(random() * options.phrases.length)] as string
+          const text = options.phrases[Math.floor(random() * options.phrases.length)]
           const room = ink.measureText(text).width
           words.push({ text, x, y, room, alpha: 0.65 + random() * 0.35 })
           x += room + options.fontSize * (0.35 + random() * 0.65)

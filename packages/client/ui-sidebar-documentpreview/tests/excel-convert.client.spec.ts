@@ -14,7 +14,7 @@ describe('Excel conversion', () => {
     const { sheets, missingResults } = await convertExcel(input, 'xlsx', limits)
     expect(input.byteLength).toBeGreaterThan(0)
     expect(sheets.map(sheet => sheet.name)).toEqual(['季度预算', '公式与格式', '隐藏页'])
-    const first = sheets[0]!
+    const first = sheets[0]
     const cell = (r: number, c: number) => first.celldata!.find(value => value.r === r && value.c === c)!.v
     expect(cell(0, 0)).toMatchObject({ v: 'DeepSeek · 项目预算', bl: 1, fs: 18, fc: '#FFFFFF', bg: '#3B5CCC', ht: 0, vt: 0, mc: { r: 0, c: 0, rs: 1, cs: 4 } })
     expect(cell(0, 1)).toMatchObject({ mc: { r: 0, c: 0 } })
@@ -25,7 +25,7 @@ describe('Excel conversion', () => {
     expect(first.config!.borderInfo).toContainEqual({ rangeType: 'cell', value: { row_index: 1, col_index: 0, b: { style: 1, color: '#DCE2ED' } } })
     expect(first.frozen).toEqual({ type: 'rangeBoth', range: { row_focus: 1, column_focus: 0 } })
     expect(first.luckysheet_select_save).toEqual([{ row: [0, 0], column: [0, 3], row_focus: 0, column_focus: 0 }])
-    const second = sheets[1]!
+    const second = sheets[1]
     const secondCell = (r: number, c: number) => second.celldata!.find(value => value.r === r && value.c === c)!.v!
     expect(second.luckysheet_select_save).toEqual([{ row: [0, 0], column: [0, 0], row_focus: 0, column_focus: 0 }])
     expect(secondCell(0, 0)).toMatchObject({ f: '=_xlfn.XLOOKUP(1,{1},{42})', v: 42, m: '42' })
@@ -48,7 +48,7 @@ describe('Excel conversion', () => {
   it('opens workbooks with missing results and Chinese worksheet references', async () => {
     const { sheets, missingResults } = await convertExcel(await meetingMinutesFixture(), 'xlsx', limits)
     expect(sheets.map(sheet => sheet.name)).toEqual(['会议信息', '会议议程', '决议事项', '行动计划', '待确认问题', '风险与依赖', '统计看板', '填写说明'])
-    const dashboard = sheets[6]!
+    const dashboard = sheets[6]
     const cell = (r: number, c: number) => dashboard.celldata!.find(value => value.r === r && value.c === c)!.v
     expect(cell(4, 1)).toMatchObject({ f: '=COUNTIF(行动计划!$G$4:$G$23,$A5)', m: '' })
     expect(cell(4, 2)).toMatchObject({ f: '=IF($B5=0,"",REPT("█",MAX(1,ROUND($B5/MAX(1,$B$5)*16,0))))', m: '' })
@@ -89,8 +89,8 @@ describe('Excel conversion', () => {
     sheet.getRow(1000).height = 40
     const result = await convertExcel(new Uint8Array(await workbook.xlsx.writeBuffer()), 'xlsx', limits)
     expect(result.sheets[0]).toMatchObject({ row: 30, column: 1 })
-    expect(result.sheets[0]!.config!.columnlen).not.toHaveProperty('16383')
-    expect(result.sheets[0]!.config!.rowlen).not.toHaveProperty('999')
+    expect(result.sheets[0].config!.columnlen).not.toHaveProperty('16383')
+    expect(result.sheets[0].config!.rowlen).not.toHaveProperty('999')
   })
 
   it.each([false, true])('retains dates for the 1904 epoch flag %s', async (date1904) => {
@@ -100,7 +100,7 @@ describe('Excel conversion', () => {
     cell.value = new Date('2024-02-29T12:00:00Z')
     cell.numFmt = 'yyyy-mm-dd hh:mm'
     const result = await convertExcel(new Uint8Array(await workbook.xlsx.writeBuffer()), 'xlsx', limits)
-    expect(result.sheets[0]!.celldata![0]!.v).toMatchObject({ m: '2024-02-29 12:00' })
+    expect(result.sheets[0].celldata![0].v).toMatchObject({ m: '2024-02-29 12:00' })
   })
 
   it('maps custom colors, tints, alignment, decoration, and default dimensions', async () => {
@@ -129,22 +129,22 @@ describe('Excel conversion', () => {
     sheet.getCell('G1').font = { underline: 'none' }
     const result = await convertExcel(new Uint8Array(await workbook.xlsx.writeBuffer()), 'xlsx', limits)
     expect(result.sheets[0]).toMatchObject({ defaultColWidth: 89, config: { columnlen: { 0: 6 } } })
-    const cells = result.sheets[0]!.celldata!
-    expect(cells[0]!.v).toMatchObject({ fc: '#a7c0de', bg: '#28415f', cl: 1, un: 1, ht: 2, vt: 1, tb: '2', tr: '3' })
-    expect(cells[1]!.v).toMatchObject({ ht: 1, vt: 2, rt: 45 })
-    expect(cells[2]!.v).not.toHaveProperty('fc')
-    expect(cells[3]!.v).not.toHaveProperty('fc')
-    expect(cells[4]!.v).toMatchObject({ fc: '#FF0000' })
-    expect(cells[5]!.v).toMatchObject({ v: 42, ht: 2, vt: 0, ct: { t: 'n' } })
-    expect(cells[6]!.v).toMatchObject({ v: 'No underline', un: 0 })
+    const cells = result.sheets[0].celldata!
+    expect(cells[0].v).toMatchObject({ fc: '#a7c0de', bg: '#28415f', cl: 1, un: 1, ht: 2, vt: 1, tb: '2', tr: '3' })
+    expect(cells[1].v).toMatchObject({ ht: 1, vt: 2, rt: 45 })
+    expect(cells[2].v).not.toHaveProperty('fc')
+    expect(cells[3].v).not.toHaveProperty('fc')
+    expect(cells[4].v).toMatchObject({ fc: '#FF0000' })
+    expect(cells[5].v).toMatchObject({ v: 42, ht: 2, vt: 0, ct: { t: 'n' } })
+    expect(cells[6].v).toMatchObject({ v: 'No underline', un: 0 })
   })
 
   it.each([{ ySplit: 2 }, { xSplit: 1 }, {}])('maps one-axis or empty freeze settings %j', async (freeze) => {
     const workbook = new ExcelJS.Workbook()
     workbook.addWorksheet('Frozen', { views: [{ state: 'frozen', ...freeze, showGridLines: false }] }).getCell('A1').value = 1
     const result = await convertExcel(new Uint8Array(await workbook.xlsx.writeBuffer()), 'xlsx', limits)
-    expect(result.sheets[0]!.showGridLines).toBe(false)
-    expect(result.sheets[0]!.frozen?.type).toBe('ySplit' in freeze ? 'rangeRow' : 'xSplit' in freeze ? 'rangeColumn' : undefined)
+    expect(result.sheets[0].showGridLines).toBe(false)
+    expect(result.sheets[0].frozen?.type).toBe('ySplit' in freeze ? 'rangeRow' : 'xSplit' in freeze ? 'rangeColumn' : undefined)
   })
 
   it('accepts workbooks without a theme and ignores absent theme colors', async () => {

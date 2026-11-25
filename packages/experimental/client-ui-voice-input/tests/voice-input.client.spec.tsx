@@ -166,7 +166,7 @@ it('bounds recordings, indicates idle wake-up, and cancels an in-flight transcri
   fireEvent.blur(window)
   const state = b.readiness.getSnapshot()
   act(() => { b.readiness.set({ ...state, catalog: { ...state.catalog!, providers: [
-    { ...state.catalog!.providers[0]!, preparation: { phase: 'waking', startedAt: Date.now() } },
+    { ...state.catalog!.providers[0], preparation: { phase: 'waking', startedAt: Date.now() } },
   ] } }) })
   expect(screen.getByRole('status').textContent).toBe(zh.wakingShort)
   expect(b.transcribe.mock.calls[0]?.[1].aborted).toBe(false)
@@ -233,7 +233,7 @@ it('ends the recording UI immediately on a device failure and clears automatic t
 it.each(['cancel', 'session', 'unmount', 'finishing', 'finished'])('ignores interruption notifications after %s', async (action) => {
   const b = fixture()
   await start()
-  const failed = b.capture.start.mock.calls[0]![0]!
+  const failed = b.capture.start.mock.calls[0][0]!
   if (action === 'cancel') fireEvent.click(screen.getByRole('button', { name: zh.cancel }))
   if (action === 'session') b.view.rerender(<VoiceInput {...b.props} sessionId={'two' as SessionId} />)
   if (action === 'unmount') b.view.unmount()
@@ -260,7 +260,7 @@ it('does not restore recording when capture reports failure before start settles
 it('allows recording while verified local resources are waking', async () => {
   const b = fixture(), state = b.readiness.getSnapshot()
   act(() => { b.readiness.set({ ...state, catalog: { ...state.catalog!, providers: [
-    { ...state.catalog!.providers[0]!, preparation: { phase: 'waking', startedAt: 0 } },
+    { ...state.catalog!.providers[0], preparation: { phase: 'waking', startedAt: 0 } },
   ] } }) })
   await start()
   stop()
@@ -301,7 +301,7 @@ it.each(['escape', 'hidden', 'session'])('discards pending permission after %s',
 it('offers installation on click without a preparation tooltip', () => {
   const b = fixture(), state = b.readiness.getSnapshot()
   act(() => { b.readiness.set({ ...state, catalog: { ...state.catalog!, providers: [
-    { ...state.catalog!.providers[0]!, preparation: { phase: 'unprepared' } },
+    { ...state.catalog!.providers[0], preparation: { phase: 'unprepared' } },
   ] } }) })
   const mic = screen.getByRole<HTMLButtonElement>('button', { name: zh['setupPrompt.trigger'] })
   expect(mic.disabled).toBe(false)
@@ -325,7 +325,7 @@ it.each<SpeechPreparationState>([
 ])('guides $phase recognition to its status page without starting recording or preparation', (preparation) => {
   const b = fixture(), state = b.readiness.getSnapshot()
   act(() => { b.readiness.set({ ...state, catalog: { ...state.catalog!, providers: [
-    { ...state.catalog!.providers[0]!, preparation },
+    { ...state.catalog!.providers[0], preparation },
   ] } }) })
   fireEvent.click(screen.getByRole('button', { name: zh['setupPrompt.trigger'] }))
   expect(screen.getByRole('dialog').textContent).toContain(zh['setupPrompt.unavailableBody'])
@@ -339,7 +339,7 @@ it.each<SpeechPreparationState>([
 it('offers no plugin details from setup guidance while the Plugins page navigation is absent', () => {
   const b = fixture(undefined, false), state = b.readiness.getSnapshot()
   act(() => { b.readiness.set({ ...state, catalog: { ...state.catalog!, providers: [
-    { ...state.catalog!.providers[0]!, preparation: { phase: 'unprepared' } },
+    { ...state.catalog!.providers[0], preparation: { phase: 'unprepared' } },
   ] } }) })
   fireEvent.click(screen.getByRole('button', { name: zh['setupPrompt.trigger'] }))
   const dialog = within(screen.getByRole('dialog'))

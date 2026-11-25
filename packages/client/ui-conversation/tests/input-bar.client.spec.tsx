@@ -707,7 +707,7 @@ describe('image draft rail', () => {
     const addFiles = vi.fn(() => null)
     const result = bench({ addFiles, registerFileIntake: register, occurrence: 'embedded' })
     expect(register).toHaveBeenCalledTimes(1)
-    const target = register.mock.calls[0]![0]
+    const target = register.mock.calls[0][0]
     expect(target.card).toBe(result.view.container.querySelector('[data-composer-card]'))
     expect(target.occurrence).toBe('embedded')
     expect(target.accepts()).toBe(true)
@@ -721,7 +721,7 @@ describe('image draft rail', () => {
     expect(register).toHaveBeenCalledTimes(1)
     result.view.rerender(<InputBar {...result.props} occurrence="main" />)
     expect(leave).toHaveBeenCalledTimes(1)
-    expect(register.mock.calls[1]![0].occurrence).toBe('main')
+    expect(register.mock.calls[1][0].occurrence).toBe('main')
     result.view.unmount()
     expect(leave).toHaveBeenCalledTimes(2)
   })

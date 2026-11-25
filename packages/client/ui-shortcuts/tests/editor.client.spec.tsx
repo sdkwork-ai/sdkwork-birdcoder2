@@ -102,7 +102,7 @@ async function mount(options: {
   persistence.setDefinitions(registry.definitions()); await persistence.readCurrent()
   options.setup?.(registry)
   const onClose = vi.fn(), onSaved = vi.fn(), onError = vi.fn(), recording = vi.fn(options.recording ?? (async () => {}))
-  const view = render(<ShortcutEditor target={registry.catalog.getSnapshot()[0]!}
+  const view = render(<ShortcutEditor target={registry.catalog.getSnapshot()[0]}
     useFixedCatalog={bindSnapshotSelector(registry.fixedCatalog)}
     useCatalog={bindSnapshotSelector(registry.catalog)} useConfig={bindSnapshotSelector(registry.config)}
     runtime={runtime} platform={platform}

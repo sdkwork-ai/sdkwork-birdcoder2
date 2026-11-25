@@ -235,13 +235,13 @@ describe('deeplink login end to end', () => {
       clear: () => { storage.clear() },
       key: () => null,
       length: 0,
-    } as Storage
+    }
     installDesktopBridge()
   })
 
   afterEach(() => {
-    Reflect.deleteProperty(globalThis as Record<string, unknown>, 'sdkworkDesktop')
-    Reflect.deleteProperty(globalThis as Record<string, unknown>, 'dshDesktop')
+    Reflect.deleteProperty(globalThis, 'sdkworkDesktop')
+    Reflect.deleteProperty(globalThis, 'dshDesktop')
     vi.clearAllMocks()
   })
 

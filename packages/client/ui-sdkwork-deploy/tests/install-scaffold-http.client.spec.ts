@@ -69,7 +69,7 @@ async function startGateway(): Promise<{
   return {
     url: `http://127.0.0.1:${address.port}`,
     accessTokenSeen,
-    close: () => new Promise(resolve => server.close(() => resolve())),
+    close: () => new Promise(resolve => server.close(() =>{  resolve() })),
   }
 }
 

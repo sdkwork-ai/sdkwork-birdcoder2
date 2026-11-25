@@ -445,7 +445,7 @@ describe('ChangesTab keyboard file navigation', () => {
     const m = mount({ source })
     await settle()
     const { viewport, nodes } = fileViewport(m)
-    const destination = nodes[2]!
+    const destination = nodes[2]
     fireEvent.click(within(destination).getByRole('button', { name: /^Collapse / }))
     viewport.scrollTop = 250
     fireEvent.scroll(viewport)
@@ -801,7 +801,7 @@ describe('ChangesTab local reads', () => {
   it('aborts an in-flight diff when the tab becomes hidden and retries it on return', async () => {
     const pending = deferred<RemoteResult<ForgeLocalDiff>>()
     const m = mount({ setup: (faces) => { faces.localDiff.mockReturnValueOnce(pending.promise) } })
-    const signal = m.faces.localDiff.mock.calls[0]![1]
+    const signal = m.faces.localDiff.mock.calls[0][1]
     act(() => { m.visibility.set(false) })
     expect(signal.aborted).toBe(true)
     pending.settle(ok(LOCAL))
@@ -1002,7 +1002,7 @@ describe('ChangesTab drawing work', () => {
     const m = mount()
     await settle()
     const drawn = draw.mock.calls.length
-    fireEvent.change(m.view.getAllByRole('textbox', { name: 'Filter files…' })[0]!, { target: { value: 'app' } })
+    fireEvent.change(m.view.getAllByRole('textbox', { name: 'Filter files…' })[0], { target: { value: 'app' } })
     await settle()
     expect(draw.mock.calls.length).toBe(drawn)
   })
@@ -1259,7 +1259,7 @@ describe('ChangesTab unchanged lines', () => {
 
   it('never draws the text of the last change when a refresh brings the same lines with other content', async () => {
     // The same lines as APP, but line 11 of the new side reads differently, so the file is another change.
-    const changed: ForgeDiffFile = { ...APP, digest: 'changed', hunks: [APP.hunks[0]!, { ...APP.hunks[1]!, lines: [' const a10 = 110', '-const w = 12'] }] }
+    const changed: ForgeDiffFile = { ...APP, digest: 'changed', hunks: [APP.hunks[0], { ...APP.hunks[1], lines: [' const a10 = 110', '-const w = 12'] }] }
     const m = mount({
       source: { kind: 'change', url: URL7 },
       setup: (faces) => {
@@ -2434,14 +2434,14 @@ describe('ChangesTab viewed files', () => {
     const m = mount()
     await settle()
     const { viewport, nodes } = fileViewport(m)
-    fireEvent.keyDown(within(nodes[2]!).getByRole('button', { name: /^Collapse / }), { key: 'v' })
+    fireEvent.keyDown(within(nodes[2]).getByRole('button', { name: /^Collapse / }), { key: 'v' })
     expect(nodes.map(node => node.getAttribute('data-viewed'))).toEqual(['unviewed', 'unviewed', 'viewed', 'unviewed', 'unviewed', 'unviewed'])
     const code = document.createTreeWalker(m.section('src/app.ts').querySelector('[data-review-code]')!, NodeFilter.SHOW_TEXT).nextNode()
     expect(code?.nodeType).toBe(Node.TEXT_NODE)
     window.getSelection()?.collapse(code, 0)
     fireEvent.keyDown(viewport, { key: 'v' })
     expect(m.section('src/app.ts').getAttribute('data-viewed')).toBe('viewed')
-    window.getSelection()?.collapse(nodes[3]!, 0)
+    window.getSelection()?.collapse(nodes[3], 0)
     fireEvent.keyDown(viewport, { key: 'v' })
     expect(nodes[3]?.getAttribute('data-viewed')).toBe('viewed')
     // Without a cursor, the file at the top of the view toggles.

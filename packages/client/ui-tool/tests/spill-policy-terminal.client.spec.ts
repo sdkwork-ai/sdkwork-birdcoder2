@@ -102,7 +102,7 @@ async function executeShell(text: string, nested: boolean, name = 'bash', maxInl
       expect(result.value).toMatchObject({ logs: ['true'] })
       const dispatches = session.snapshotEvents().filter(event => event.type === 'tool/ptc-dispatch')
       expect(dispatches).toHaveLength(1)
-      const event = dispatches[0]!
+      const event = dispatches[0]
       block = {
         kind: 'tool-result', seq: event.seq, time: event.time, callTime: null,
         callId: event.data.subCallId, parentCallId: event.data.parentCallId,
@@ -140,15 +140,15 @@ describe.each([
       const original = 'HEAD 雪\n'.repeat(200) + marker
       const { block, saves } = await executeShell(original, nested, name)
       expect(saves).toHaveLength(1)
-      expect(saves[0]!.input).toMatchObject({
+      expect(saves[0].input).toMatchObject({
         owner: { sessionId: 'spill-terminal' },
         source: { toolName: name, callId: block.callId, label: nested ? 'dispatch' : 'result' },
         content: original,
       })
-      expect(saves[0]!.bytes).toEqual(Buffer.from(original, 'utf8'))
+      expect(saves[0].bytes).toEqual(Buffer.from(original, 'utf8'))
       expect(block.content).not.toEqual([{ type: 'text', text: original }])
       expect(block.content).toHaveLength(1)
-      const preview = block.content[0]!
+      const preview = block.content[0]
       if (preview.type !== 'text') throw new Error('expected a plain-text spill preview')
       expect(estimateContent(block.content)).toBeLessThanOrEqual(256)
       expect(preview.text).toContain('HEAD')
@@ -163,7 +163,7 @@ describe.each([
       const { block, saves } = await executeShell(original, nested, name, estimateContent([{ type: 'text', text: notice }]))
       expect(block.content).toEqual([{ type: 'text', text: notice }])
       expect(saves).toHaveLength(1)
-      expect(saves[0]!.bytes).toEqual(Buffer.from(original, 'utf8'))
+      expect(saves[0].bytes).toEqual(Buffer.from(original, 'utf8'))
       expect(terminalCardModel(block)).toBeNull()
       expect(isSpilledShellCall(block)).toBe(true)
     })

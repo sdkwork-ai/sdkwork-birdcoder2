@@ -401,7 +401,7 @@ describe('ThreadList', () => {
     expect(items[1]?.textContent).toContain(en['thread.bot'])
     expect(items[3]?.textContent).toContain(en['thread.outdatedTag'])
     expect(items[4]?.textContent).toContain(en['thread.elsewhereTag'])
-    fireEvent.click(items[3]!)
+    fireEvent.click(items[3])
     expect(props.open).toHaveBeenCalledWith(entries[0], false)
     fireEvent.click(view.getByRole('radio', { name: /^Unresolved/ }))
     expect(props.choose).toHaveBeenCalledWith('unresolved')

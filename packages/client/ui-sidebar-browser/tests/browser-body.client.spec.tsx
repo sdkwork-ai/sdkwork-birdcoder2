@@ -120,7 +120,7 @@ describe('BrowserBody', () => {
     expect(mounted.view.getByRole('status').textContent).toContain('-105')
     act(() => { state.set({ ...state.getSnapshot(), error: { code: -105, description: undefined } }) })
     expect(mounted.view.getByRole('status').textContent).toBe(zh['load.failed'])
-    act(() => { providers[0]!.openRequested('https://new.example/') })
+    act(() => { providers[0].openRequested('https://new.example/') })
     expect(mounted.tabActions.openTab).toHaveBeenCalledExactlyOnceWith('browser', {
       params: { url: 'https://new.example/' }, revealIfOpened: false,
     })
@@ -176,13 +176,13 @@ describe('BrowserBody', () => {
     await waitFor(() => { expect(mounted.view.container.querySelector('iframe')?.getAttribute('src')).toBe('https://example.com/two') })
     expect(input).toHaveProperty('value', 'https://example.com/two')
 
-    const beforeReload = mounted.store.getSnapshot().byTab[TAB]!.request!.revision
+    const beforeReload = mounted.store.getSnapshot().byTab[TAB].request!.revision
     fireEvent.click(mounted.view.getByRole('button', { name: zh.reload }))
-    expect(mounted.store.getSnapshot().byTab[TAB]!.request?.revision).toBe(beforeReload + 1)
+    expect(mounted.store.getSnapshot().byTab[TAB].request?.revision).toBe(beforeReload + 1)
     fireEvent.submit(input.closest('form')!)
-    expect(mounted.store.getSnapshot().byTab[TAB]!.request?.revision).toBe(beforeReload + 2)
+    expect(mounted.store.getSnapshot().byTab[TAB].request?.revision).toBe(beforeReload + 2)
     act(() => { mounted.tabActions.bindCommands.mock.calls.at(-1)![0].refresh!() })
-    expect(mounted.store.getSnapshot().byTab[TAB]!.request?.revision).toBe(beforeReload + 3)
+    expect(mounted.store.getSnapshot().byTab[TAB].request?.revision).toBe(beforeReload + 3)
   })
 
   it('marks later frame loads unknown and limits unsafe toolbar actions', async () => {
@@ -196,7 +196,7 @@ describe('BrowserBody', () => {
     fireEvent.submit(input.closest('form')!)
     await waitFor(() => { expect(mounted.view.container.querySelector('iframe')?.getAttribute('src')).toBe('https://example.com/two') })
     const frame = mounted.view.container.querySelector('iframe')!
-    const revision = mounted.store.getSnapshot().byTab[TAB]!.request!.revision
+    const revision = mounted.store.getSnapshot().byTab[TAB].request!.revision
 
     fireEvent.load(frame)
     expect(mounted.store.getSnapshot().byTab[TAB]?.navigation).toEqual({ status: 'known', revision })

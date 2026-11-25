@@ -357,7 +357,7 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
       {listsInherited
         ? (
           <AnimatedRows
-            className={styles['modelList'] as string}
+            className={styles['modelList']}
             rowKeys={inheritedRows.rows.map(row => `inherited-${String(row.key)}`)}
             ready
             resetKey=""
@@ -395,7 +395,7 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
           </AnimatedRows>
         )
         : null}
-      <AnimatedRows className={styles['modelList'] as string} rowKeys={rowState.rows.map(row => String(row.key))} ready resetKey="">
+      <AnimatedRows className={styles['modelList']} rowKeys={rowState.rows.map(row => String(row.key))} ready resetKey="">
         {rowState.rows.map(({ model, key, expanded, order }, index) => (
           <ModelRow
             key={key}
@@ -447,7 +447,7 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
         title={t('fetchTitle')}
         closeLabel={t('close')}
         description={t('fetchDescription')}
-        className={styles['fetchDialog'] as string}
+        className={styles['fetchDialog']}
         footer={(
           <>
             <Button variant="outline" onClick={closePicker}>{t('cancel')}</Button>

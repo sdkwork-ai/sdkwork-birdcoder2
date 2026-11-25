@@ -74,7 +74,7 @@ export function displayDeclarations<T extends { readonly title: LocalizedText }>
  */
 export function presentedVersion(entry: MarketListingEntry): MarketListingVersion {
   // The Host lists at least one version and names a listed default.
-  return (entry.versions.find(version => version.version === entry.defaultVersion) ?? entry.versions[0]) as MarketListingVersion
+  return (entry.versions.find(version => version.version === entry.defaultVersion) ?? entry.versions[0])
 }
 
 /** One fact about where an entry installs from, keyed for its localized label. */

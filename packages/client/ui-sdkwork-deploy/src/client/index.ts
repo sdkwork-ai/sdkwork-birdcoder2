@@ -19,25 +19,28 @@
  * row-menu flows.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
-import type { ClientRemote } from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
+import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 // Type-only: pulls the settings slot declarations (settings.myDeployments).
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
 import { DeployPublishAction } from './DeployPublishAction.tsx'
 import { DeployedAppsDialog, type DeployedAppsDialogInjected } from './DeployedAppsDialog.tsx'
-import { DomainCenterDialog, type DomainCenterDialogInjected } from './DomainCenterDialog.tsx'
 /* Host stylesheet for the AppOperationsDialogs the publish flow mounts: those
    components render the delivery-ledger class vocabulary unstyled and expect
    the host to style it. */
 import './deployDialogHost.css'
 import type { DeployLocaleFace, DeployPublishThemePort } from './deployPorts.ts'
 import { DeployPublishEntry, type DeployPublishEntryProps } from './DeployPublishEntry.tsx'
+import { DeploySiteCard, type DeploySiteCardInjected } from './DeploySiteCard.tsx'
+import { DeploySitePanel, type DeploySiteInjected } from './DeploySitePanel.tsx'
+import { publishFromConversation } from './deployConversation.ts'
+import { DEPLOY_SITE_ID, DEPLOY_SITE_KIND, deploySiteDefinition, loadDeploySiteDashboard } from './deploySite.ts'
 import { PublishScaffoldFlow, type PublishScaffoldFlowProps } from './PublishScaffoldFlow.tsx'
 import { InstallScaffoldFlow, type InstallScaffoldFlowProps } from './InstallScaffoldFlow.tsx'
 import { createElement, type ReactElement } from 'react'
@@ -45,7 +48,6 @@ import { createRoot, type Root } from 'react-dom/client'
 import {
   DeployHost,
   type DeployHostBuild,
-  type DeployHostBuildFrame,
   type DeployHostEnvironment,
   type DeployHostIam,
   type DeployHostWorkspace,
@@ -234,7 +236,7 @@ interface DeployHostUiWorkspace {
 }
 
 /** Required services for locale registration, the workspace port, and the header-slot contribution. */
-export const inject = ['slots', 'locale', 'env', 'iam', 'theme', 'sessions', 'uiWorkspace', 'remote', 'remote.sdkworkAppBuild', 'remote.sdkworkScaffoldInstall']
+export const inject = ['slots', 'locale', 'env', 'iam', 'theme', 'sessions', 'uiWorkspace', 'remote', 'remote.sdkworkAppBuild', 'remote.sdkworkScaffoldInstall', 'sidebarRightTabs', 'sidebarRight']
 
 /**
  * Client plugin body: register the dictionaries, the host adapter, and the
@@ -252,14 +254,14 @@ export function apply(ctx: ClientContext): void {
   // The install namespace is optional at runtime: a composition whose bundle
   // predates the scaffold-install rows mounts these menus without it, and the
   // install port then stays absent while publish keeps working.
-  const scaffoldInstallRemote = (ctx.remote as ClientRemote).sdkworkScaffoldInstall
+  const scaffoldInstallRemote = (ctx.remote).sdkworkScaffoldInstall
   const workspace: DeployHostWorkspace | undefined =
     uiWorkspace === undefined
       ? undefined
       : {
         pickDirectory: () => uiWorkspace.pickDirectory(),
         listDirectory: path => uiWorkspace.listDirectory(path),
-        currentDirectory: () => sessionCwdOf(sessions?.list.getSnapshot() as DeploySessionsSnapshot | undefined),
+        currentDirectory: () => sessionCwdOf(sessions?.list.getSnapshot()),
         ...(typeof uiWorkspace.createDirectory === 'function'
           ? {
             createDirectory: async (parent: string, name: string): Promise<string> => {
@@ -299,7 +301,7 @@ export function apply(ctx: ClientContext): void {
           }),
       }
   const build: DeployHostBuild | undefined = (() => {
-    const namespace = (ctx.remote as ClientRemote).sdkworkAppBuild
+    const namespace = (ctx.remote).sdkworkAppBuild
     if (namespace === undefined) return undefined
     return {
       async start(request) {
@@ -311,7 +313,7 @@ export function apply(ctx: ClientContext): void {
       },
       async follow(buildId, onFrame, signal) {
         for await (const frame of namespace.follow(buildId, signal)) {
-          onFrame(frame as DeployHostBuildFrame)
+          onFrame(frame)
         }
       },
       async cancel(buildId) {
@@ -510,36 +512,41 @@ export function apply(ctx: ClientContext): void {
     }),
   }, DeployedAppsDialog))
 
-  // The settings-menu popover's "我的域名" row: the shell owns the row and the
-  // drawer's visibility, this plugin owns the root-domain/hostname/verification
-  // surfaces behind it. Same injected face as the app-inventory drawer — the
-  // generated clients, the sign-in gesture and the host readiness facts.
-  ctx.slots.inject('settings.dns', () => ctx.slots.register({
-    name: 'settings.dns',
+  // Deploy from the conversation: the Host's `sdkwork_deploy_app` tool relays
+  // each publish request over the forwarded `sdkwork-deploy/request` waterfall.
+  // Publishing runs here because the signed-in IAM session and the generated
+  // deploy clients live in this browser client; the tool only formats the
+  // answer. The listener lives exactly as long as this plugin.
+  const boundT = ctx.locale.bind(NS)
+  ctx.effect(() => ctx.remote.$on('sdkwork-deploy/request', request => publishFromConversation({
+    host,
+    isSignedIn: () => {
+      const session = iam.controller.getState().session
+      return session !== null && session !== undefined
+    },
+  }, request)), 'ui-sdkwork-deploy: conversation publish bridge')
+
+  // The `sdkwork-deploy-site` right-Sidebar type and its body. The card opens
+  // it with the published site facts; the body re-reads the live dashboard
+  // through the same host adapter.
+  ctx.effect(() => ctx.sidebarRightTabs.register(deploySiteDefinition(boundT)), 'ui-sdkwork-deploy: site tab type')
+  ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register({
+    name: 'sidebar.right.pane.tab',
+    key: DEPLOY_SITE_ID,
     locale: NS,
-    inject: (): DomainCenterDialogInjected => ({
-      host,
-      startSignIn: () => { iam.startSignIn?.() },
-      hooks: {
-        available: {
-          getSnapshot: () => env.apiBaseUrl().trim() !== '',
-          subscribe: listener => env.subscribe(listener),
-        },
-        signedIn: {
-          getSnapshot: () => {
-            const session = iam.controller.getState().session
-            return session !== null && session !== undefined
-          },
-          subscribe: listener => iam.controller.subscribe(listener),
-        },
-        revision: {
-          getSnapshot: () => deployedAppsRevision,
-          subscribe: (listener) => {
-            deployedAppsRevisionListeners.add(listener)
-            return () => { deployedAppsRevisionListeners.delete(listener) }
-          },
-        },
-      },
+    inject: (): DeploySiteInjected => ({
+      loadDashboard: (appId, signal) => loadDeploySiteDashboard(host.readClients(), appId, signal),
     }),
-  }, DomainCenterDialog))
+  }, DeploySitePanel))
+
+  // The published-site card: the tool result renders as the site row, and
+  // selecting it opens the tab above in the right Sidebar.
+  ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
+    name: 'tool.call.toolview',
+    key: 'sdkwork_deploy_app',
+    locale: NS,
+    inject: (): DeploySiteCardInjected => ({
+      openSite: (site) => { ctx.sidebarRight.openContent(DEPLOY_SITE_KIND, { site }, { key: site.appId }) },
+    }),
+  }, DeploySiteCard))
 }

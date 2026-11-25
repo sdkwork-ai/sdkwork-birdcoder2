@@ -515,8 +515,8 @@ describe('store instance axis', () => {
     bench.erased.register({ name: 't.rows', id: 'a', store: handle }, C)
     const [hostEntry] = host.entriesOf('t.host')
     const [rowEntry] = host.entriesOf('t.rows')
-    const a = host.storeOf(hostEntry as never, undefined)
-    const b = host.storeOf(rowEntry as never, undefined)
+    const a = host.storeOf(hostEntry, undefined)
+    const b = host.storeOf(rowEntry, undefined)
     expect(a).toBeDefined()
     expect(a).toBe(b) // shared handle, same scope key = same instance
     expect(handle.create).toHaveBeenCalledTimes(1)
@@ -528,8 +528,8 @@ describe('store instance axis', () => {
     const { handle } = fakeHandle()
     bench.erased.register({ name: 't.panel', store: handle }, C)
     const [entry] = host.entriesOf('t.panel')
-    const s1 = host.storeOf(entry as never, sessionBinding(bench.ctx, 's1'))
-    const s2 = host.storeOf(entry as never, sessionBinding(bench.ctx, 's2'))
+    const s1 = host.storeOf(entry, sessionBinding(bench.ctx, 's1'))
+    const s2 = host.storeOf(entry, sessionBinding(bench.ctx, 's2'))
     expect(s1).not.toBe(s2)
     expect(host.storeOf(entry as never, sessionBinding(bench.ctx, 's1'))).toBe(s1) // cached per key
     expect(handle.create).toHaveBeenCalledWith('s1')
@@ -543,8 +543,8 @@ describe('store instance axis', () => {
     bench.erased.register({ name: 't.host', store: factory }, C)
     bench.erased.register({ name: 't.rows', id: 'a', store: factory }, C)
     expect(factory).toHaveBeenCalledTimes(2)
-    const a = host.storeOf(host.entriesOf('t.host')[0] as never, undefined)
-    const b = host.storeOf(host.entriesOf('t.rows')[0] as never, undefined)
+    const a = host.storeOf(host.entriesOf('t.host')[0], undefined)
+    const b = host.storeOf(host.entriesOf('t.rows')[0], undefined)
     expect(a).not.toBe(b) // two mints, two instances
   })
 
@@ -555,7 +555,7 @@ describe('store instance axis', () => {
     bench.erased.register({ name: 't.rows', id: 'a', store: handle }, C)
     const rowEntry = host.entriesOf('t.rows')[0]
     const hostEntry = host.entriesOf('t.host')[0]
-    const shared = host.storeOf(rowEntry as never, undefined)
+    const shared = host.storeOf(rowEntry, undefined)
     d1() // one holder left: record (and instance) survive
     expect(host.storeOf(rowEntry as never, undefined)).toBe(shared)
     expect(() => host.storeOf(hostEntry as never, undefined)).not.toThrow() // handle still live via the row entry
@@ -568,7 +568,7 @@ describe('store instance axis', () => {
     const { handle, created } = fakeHandle()
     bench.erased.register({ name: 't.panel', store: handle }, C)
     const [entry] = host.entriesOf('t.panel')
-    const s1 = host.storeOf(entry as never, sessionBinding(bench.ctx, 's1'))
+    const s1 = host.storeOf(entry, sessionBinding(bench.ctx, 's1'))
     expect(s1).toBe(created[0]) // the resolved instance is the fake the handle minted
     bench.svc.pruneStoreScope('s1')
     expect(created[0]?.clearPersisted).toHaveBeenCalledTimes(1)

@@ -39,7 +39,7 @@ const t = ((key: string) => key) as SceneSkillTagsProps['t']
 
 /** Minimal input state fixture: the strip reads only the draft text. */
 function inputOf(draft: string): InputState {
-  return { draft, attachmentIds: [], draftRev: 0, phase: 'plain', occurrences: [], queue: [] } as InputState
+  return { draft, attachmentIds: [], draftRev: 0, phase: 'plain', occurrences: [], queue: [] }
 }
 
 /** Empty session-standard kit; the session fixture defaults to blank (the
@@ -122,13 +122,13 @@ describe('SceneSkillTags', () => {
     const strip = view.container.querySelector('[data-scene-skills="code"]')!
     const tags = [...strip.querySelectorAll('button')]
     expect(tags).toHaveLength(SCENE_SKILLS.code.length)
-    expect(tags[0]!.getAttribute('title')).toBe('/birdcoder-daily-dev')
+    expect(tags[0].getAttribute('title')).toBe('/birdcoder-daily-dev')
     expect(tags.map(tag => tag.textContent)).toEqual([
       'heroTag.dailyDev', 'heroTag.webDev', 'heroTag.htmlWeb', 'heroTag.reactWeb',
       'heroTag.vueWeb', 'heroTag.agentApp',
       'heroTag.skillDev', 'heroTag.cicd', 'heroTag.docs',
       'heroTag.miniprogram', 'heroTag.flutterApp', 'heroTag.uniapp',
-      'heroTag.harmonyos', 'heroTag.iosApp', 'heroTag.androidApp', 'heroTag.unityApp',
+      'heroTag.harmonyos', 'heroTag.iosApp', 'heroTag.androidApp', 'heroTag.appDeploy', 'heroTag.unityApp',
       'heroTag.dshPlugin', 'heroTag.workbuddyPlugin', 'heroTag.codexPlugin', 'heroTag.workbuddyApp',
     ])
     // No overflow chrome: every tag is a sibling (a wrapped row, not a clip).
@@ -210,6 +210,7 @@ describe('SceneSkillTags', () => {
     expect(tags.map(tag => tag.getAttribute('title'))).toEqual([
       '/birdcoder-lesson-plan', '/birdcoder-courseware', '/birdcoder-business-plan', '/birdcoder-product-ppt',
       '/birdcoder-ppt-design', '/birdcoder-visual-poster', '/birdcoder-marketing-poster', '/birdcoder-meeting-notes',
+      '/birdcoder-knowledge-article', '/birdcoder-content-publish',
     ])
   })
 })
@@ -379,7 +380,7 @@ describe('SceneSkillTags pinned skills', () => {
     const tags = [...strip.querySelectorAll('button')]
 
     expect(tags).toHaveLength(SCENE_SKILLS.code.length + 1)
-    const appended = tags[tags.length - 1]!
+    const appended = tags[tags.length - 1]
     expect(appended.getAttribute('title')).toBe('/team-notes')
     expect(appended.textContent).toBe('/team-notes')
   })
@@ -390,7 +391,7 @@ describe('SceneSkillTags pinned skills', () => {
 
     // No duplicate pill, and the seated entry keeps its localized label.
     expect(tags.filter(tag => tag.getAttribute('title') === '/birdcoder-daily-dev')).toHaveLength(1)
-    expect(tags[0]!.textContent).toBe('heroTag.dailyDev')
+    expect(tags[0].textContent).toBe('heroTag.dailyDev')
   })
 
   it('preserves the pinned order and skips a name that is hidden', () => {

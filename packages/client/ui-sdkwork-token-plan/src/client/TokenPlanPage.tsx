@@ -183,7 +183,7 @@ function useTokenPlanNotify(t: TokenPlanPageProps['t']) {
   useEffect(() => {
     if (notice === null) return
     const timer = window.setTimeout(() => { setNotice(null) }, 3200)
-    return () => window.clearTimeout(timer)
+    return () =>{  window.clearTimeout(timer) }
   }, [notice])
   const onNotify = useCallback((message: string, tone: NoticeTone) => {
     setNotice({ id: Date.now(), message, tone })

@@ -911,7 +911,7 @@ describe('ConversationRoot resident composer', () => {
     const observers = resizeObservers.filter(observer => observer.targets.includes(row))
     expect(observers).toHaveLength(1)
     b.view.unmount()
-    expect(observers[0]!.targets).toEqual([])
+    expect(observers[0].targets).toEqual([])
   })
 
   it('keeps all five Views outside when the sampled width budget is sufficient', () => {

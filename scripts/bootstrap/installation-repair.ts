@@ -233,7 +233,7 @@ export function renderReconcileReport(
   for (const defect of defects) {
     lines.push(
       `  remaining ${defect.code} (${defect.field}): ${defect.message}`
-      + `${defect.operation === undefined ? '' : ` → ${defect.operation}`}`,
+      + defect.operation === undefined ? '' : ` → ${defect.operation}`,
     )
   }
   lines.push(`  ready: ${String(after.ready)}`)
@@ -283,7 +283,7 @@ export function renderUpdateReport(
   return [
     `${NAME}: installations.update repaired installation ${value.installationId ?? 'unknown'}`,
     `  deployApplicationId: ${value.deployApplicationId ?? '(missing)'}`
-    + `${value.deployApplicationId === options.deployApplicationId ? '' : ' — unexpected anchor'}`,
+    + value.deployApplicationId === options.deployApplicationId ? '' : ' — unexpected anchor',
     `  status: ${value.status ?? '(unknown)'}`,
   ]
 }

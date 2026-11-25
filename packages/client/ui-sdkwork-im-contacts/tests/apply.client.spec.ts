@@ -56,13 +56,13 @@ describe('ui-sdkwork-im-contacts apply', () => {
     const [entry] = b.slots.entries(RAIL)
     expect(entry?.options.key).toBe('contacts')
     expect(entry?.component).toBe(ContactsRailEntry)
-    const entryFace = (entry!.inject as unknown as () => ContactsRailEntryInjected)()
+    const entryFace = (entry.inject as unknown as () => ContactsRailEntryInjected)()
     expect(entryFace.mode).toBe('contacts')
 
     const [page] = b.slots.entries(PAGE)
     expect(page?.options.key).toBe('contacts')
     expect(page?.component).toBe(ContactsModePage)
-    const pageFace = (page!.inject as unknown as () => ContactsModePageInjected & { hooks: { im: ImService } })()
+    const pageFace = (page.inject as unknown as () => ContactsModePageInjected & { hooks: { im: ImService } })()
     expect(pageFace.mode).toBe('contacts')
     pageFace.openConversation('conversation-4')
     expect(b.im.openConversation).toHaveBeenCalledWith('conversation-4')
@@ -79,7 +79,7 @@ describe('ui-sdkwork-im-contacts apply', () => {
     await b.ctx.plugin({ inject: ['slots', 'locale', 'iam'], apply }).await()
 
     const [page] = b.slots.entries(PAGE)
-    const face = (page!.inject as unknown as () => {
+    const face = (page.inject as unknown as () => {
       hooks: { im: { getSnapshot(): unknown; subscribe(listener: () => void): () => void } }
       openConversation(id: string): void
       mountSurface(container: HTMLElement, request: { kind: string }): { update(request: { kind: string }): void; dispose(): void }

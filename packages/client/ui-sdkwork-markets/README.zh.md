@@ -1,5 +1,5 @@
 ---
-description: "Markets 应用模式插件：插件市场快捷入口与 keyed 的中心列页面，页头 tab 承载插件、专家、技能、连接器目录；插件 tab 还提供添加入口（skill 引导的插件创建与插件市场录入弹窗）。四个分类都以云端目录（SDKWork App Store 对应分类页）打头并默认选中：专家 tab 同样以云端目录作第一个 chip，第二个 chip 是专家市场（`plugins/sdkwork-dsh-agents` 插件自己的名册面板，就地内嵌渲染），插件/技能/连接器 tab 的子 tab 行也以云端目录作第一个 chip。插件 tab 其后是社区插件市场（dshmarket 插件自己的目录）与本部署的插件视图；该插件表面替换上游插件页。技能 tab 其后是 SkillHub 技能市场（独立的 @montersy123/dsh-skill-market 插件自己的面板，直接内嵌渲染），并抑制该插件自己的侧边栏行，使市场只保留一个入口。连接器 tab 其后是 MCP 连接器本身：dsh-mcp-connector 插件的面板页被就地内嵌，由一小段宿主桥回答其两类请求，并抑制该插件自己的侧边栏行，使连接器只保留一个入口。"
+description: "浏览 SDKWork 数据库中的插件目录、搜索本地化插件信息，并通过 Host 插件管理器安装已发布的插件制品。插件页还管理当前部署已安装的插件，并连接现有专家、技能和连接器目录。"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-从侧边栏打开 Markets，即可进入本产品的插件、专家、技能与连接器目录：每个目录都以对应的 SDKWork App Store 页面打头，并接着就地内嵌匹配的市场或连接器面板。插件 tab 用社区插件市场加本部署的官方/已安装视图替换上游插件页，页头带分类搜索框，以及用于创建插件、安装插件与录入市场的添加入口。
+从侧边栏打开 Markets，可以浏览 SDKWork Plugins 目录、经 Host 插件管理器安装目录记录给出的目标，或管理本地已安装的插件。专家、技能和连接器视图保留现有的 App Store 与内嵌插件市场。
 
 ## 目录
 
@@ -22,7 +22,7 @@ kind: "package-reference"
 <a id="runtime-requirements"></a>
 ## 运行要求
 
-插件通过 `ctx.slots` 注册侧边栏入口与 keyed 页面、通过 `ctx.locale` 注册字典、通过 `ctx.layout` 完成模式切换。页面是公共的：未登录即可渲染，自身不挂载 IAM 会话面；但应用 SDK 没有应用 Access-Token 就无法派发 app-api 调用，因此宿主适配器报告本应用是否持有凭据——无凭据时就地绘制登录提示而非目录，提示的唯一按钮经注入的 `iam` 服务打开本应用的登录入口，会话就位后目录随即挂载。插件声明 `slots`、`locale`、`layout`、`sessions`、`workspaces`、`env`、`iam` 与 `theme`。添加入口需要 sessions 与 workspaces 服务：派发时把框架切到 `code` 模式、运行共享的新会话流程、（有界）等待新会话成为当前会话，再把合成提示词作为排队文本轮发送进去。插件市场的控制服务按可选依赖消费（`ctx.inject(['market'], …)`）：它由 Web 组合在激活时挂上的 `dshmarket` 插件提供，因此页面等待它而非强制依赖它，并随该插件的加载/卸载而挂上或摘除。本插件同样以可选服务方式消费 fork 侧边栏的行注册表（`ctx.inject(['sdkworkSidebar'], …)`）：该列挂载时，本插件在其中声明已内嵌的 skill-market 与 MCP 连接器面板，从而把两者各自插件自己的行挡在该列之外；没有 fork 列的裸 web 外壳本来就没有面板列表可过滤。连接器面板的 Prompt 交接以可选服务方式读取工作区界面的新建会话能力（`ctx.get('uiWorkspace')`）：没有该能力的组合会在面板内报告交接不可用，而不是静默什么都不做；工作空间作用域本身来自本插件已注入的快照。
+keyed 页面使用生成的 SDKWork Plugins App SDK，并沿用当前网关、语言和共享 IAM token manager。只有 Host 持有应用凭据时才显示目录，否则会打开本应用的登录界面。目录返回插件制品描述，本包会把 Git 和云盘来源转换成标准插件管理规格，再启动 Host 安装弹窗。本插件还声明 `slots`、`locale`、`layout`、`sessions`、`workspaces`、`env`、`iam` 和 `theme`。插件创建提示与技能操作通过 sessions 和 workspaces 服务运行。fork 侧边栏注册表仍是可选服务，用于在本页面显示 SkillHub 和 MCP connector 面板时隐藏重复的行。
 
 <a id="browser-bundle"></a>
 ## 浏览器 bundle
@@ -35,13 +35,13 @@ kind: "package-reference"
 
 ## 理解实现
 
-Markets 应用模式插件拥有 `markets` 侧边栏快捷入口与 keyed 的 `mode.page` 页面。页头左侧是分类 tab 栏（插件、专家、技能、连接器），右侧是目录工具：按分类搜索框，以及插件 tab 上的添加入口。添加触发器打开三项菜单：「创建插件」打开插件来源表单，记录插件包所在位置（Git 仓库及其可选目录、压缩包，或云盘下载地址），并把该来源与成品必须满足的安装规格一起组成创建提示词派发；「从来源安装插件」以安装模式打开同一表单，并直接通过插件 store 执行得到的规格——Git 仓库按引用与目录安装，压缩包或云盘来源在 profile 内下载解包后安装；「添加插件市场」打开录入弹窗，记录市场的来源（GitHub `owner/repo`、Git URL 或本地文件夹，含可选的 Git 引用与稀疏检出路径），并把合成提示词作为一次派发提交。创建与市场录入仍需通过提示词派发通道写文件；安装是直接的宿主操作。专家 tab 的「我的专家」入口打开整页「我的专家」视图：花名册 tab（专家、专家团）带各自计数、「我创建的/我购买的」来源切换，以及「创建专家」触发器——其 hover 菜单列出三种专家类型。远程类型走 SDKWork Agents 的创建流程：先弹能力包的基础信息对话框（名称、头像、类型、简介），再以整页替换进入智能体编辑器（系统提示词、模型、记忆、能力、预览调试），全程经由嵌入式创建专家宿主适配器；本地与个人虚拟机类型保持原有行为，把引导创建提示词派发到新会话。未配置网关时远程行为禁用态。页面是公共的：未登录即可渲染，自身不挂载 IAM 会话面；每个云端目录就地显示登录提示，其唯一按钮打开本应用自己的登录入口，因为这些目录经生成客户端读取 SDKWork app-api，而该客户端必须有应用 Access-Token 才能派发请求；创建流程的后端调用同样在传输闸口等待登录浮层完成。
+页面在 SDKWork Plugins 目录周围保留插件导航和本地管理视图。目录通过生成的 App SDK 读取插件与分类记录，显示本地化字段，并经现有 Host 安装器安装目录记录给出的目标。添加操作打开来源表单，创建操作仍将提示词派发到新会话。专家 tab 的「我的专家」页面使用 SDKWork Agents 创建流程处理远程专家，并用引导提示处理本地和个人虚拟机专家。专家、技能和连接器等 SDKWork 云端视图在缺少应用凭据时显示本应用的登录界面。
 
-插件 tab 就是本产品的插件表面。它的子 tab 行以**插件市场**——即 `dshmarket` 插件提供的社区目录；Web 组合把它作为 workspace 依赖链接进来（`plugins/dsh-market` fork 子模块）并挂在自己的 patch 上，所以出货构建无需安装步骤就有它——打头，由该插件发布的 `market` 控制服务渲染（`render({ surface: 'plugins' })`），这个 chip 就是落地视图：打开插件页、每次重新进入都落在它上面；其后是本部署自己的 `official` 与 `installed` 视图：官方/已安装插件包、每个插件包自己的 `plugins.bundle.config` 表单、它所声明的组件及其逐行开关、安装弹窗，以及插件包启用后的 `plugins.bundle.activation` 指引。这里没有 App Store 插件目录：门店端的插件市场已随模板货架一并退役。市场自带搜索、分类、安装弹窗、更新、备份与诊断，所以本页面不在它外面再画一层页面框架、也不重复其中任何一项：该 chip 激活时页面**保留「添加」菜单**（创建插件 / 添加插件市场），只收起自己的搜索框——市场页面已有搜索，再放一个失效的搜索框只会读作坏掉。该市场服务天生是可选的：patch 把该行关掉、或根本没有组合 Web bundle 的部署保留这个 chip 并显示安装入口，走与本地视图相同的安装流水线；已持有插件包但浏览器半边尚未加载的部署则显示刷新页面的提示；被停用的插件包会被送回「已安装」列表，而不是让人反复刷新。不管理插件包的部署永远不会看到这个安装入口。本包**替换**上游插件页而非与其并存：它声明上游页面声明过的七个插件配置 seat——一个 slot 只能有一个声明者，为同一个 key 再提交一份 children 表会让客户端拒绝加载——并提供上游页面提供过的 `pluginNavigation` 服务，因此向这两个表面贡献的插件都无需改动。组合在本行运行期间隐藏 `ui-plugin-manager`，本行关闭后自动恢复，所以启用的插件表面永远只有一个页面。技能 tab 同理也是一层子根：打头的 chip 是**云端技能目录**，**SkillHub 技能市场**——独立的 `@montersy123/dsh-skill-market` 插件自己的 `main` 面板，本页直接把它画在 chip 里，而不是重写它——保留第二个 chip。市场就是本 tab 的内容而不是一个去处：本页取该插件注册的面板并在 chip 的表面内渲染；由于这个 tab 现在持有该市场的导航，它同时把插件自己的侧边栏行声明为已内嵌，市场因此只有一个入口。面板只在它已注册时绘制——该行关闭、或插件浏览器半边尚未加载时——此时 chip 的表面改为说明市场暂不可用，而不是留一个空白 tab；添加菜单里的市场行会切回这个 chip，而不是离开本页。该插件把技能下载到 harness 的技能根目录，并发布到运行中的 `ctx.skills` 注册表，因此装好的技能不需要第二步集成：技能设置页会列出它，模型也能直接调用。专家 tab 同样是一层子根：打头的 chip 是**云端专家目录**，第二个 chip 是**专家市场**——独立的 `@michengai/dsh-agency-agents` 插件自己的 `main` 面板；它以 `plugins/sdkwork-dsh-agents` 子模块链接进本仓库，本页就地把它画在 chip 里。331 位专家名册、内置专家团、对话创建流程，以及该插件自己的启停与更新管理都归该包所有；本页只提供 chip、视口与另外两个内嵌市场相同的侧边栏行抑制，因此专家市场只保留一个导航入口。面板只在它已注册时绘制——该行关闭、或插件自己的入口被切成「仅设置」时——此时 chip 的表面改为说明专家市场暂不可用，而不是留一个空白 tab。连接器 tab 同样是一层子根：打头的 chip 是**云端目录**（App Store 的 MCP 目录），其后是 **MCP 连接器**——独立的 `dsh-mcp-connector` 插件自己的表面：它的 Host 半边把整套连接器界面作为同源页面 `/mcp-connector/ui/` 提供，本 tab 就地内嵌该页面，与该插件自己的面板做法完全一致。连接器市场、连接记录及其 OAuth/API Key 授权、跨连接工具工作台、作用域与治理规则、连接诊断都归该包所有；本页只提供框架，以及页面向宿主询问的两件事——新连接默认落在哪个工作空间，以及示例 Prompt 打开哪个会话——并声明该插件的侧边栏行为已内嵌，使连接器只保留一个导航入口。没有这一行的部署会看到不可用说明，而不是一个指向无人提供路由的框架。
+插件 tab 以 SDKWork Plugins 目录打头。生成的 App SDK 从 SDKWork Plugins 后端数据库读取分类与插件记录。精选卡片和热门列表使用记录中的本地化标题、描述、图标、使用量、制品来源与安装目标。安装把记录的目标交给本包的 Host 适配器：解析云盘下载 URL、验证压缩包校验和，并打开现有插件管理器安装弹窗。同一个适配器把 Host bundle 列表关联回卡片，已安装的记录会显示已安装版本、在目录有更新的注册表版本时提供更新，并可卸载。管理打开本地已安装插件列表，添加打开来源安装器。Host 未开放插件管理、另一个安装正在运行，或记录没有发布安装目标时，目录操作会禁用并说明原因。本包仍替换上游插件页，声明原有七个插件配置 slot，并提供 `pluginNavigation` 服务。技能、专家和连接器 tab 继续内嵌各自的独立面板，并隐藏重复的侧边栏入口。
 
 ## Model Experience
 
-无，因为插件不添加提示词内容、工具或会话事件；创建与市场录入流程只把用户撰写的文本作为一次普通的排队文本轮提交。
+无，因为插件不添加提示词内容、工具或会话事件；插件创建与技能操作只把用户撰写的文本作为一次普通的排队文本轮提交。
 
 #### KV Cache effect
 
@@ -54,11 +54,11 @@ Markets 应用模式插件拥有 `markets` 侧边栏快捷入口与 keyed 的 `m
 - **对话执行的创建入口** —— 创建插件与添加市场通过合成提示词执行，因为它们要写文件；失败在会话内呈现，而非页面内。从来源安装插件是直接操作：它运行插件管理器的安装流水线，并在安装弹窗中报告进度。远程专家创建流程是例外：它完全在页面内经嵌入的 Agents 创建界面运行。
 - **压缩包与云盘安装属于 Host** —— 页面只传递标准规格，从不下包；下载、解包、限额与 `.plugin-manager/sources` 缓存归 profile 的插件管理器所有。
 - **远程专家由网关决定** —— 创建流程的第一步要经 Agents app API 持久化智能体，所以环境服务携带网关之前远程行为禁用；未登录用户在传输闸口遇到登录浮层。
-- **仅插件 tab 的添加触发器** —— 添加触发器挂在插件 tab（插件市场与两个本地视图都有）；专家 tab 的「我的专家」入口打开「我的专家」页面，连接器 tab 没有该入口，因为它的云端目录与连接器面板各自带自己的操作。插件市场 chip 激活时触发器仍留在页头，只收起本页的搜索框，因为市场页面自带搜索。技能 tab 的两个 chip 各自挂载自己的添加触发器；其中的市场行会切回技能市场 chip，并且只在该技能市场面板已注册时出现，菜单因此不会列出一个显示不出来的去处。
-- **插件市场是访客** —— 社区目录、其安装/更新/备份流程与诊断都属于 `dshmarket`；Web 组合把它作为 workspace 依赖链接进来并挂在自己的 patch 上，所以出货构建无需安装步骤就能打开该目录。本页面只提供 tab 与视口、渲染该插件发布的服务、提供安装与刷新入口；它不重写也不锁定市场行为，因此市场更新随 `plugins/dsh-market` gitlink 的移动。控制契约——服务名 `market`、契约版本 1、`render` 方法——由 `packages/bundle/web-app/tests/built-in-plugin-market.spec.ts` 针对已发布产物钉住；市场若改掉它，本页会先回落到安装/刷新入口，直到本页跟上。安装入口只在宿主管理插件包的部署上出现。
+- **插件页交互** —— SDKWork Marketplace 自己管理目录搜索与分类筛选。管理打开已安装插件列表，添加打开来源安装器。只有技能市场面板已注册时，技能添加菜单才显示通往该面板的入口。
+- **SDKWork 目录鉴权** —— Marketplace 需要应用 Access-Token 才能调用 SDKWork Plugins App API。Host 在 IAM 会话或静态环境 token 可用前显示共享登录界面。
 - **技能市场同样是访客** —— 目录、其安装/停用/回退流程、持久化以及 SkillHub 代理都属于 `@montersy123/dsh-skill-market`：它以 `plugins/dsh-skill-market` 子模块链接进本仓库，并由 web-app bundle patch 挂载。本页面只提供技能 chip、在该 chip 内渲染该插件注册的面板、把插件自己的侧边栏行声明为已内嵌，以及关闭该行时显示的说明文案；它不重写市场。面板经由 ledger 取得（该插件不发布客户端服务），因此两个包只共享一个字符串——它的 `skill-market` 面板 key；面板组件也必须保持无 props（它被画在其声明 seat 之外）。市场更新随该包发布，其 `skill-market` 面板 key 若改名，由 bundle 验收用例（`packages/bundle/web-app/tests/built-in-skill-market.spec.ts`）发现。
 - **MCP 连接器是第三个访客** —— 连接器目录、OAuth/API Key 与 `mcpServers` 授权、受管的 `@deepseek-ai/dsh-mcp-client` 条目、作用域、治理规则、工具工作台与诊断都属于 `dsh-mcp-connector`：它以 `plugins/dsh-mcp-connector` 子模块链接进本仓库，并由 web-app bundle patch 挂载。本页面内嵌该插件 Host 半边提供的面板页、把插件自己的侧边栏行声明为已内嵌，并回答页面的两个宿主问题（工作空间作用域与示例 Prompt 会话）；它不重写连接器的任何部分。两个包共享四个字符串——`mcp-connector` 面板 key、`/mcp-connector/ui/` 页面路径，以及请求/应答的消息名——bundle 验收用例（`packages/bundle/web-app/tests/built-in-mcp-connector.spec.ts`）针对已发布产物把它们全部钉住。连接器更新随该包发布。
-- **专家市场是第四个访客** —— 331 位专家名册、专家团、对话创建流程、启停管理与该插件自己的更新器都属于 `@michengai/dsh-agency-agents`：它以 `plugins/sdkwork-dsh-agents` 子模块链接进本仓库，并由 web-app bundle patch 挂载。本页面只提供专家 tab 的市场 chip、在该 chip 内渲染该插件注册的面板、把插件自己的侧边栏行声明为已内嵌，以及没有该行时显示的说明文案；它不重写市场。面板渲染时带上它注册时注入的 props——插件自己的翻译函数、Remote 客户端与选择回调——因为该注册是为 `main` seat 写的，裸渲染会直接抛错；`mainPanelWatch` 每次注册解析一次这个注入面，专家 tab 负责透传（技能市场表面同理，把它注册注入的内容全部展开）。该插件只在自己的入口启用时注册 `main` 面板，所以 web-app 行把 `entryLocation` 钉成 `both`：关掉该行、或把入口切成「仅设置」的部署会看到 chip 的不可用说明，而不是一个不能工作的框架。面板 key（`agency-agents`）是两个包唯一共享的字符串，`packages/bundle/web-app/tests/built-in-expert-market.spec.ts` 把它与两行组合、已发布产物一起钉住。
+- **专家市场是一方客人** —— 331 位专家名册、专家团、对话创建流程与启停管理都属于 `@deepseek-ai/dsh-client-ui-sdkwork-experts`：它是本仓库自己的包，由 web-app bundle patch 挂载（其名册、分类与专家团在 `sdkwork-specs` 中初始化、由 `sdkwork-agents` 拥有）。本页面只提供专家 tab 的市场 chip、在该 chip 内渲染该包注册的面板、把它的侧边栏行声明为已内嵌，以及没有该行时显示的说明文案；它不重写市场。面板渲染时带上它注册时注入的 props——包自己的翻译函数、Remote 客户端与选择回调——因为该注册是为 `main` seat 写的，裸渲染会直接抛错；`mainPanelWatch` 每次注册解析一次这个注入面，专家 tab 负责透传（技能市场表面同理，把它注册注入的内容全部展开）。该包只在自己的入口启用时注册 `main` 面板，所以 web-app 行把 `entryLocation` 钉成 `both`：关掉该行、或把入口切成「仅设置」的部署会看到 chip 的不可用说明，而不是一个不能工作的框架。面板 key（`agency-agents`）是两个包唯一共享的字符串，`packages/bundle/web-app/tests/built-in-expert-market.spec.ts` 把它与两行组合、构建产物一起钉住。本页面同时负责目录数据面的触发：SDKWork 网关与 IAM 会话就绪后，从 Agents App API（`GET /app/v3/api/ai/experts`、`/expert_teams`、`/expert_personas`）读取 331 位专家、5 个专家团与两种语言的人格，并推入插件的 `agencyAgents` Remote 覆盖层；同步失败或缺失时插件保持包内名册。
 - **上游页面是回退而非并存** —— fork 组合在本行运行期间隐藏 `ui-plugin-manager`，本行关闭后自动恢复，因此插件表面永远不会渲染两次；手工同时启用两行按设计是加载失败，而不是出现两个插件页。
 
 <a id="dev-note"></a>
@@ -67,9 +67,9 @@ Markets 应用模式插件拥有 `markets` 侧边栏快捷入口与 keyed 的 `m
 <details>
 <summary>维护者的工作上下文——点击展开</summary>
 
-提示词派发是创建与市场录入两条流程的唯一执行通道：先调用 `ctx.layout.setMode('code')`，再经工作区 provision 的 runtime 面调用 `ctx.workspaces.startSession()`，在有界超时内等待 `ctx.sessions.list` 落地一个新的当前会话后才发送提示词。若没有会话落地（连接失败、无工作区），框架停留在会话界面，用户可直接操作。添加市场弹窗通过模板替换合成提示词，空白引用与稀疏路径字段使用 locale 属主的回退文案。
+提示词派发负责插件创建与技能引导操作。它调用 `ctx.layout.setMode('code')`，通过 workspaces runtime 启动会话，等待新会话成为当前会话，再将合成提示词作为排队文本轮发送。
 
-插件来源表单（`PluginSourceDialog.tsx`）与云端目录桥共用同一标准：表单经 `@deepseek-ai/dsh-plugin-manager/source` 校验，并渲染 Host 将安装的 spec；`MarketsApp` 给内嵌目录一个 `pluginsHost` 端口，其 `install` 归一化条目公布的来源并打开 store 的安装会话。页面把进度弹窗挂在官方/已安装名册之外，因此从云端 chip 或添加菜单发起的安装会显示在那里，而这两个名册仍为自己发起的安装挂载各自的副本。
+插件来源表单和 SDKWork Marketplace 共用 `@deepseek-ai/dsh-plugin-manager/source` 校验。生成的 Plugins App SDK 提供目录记录；Host 适配器把 Git 或 Drive 制品描述转换成安装规格，通过同一个 store 和安装弹窗执行。Drive 文件记录携带 SHA-256 校验和，由压缩包安装器验证。
 
 远程专家创建流程运行在 `expertsHost.tsx`——每个 SDKWork 界面包各自持有的会话/端口适配模板：它把 Agents、Memory、Voice、Skills、Knowledgebase、Drive 六个生成客户端绑定到活动网关与 IAM 会话（未登录时请求在登录闸口等待），随环境变化重建，并向创建入口上报网关就绪状态。能力包的创建界面（基础信息对话框与编辑器）按需代码分割加载；知识选择适配器在该界面加载时绑定，因为它的状态住在能力包自己的模块注册表里。
 

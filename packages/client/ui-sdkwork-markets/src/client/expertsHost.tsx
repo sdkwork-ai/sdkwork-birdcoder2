@@ -410,7 +410,7 @@ class ExpertsCreateHostRuntimeImpl implements ExpertsCreateHostRuntime {
 let activeAdapter: ExpertsCreateHostRuntimeImpl | undefined
 
 /** Configure the SDKWork client providers for the embedded create-expert flow. */
-export function configureExpertsCreateHost(options: ConfigureExpertsCreateHostOptions): ExpertsCreateHostAdapter {
+export function configureExpertsCreateHost(options: ConfigureExpertsCreateHostOptions): ExpertsCreateHostRuntime {
   activeAdapter?.dispose()
   const adapter = new ExpertsCreateHostRuntimeImpl(options)
   activeAdapter = adapter

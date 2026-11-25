@@ -20,16 +20,16 @@ function cloneSpine(root: Record<string, unknown>, path: readonly string[]): {
   const result = { ...root }
   let target: Record<string, unknown> | unknown[] = result
   for (let index = 0; index < path.length - 1; index++) {
-    const key = path[index] as string
+    const key = path[index]
     const child = cloneContainer(
       Array.isArray(target) ? target[Number(key)] : target[key],
-      path[index + 1] as string,
+      path[index + 1],
     )
     if (Array.isArray(target)) target[Number(key)] = child
     else target[key] = child
     target = child
   }
-  return { result, parent: target, leaf: path[path.length - 1] as string }
+  return { result, parent: target, leaf: path[path.length - 1] }
 }
 
 /**
@@ -111,7 +111,7 @@ export class SettingsSchemaService extends Service {
   hasPath(value: unknown, path: readonly string[]): boolean {
     if (path.length === 0) return value !== undefined
     const parent = this.getPath(value, path.slice(0, -1))
-    const key = path[path.length - 1] as string
+    const key = path[path.length - 1]
     if (Array.isArray(parent)) return Number(key) < parent.length
     if (typeof parent !== 'object' || parent === null) return false
     return key in parent

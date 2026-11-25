@@ -1,0 +1,25 @@
+# Bilingual-pair consistency record for 2026-11-25-knowledge-article-and-media-publish.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-25-knowledge-article-and-media-publish.md
+/agent-note-knowledge-articles-and-media-publishing-from-the-conversation:
+  en: fe9166bccac6b7cf
+  zh: 435cf094310679bd
+/agent-note-knowledge-articles-and-media-publishing-from-the-conversation/problem:
+  en: 7b44e843493bd81e
+  zh: bec1cada94d20148
+/agent-note-knowledge-articles-and-media-publishing-from-the-conversation/decision:
+  en: 471b0e3338feb2f8
+  zh: 3dbe52634b9d798c
+/agent-note-knowledge-articles-and-media-publishing-from-the-conversation/related:
+  en: 3899709f96503f17
+  zh: b4140c57abf22590
+/agent-note-knowledge-articles-and-media-publishing-from-the-conversation/alternatives-considered:
+  en: 8dd19931e7d8674d
+  zh: d7b6aa5e23c1c2ed
+/agent-note-knowledge-articles-and-media-publishing-from-the-conversation/consequences:
+  en: 02151adc3ba2be98
+  zh: 6c78b110cc948592
+/agent-note-knowledge-articles-and-media-publishing-from-the-conversation/verification:
+  en: fa50363b617eb45d
+  zh: dac0002bdfa1b381

@@ -29,8 +29,8 @@ describe('LoginPanel', () => {
     expect(view.getByText('Build potential. Explore intelligence.')).toBeTruthy()
     fireEvent.click(view.getByRole('button', { name: 'Sign in' }))
     fireEvent.click(view.getByRole('button', { name: 'Add API Key' }))
-    expect(items[0]!.onClick).toHaveBeenCalledOnce()
-    expect(items[1]!.onClick).toHaveBeenCalledOnce()
+    expect(items[0].onClick).toHaveBeenCalledOnce()
+    expect(items[1].onClick).toHaveBeenCalledOnce()
   })
 
   it('renders a busy action as a disabled loader named by its busy label', () => {

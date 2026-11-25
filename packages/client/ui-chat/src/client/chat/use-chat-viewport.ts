@@ -468,7 +468,7 @@ export class ChatViewport {
     let high = rows.length
     while (low < high) {
       const middle = (low + high) >>> 1
-      if ((rows[middle] as Element).getBoundingClientRect().bottom > viewport.top) high = middle
+      if ((rows[middle]).getBoundingClientRect().bottom > viewport.top) high = middle
       else low = middle + 1
     }
     for (let index = low; index < rows.length; index++) {
@@ -515,7 +515,7 @@ export class ChatViewport {
     let high = rows.length
     while (low < high) {
       const middle = (low + high) >>> 1
-      const row = rows[middle] as Element
+      const row = rows[middle]
       if (screen(row, row.getBoundingClientRect().bottom) > 0) high = middle
       else low = middle + 1
     }
@@ -746,7 +746,7 @@ export class ChatViewport {
     let reading = first.turn
     while (low < high) {
       const middle = (low + high) >>> 1
-      const row = rows[middle] as Element
+      const row = rows[middle]
       if (row.getBoundingClientRect().top > line) high = middle
       else {
         const value = row.getAttribute('data-chat-turn')

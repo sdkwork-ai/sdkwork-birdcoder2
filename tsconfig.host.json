@@ -104,6 +104,7 @@
     "apps/web/tests/input-plugin-extensions.e2e.ts",
     "apps/web/tests/plugin-manager.e2e.ts",
     "apps/web/tests/plugin-market-toolbar.e2e.ts",
+    "apps/web/tests/expert-market-gallery.e2e.ts",
     "apps/web/tests/plugin-sticky-motion.e2e.ts",
     "apps/web/tests/entry-customization.e2e.ts",
     "apps/web/tests/cua-optin.e2e.ts",
@@ -392,6 +393,7 @@
     // row in the two client aggregates; the two faces are separate programs by
     // design, so both references are required.
     { "path": "./packages/client/ui-sdkwork-skills/tsconfig.host.json" },
+  { "path": "./packages/client/ui-sdkwork-experts/tsconfig.host.json" },
     // ui-sdkwork-env's host half declares its durable section and publishes the
     // launch-environment projection through the web server's injection table, so
     // it needs the host plane; its browser face is a tsconfig.client.json row in
@@ -551,6 +553,8 @@
     { "path": "./packages/context/session-reference" },
     { "path": "./packages/context/harness-dev-context" },
     { "path": "./packages/interaction/user-questions" },
+    { "path": "./packages/interaction/tool-sdkwork-deploy" },
+    { "path": "./packages/interaction/tool-sdkwork-knowledge" },
     { "path": "./packages/interaction/user-approval" },
     { "path": "./packages/interaction/permission-presets" },
     { "path": "./packages/experimental/auto-review" },

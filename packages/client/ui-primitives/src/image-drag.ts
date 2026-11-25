@@ -62,7 +62,7 @@ export function useImageDrag(
     const url = new URL(src, location.href)
     if (original === undefined && (url.protocol === 'https:' || url.protocol === 'http:') && url.origin !== location.origin) return
     event.preventDefault()
-    if (current?.failed === true) { actions.reportFailure(); release() }
+    if (current?.failed) { actions.reportFailure(); release() }
     prepare(event.currentTarget)
   }, [src, original, actions, prepare, release])
   const onPointerDown = useCallback((event: PointerEvent<HTMLImageElement>): void => {

@@ -1816,9 +1816,9 @@ describe('built-in conversation node Definitions', () => {
     const expected = {
       callId: 'root',
       subCalls: [{
-        kind: 'tool-result', callId: historicalId, parentCallId: 'root', callTime: events[4]!.event.time,
+        kind: 'tool-result', callId: historicalId, parentCallId: 'root', callTime: events[4].event.time,
         subCalls: [{
-          kind: 'tool-result', callId: currentId, parentCallId: historicalId, callTime: events[5]!.event.time,
+          kind: 'tool-result', callId: currentId, parentCallId: historicalId, callTime: events[5].event.time,
           content: [{ type: 'text', text: 'contents' }], subCalls: [],
         }],
       }],

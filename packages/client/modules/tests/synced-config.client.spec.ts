@@ -100,10 +100,10 @@ it('publishes volatile updates once, skips equal values, and keeps unsynced rows
   expect(h.config('@fixture/pkg')).toEqual(initial)
   expect(h.service.graph().entries.find(row => row.id === '@fixture/plain')).not.toHaveProperty('config')
   const before = h.service.graph()
-  await h.entries['@fixture/pkg']!.update({ config: { size: 3, apiKey: 'changed' } })
+  await h.entries['@fixture/pkg'].update({ config: { size: 3, apiKey: 'changed' } })
   expect(h.changes).not.toHaveBeenCalled()
   expect(h.service.graph()).toBe(before)
-  await h.entries['@fixture/pkg']!.update({ config: { size: 4, apiKey: 'changed' } })
+  await h.entries['@fixture/pkg'].update({ config: { size: 4, apiKey: 'changed' } })
   expect(h.changes).toHaveBeenCalledOnce()
   expect(h.config('@fixture/pkg')).toEqual({ ...initial, size: 4 })
   expect(h.service.graph().rev).not.toBe(before.rev)
@@ -111,10 +111,10 @@ it('publishes volatile updates once, skips equal values, and keeps unsynced rows
 
 it('republishes after an ordinary change restarts the plugin and drops values of a removed row', async () => {
   const h = await harness({ '@fixture/pkg': { Config: Schema, apply: () => {} } }, { '@fixture/pkg': { size: 3 } })
-  await h.entries['@fixture/pkg']!.update({ config: { size: 5, cacheDir: 'other' } })
+  await h.entries['@fixture/pkg'].update({ config: { size: 5, cacheDir: 'other' } })
   await h.ctx.loader.await()
   await vi.waitFor(() => { expect(h.config('@fixture/pkg')).toEqual({ ...initial, size: 5 }) })
-  h.ctx.loader.remove(h.entries['@fixture/pkg']!.id)
+  h.ctx.loader.remove(h.entries['@fixture/pkg'].id)
   await h.ctx.loader.await()
   await vi.waitFor(() => { expect(h.service.graph().entries).toEqual([]) })
   await h.fiber.dispose()
@@ -124,7 +124,7 @@ it('publishes values its own schema resolves for a plugin that has not activated
   const h = await harness({ '@fixture/waiting': { inject: ['absent'], Config: Schema, apply: () => {} } }, {
     '@fixture/waiting': { size: 3 },
   })
-  expect(h.entries['@fixture/waiting']!.fiber!.ctx.fiber.effectiveConfig).toBeUndefined()
+  expect(h.entries['@fixture/waiting'].fiber!.ctx.fiber.effectiveConfig).toBeUndefined()
   expect(h.config('@fixture/waiting')).toEqual(initial)
 })
 
@@ -177,7 +177,7 @@ it('serves no values to a non-owner Peer when the schema rejects an empty Config
   const Required = z.object({ size: z.natural().required().volatile() })
   const h = await harness({ '@fixture/required': { Config: Required, apply: () => {} } }, { '@fixture/required': { size: 3 } })
   const debug = vi.spyOn(h.ctx.logger, 'debug').mockImplementation(() => {})
-  await h.entries['@fixture/required']!.update({ config: { size: 4 } })
+  await h.entries['@fixture/required'].update({ config: { size: 4 } })
   const bootConfig = bootConfigOf(h.ctx, '@fixture/required')
   expect(bootConfig({ kind: 'owner' })).toEqual({ size: 4 })
   expect(bootConfig({ kind: 'viewer' })).toBeUndefined()
@@ -187,12 +187,12 @@ it('serves no values to a non-owner Peer when the schema rejects an empty Config
 it('keeps the batch artifacts and the prior batch generation when only synced values change', async () => {
   const h = await harness({ '@fixture/pkg': { Config: Schema, apply: () => {} } }, { '@fixture/pkg': { size: 3 } })
   const status = async (url: string) => (await h.service.fetchBundle(new Request(new URL(url, 'http://localhost/').href))).status
-  const first = h.service.graph().batches[0]!.url
+  const first = h.service.graph().batches[0].url
   writeFileSync(join(dir!, 'node_modules', '@fixture', 'pkg', 'lib', 'client.js'), 'module.exports = { generation: 2000 }\n')
   h.service.rebuilt('@fixture/pkg')
   const second = h.service.graph()
-  expect(second.batches[0]!.url).not.toBe(first)
-  await h.entries['@fixture/pkg']!.update({ config: { size: 4 } })
+  expect(second.batches[0].url).not.toBe(first)
+  await h.entries['@fixture/pkg'].update({ config: { size: 4 } })
   expect(h.config('@fixture/pkg')).toEqual({ ...initial, size: 4 })
   expect(h.service.graph().batches).toBe(second.batches)
   expect(await status(first)).toBe(200)
@@ -210,10 +210,10 @@ it('falls back to a live entry of the same name when the selected instance is re
   h.ctx.loader.remove(second.id)
   await h.ctx.loader.await()
   await vi.waitFor(() => { expect(h.config('@fixture/pkg')).toEqual({ ...initial, size: 1 }) })
-  await h.entries['@fixture/pkg']!.update({ config: { size: 3 } })
+  await h.entries['@fixture/pkg'].update({ config: { size: 3 } })
   expect(h.config('@fixture/pkg')).toEqual({ ...initial, size: 3 })
   // With no live entry left, the last values stay until the row leaves the graph.
-  h.ctx.loader.remove(h.entries['@fixture/pkg']!.id)
+  h.ctx.loader.remove(h.entries['@fixture/pkg'].id)
   await h.ctx.loader.await()
 })
 
@@ -221,7 +221,7 @@ it('keeps the last values of a row whose value cannot be synced', async () => {
   const h = await harness({ '@fixture/lossy': { Config: z.object({ n: z.any().volatile() }), apply: () => {} } }, { '@fixture/lossy': { n: 1 } })
   const errors = vi.spyOn(h.ctx.logger, 'error').mockImplementation(() => {})
   expect(h.config('@fixture/lossy')).toEqual({ n: 1 })
-  await h.entries['@fixture/lossy']!.update({ config: { n: Number.POSITIVE_INFINITY } })
+  await h.entries['@fixture/lossy'].update({ config: { n: Number.POSITIVE_INFINITY } })
   expect(errors).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('@fixture/lossy Config field n') as string }))
   expect(h.config('@fixture/lossy')).toEqual({ n: 1 })
 })
@@ -266,6 +266,6 @@ it('queues the new graph before the plugin\'s own volatile-update listeners run'
     '@fixture/ordered': { Config: Schema, apply: (ctx: Context) => { ctx.on('loader/volatile-update', () => { order.push('plugin') }) } },
   }, { '@fixture/ordered': { size: 1 } })
   h.service.onGraphChanged(() => { order.push('graph') })
-  await h.entries['@fixture/ordered']!.update({ config: { size: 2 } })
+  await h.entries['@fixture/ordered'].update({ config: { size: 2 } })
   expect(order).toEqual(['graph', 'plugin'])
 })

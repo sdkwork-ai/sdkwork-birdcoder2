@@ -162,17 +162,30 @@ export async function* translate(events: AsyncIterable<Record<string, unknown>>,
       }
       if (reason === undefined || [...blocks.values()].some(block => !block.closed)) return malformed('message_stop without settled blocks and stop reason')
       if (blocks.size === 0 && reason.kind === 'stop') throw new LlmError('DeepSeek Messages returned no content', 'EMPTY_RESPONSE')
-      // Truncated tool JSON is retained in the stream, then pruned by the shared assembler.
+      // A provider may settle a tool call whose streamed `input_json_delta`s stop
+      // mid-document — an upstream deadline, or an output cap it does not report as
+      // `max_tokens` — while still claiming `tool_use`. That is a truncated tool
+      // input, not malformed framing: keep the block, report the truncation, and
+      // let the shared assembler prune the incomplete call. Failing the turn
+      // instead loses every completed step over a provider lie. A tool input that
+      // parses to a non-object is still a protocol violation: the executor must
+      // never receive a repaired or guessed argument object.
+      let settlement = reason
       if (reason.kind !== 'max-tokens') {
         for (const { content } of blocks.values()) {
           if (content.type !== 'tool-call') continue
           let parsed: unknown
-          try { parsed = JSON.parse(content.arguments) } catch (_invalidProviderToolJson) { return malformed('tool input is invalid JSON') }
+          try {
+            parsed = JSON.parse(content.arguments)
+          } catch (_truncatedToolJson) {
+            settlement = { kind: 'max-tokens' }
+            break
+          }
           object(parsed)
         }
       }
       yield { type: 'usage', usage }
-      yield { type: 'finish', reason, replayState: replayState(model, [...blocks.values()].map(block => block.replay)) }
+      yield { type: 'finish', reason: settlement, replayState: replayState(model, [...blocks.values()].map(block => block.replay)) }
       return
     }
   }

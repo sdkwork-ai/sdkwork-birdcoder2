@@ -134,7 +134,7 @@ describe('DeployedScaffoldsPanel', () => {
     expect(screen.getByText(zh['deployments.scaffolds.installs'].replace('{count}', '42'))).toBeTruthy()
     expect(screen.getByText('A batteries-included starting point')).toBeTruthy()
     expect(screen.getAllByText(zh['scaffoldCenter.download.status.published'])).toHaveLength(3)
-    expect(within(rows[0]!).getByText(zh['scaffoldCenter.download.status.published'])).toBeTruthy()
+    expect(within(rows[0]).getByText(zh['scaffoldCenter.download.status.published'])).toBeTruthy()
     expect(screen.getByText(zh['deployments.shownCount'].replace('{shown}', '2').replace('{total}', '2'))).toBeTruthy()
     expect(screen.getByText(zh['deployments.updatedAt'].replace('{time}', '2026-03-01 00:00'))).toBeTruthy()
   })
@@ -256,7 +256,7 @@ describe('DeployedScaffoldsPanel', () => {
       name: new RegExp(zh['scaffoldCenter.download.status.draft']),
     })).toBeNull()
 
-    fireEvent.click(screen.getAllByRole('button', { name: zh['deployments.clearFilters'] })[0]!)
+    fireEvent.click(screen.getAllByRole('button', { name: zh['deployments.clearFilters'] })[0])
     expect(await view.findByText('Published App')).toBeTruthy()
   })
 

@@ -1344,7 +1344,7 @@ export function ChangesView({
   const navigator: ChangedFilesProps = {
     files, state: treeState, t, viewed: viewedPaths,
     filter: (query) => { setTreeState(value => ({ ...value, query })) },
-    toggle: (path) => { setTreeState(value => ({ ...value, collapsed: { ...value.collapsed, [path]: value.collapsed[path] !== true } })) },
+    toggle: (path) => { setTreeState(value => ({ ...value, collapsed: { ...value.collapsed, [path]: ! value.collapsed[path] } })) },
     jump,
     ...review === null ? {} : { threadCounts: placed.unresolved },
   }

@@ -34,17 +34,17 @@ describe('diff fences', () => {
     const { container } = render(<CodeBlock code={TS_DIFF} lang="diff" showHeader={false} />)
     const lines = rows(container)
     expect(lines).toHaveLength(9)
-    expect(lines[0]!.className).toContain('_diffMeta_')
-    expect(lines[1]!.className).toContain('_diffMeta_')
-    expect(lines[2]!.className).toContain('_diffMeta_')
-    expect(lines[3]!.className).toContain('_diffMeta_')
-    expect(lines[4]!.className).toContain('_diffHunk_')
-    expect(lines[5]!.className).not.toContain('_diffAdd_')
-    expect(lines[5]!.className).not.toContain('_diffDel_')
-    expect(lines[6]!.className).toContain('_diffDel_')
-    expect(lines[7]!.className).toContain('_diffAdd_')
-    expect(lines[8]!.className).not.toContain('_diffAdd_')
-    expect(lines[8]!.textContent).toBe('no marker here')
+    expect(lines[0].className).toContain('_diffMeta_')
+    expect(lines[1].className).toContain('_diffMeta_')
+    expect(lines[2].className).toContain('_diffMeta_')
+    expect(lines[3].className).toContain('_diffMeta_')
+    expect(lines[4].className).toContain('_diffHunk_')
+    expect(lines[5].className).not.toContain('_diffAdd_')
+    expect(lines[5].className).not.toContain('_diffDel_')
+    expect(lines[6].className).toContain('_diffDel_')
+    expect(lines[7].className).toContain('_diffAdd_')
+    expect(lines[8].className).not.toContain('_diffAdd_')
+    expect(lines[8].textContent).toBe('no marker here')
   })
 
   it('keeps the source byte-identical so copy still reproduces the fence', () => {
@@ -60,17 +60,17 @@ describe('diff fences', () => {
   it('falls back to plain body text when the diff names no known language', () => {
     const code = ['+++ b/notes.unknownext', '@@ -1 +1 @@', '+plain text'].join('\n')
     const { container } = render(<CodeBlock code={code} lang="diff" showHeader={false} />)
-    expect(rows(container)[2]!.className).toContain('_diffAdd_')
+    expect(rows(container)[2].className).toContain('_diffAdd_')
     expect(container.querySelectorAll('pre code span[style*="--shiki-"]').length).toBe(0)
   })
 
   it('treats header-shaped lines after a hunk as changed content', () => {
     const code = ['--- a/x.ts', '+++ b/x.ts', '@@ -1 +1,2 @@', '--- removed header-like line', '+++ added header-like line'].join('\n')
     const lines = rows(render(<CodeBlock code={code} lang="diff" showHeader={false} />).container)
-    expect(lines[0]!.className).toContain('_diffMeta_')
-    expect(lines[1]!.className).toContain('_diffMeta_')
-    expect(lines[3]!.className).toContain('_diffDel_')
-    expect(lines[4]!.className).toContain('_diffAdd_')
+    expect(lines[0].className).toContain('_diffMeta_')
+    expect(lines[1].className).toContain('_diffMeta_')
+    expect(lines[3].className).toContain('_diffDel_')
+    expect(lines[4].className).toContain('_diffAdd_')
   })
 
   it('resolves the language from the old path when the new side is /dev/null', () => {
@@ -88,8 +88,8 @@ describe('diff fences', () => {
   it('renders patch fences the same way', () => {
     const { container } = render(<CodeBlock code={'@@ -1 +1 @@\n-old\n+new'} lang="patch" showHeader={false} />)
     const lines = rows(container)
-    expect(lines[1]!.className).toContain('_diffDel_')
-    expect(lines[2]!.className).toContain('_diffAdd_')
+    expect(lines[1].className).toContain('_diffDel_')
+    expect(lines[2].className).toContain('_diffAdd_')
   })
 
   it('renders file-level chrome rows as meta', () => {
@@ -124,9 +124,9 @@ describe('diff fences', () => {
     ].join('\n')
     const lines = rows(render(<CodeBlock code={code} lang="diff" showHeader={false} />).container)
     expect(lines).toHaveLength(13)
-    for (const index of [7, 8, 9]) expect(lines[index]!.className).toContain('_diffMeta_')
-    expect(lines[11]!.className).toContain('_diffDel_')
-    expect(lines[12]!.className).toContain('_diffAdd_')
+    for (const index of [7, 8, 9]) expect(lines[index].className).toContain('_diffMeta_')
+    expect(lines[11].className).toContain('_diffDel_')
+    expect(lines[12].className).toContain('_diffAdd_')
   })
 
   it('ends a hunk by its line budget so concatenated diff -u headers stay chrome', () => {
@@ -143,14 +143,14 @@ describe('diff fences', () => {
       '+y',
     ].join('\n')
     const lines = rows(render(<CodeBlock code={code} lang="diff" showHeader={false} />).container)
-    expect(lines[5]!.className).toContain('_diffMeta_')
-    expect(lines[6]!.className).toContain('_diffMeta_')
+    expect(lines[5].className).toContain('_diffMeta_')
+    expect(lines[6].className).toContain('_diffMeta_')
   })
 
   it('accepts uppercase diff and patch info strings', () => {
     const lines = rows(render(<CodeBlock code={'@@ -1 +1 @@\n-old\n+new'} lang="Diff" showHeader={false} />).container)
-    expect(lines[1]!.className).toContain('_diffDel_')
-    expect(lines[2]!.className).toContain('_diffAdd_')
+    expect(lines[1].className).toContain('_diffDel_')
+    expect(lines[2].className).toContain('_diffAdd_')
   })
 
   it('resolves quoted header paths', () => {
@@ -169,10 +169,10 @@ describe('diff fences', () => {
   it('tokenizes the removed and added sides independently', () => {
     const code = ['--- a/src/app.ts', '+++ b/src/app.ts', '@@ -1 +1 @@', '-/*', '+const fixed = 1'].join('\n')
     const lines = rows(render(<CodeBlock code={code} lang="diff" showHeader={false} />).container)
-    const added = [...lines[4]!.querySelectorAll('span')]
+    const added = [...lines[4].querySelectorAll('span')]
     const keyword = added.find(span => span.textContent === 'const')
     expect(keyword?.style.color).toBe('var(--shiki-token-keyword)')
-    const removed = [...lines[3]!.querySelectorAll('span')]
+    const removed = [...lines[3].querySelectorAll('span')]
     const comment = removed.find(span => span.textContent.trim() === '/*')
     expect(comment?.style.color).toBe('var(--shiki-token-comment)')
   })
@@ -194,18 +194,18 @@ describe('diff fences', () => {
   it('renders content under a malformed hunk header', () => {
     const code = ['@@ not a hunk header @@', '+add', '-del', ' ctx'].join('\n')
     const lines = rows(render(<CodeBlock code={code} lang="diff" showHeader={false} />).container)
-    expect(lines[0]!.className).toContain('_diffHunk_')
-    expect(lines[1]!.className).toContain('_diffAdd_')
-    expect(lines[2]!.className).toContain('_diffDel_')
-    expect(lines[3]!.className).toContain('_diffContext_')
+    expect(lines[0].className).toContain('_diffHunk_')
+    expect(lines[1].className).toContain('_diffAdd_')
+    expect(lines[2].className).toContain('_diffDel_')
+    expect(lines[3].className).toContain('_diffContext_')
   })
 
   it('keeps a group whose last removed line is empty', () => {
     const code = ['--- a/src/app.ts', '+++ b/src/app.ts', '@@ -1,2 +1,2 @@', '-a', '-', '+b', '+c'].join('\n')
     const lines = rows(render(<CodeBlock code={code} lang="diff" showHeader={false} />).container)
     expect(lines).toHaveLength(7)
-    expect(lines[4]!.textContent).toBe('-')
-    expect(lines[5]!.textContent).toBe('+b')
+    expect(lines[4].textContent).toBe('-')
+    expect(lines[5].textContent).toBe('+b')
   })
 
   it('keeps the numbered gutter usable on a diff fence', () => {
@@ -224,7 +224,7 @@ describe('diff fences', () => {
     const { container } = render(<CodeBlock code={'@@ -1 +1 @@\n-old\n+new'} lang="text" diff showHeader={false} />)
     const lines = rows(container)
     expect(lines).toHaveLength(3)
-    expect(lines[1]!.className).toContain('_diffDel_')
-    expect(lines[2]!.className).toContain('_diffAdd_')
+    expect(lines[1].className).toContain('_diffDel_')
+    expect(lines[2].className).toContain('_diffAdd_')
   })
 })

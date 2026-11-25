@@ -23,8 +23,8 @@ export class TerminalTheme implements IDisposable {
       observe(4, (data) => {
         const parts = data.split(';')
         for (let i = 0; i + 1 < parts.length; i += 2) {
-          const index = colorIndex(parts[i]!)
-          const color = oscColor(parts[i + 1]!)
+          const index = colorIndex(parts[i])
+          const color = oscColor(parts[i + 1])
           if (index !== undefined && color !== undefined) this.indexed.set(index, color)
         }
       }),
@@ -72,7 +72,7 @@ export class TerminalTheme implements IDisposable {
   private apply(): void {
     const theme: ITheme = { ...this.defaults, ...Object.fromEntries(this.special) }
     for (const [index, color] of this.indexed) {
-      if (index < ansiKeys.length) theme[ansiKeys[index]!] = color
+      if (index < ansiKeys.length) theme[ansiKeys[index]] = color
       else (theme.extendedAnsi ??= [])[index - ansiKeys.length] = color
     }
     this.terminal.options.theme = theme
@@ -89,7 +89,7 @@ function oscColor(value: string): string | undefined {
   let channels: string[]
   if (rgb !== null) {
     channels = rgb.slice(1)
-    if (!channels.every(channel => channel.length === channels[0]!.length)) return
+    if (!channels.every(channel => channel.length === channels[0].length)) return
   } else {
     if (!/^#(?:[\da-f]{3}){1,4}$/iu.test(value)) return
     const width = (value.length - 1) / 3

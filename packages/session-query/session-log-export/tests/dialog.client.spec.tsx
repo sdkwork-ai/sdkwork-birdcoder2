@@ -46,7 +46,7 @@ describe('SessionLogDownloadDialog', () => {
     const dialog = b.view.getByRole('dialog', { name: 'Session export failed' })
     expect(dialog.textContent).toContain(`Session: ${SID}`)
     expect(dialog.textContent).toContain('transport failed')
-    fireEvent.click(b.view.getAllByRole('button', { name: 'Close' })[0]!)
+    fireEvent.click(b.view.getAllByRole('button', { name: 'Close' })[0])
     expect(b.dismiss).toHaveBeenCalledWith(SID)
     expect(b.view.queryByRole('dialog')).toBeNull()
   })

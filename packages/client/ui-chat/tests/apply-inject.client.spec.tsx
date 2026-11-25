@@ -131,7 +131,7 @@ async function bench(initialSettings?: ChatSettings, withBrowserRegistry = true,
 
   const chatViewApi = (reference: SessionReference) => {
     const id = reference.sessionId
-    const entry = runtime.slots.entries('conversation.view')[0]!
+    const entry = runtime.slots.entries('conversation.view')[0]
     const instance = runtime.storeOf('conversation.view', reference) as ChatInstance
     const injected = (entry.inject as unknown as (
       sessionId: SessionId,
@@ -140,7 +140,7 @@ async function bench(initialSettings?: ChatSettings, withBrowserRegistry = true,
     return { instance, injected }
   }
   const chatFlowApi = (reference: SessionReference) => {
-    const entry = runtime.slots.entries('conversation.chat.flow')[0]!
+    const entry = runtime.slots.entries('conversation.chat.flow')[0]
     const instance = runtime.storeOf('conversation.chat.flow', reference) as ChatInstance
     const injectFlow = entry.inject as (sessionId: SessionId) => ChatFlowDataInjected
     return { instance, injected: injectFlow(reference.sessionId) }
@@ -486,7 +486,7 @@ describe('Chat inject API', () => {
       vi.spyOn(b.runtime.ctx.sessions, 'subagentAddress').mockReturnValue(child)
       await row.openCompaction(42, signal)
       expect(b.events).toHaveBeenLastCalledWith({ address: { kind: 'subagent', ...child }, throughSeq: 42, maxMessages: 1 }, expect.any(AbortSignal))
-      expect(b.sidebarRight.openContent.mock.calls[0]![2]?.key).not.toBe(b.sidebarRight.openContent.mock.calls[1]![2]?.key)
+      expect(b.sidebarRight.openContent.mock.calls[0][2]?.key).not.toBe(b.sidebarRight.openContent.mock.calls[1][2]?.key)
       b.events.mockImplementationOnce(async (_query, active) => {
         await viewer.dispose()
         expect(active?.aborted).toBe(true)
@@ -590,14 +590,14 @@ describe('Chat inject API', () => {
 
   it('fails loud when a Chat View inject resolves no Session', async () => {
     const b = await bench()
-    const entry = b.runtime.slots.entries('conversation.view')[0]!
+    const entry = b.runtime.slots.entries('conversation.view')[0]
     const injectView = entry.inject as unknown as (
       sessionId: SessionId,
       actions: ChatActions,
     ) => ChatViewInjected
     expect(() => injectView('never-listed' as SessionId, {} as ChatActions))
       .toThrow(/unknown session/)
-    const flowEntry = b.runtime.slots.entries('conversation.chat.flow')[0]!
+    const flowEntry = b.runtime.slots.entries('conversation.chat.flow')[0]
     const injectFlow = flowEntry.inject as (sessionId: SessionId) => ChatFlowDataInjected
     expect(() => injectFlow('never-listed' as SessionId)).toThrow(/unknown session/)
     await b.runtime.dispose()

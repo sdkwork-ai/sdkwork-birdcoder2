@@ -56,13 +56,13 @@ describe('SidebarRightController — opening', () => {
       h.controller.openTab('terminal')
       const terminals = Object.values(h.layout().tabs).filter(tab => tab.kind === 'terminal')
       expect(terminals).toHaveLength(2)
-      expect(terminals[0]!.contentId).not.toBe(terminals[1]!.contentId)
-      const pane = findTabPane(h.layout(), terminals[0]!.id).id
-      h.instance.actions.floatTab(SESSION, terminals[0]!.id)
-      const floating = findTabPane(h.layout(), terminals[0]!.id).id
+      expect(terminals[0].contentId).not.toBe(terminals[1].contentId)
+      const pane = findTabPane(h.layout(), terminals[0].id).id
+      h.instance.actions.floatTab(SESSION, terminals[0].id)
+      const floating = findTabPane(h.layout(), terminals[0].id).id
       h.instance.actions.unfloatPane(SESSION, floating)
-      expect(getPane(h.layout(), pane).tabs).toContain(terminals[0]!.id)
-      expect(getPane(h.layout(), pane).tabs).toContain(terminals[1]!.id)
+      expect(getPane(h.layout(), pane).tabs).toContain(terminals[0].id)
+      expect(getPane(h.layout(), pane).tabs).toContain(terminals[1].id)
     } finally { release() }
   })
 
@@ -450,7 +450,7 @@ describe('SidebarRightController — replacing a tab', () => {
   it('replaces a floating tab in its panel with a page, ignoring a named pane', () => {
     const h = replaced(true)
     h.tabs.register({ id: 'test/files', kind: 'files', title: () => 'files' })
-    h.controller.openTab('files', { replaceTab: h.from, paneId: dockPaneIds(h.layout())[0]! })
+    h.controller.openTab('files', { replaceTab: h.from, paneId: dockPaneIds(h.layout())[0] })
     expect(getPane(h.layout(), h.float!).tabs).toEqual([h.tabOf('files')])
     expect(h.layout().tabs[h.from]).toBeUndefined()
   })
@@ -939,7 +939,7 @@ describe('SidebarRightController — opening from a floating tab', () => {
     open(h)
     const root = getPane(h.layout(), h.layout().rootId)
     expect(root.tabs).toHaveLength(1)
-    expect(h.layout().tabs[root.tabs[0]!]?.title).toBe(title)
+    expect(h.layout().tabs[root.tabs[0]]?.title).toBe(title)
     expect(h.titles()).not.toContain('seed')
     expect(h.layout().expanded).toBe(true)
     expect(h.layout().activePaneId).toBe(root.id)

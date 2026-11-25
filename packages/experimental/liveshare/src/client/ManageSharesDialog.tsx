@@ -79,7 +79,7 @@ export function LiveshareManageSharesDialog({ shares, onOpenShare, onClose, t }:
       onClose={onClose}
       title={t('manage.title')}
       closeLabel={t('manage.done')}
-      className={css.modal as string}
+      className={css.modal}
       footer={<Button variant="primary" onClick={onClose}>{t('manage.done')}</Button>}
     >
       <div className={css.form}>

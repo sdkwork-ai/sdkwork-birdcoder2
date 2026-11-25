@@ -1,1 +1,1 @@
-export * from "./dependency-manifest.js";
+export * from './dependency-manifest.js'

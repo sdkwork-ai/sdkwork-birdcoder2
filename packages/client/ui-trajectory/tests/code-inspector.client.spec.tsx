@@ -125,7 +125,7 @@ describe('PTC trajectory inspector', () => {
       }],
       partial: null, runningCalls: [],
     }, t)
-    const cell = turns.flatMap(turn => turn.groups.flatMap(group => group.cells))[0]!
+    const cell = turns.flatMap(turn => turn.groups.flatMap(group => group.cells))[0]
     const view = render(<Harness cell={cell} />)
     const ui = within(view.container)
     expect(ui.getByRole('row', { name: /TOOL/ }).textContent).toContain(output.split('\n')[0])

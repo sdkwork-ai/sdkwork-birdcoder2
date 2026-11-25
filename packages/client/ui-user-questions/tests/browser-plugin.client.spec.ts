@@ -197,7 +197,7 @@ describe('apply', () => {
 
       expect(next).toHaveBeenCalledOnce()
       expect(dispose).toHaveBeenCalledOnce()
-      expect(b.remoteQuestions.attachWait.mock.calls[0]![2].aborted).toBe(true)
+      expect(b.remoteQuestions.attachWait.mock.calls[0][2].aborted).toBe(true)
       expect(b.pending.getSnapshot()[0]?.snapshot()).toMatchObject({ channel: 'none', countdown: undefined })
       b.projection.set(view([]))
       expect(b.pending.getSnapshot()).toEqual([])
@@ -221,7 +221,7 @@ describe('apply', () => {
     try {
       await expect(b.invoke(b.agent, { ...timed(), signal: controller.signal }, async () => ANSWER))
         .rejects.toMatchObject({ code: 'ASK_ABORTED' })
-      const card = b.pending.getSnapshot()[0]!
+      const card = b.pending.getSnapshot()[0]
       expect(card.snapshot()).toMatchObject({ state: 'continued', channel: 'rpc' })
       await card.answer(ANSWER)
       expect(b.remoteQuestions.answer).toHaveBeenCalledOnce()
@@ -244,7 +244,7 @@ describe('apply', () => {
     })
     try {
       const result = b.invoke(b.agent, timed(), async () => ANSWER)
-      const card = b.pending.getSnapshot()[0]!
+      const card = b.pending.getSnapshot()[0]
       b.list.set({ ...b.list.getSnapshot() })
       expect(b.pending.getSnapshot()).toContain(card)
       expect(card.snapshot().closed).toBe(false)
@@ -264,7 +264,7 @@ describe('apply', () => {
     try {
       const result = b.invoke(b.agent, { questions: QUESTIONS }, async () => ANSWER)
       expect(b.pending.getSnapshot()[0]?.snapshot().channel).toBe('waterfall')
-      await b.pending.getSnapshot()[0]!.answer(ANSWER)
+      await b.pending.getSnapshot()[0].answer(ANSWER)
       await expect(result).resolves.toEqual(ANSWER)
     } finally {
       await b.fiber.dispose()
@@ -295,7 +295,7 @@ describe('apply', () => {
     try {
       const result = b.invoke(b.agent, timed(), async () => ANSWER)
       await claimed.promise
-      const pending = b.pending.getSnapshot()[0]!
+      const pending = b.pending.getSnapshot()[0]
       pending.takeTime()
       await vi.advanceTimersByTimeAsync(6_000)
       await pending.answer(ANSWER)
@@ -338,8 +338,8 @@ describe('apply', () => {
     const b = await bench()
 
     expect(b.registerNode).toHaveBeenCalledTimes(2)
-    expect(b.registerNode.mock.calls[0]![0]).toMatchObject({ kind: 'user-question-reply', target: 'chat' })
-    expect(b.registerNode.mock.calls[1]![0]).toMatchObject({ kind: 'answered-user-question', target: 'chat' })
+    expect(b.registerNode.mock.calls[0][0]).toMatchObject({ kind: 'user-question-reply', target: 'chat' })
+    expect(b.registerNode.mock.calls[1][0]).toMatchObject({ kind: 'answered-user-question', target: 'chat' })
     expect(b.slots.entries('conversation.chat.node').map(entry => entry.options.key)).toEqual(['question-reply'])
   })
 
@@ -366,12 +366,12 @@ describe('apply', () => {
     const result = b.invoke(b.agent, { questions: QUESTIONS }, next)
     await Promise.resolve()
 
-    const entry = b.slots.entries('conversation.composer')[0]!
+    const entry = b.slots.entries('conversation.composer')[0]
     expect(entry.component).toBe(QuestionComposer)
     expect(entry.locale).toBe('question')
     const store = entry.store as ReturnType<typeof createQuestionDraftStore>
     expect(store.create(SESSION_ID).getSnapshot()).toEqual({ progressByRequest: {} })
-    const pending = b.pending.getSnapshot()[0]!
+    const pending = b.pending.getSnapshot()[0]
     const face = (entry.inject as () => { keyedHooks: { questionCard: (key: string) => PendingQuestion | undefined } })()
     expect(face.keyedHooks.questionCard(pending.key)).toBe(pending)
     expect(face.keyedHooks.questionCard('question:missing')).toBeUndefined()
@@ -400,7 +400,7 @@ describe('apply', () => {
     const b = await bench()
     const result = b.invoke(b.agent, { questions: QUESTIONS }, async () => ANSWER)
     await Promise.resolve()
-    const pending = b.pending.getSnapshot()[0]!
+    const pending = b.pending.getSnapshot()[0]
     expect(pending.dismissal).toBe('cancel')
     const rejection = expect(result).rejects.toMatchObject({
       name: 'UserQuestionError',
@@ -457,7 +457,7 @@ describe('apply', () => {
     const b = await bench()
     const result = b.invoke(b.agent, timed(), async () => ANSWER)
     await Promise.resolve()
-    const pending = b.pending.getSnapshot()[0]!
+    const pending = b.pending.getSnapshot()[0]
     expect(pending.key).toBe(`question:${SESSION_ID}:${CALL}`)
     expect(pending.dismissal).toBe('hide')
     expect(pending.snapshot()).toMatchObject({
@@ -484,7 +484,7 @@ describe('apply', () => {
     const request = timed()
     const result = b.invoke(b.agent, request, async () => ANSWER)
     await Promise.resolve()
-    const pending = b.pending.getSnapshot()[0]!
+    const pending = b.pending.getSnapshot()[0]
     expect(pending.snapshot().countdown!.remainingMs).toBeLessThanOrEqual(2_000)
     expect(pending.snapshot().countdown!.remainingMs).toBeGreaterThan(1_000)
     pending.timeout()
@@ -497,7 +497,7 @@ describe('apply', () => {
     void b.invoke(b.agent, { questions: QUESTIONS, wait: { callId: CALL } }, async () => ANSWER)
     await Promise.resolve()
 
-    const pending = b.pending.getSnapshot()[0]!
+    const pending = b.pending.getSnapshot()[0]
     expect(pending.key).toBe(`question:${SESSION_ID}:${CALL}`)
     expect(pending.dismissal).toBe('hide')
     expect(pending.snapshot()).toEqual({
@@ -511,7 +511,7 @@ describe('apply', () => {
     const next = vi.fn(async () => ANSWER)
     const result = b.invoke(b.agent, timed(), next)
     await Promise.resolve()
-    const pending = b.pending.getSnapshot()[0]!
+    const pending = b.pending.getSnapshot()[0]
 
     await pending.dismiss()
 
@@ -537,7 +537,7 @@ describe('apply', () => {
     const b = await bench()
 
     expect(b.panels()?.review(SESSION_ID, CALL, RECORD)).toBe(true)
-    const card = b.pending.getSnapshot()[0]!
+    const card = b.pending.getSnapshot()[0]
     expect(card.key).toBe(`question:${SESSION_ID}:${CALL}`)
     expect(card.review).toEqual(RECORD.answers)
     expect(card.liveKeys()).toEqual([card.key])
@@ -565,7 +565,7 @@ describe('apply', () => {
     const b = await bench()
     const result = b.invoke(b.agent, timed(), async () => ANSWER)
     await Promise.resolve()
-    const card = b.pending.getSnapshot()[0]!
+    const card = b.pending.getSnapshot()[0]
 
     expect(b.panels()?.review(SESSION_ID, CALL, RECORD)).toBe(true)
 
@@ -590,7 +590,7 @@ describe('apply', () => {
     const controller = new AbortController()
     const result = b.invoke(b.agent, { ...timed(), signal: controller.signal }, async () => ANSWER)
     await Promise.resolve()
-    const pending = b.pending.getSnapshot()[0]!
+    const pending = b.pending.getSnapshot()[0]
 
     controller.abort()
     await expect(result).rejects.toMatchObject({ code: 'ASK_ABORTED' })
@@ -614,7 +614,7 @@ describe('apply', () => {
     expect(cards.map(card => card.key)).toEqual([
       `question:${SESSION_ID}:${CALL}`, `question:${SESSION_ID}:call-other`,
     ])
-    const card = cards[0]!
+    const card = cards[0]
     expect(card.snapshot()).toMatchObject({ state: 'continued', channel: 'rpc' })
     expect(card.liveKeys()).toEqual(cards.map(item => item.key))
 
@@ -655,7 +655,7 @@ describe('apply', () => {
       await vi.waitFor(() => {
         expect(b.pending.getSnapshot().find(card => card.callId === currentCall)?.snapshot().channel).toBe('waterfall')
       })
-      const oldCard = b.pending.getSnapshot()[0]!
+      const oldCard = b.pending.getSnapshot()[0]
       b.inbox.set(queuedInbox(CALL))
 
       expect(oldCard.snapshot().closed).toBe(true)
@@ -704,9 +704,9 @@ describe('apply', () => {
     const result = b.invoke(b.agent, { questions: PLAN_QUESTIONS }, async () => ANSWER)
     await Promise.resolve()
 
-    const pending = b.pending.getSnapshot()[0]!
+    const pending = b.pending.getSnapshot()[0]
     expect(pending.kind).toBe('plan-review')
-    const precedence = b.registerPendingInteraction.mock.calls[0]![0]
+    const precedence = b.registerPendingInteraction.mock.calls[0][0]
     expect(precedence(pending)).toBe(2)
     expect(precedence(new PendingQuestion(SESSION_ID, QUESTIONS))).toBe(1)
 
@@ -717,7 +717,7 @@ describe('apply', () => {
   it('closing a continued panel keeps the question answerable from its tool call', async () => {
     const b = await bench()
     b.projection.set(view([CONTINUED]))
-    const card = b.pending.getSnapshot()[0]!
+    const card = b.pending.getSnapshot()[0]
 
     await card.dismiss()
 
@@ -735,7 +735,7 @@ describe('apply', () => {
     expect(b.pending.getSnapshot()).toEqual([])
 
     b.projection.set(view([CONTINUED]))
-    const card = b.pending.getSnapshot()[0]!
+    const card = b.pending.getSnapshot()[0]
     const result = b.invoke(b.agent, timed(), async () => ANSWER)
     await Promise.resolve()
 
@@ -752,7 +752,7 @@ describe('apply', () => {
 
   it('stops following the projection with the plugin lifetime', async () => {
     const b = await bench(true, [CONTINUED])
-    const card = b.pending.getSnapshot()[0]!
+    const card = b.pending.getSnapshot()[0]
     expect(b.slots.entries('conversation.composer')).toHaveLength(1)
 
     await b.fiber.dispose()

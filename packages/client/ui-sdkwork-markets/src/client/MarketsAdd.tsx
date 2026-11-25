@@ -1,8 +1,6 @@
 /**
- * The Plugins market's add affordance: an "Add" trigger with a caret that
- * opens a three-item menu — "Create plugin" (the source-aware creation form),
- * "Install plugin from source" (the source-aware install form), and "Add plugin
- * market" (the entry dialog). The menu closes on selection, outside
+ * The Plugins page's add affordance: an "Add" trigger with a caret that
+ * opens a menu for creating a plugin or installing one from a source. The menu closes on selection, outside
  * pointerdown, and Escape; the trigger keeps `aria-haspopup`/`aria-expanded` so
  * tests and assistive tech read the same open state.
  */
@@ -24,8 +22,6 @@ export interface MarketsAddProps {
   onCreatePlugin: () => void
   /** Open the source-aware install form. */
   onInstallPlugin: () => void
-  /** Open the add-market entry dialog. */
-  onAddMarket: () => void
 }
 
 /** One menu row: glyph, title, and description copy. */
@@ -50,10 +46,10 @@ function MenuItem({
 
 /**
  * Render the add trigger and its menu.
- * @param props - the locale seat plus the three flow callbacks.
+ * @param props - the locale seat plus the plugin creation and install callbacks.
  * @returns the affordance element tree.
  */
-export function MarketsAdd({ t, onCreatePlugin, onInstallPlugin, onAddMarket }: MarketsAddProps) {
+export function MarketsAdd({ t, onCreatePlugin, onInstallPlugin }: MarketsAddProps) {
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
 
@@ -107,15 +103,6 @@ export function MarketsAdd({ t, onCreatePlugin, onInstallPlugin, onAddMarket }: 
             onSelect={() => {
               setOpen(false)
               onInstallPlugin()
-            }}
-          />
-          <MenuItem
-            icon={PlusIcon}
-            title={t('add.market.title')}
-            desc={t('add.market.desc')}
-            onSelect={() => {
-              setOpen(false)
-              onAddMarket()
             }}
           />
         </div>

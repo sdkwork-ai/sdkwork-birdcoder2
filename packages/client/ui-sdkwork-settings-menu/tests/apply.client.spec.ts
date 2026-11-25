@@ -104,7 +104,7 @@ describe('ui-sdkwork-settings-menu apply', () => {
     declare(before.slots)
     await before.ctx.plugin({ inject: [...inject], apply }).await()
     for (const [name, component] of SEATS) {
-      expect(before.slots.entries(name)[0]!.component).toBe(component)
+      expect(before.slots.entries(name)[0].component).toBe(component)
     }
     const entry = generalEntry(before.slots)!
     expect(entry.options).toMatchObject({ id: 'general', order: -200 })
@@ -115,13 +115,13 @@ describe('ui-sdkwork-settings-menu apply', () => {
     // The onboarding hole stays declared for feature-owned steps; this plugin
     // no longer seats one.
     expect(before.slots.entries('settings.onboarding')).toEqual([])
-    const action = before.slots.entries('settings.action')[0]!
+    const action = before.slots.entries('settings.action')[0]
     const actionInjected = (action.inject as unknown as () => SettingsDocumentActionInjected)()
     expect(actionInjected.controller.store.getSnapshot().status).toBe('idle')
     expect(actionInjected.useSnapshot).toEqual(expect.any(Function))
     // Copy rides the standard locale seat: every seat declares the namespace.
     for (const [name] of SEATS) {
-      expect(before.slots.entries(name)[0]!.locale).toBe('settings.menu')
+      expect(before.slots.entries(name)[0].locale).toBe('settings.menu')
     }
     const after = await bench()
     await after.ctx.plugin({ inject: [...inject], apply }).await()
@@ -129,7 +129,7 @@ describe('ui-sdkwork-settings-menu apply', () => {
     declare(after.slots)
     await Promise.resolve()
     for (const [name, component] of SEATS) {
-      expect(after.slots.entries(name)[0]!.component).toBe(component)
+      expect(after.slots.entries(name)[0].component).toBe(component)
       // The self-inflicted ledger notifications hit the duplicate guard.
       expect(after.slots.entries(name)).toHaveLength(1)
     }
@@ -163,7 +163,7 @@ describe('ui-sdkwork-settings-menu apply', () => {
     // No ledger churn: freshness rides the thunk (and the renderer's locale
     // subscription), not re-registration.
     SEATS.forEach(([name], i) => {
-      expect(b.slots.getVersion(name)).toBe(zhVersions[i]!)
+      expect(b.slots.getVersion(name)).toBe(zhVersions[i])
       expect(b.slots.entries(name)).toHaveLength(1)
     })
     expect(resolveSlotLabel(generalEntry(b.slots)!.options.label)).toBe('General')
@@ -175,7 +175,7 @@ describe('ui-sdkwork-settings-menu apply', () => {
     const b = await bench()
     declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const entry = b.slots.entries('mode.rail.settings')[0]!
+    const entry = b.slots.entries('mode.rail.settings')[0]
     const injected = (entry.inject as unknown as () => { hooks: { theme: { getSnapshot(): unknown } }; setTheme: (id: string) => void })()
     expect(injected.hooks.theme.getSnapshot()).toEqual({ preference: 'light', revision: 0 })
     b.ctx.emit('theme/change', {
@@ -197,7 +197,7 @@ describe('ui-sdkwork-settings-menu apply', () => {
     const open = vi.fn()
     b.ctx.provide('about', { open, close: vi.fn(), refresh: vi.fn() })
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const entry = b.slots.entries('mode.rail.settings')[0]!
+    const entry = b.slots.entries('mode.rail.settings')[0]
     const injected = (entry.inject as never as () => {
       aboutAvailable: boolean
       openAbout: () => void
@@ -209,7 +209,7 @@ describe('ui-sdkwork-settings-menu apply', () => {
     const without = await bench()
     declare(without.slots)
     await without.ctx.plugin({ inject: [...inject], apply }).await()
-    const bare = (without.slots.entries('mode.rail.settings')[0]!.inject as never as () => {
+    const bare = (without.slots.entries('mode.rail.settings')[0].inject as never as () => {
       aboutAvailable: boolean
       openAbout: () => void
     })()
@@ -223,7 +223,7 @@ describe('ui-sdkwork-settings-menu apply', () => {
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const persona = b.ctx.get('persona')!
     expect(persona.getSnapshot()).toEqual({ available: false })
-    const entry = b.slots.entries('mode.rail.settings')[0]!
+    const entry = b.slots.entries('mode.rail.settings')[0]
     const injected = (entry.inject as never as () => {
       hooks: { persona: { getSnapshot(): { available: boolean; roleLabel?: string } } }
       openPersona: () => void
@@ -258,7 +258,7 @@ describe('ui-sdkwork-settings-menu apply', () => {
     const b = await bench()
     declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const entry = b.slots.entries('mode.rail.settings')[0]!
+    const entry = b.slots.entries('mode.rail.settings')[0]
     const shell = entry.store as ReturnType<typeof createSettingsMenuStore>
     const instance = shell.create()
     // Registration and the service share one instance: the caller opens the
@@ -274,7 +274,7 @@ describe('ui-sdkwork-settings-menu apply', () => {
     const b = await bench()
     declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const entry = b.slots.entries('settings.action')[0]!
+    const entry = b.slots.entries('settings.action')[0]
     const { controller } = (entry.inject as unknown as () => SettingsDocumentActionInjected)()
     b.ctx.emit('connection/reset')
     expect(b.settingsDescribe).not.toHaveBeenCalled()
@@ -307,7 +307,7 @@ describe('ui-sdkwork-settings-menu apply', () => {
     declare(b.slots)
     await Promise.resolve()
     for (const [name, component] of SEATS) {
-      expect(b.slots.entries(name)[0]!.component).toBe(component)
+      expect(b.slots.entries(name)[0].component).toBe(component)
     }
     expect(b.slots.entries('settings.general.item')).toEqual([])
     expect(b.slots.spec('settings.general.item')).toEqual({ kind: 'list', scope: 'root' })

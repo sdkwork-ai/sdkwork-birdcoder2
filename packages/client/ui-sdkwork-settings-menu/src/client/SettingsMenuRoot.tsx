@@ -192,7 +192,7 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
   const closeMenu = useCallback(() => { setMenuOpen(false) }, [])
   const onboardingActive = useSessions(state =>
     state.phase === 'ready'
-    && (state.current === undefined || state.byId[state.current]?.blank === true))
+    && (state.current === undefined ||  state.byId[state.current]?.blank))
   const onboardingStep = onboardingActive
     ? onboardingSteps.find(step => !completedOnboarding.has(step.id))
     : undefined

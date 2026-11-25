@@ -27,7 +27,7 @@ interface LedgerEntry {
 
 /** A ledger double holding one keyed `main` entry at a time. */
 function ledger(): ExpertMarketPanelLedger & {
-  register(key: string, component?: ComponentType, inject?: () => Record<string, unknown>): void
+  register(key: string, component?: ComponentType, inject?: () => Record<string, unknown> | undefined): void
   withdraw(key: string): void
   unsubscribed(): number
 } {
@@ -59,7 +59,7 @@ function ledger(): ExpertMarketPanelLedger & {
 afterEach(() => { vi.restoreAllMocks() })
 
 describe('expertMarketPanel', () => {
-  it('pins the panel key the sdkwork-dsh-agents plugin registers', () => {
+  it('pins the panel key the built-in experts package registers', () => {
     // The bundle acceptance spec reads the shipped plugin artifact and pins
     // this same key; this assertion is where a rename lands first.
     expect(EXPERT_MARKET_PANEL_ID).toBe('agency-agents')

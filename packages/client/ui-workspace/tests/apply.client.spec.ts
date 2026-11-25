@@ -235,7 +235,7 @@ function sessionMenuActions(ctx: Context) {
 
 /** The viewing-store instance the browser's declared handle hands the renderer. */
 function viewInstance(slots: SlotRegistry) {
-  const browser = slots.entries('sidebar.workspaces')[0]!
+  const browser = slots.entries('sidebar.workspaces')[0]
   if (browser.store === undefined) throw new Error('the browser entry declares no viewing store')
   return (browser.store as WorkspaceViewStoreHandle).create()
 }
@@ -300,17 +300,17 @@ describe('ui-workspace apply', () => {
     const before = await bench()
     declare(before.slots, 'sidebar.workspaces')
     await before.ctx.plugin({ inject: [...inject], apply }, syncedConfig({ recentViewLimit: 10 })).await()
-    expect(before.slots.entries('sidebar.workspaces')[0]!.component).toBe(WorkspaceBrowser)
+    expect(before.slots.entries('sidebar.workspaces')[0].component).toBe(WorkspaceBrowser)
     // Copy rides the standard locale seat: the entry declares the namespace
     // and apply registered both dictionaries.
-    expect(before.slots.entries('sidebar.workspaces')[0]!.locale).toBe('workspace')
+    expect(before.slots.entries('sidebar.workspaces')[0].locale).toBe('workspace')
     expect(before.locale.bind('workspace')('session.new')).toBe('新会话')
 
     const after = await bench()
     await after.ctx.plugin({ inject: [...inject], apply }, syncedConfig({ recentViewLimit: 10 })).await()
     declare(after.slots, 'sidebar.workspaces', 'conversation.hero.workspace', 'conversation.empty.workspace', 'shell.overlay')
     await Promise.resolve()
-    expect(after.slots.entries('conversation.hero.workspace')[0]!.component).toBe(WorkspacePicker)
+    expect(after.slots.entries('conversation.hero.workspace')[0].component).toBe(WorkspacePicker)
     // The row actions follow the browser's own declaration, whenever it lands.
     expect(after.slots.entries(MENU_ITEM)).toHaveLength(0)
     expect(after.slots.entries(ROW_ACTION)).toHaveLength(2)
@@ -343,7 +343,7 @@ describe('ui-workspace apply', () => {
       ['workspace.row-toast', undefined, RowActionToast, undefined],
     ])
     // Only archive notice entries share the browser's viewing store.
-    const browser = b.slots.entries('sidebar.workspaces')[0]!
+    const browser = b.slots.entries('sidebar.workspaces')[0]
     expect(browser.store).toBeDefined()
     expect(viewInstance(b.slots)).toBe(viewInstance(b.slots))
     const rowToastEntry = entry(b.slots, 'shell.overlay', 'workspace.row-toast')
@@ -429,7 +429,7 @@ describe('ui-workspace apply', () => {
     }, SidebarDeclarationOwner)
     await b.ctx.plugin({ inject: [...inject], apply }, syncedConfig({ recentViewLimit: 10 })).await()
     b.setSessions(sessionState([{ ...summary('source', 1), retainedBy: { mainView: 1 } }]))
-    const browser = faceOf(b.slots.entries('sidebar.workspaces')[0]!) as WorkspaceBrowserInjected
+    const browser = faceOf(b.slots.entries('sidebar.workspaces')[0]) as WorkspaceBrowserInjected
     const toast = faceOf(entry(b.slots, 'shell.overlay', 'workspace.row-toast')) as RowToastInjected
     const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
     onTestFinished(() => { warning.mockRestore() })
@@ -640,7 +640,7 @@ describe('ui-workspace apply', () => {
     await b.ctx.plugin({ inject: [...inject], apply }, syncedConfig({ recentViewLimit: 10 })).await()
     const unarchiveSession = vi.spyOn(b.ctx.uiWorkspace, 'unarchiveSession').mockResolvedValue(undefined)
     const toast = faceOf(entry(b.slots, 'shell.overlay', 'workspace.row-toast')) as RowToastInjected
-    const browser = faceOf(b.slots.entries('sidebar.workspaces')[0]!) as WorkspaceBrowserInjected
+    const browser = faceOf(b.slots.entries('sidebar.workspaces')[0]) as WorkspaceBrowserInjected
     const view = viewInstance(b.slots)
 
     // The browser raises the not-openable notice into the same entry, and the source notifies.
@@ -660,14 +660,14 @@ describe('ui-workspace apply', () => {
     archiveDisplay.filterAction(b.locale.bind('workspace'), toast.dismissToast).onClick()
     expect(view.getSnapshot().archivedFilter).toBe('show')
 
-    archiveDisplay.display({ kind: 'archived', sessionId: sid('one'), seq: 1 }, b.locale.bind('workspace'), toast.dismissToast).actions![0]!.onClick()
+    archiveDisplay.display({ kind: 'archived', sessionId: sid('one'), seq: 1 }, b.locale.bind('workspace'), toast.dismissToast).actions![0].onClick()
     expect(unarchiveSession).toHaveBeenCalledWith('one')
     // A rejected undo is a console diagnostic.
     const rejection = new Error('unarchive exploded')
     unarchiveSession.mockRejectedValueOnce(rejection)
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     try {
-      archiveDisplay.display({ kind: 'archived', sessionId: sid('two'), seq: 2 }, b.locale.bind('workspace'), toast.dismissToast).actions![0]!.onClick()
+      archiveDisplay.display({ kind: 'archived', sessionId: sid('two'), seq: 2 }, b.locale.bind('workspace'), toast.dismissToast).actions![0].onClick()
       await vi.waitFor(() => { expect(warn).toHaveBeenCalledWith('session unarchive rejected:', rejection) })
     } finally {
       warn.mockRestore()
@@ -687,8 +687,8 @@ describe('ui-workspace apply', () => {
     await source.ready
     b.retain.mockClear()
     fork.forkSession('session' as never)
-    await forkSession.mock.results[0]!.value
-    const [request] = b.fork.mock.calls[0]!
+    await forkSession.mock.results[0].value
+    const [request] = b.fork.mock.calls[0]
     const { onCreated, ...payload } = request
     expect(payload).toEqual({ sessionId: 'session', increaseTitle: true, allowMigration: false })
     expect(onCreated).toBeTypeOf('function')
@@ -725,7 +725,7 @@ describe('ui-workspace apply', () => {
     // plugin row-menu seam replaces that menu wholesale, which leaves this
     // share as the only channel those verbs have, so the fork's share must
     // carry all four. The UI-private verbs stay off it either way.
-    const browser = faceOf(b.slots.entries('sidebar.workspaces')[0]!) as WorkspaceBrowserInjected
+    const browser = faceOf(b.slots.entries('sidebar.workspaces')[0]) as WorkspaceBrowserInjected
     browser.requestSessionRename('session' as never, 'Row title')
     expect(dialog.hooks.renameRequest.getSnapshot()).toEqual({ sessionId: 'session', currentTitle: 'Row title' })
     // The tuple stays literal so the index below resolves to a real key of the
@@ -762,7 +762,7 @@ describe('ui-workspace apply', () => {
       expect(() => { fork.forkSession(sid('source')) }).not.toThrow()
       await vi.waitFor(() => { expect(b.fork).toHaveBeenCalledOnce() })
 
-      const [request] = b.fork.mock.calls[0]!
+      const [request] = b.fork.mock.calls[0]
       const { onCreated, ...payload } = request
       expect(payload).toEqual({ sessionId: 'source', increaseTitle: true, allowMigration: false })
       expect(onCreated).toBeTypeOf('function')
@@ -794,7 +794,7 @@ describe('ui-workspace apply', () => {
     expect(b.selectPanel).not.toHaveBeenCalled()
     toast.dismissToast()
     ;(faceOf(b.slots.entries('workspace.toast').find(row => row.options.key === 'forkRequiresOpen')!) as ToastDisplayInjected<'forkRequiresOpen'>)
-      .display({ kind: 'forkRequiresOpen', sessionId: sid('source'), seq: 1 }, b.locale.bind('workspace'), toast.dismissToast).actions![0]!.onClick()
+      .display({ kind: 'forkRequiresOpen', sessionId: sid('source'), seq: 1 }, b.locale.bind('workspace'), toast.dismissToast).actions![0].onClick()
     expect(b.retain).toHaveBeenCalledExactlyOnceWith('source', { source: 'mainView', facets: { conversation: true } })
     expect(b.selectPanel).toHaveBeenCalledExactlyOnceWith(null)
     expect(b.fork).toHaveBeenCalledOnce()
@@ -822,7 +822,7 @@ describe('ui-workspace apply', () => {
 
       toast.dismissToast()
       ;(faceOf(b.slots.entries('workspace.toast').find(row => row.options.key === 'forkRequiresOpen')!) as ToastDisplayInjected<'forkRequiresOpen'>)
-        .display({ kind: 'forkRequiresOpen', sessionId: sid('source'), seq: 1 }, b.locale.bind('workspace'), toast.dismissToast).actions![0]!.onClick()
+        .display({ kind: 'forkRequiresOpen', sessionId: sid('source'), seq: 1 }, b.locale.bind('workspace'), toast.dismissToast).actions![0].onClick()
 
       expect(toast.hooks.toast.getSnapshot()).toEqual({ kind: 'archivedNotOpenable', seq: 2 })
       expect(b.retain).not.toHaveBeenCalled()
@@ -848,7 +848,7 @@ describe('ui-workspace apply', () => {
     fork.forkSession(sid('source'))
     await vi.waitFor(() => { expect(b.fork).toHaveBeenCalledOnce() })
 
-    const [request] = b.fork.mock.calls[0]!
+    const [request] = b.fork.mock.calls[0]
     const { onCreated, ...payload } = request
     expect(payload).toEqual({ sessionId: 'source', increaseTitle: true, allowMigration: false })
     expect(onCreated).toBeTypeOf('function')
@@ -880,7 +880,7 @@ describe('ui-workspace apply', () => {
 
     fork.forkSession(sid('source'))
     expect(forkSession).toHaveBeenCalledOnce()
-    await expect(forkSession.mock.results[0]!.value).rejects.toBe(error)
+    await expect(forkSession.mock.results[0].value).rejects.toBe(error)
 
     expect(toast.hooks.toast.getSnapshot()).toBeNull()
     expect(b.fork).toHaveBeenCalledOnce()
@@ -894,7 +894,7 @@ describe('ui-workspace apply', () => {
     await b.ctx.plugin({ inject: [...inject], apply }, syncedConfig({ recentViewLimit: 10 })).await()
     const startSession = vi.spyOn(b.ctx.uiWorkspace, 'startSession').mockImplementation(() => undefined)
 
-    const browser = faceOf(b.slots.entries('sidebar.workspaces')[0]!) as WorkspaceBrowserInjected
+    const browser = faceOf(b.slots.entries('sidebar.workspaces')[0]) as WorkspaceBrowserInjected
     // The browser share delegates to the shared Session navigation action.
     browser.startSession('ws' as never)
     expect(startSession).toHaveBeenLastCalledWith('ws', undefined)
@@ -916,7 +916,7 @@ describe('ui-workspace apply', () => {
     await browser.createWorkspace({ path: '/tmp/browser-project' })
     expect(b.create).toHaveBeenCalledWith({ path: '/tmp/browser-project' })
 
-    const picker = faceOf(b.slots.entries('conversation.hero.workspace')[0]!) as WorkspacePickerInjected
+    const picker = faceOf(b.slots.entries('conversation.hero.workspace')[0]) as WorkspacePickerInjected
     await picker.createWorkspace({ path: '/tmp/project' })
     expect(b.create).toHaveBeenCalledWith({ path: '/tmp/project' })
   })
@@ -929,8 +929,8 @@ describe('ui-workspace apply', () => {
     expect(b.slots.spec('sidebar.workspaces.directoryFlow')).toMatchObject({ kind: 'single' })
     expect(b.slots.spec('conversation.hero.workspace.directoryFlow')).toMatchObject({ kind: 'single' })
 
-    const browser = faceOf(b.slots.entries('sidebar.workspaces')[0]!) as WorkspaceBrowserInjected
-    const picker = faceOf(b.slots.entries('conversation.hero.workspace')[0]!) as WorkspacePickerInjected
+    const browser = faceOf(b.slots.entries('sidebar.workspaces')[0]) as WorkspaceBrowserInjected
+    const picker = faceOf(b.slots.entries('conversation.hero.workspace')[0]) as WorkspacePickerInjected
     expect(browser.hooks.directoryFlow.getSnapshot()).toBe(false)
     expect(browser.hooks.hostInfo.getSnapshot()).toMatchObject({ home: undefined })
     expect(picker.hooks.directoryFlow.getSnapshot()).toBe(false)
@@ -975,7 +975,7 @@ describe('ui-workspace apply', () => {
     }) as never)
     declare(b.slots, 'sidebar.workspaces')
     await b.ctx.plugin({ inject: [...inject], apply }, syncedConfig({ recentViewLimit: 10 })).await()
-    const browser = faceOf(b.slots.entries('sidebar.workspaces')[0]!) as WorkspaceBrowserInjected
+    const browser = faceOf(b.slots.entries('sidebar.workspaces')[0]) as WorkspaceBrowserInjected
     await expect(browser.searchSessions('needle', new AbortController().signal))
       .rejects.toThrow('index unavailable')
   })
@@ -1069,7 +1069,7 @@ it('captures Workspace menu requests, rechecks mutable access, and withdraws reg
   declare(b.slots, 'sidebar.workspaces')
   const fiber = b.ctx.plugin({ inject: [...inject], apply }, syncedConfig({ recentViewLimit: 10 }))
   await fiber.await()
-  const browser = faceOf(b.slots.entries('sidebar.workspaces')[0]!) as WorkspaceBrowserInjected
+  const browser = faceOf(b.slots.entries('sidebar.workspaces')[0]) as WorkspaceBrowserInjected
   const target = { kind: 'workspace' as const, value: { workspaceId: 'alpha' as WorkspaceId, path: '/projects/alpha', displayTitle: 'Alpha' } }
   const menu = b.ctx.contextMenus.resolve(target)
   await menu.ready

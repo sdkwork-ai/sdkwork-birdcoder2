@@ -397,7 +397,7 @@ function SessionTree({
   )
   useEffect(() => {
     for (let key = revealGroup; key !== undefined; key = parents.get(key)) {
-      if (groupExpansion[key] === false || (key === revealGroup && groupExpansion[key] !== true)) {
+      if (!groupExpansion[key] || (key === revealGroup && ! groupExpansion[key])) {
         setGroupExpanded(key, true)
       }
     }
@@ -1052,7 +1052,7 @@ export function WorkspaceBrowser({
   const workspaceReady = workspacePhase === 'ready' && workspaceStreamState !== 'loading'
   const mainSessionId = Object.values(list.byId)
     .find(session => (session.retainedBy.mainView ?? 0) > 0)?.id
-  const currentBlank = mainSessionId !== undefined && list.byId[mainSessionId]?.blank === true
+  const currentBlank = mainSessionId !== undefined &&  list.byId[mainSessionId]?.blank
     ? mainSessionId
     : undefined
   const ungroupedMemberIds = useMemo(() => {
@@ -1500,8 +1500,8 @@ export function WorkspaceBrowser({
                 list={list}
                 useSessionStatus={useSessionStatus}
                 shortcuts={shortcuts}
-                onRenameRequest={(workspaceId, displayTitle) => requestWorkspaceAction(workspaceId, displayTitle, 'rename')}
-                onDeleteRequest={(workspaceId, displayTitle) => requestWorkspaceAction(workspaceId, displayTitle, 'delete')}
+                onRenameRequest={(workspaceId, displayTitle) =>{  requestWorkspaceAction(workspaceId, displayTitle, 'rename') }}
+                onDeleteRequest={(workspaceId, displayTitle) =>{  requestWorkspaceAction(workspaceId, displayTitle, 'delete') }}
                 onSessionRenameRequest={requestSessionRename}
                 onSessionArchive={onSessionArchive}
                 forkSession={forkSession}

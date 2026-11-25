@@ -23,7 +23,6 @@ import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
-import type { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
 import { injectAuthenticatedModePage } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import type { CreativeHostIam } from './creativeHost.ts'
@@ -72,7 +71,7 @@ export function apply(ctx: ClientContext): void {
   const adapter = configureCreativeHost({
     env: ctx.get('env') as EnvService,
     iam: ctx.get('iam') as CreativeHostIam,
-    locale: ctx.locale as LocaleRuntime,
+    locale: ctx.locale,
     theme: {
       getColorScheme: () => (ctx.get('theme') as ThemeRuntime).getTheme().active.colorScheme,
       subscribe: listener => ctx.on('theme/change', listener),

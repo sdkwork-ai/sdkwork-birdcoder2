@@ -11,7 +11,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-approval/client'
  */
 export function selectApplicationApproval(pending: ComposerChainProps['pendingInteraction']) {
   if (pending?.kind !== 'question' || pending.questions.length !== 1) return null
-  const item = pending.questions[0] as (typeof pending.questions)[number]
+  const item = pending.questions[0]
   if ((item.id !== 'cua-app-access' && item.id !== 'cua-system-input') || item.intent?.kind !== 'approval') return null
   return { pending, item, intent: item.intent }
 }

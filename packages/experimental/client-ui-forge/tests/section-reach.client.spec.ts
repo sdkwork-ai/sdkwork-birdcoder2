@@ -55,7 +55,7 @@ describe('SectionReach', () => {
 
     const root = document.createElement('div')
     reach.attach(root)
-    const first = FakeObserver.made[0]!
+    const first = FakeObserver.made[0]
     expect(first.options).toEqual({ root, rootMargin: '1200px 0px' })
     expect([...first.watched]).toEqual([near, far, gone])
     stopGone()
@@ -69,7 +69,7 @@ describe('SectionReach', () => {
     const other = document.createElement('div')
     reach.attach(other)
     expect(first.disconnected).toBe(true)
-    const second = FakeObserver.made[1]!
+    const second = FakeObserver.made[1]
     expect(second.options?.root).toBe(other)
     expect([...second.watched]).toEqual([far])
     second.fire([[far, true]])

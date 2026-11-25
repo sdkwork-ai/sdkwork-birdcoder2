@@ -64,7 +64,7 @@ it('retires only unselected Views without retained bodies and rejects released r
   owners.push(views)
   views.select(A)
   const first = views.source.getSnapshot()
-  const a = first[0]!
+  const a = first[0]
   views.select(A)
   expect(views.source.getSnapshot()).toBe(first)
   const unmount = views.mount(a.reference)
@@ -103,7 +103,7 @@ it('reports opening failure and releases Views even when committed roots are sti
   const views = new SidebarSessionViews(r.sessions)
   owners.push(views)
   views.select(A)
-  const view = views.source.getSnapshot()[0]!
+  const view = views.source.getSnapshot()[0]
   const unmount = views.mount(view.reference)
   await expect(view.reference.ready).rejects.toBe(failure)
   expect(error).toHaveBeenCalledWith('Sidebar Session opening failed:', failure)

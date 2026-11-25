@@ -27,7 +27,7 @@ it('cancels only after the last consumer leaves and discards the released result
   const query = vi.fn((_path: string, _signal: AbortSignal) => pending.promise)
   const first = renderHook(() => useFileApplications('/file.mp3', query, true))
   const second = renderHook(() => useFileApplications('/file.mp3', query, true))
-  const signal = query.mock.calls[0]![1]
+  const signal = query.mock.calls[0][1]
   first.unmount()
   expect(signal.aborted).toBe(false)
   second.unmount()

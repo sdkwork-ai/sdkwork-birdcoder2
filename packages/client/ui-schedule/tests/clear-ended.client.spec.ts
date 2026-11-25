@@ -48,7 +48,7 @@ describe('createClearEnded', () => {
     await expect(outcome).resolves.toEqual({ cleared: true, count: 3 })
     expect(removeInactive).toHaveBeenCalledOnce()
     expect(removeInactive.mock.invocationCallOrder[0])
-      .toBeLessThan(refresh.mock.invocationCallOrder[0]!)
+      .toBeLessThan(refresh.mock.invocationCallOrder[0])
   })
 
   it('reports an acknowledged removal that found nothing as a cleared outcome', async () => {

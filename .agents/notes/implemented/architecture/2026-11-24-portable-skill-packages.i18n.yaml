@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-24-portable-skill-packages.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-24-portable-skill-packages.md
+/agent-note-portable-skill-packages:
+  en: ca6d6ea98adb6ec0
+  zh: e8cea6b997e6fc52
+/agent-note-portable-skill-packages/problem:
+  en: 35ef74ed05c2689f
+  zh: 7ae65e9120d97ed2
+/agent-note-portable-skill-packages/decision:
+  en: af4a9b0c501ca541
+  zh: 2ad68c3211ef42e6
+/agent-note-portable-skill-packages/alternatives-considered:
+  en: dd13a196db832313
+  zh: ec918a673b261134
+/agent-note-portable-skill-packages/consequences:
+  en: 98eeeaf6c9bd3bd5
+  zh: 8b03ca2fa85bc282
+/agent-note-portable-skill-packages/verification:
+  en: 1dd64d35ccf32b57
+  zh: 1a92101d02ef792b

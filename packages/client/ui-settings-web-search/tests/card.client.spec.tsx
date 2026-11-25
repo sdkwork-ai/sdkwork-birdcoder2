@@ -257,7 +257,7 @@ describe('WebSearchCard', () => {
     renderPage()
     expect(searchMenu().textContent).toBe(en.providerDeepSeek)
     expect(fetchMenu().textContent).toBe(en.providerLocal)
-    expect(region(en.searchSection).getByText(DESCRIPTIONS['deepseek-search-api']!.zh)).toBeTruthy()
+    expect(region(en.searchSection).getByText(DESCRIPTIONS['deepseek-search-api'].zh)).toBeTruthy()
     expect(region(en.fetchSection).getByText('本机获取说明')).toBeTruthy()
     expect(region(en.searchSection).getByLabelText(en.count)).toHaveProperty('value', '10')
     for (const label of [en.credential, en.baseUrl]) expect(screen.queryByLabelText(label)).toBeNull()
@@ -267,7 +267,7 @@ describe('WebSearchCard', () => {
   it('shows the DeepSeek Fetch API description under its provider menu, and its billing panel after it', () => {
     renderPage(apis())
     expect(fetchMenu().textContent).toBe(en.providerDeepSeekFetch)
-    expect(region(en.fetchSection).getByText(DESCRIPTIONS['deepseek-fetch-api']!.zh)).toBeTruthy()
+    expect(region(en.fetchSection).getByText(DESCRIPTIONS['deepseek-fetch-api'].zh)).toBeTruthy()
     expect(screen.getAllByRole('button').filter(button => button.hasAttribute('aria-expanded')).map(button => button.id)).toEqual([
       'plugin-config-web-search-provider', 'plugin-config-web-search-billing',
       'plugin-config-web-fetch-provider', 'plugin-config-web-fetch-billing',
@@ -295,7 +295,7 @@ describe('WebSearchCard', () => {
     expect(guide.getAttribute('target')).toBe('_blank')
     expect(guide.getAttribute('rel')).toBe('noopener noreferrer')
     // The description comes first; the guide link is the page's own line after it.
-    expect(paragraphs(en.searchSection).slice(0, 2)).toEqual([DESCRIPTIONS['deepseek-search-api']!.zh, en.searchGuide])
+    expect(paragraphs(en.searchSection).slice(0, 2)).toEqual([DESCRIPTIONS['deepseek-search-api'].zh, en.searchGuide])
   })
 
   it('shows no settings while neither provider takes them', () => {
@@ -343,7 +343,7 @@ describe('WebSearchCard', () => {
   it('closes an open menu without selecting on Escape', () => {
     const { actions } = renderPage()
     fireEvent.click(searchMenu())
-    fireEvent.keyDown(screen.getAllByRole('menuitem')[0]!, { key: 'Escape' })
+    fireEvent.keyDown(screen.getAllByRole('menuitem')[0], { key: 'Escape' })
     expect(screen.queryByRole('menuitem')).toBeNull()
     expect(actions.selectProvider).not.toHaveBeenCalled()
   })

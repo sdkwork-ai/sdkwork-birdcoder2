@@ -76,7 +76,7 @@ interface Step {
 function loadWorkflow(path: string): Workflow {
   const document: unknown = yaml.load(readFileSync(resolve(root, path), 'utf8'))
   if (typeof document !== 'object' || document === null) throw new TypeError(`${path} must define a workflow`)
-  return document as Workflow
+  return document
 }
 
 function job(workflow: Workflow, id: string): Job {
@@ -162,7 +162,7 @@ describe('Desktop release lanes', () => {
   })
 
   it('reports the packaged version and the selected lanes as job outputs', () => {
-    const outputs = job(release, 'resolve').outputs as Record<string, string> | undefined
+    const outputs = job(release, 'resolve').outputs
     expect(outputs).toEqual({
       version: '${{ steps.selection.outputs.version }}',
       targets: '${{ steps.selection.outputs.targets }}',

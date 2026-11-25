@@ -37,7 +37,7 @@ it('registers the plugin body and its copy for the plugin lifetime and shares ca
   ctx.provide('pluginNavigation', { openBundle })
   const fiber = await ctx.plugin({ inject, apply })
   await vi.waitFor(() => { expect(register).toHaveBeenCalledOnce() })
-  const descriptor = register.mock.calls[0]![0]
+  const descriptor = register.mock.calls[0][0]
   expect(descriptor).toMatchObject({ action: 'enable_official_plugin', locale: 'pluginRecommendations' })
   expect(locale.bind('pluginRecommendations')('heading')).toBe('Recommended plugin')
   const proposal = { cardId: brandString<ActionCardId>('card'), turn: 1, action: 'enable_official_plugin', title: 'Search', brief: 'Find old sessions.',

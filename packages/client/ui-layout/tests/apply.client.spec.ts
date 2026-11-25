@@ -107,7 +107,7 @@ describe('ui-layout client apply', () => {
     if (command === undefined) throw new Error('sidebar shortcut was not registered')
     const registry = new ShortcutRegistry('desktop', 'macos')
     registry.register(command)
-    const handle = slots.entries('root')[0]!.store as ReturnType<typeof createLayoutStore>
+    const handle = slots.entries('root')[0].store as ReturnType<typeof createLayoutStore>
     const width = () => handle.create().getSnapshot().layoutInfo.sidebar
     const gesture = { code: 'KeyB', meta: true, control: false, alt: false, shift: false,
       repeat: false, composing: false, defaultPrevented: false }
@@ -124,7 +124,7 @@ describe('ui-layout client apply', () => {
     const { ctx, slots, rendererHost } = await bench()
     const fiber = ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
-    const entry = slots.entries('root')[0]!
+    const entry = slots.entries('root')[0]
     expect(entry.inject).toBeTypeOf('function')
     const handle = entry.store as ReturnType<typeof createLayoutStore>
     const instance = handle.create()

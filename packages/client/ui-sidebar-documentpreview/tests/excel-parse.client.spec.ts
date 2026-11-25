@@ -27,7 +27,7 @@ afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(
 it('transfers a private copy and releases the Worker and URL after parsing', async () => {
   const input = new Uint8Array([1, 2, 3])
   const result = parseExcel(input, 'xlsx', limits, new AbortController().signal)
-  const [message, transfer] = instance.postMessage.mock.calls[0]!
+  const [message, transfer] = instance.postMessage.mock.calls[0]
   expect(message.bytes).toEqual(input)
   expect(message.bytes).not.toBe(input)
   expect(transfer).toEqual([message.bytes.buffer])

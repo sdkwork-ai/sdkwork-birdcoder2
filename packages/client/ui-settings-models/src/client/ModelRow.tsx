@@ -57,7 +57,7 @@ function rowHalf(event: DragEvent<HTMLElement>): 'before' | 'after' {
  */
 export function ModelRow(props: ModelRowProps): ReactNode {
   const { model, position, t, disabled } = props
-  const preview = useRowDragPreview(styles['modelDragPreview'] as string)
+  const preview = useRowDragPreview(styles['modelDragPreview'])
   const modelField = (field: 'id' | 'name') => (
     <label className={`${styles['modelField']} ${field === 'name' ? styles['modelName'] : ''}`}>
       {field === 'name'

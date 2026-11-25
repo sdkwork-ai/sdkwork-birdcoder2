@@ -594,7 +594,7 @@ describe('TextPreview — navigation and view', () => {
     expect(h.instance.getSnapshot().byTab[TAB_ID]?.scrollTop).toBe(300)
 
     const block = view.container.querySelector('[data-code-preview] .md-code-block')!
-    act(() => { PendingIntersectionObserver.instances[0]!.intersect(block) })
+    act(() => { PendingIntersectionObserver.instances[0].intersect(block) })
     await waitFor(() => { expect(view.container.querySelector('[data-code-preview] pre.shiki')).not.toBeNull() })
     expect(scrollport(view.container)).toBe(codeScrollport)
     // The band lives in the scrollport, so the highlighted swap keeps it.
@@ -620,7 +620,7 @@ describe('TextPreview — navigation and view', () => {
     expect(mark?.parentElement).toBe(body(view.container))
     expect(mark?.dataset.textpreviewMark).toBe('5')
     expect(mark?.style.top).toBe(`${4 * LINE_HEIGHT}px`)
-    fireEvent.animationEnd(mark!)
+    fireEvent.animationEnd(mark)
     expect(marks(view.container)).toEqual([])
     expect(h.instance.getSnapshot().byTab[TAB_ID]?.revision).toBe(1)
     expect(h.instance.getSnapshot().byTab[TAB_ID]?.scrollTop).toBe(4 * LINE_HEIGHT)

@@ -40,7 +40,7 @@ const HIDDEN_THUMB = 'transparent'
 const ELEVATED_REBIND = new Map([
   ['--dsh-scrollbar-thumb', '--dsw-alias-scrollbar-bg-l2'],
   ['--dsh-scrollbar-thumb-hover', '--dsw-alias-scrollbar-hover-l2'],
-].map(([property, token]) => [property!, `var(${token!})`]))
+].map(([property, token]) => [property, `var(${token})`]))
 
 /**
  * Tokens a stylesheet reads through its rendering declarations, following its
@@ -277,7 +277,7 @@ describe('scrollbar.css base-surface binding', () => {
   it('registers the thumb pair as inherited colours so a rebinding can transition', () => {
     const comments = /\/\*[\s\S]*?\*\//g
     const registered = [...scrollbarCss.replace(comments, ' ').matchAll(/@property\s+(--[\w-]+)\s*\{([^{}]*)\}/g)]
-      .map(([, name, body]) => [name, body!.split(';').map(part => part.trim()).filter(Boolean).sort()])
+      .map(([, name, body]) => [name, body.split(';').map(part => part.trim()).filter(Boolean).sort()])
     const descriptors = ['inherits: true', 'initial-value: transparent', "syntax: '<color>'"]
     expect(registered).toEqual([
       [`${INDIRECTION_PREFIX}thumb`, descriptors],

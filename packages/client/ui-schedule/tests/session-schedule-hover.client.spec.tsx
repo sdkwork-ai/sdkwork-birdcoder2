@@ -152,7 +152,7 @@ describe('Session hover-card task section', () => {
       const view = renderHover(sourceFor(async () => ({ ok: true, value: [only] })), SESSION, dictionary)
       await settle()
 
-      const timing = section(view.container).querySelector<HTMLElement>(`.${css.taskTiming!}`)!
+      const timing = section(view.container).querySelector<HTMLElement>(`.${css.taskTiming}`)!
       const translate = makeTranslate(dictionary)
       // Frequency, then the device-zone stamp, then the distance in parentheses.
       const absolute = formatScheduleAbsolute(only.scheduledAt, dictionary['time.locale'])
@@ -163,7 +163,7 @@ describe('Session hover-card task section', () => {
       expect(stamp.dateTime).toBe(only.scheduledAt)
       expect(stamp.textContent).toBe(absolute)
       // The distance carries the card's own weakened step, one below the stamp.
-      expect(timing.querySelector<HTMLElement>(`.${css.taskRelative!}`)?.textContent).toBe(`(${relative})`)
+      expect(timing.querySelector<HTMLElement>(`.${css.taskRelative}`)?.textContent).toBe(`(${relative})`)
     },
   )
 

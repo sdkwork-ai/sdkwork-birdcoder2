@@ -52,7 +52,7 @@ describe('target-neutral Conversation apply wiring', () => {
     localStorage.setItem('dsh.slot.manual-order.conversation.view.v1', JSON.stringify({ unpinned: ['trajectory'] }))
     try {
       const b = await bench()
-      const header = b.runtime.slots.entries('conversation.session.header')[0]!
+      const header = b.runtime.slots.entries('conversation.session.header')[0]
       type PinHooks = {
         hooks: { entryPins: ObservableSnapshot<readonly string[]>; entryActions: ObservableSnapshot<boolean> }
         setPinned: (id: string, pinned: boolean) => void
@@ -79,7 +79,7 @@ describe('target-neutral Conversation apply wiring', () => {
 
   it('hides only the Trajectory View while developer tools are disabled and restores it when enabled', async () => {
     const b = await bench()
-    const header = b.runtime.slots.entries('conversation.session.header')[0]!
+    const header = b.runtime.slots.entries('conversation.session.header')[0]
     const source = (header.inject!() as { hooks: { conversationViews: ObservableSnapshot<readonly ViewTab[]> } }).hooks.conversationViews
     for (const id of ['chat', 'trajectory', 'probe']) {
       b.runtime.slots.register({ name: 'conversation.view', id, label: id }, (() => null) as never)

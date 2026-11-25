@@ -355,7 +355,7 @@ export function JobsSection({
   const rows = useMemo(() => ordered(jobs), [jobs])
   const liveRows = useMemo(() => rows.filter(isLive), [rows])
   const settledRows = useMemo(
-    () => rows.filter(job => !isLive(job) && cleared[String(job.id)] !== true),
+    () => rows.filter(job => !isLive(job) && ! cleared[String(job.id)]),
     [rows, cleared],
   )
   const settledExpanded = settledOpen ?? liveRows.length === 0

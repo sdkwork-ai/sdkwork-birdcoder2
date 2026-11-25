@@ -60,7 +60,7 @@ describe('the face\'s search', () => {
       query: 'a', excludedPaths: enabledPaths(defaultSearchPreferences().rules), includeHidden: false, respectGitignore: true,
     }, expect.any(AbortSignal))
     expect(h.state()).toEqual({ pending: true, result: undefined })
-    h.searches.started[0]!.settle(answer(['src/a.ts'], { truncated: true, incomplete: true }))
+    h.searches.started[0].settle(answer(['src/a.ts'], { truncated: true, incomplete: true }))
     await searchesSettled()
     expect(h.state()?.pending).toBe(false)
     expect(h.result()).toMatchObject({
@@ -86,9 +86,9 @@ describe('the face\'s search', () => {
     expect(newer?.signal.aborted).toBe(false)
     expect(h.state()).toEqual({ pending: true, result: first })
     // The newer answer draws; the older one, arriving later, is dropped.
-    newer!.settle(answer(['abc.ts']))
+    newer.settle(answer(['abc.ts']))
     await searchesSettled()
-    older!.settle(answer(['ab.ts']))
+    older.settle(answer(['ab.ts']))
     await searchesSettled()
     expect(h.result()).toMatchObject({ query: 'abc', count: 1 })
     expect(h.state()?.pending).toBe(false)
@@ -98,7 +98,7 @@ describe('the face\'s search', () => {
     const h = session('s-1', memoryBook())
     h.searches.answerWith(undefined)
     h.face.setQuery(PANE, ROOT, 'a')
-    const cleared = h.searches.started[0]!
+    const cleared = h.searches.started[0]
     h.face.setQuery(PANE, ROOT, '')
     expect(cleared.signal.aborted).toBe(true)
     // Typing the same text again searches anew, and the dropped answer does not draw.
@@ -107,7 +107,7 @@ describe('the face\'s search', () => {
     await searchesSettled()
     expect(h.state()).toEqual({ pending: true, result: undefined })
 
-    const running = h.searches.started[1]!
+    const running = h.searches.started[1]
     h.release()
     h.tab.abort()
     await searchesSettled()
@@ -122,7 +122,7 @@ describe('the face\'s search', () => {
     h.searches.answerWith(undefined)
     h.face.setQuery(PANE, ROOT, 'a')
     const failure = new RemoteError('gateway/internal', 'host is gone', {})
-    h.searches.started[0]!.settle({ ok: false, error: failure })
+    h.searches.started[0].settle({ ok: false, error: failure })
     await searchesSettled()
     expect(h.state()).toEqual({ pending: false, result: { kind: 'failed', query: 'a', failure } })
     h.face.retrySearch(PANE)
@@ -130,13 +130,13 @@ describe('the face\'s search', () => {
     // A failure belongs to the query that failed, so a new search drops it instead of drawing it beside the spinner.
     expect(h.state()).toEqual({ pending: true, result: undefined })
     // A rejected call, which only an assembly fault causes, is reported rather than left pending.
-    h.searches.started[1]!.reject(new Error('no search method'))
+    h.searches.started[1].reject(new Error('no search method'))
     await searchesSettled()
     expect(h.state()).toMatchObject({
       pending: false, result: { kind: 'failed', query: 'a', failure: { code: 'gateway/internal', message: 'no search method' } },
     })
     h.face.retrySearch(PANE)
-    h.searches.started[2]!.reject('refused')
+    h.searches.started[2].reject('refused')
     await searchesSettled()
     expect(h.result()).toMatchObject({ kind: 'failed', failure: { message: 'refused' } })
     // Without a query there is nothing to retry.

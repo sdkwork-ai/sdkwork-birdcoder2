@@ -31,7 +31,7 @@ it('contributes Discover to the Plugins page, follows Host changes, and withdraw
   remote.emit('plugin-manager/changed', [{ reason: 'install' }])
   ctx.emit('connection/reset')
   expect(market.listIndexes).not.toHaveBeenCalled()
-  const injected: object = entry!.inject!()
+  const injected: object = entry.inject!()
   const face = injected as DiscoverFace
   expect(face.resolveText({ en: 'English' })).toBe('English')
   expect(face.detailImage(brandString<PluginDetailDocumentId>('d'), 'img/a b.png'))

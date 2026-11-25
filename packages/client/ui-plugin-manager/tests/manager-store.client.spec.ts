@@ -215,10 +215,10 @@ describe('PluginManagerController', () => {
     await controller.load()
 
     expect(state().packages[0]).toMatchObject({ name: BUNDLE.name, meta })
-    expect(state().packages[0]!.meta).toBe(meta)
-    expect(state().packages[0]!.rows[0]).toMatchObject({ rowId: 'sidebar', moduleName: BUNDLE.name, entryId: ROW_ENTRY, meta: rowMeta })
-    expect(state().packages[0]!.rows[0]!.meta).toBe(rowMeta)
-    expect(state().packages[0]!.error).toBeUndefined()
+    expect(state().packages[0].meta).toBe(meta)
+    expect(state().packages[0].rows[0]).toMatchObject({ rowId: 'sidebar', moduleName: BUNDLE.name, entryId: ROW_ENTRY, meta: rowMeta })
+    expect(state().packages[0].rows[0].meta).toBe(rowMeta)
+    expect(state().packages[0].error).toBeUndefined()
   })
 
   it('starts idle, reads the inventory then the bundles and entries on first use, and folds concurrent loads', async () => {
@@ -1223,7 +1223,7 @@ describe('PluginManagerController', () => {
     face.approveBuildsAndRetry()
     face.runInstall()
     const first = await started()
-    gates[0]!.resolve(ok({
+    gates[0].resolve(ok({
       ...failed({ code: 'operation-error', diagnostic: 'ERR_PNPM_IGNORED_BUILDS' },
         { exitCode: 1, output: 'ERR_PNPM_IGNORED_BUILDS', truncated: false, logPath: '/l', kind: 'build-blocked' }),
       pendingBuilds: ['native'],
@@ -1236,7 +1236,7 @@ describe('PluginManagerController', () => {
     expect(second).not.toBe(first)
     expect(plugins.installBundle).toHaveBeenLastCalledWith('x', { enabled: false, requestId: second, registry: null, approvedBuilds: ['native'] })
     expect(state().install).toMatchObject({ subject: { spec: 'x', name: 'dsh-better-sidebar' }, failure: null })
-    gates[1]!.resolve(ok({ ...APPLIED, bundle: 'dsh-better-sidebar', approvedBuilds: ['native'] }))
+    gates[1].resolve(ok({ ...APPLIED, bundle: 'dsh-better-sidebar', approvedBuilds: ['native'] }))
     await vi.waitFor(() => { expect(state().install.phase).toBe('done') })
     expect(state().install).toMatchObject({ installed: 'dsh-better-sidebar', approvedBuilds: ['native'] })
     expect(plugins.installBundle).toHaveBeenCalledTimes(2)
@@ -2049,7 +2049,7 @@ it.each([true, false])('updates an Official entry with enabled=%s by removing it
   await vi.waitFor(() => { expect(state().install.phase).toBe('done') })
   expect(plugins.inspect).not.toHaveBeenCalled()
   expect(plugins.removeBundle).toHaveBeenCalledWith(CATALOG.name)
-  expect(plugins.removeBundle.mock.invocationCallOrder[0]).toBeLessThan(plugins.installBundle.mock.invocationCallOrder[0]!)
+  expect(plugins.removeBundle.mock.invocationCallOrder[0]).toBeLessThan(plugins.installBundle.mock.invocationCallOrder[0])
   expect(plugins.installBundle).toHaveBeenCalledWith(CATALOG.installTarget!.spec, {
     enabled, saveExact: true, requestId: state().install.requestId, registry: null,
   })

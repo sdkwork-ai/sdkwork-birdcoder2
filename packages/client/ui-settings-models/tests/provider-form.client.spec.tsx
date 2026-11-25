@@ -859,7 +859,7 @@ describe('endpoint interrogation', () => {
     fireEvent.click(screen.getByText(en.fetchModels))
     await screen.findByText(en.fetchTitle)
     const boxes = [...document.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')]
-    const first = boxes[0] as HTMLInputElement
+    const first = boxes[0]
     fireEvent.click(first)
     fireEvent.click(first)
     fireEvent.click(screen.getByText(en.fetchAdopt))

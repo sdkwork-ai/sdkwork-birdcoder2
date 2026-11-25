@@ -52,6 +52,7 @@ const NO_MODEL_EXPERIENCE_SECTION: Readonly<Record<string, string>> = {
 const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/api/sdkwork-app-build-controller': { kind: 'none', reason: 'The controller only validates requests, maps error codes, and streams build frames to its wire caller; the build execution and its output belong to the app-build capability.' },
   'packages/client/ui-sdkwork-apikey': { kind: 'none', reason: 'The modal only manages relay API keys through browser-side SDKWork HTTP calls and registers no prompt section, tool, or session event.' },
+  'packages/client/ui-sdkwork-import-to': { kind: 'none', reason: 'The plugin only projects a relay key the user already sees in the API-key table into local tool configuration files and the CC Switch provider link; it registers no tool, prompt section, or session event.' },
   'packages/client/ui-sdkwork-share': { kind: 'none', reason: 'The package is browser-only session-header chrome whose popover copies identifiers and lists deploy records without contributing prompts, tools, or session events.' },
   'packages/host/sdkwork-app-build': { kind: 'none', reason: 'The capability only runs caller-started packaging jobs and reports their frames to the wire caller; it registers no tool, prompt section, or session event.' },
   'packages/client/runtime': { kind: 'none', reason: 'The session object layer selects the provider/model route used by a later Host request but adds no model-visible content.' },

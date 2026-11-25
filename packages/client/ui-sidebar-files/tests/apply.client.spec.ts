@@ -97,7 +97,7 @@ async function boot() {
 /** Run the files command for one target. */
 function run(h: Awaited<ReturnType<typeof boot>>, target: object): void {
   h.sidebar.commandTarget.mockReturnValue(target)
-  const result = h.commands[0]!.resolve({ region: 'page', modal: null, target: null })
+  const result = h.commands[0].resolve({ region: 'page', modal: null, target: null })
   if (result.status !== 'handled') throw new Error('Expected files command to be available')
   result.run()
 }
@@ -107,8 +107,8 @@ describe('ui-sidebar-files apply', () => {
     const h = await boot()
     try {
       const input = { region: 'page', modal: null, target: null } as const
-      expect(h.commands[0]!.resolve(input)).toEqual({ status: 'blocked', reason: 'shortcut.noSession' })
-      expect(h.commands[0]!.label()).toBe('guide.title')
+      expect(h.commands[0].resolve(input)).toEqual({ status: 'blocked', reason: 'shortcut.noSession' })
+      expect(h.commands[0].label()).toBe('guide.title')
       const target = { sessionId: SESSION, paneId: PANE, host: 'float' }
       run(h, target)
       expect(h.sidebar.openTabFromTarget).toHaveBeenCalledWith('files', target)

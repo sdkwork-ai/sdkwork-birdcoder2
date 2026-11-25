@@ -80,7 +80,7 @@ function installable(compatibility: MarketCompatibility): boolean {
 
 /** Whether a version carries a SemVer prerelease suffix. */
 function prerelease(version: string): boolean {
-  return version.split('+')[0]?.includes('-') === true
+  return  version.split('+')[0]?.includes('-')
 }
 
 /** The version Update offers for an entry: the presented one when it updates the installed copy, else the newest stable update. */
@@ -320,7 +320,7 @@ function SourcesDialog({ state, t, face }: {
   const git = isGitMarketIndexSourceAddress(state.draft)
   return (
     <Modal open={state.editing} onClose={face.toggleSources} title={t('sourcesTitle')} closeLabel={t('close')}
-      description={t('sourcesDescription')} className={css.dialog as string}>
+      description={t('sourcesDescription')} className={css.dialog}>
       <div className={css.dialogBody}>
         {state.indexes.length === 0 ? null : (
           <ul className={css.sourceList} aria-label={t('sourcesLabel')}>
@@ -389,7 +389,7 @@ function ConfirmDialog({ choice, t, face, onCancel, onConfirm }: {
   const { entry, version } = choice
   const title = entryTitle(entry, face)
   return (
-    <Modal open onClose={onCancel} title={t('confirmTitle', { name: title })} closeLabel={t('close')} className={css.dialog as string}
+    <Modal open onClose={onCancel} title={t('confirmTitle', { name: title })} closeLabel={t('close')} className={css.dialog}
       footer={(
         <>
           <Button variant="outline" onClick={onCancel}>{t('cancel')}</Button>
@@ -533,7 +533,7 @@ function Browser({ state, listing, t, face, hooks, language, onInstall, onUpdate
               <IconChevronDownOutlineRegular size={12} aria-hidden="true" />
             </Button>
           )} />
-        <Input className={css.search as string} type="search" icon={<IconSearchOutlineRegular size={14} />} value={text}
+        <Input className={css.search} type="search" icon={<IconSearchOutlineRegular size={14} />} value={text}
           placeholder={t('search')} aria-label={t('search')} onChange={(event) => { setText(event.target.value) }} />
         {declarations.labels.length === 0 ? null : (
           <Menu open={menu === 'filter'} onClose={() => { setMenu(null) }} portal autoFocus align="end" selectedIds={query.labels}

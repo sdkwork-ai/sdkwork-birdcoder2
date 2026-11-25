@@ -34,6 +34,7 @@ export const SCENE_SKILLS: Record<HeroScene, readonly SceneSkillTag[]> = {
     { skill: 'birdcoder-harmonyos', labelKey: 'heroTag.harmonyos' },
     { skill: 'birdcoder-ios-app', labelKey: 'heroTag.iosApp' },
     { skill: 'birdcoder-android-app', labelKey: 'heroTag.androidApp' },
+    { skill: 'birdcoder-app-deploy', labelKey: 'heroTag.appDeploy' },
     { skill: 'birdcoder-unity-app', labelKey: 'heroTag.unityApp' },
     { skill: 'birdcoder-dsh-plugin', labelKey: 'heroTag.dshPlugin' },
     { skill: 'birdcoder-workbuddy-plugin', labelKey: 'heroTag.workbuddyPlugin' },
@@ -58,5 +59,7 @@ export const SCENE_SKILLS: Record<HeroScene, readonly SceneSkillTag[]> = {
     { skill: 'birdcoder-visual-poster', labelKey: 'heroTag.visualPoster' },
     { skill: 'birdcoder-marketing-poster', labelKey: 'heroTag.marketingPoster' },
     { skill: 'birdcoder-meeting-notes', labelKey: 'heroTag.meetingNotes' },
+    { skill: 'birdcoder-knowledge-article', labelKey: 'heroTag.knowledgeArticle' },
+    { skill: 'birdcoder-content-publish', labelKey: 'heroTag.contentPublish' },
   ],
 }

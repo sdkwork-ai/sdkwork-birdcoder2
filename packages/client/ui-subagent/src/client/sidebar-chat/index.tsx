@@ -86,7 +86,7 @@ export function parseSubagentChatAddress(value: string): SessionTarget | undefin
   if (parts.length !== 2 || parts[0] !== 'session') return undefined
   let sessionId: SessionId
   try {
-    sessionId = decodeURIComponent(parts[1] as string) as SessionId
+    sessionId = decodeURIComponent(parts[1]) as SessionId
   } catch (_invalidEncoding) {
     return undefined
   }
@@ -248,8 +248,8 @@ export function ConversationSlotPanel({
     || session.running
   const shellPhase = active ? 'active' : session.promptAttempted ? 'engaging' : 'blank'
   const summaryBlank = useSessions(state => state.byId[sessionId]?.blank)
-  const settling = (shellPhase === 'blank' && session.openState === 'loading' && summaryBlank !== true)
-  const hero = shellPhase === 'blank' && (session.openState === 'open' || summaryBlank === true)
+  const settling = (shellPhase === 'blank' && session.openState === 'loading' && ! summaryBlank)
+  const hero = shellPhase === 'blank' && (session.openState === 'open' ||  summaryBlank)
   const phase = settling ? 'settling' : hero ? 'hero' : 'active'
   return renderFactorySlot('conversation.content', { variant: 'embedded', phase, hero, onWorkspaceSelected: openWorkspace }, {
     slots: { views: FixedChatConversationView },

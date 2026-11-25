@@ -394,7 +394,7 @@ function ProjectRow({
     && workspaceId !== undefined && select.value.workspaceId === workspaceId)
   const menuOpen = pluginMenuOpen || menuCaptured
   const reportMenuOpen = (open: boolean): void => { setPluginMenuOpen(open) }
-  const dragPreview = useRowDragPreview(css.dragPreview as string, DRAG_PREVIEW_PROPERTIES)
+  const dragPreview = useRowDragPreview(css.dragPreview, DRAG_PREVIEW_PROPERTIES)
   // The plugin renderer drives its own context-menu surface through this
   // command channel; the row only forwards the pointer position.
   const [, setContextPoint] = useState<{ x: number; y: number } | null>(null)
@@ -802,7 +802,7 @@ export function SessionNodeItem({
     && select.value.sessionId === node.id)
   const menuOpen = pluginMenuOpen || menuCaptured
   const [, setContextPoint] = useState<{ x: number; y: number } | null>(null)
-  const dragPreview = useRowDragPreview(css.dragPreview as string, DRAG_PREVIEW_PROPERTIES)
+  const dragPreview = useRowDragPreview(css.dragPreview, DRAG_PREVIEW_PROPERTIES)
   const rowRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLSpanElement>(null)
   // On macOS the click that activates the window is not delivered, but the

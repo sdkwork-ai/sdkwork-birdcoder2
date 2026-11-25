@@ -50,12 +50,12 @@ describe('ui-sdkwork-assets apply', () => {
     expect(entry?.options.key).toBe('assets')
     expect(entry?.component).toBe(AssetsRailEntry)
     expect(entry?.locale).toBe('assets')
-    expect((entry!.inject as unknown as () => AssetsRailEntryInjected)().mode).toBe('assets')
+    expect((entry.inject as unknown as () => AssetsRailEntryInjected)().mode).toBe('assets')
 
     const [page] = b.slots.entries(PAGE)
     expect(page?.options.key).toBe('assets')
     expect(page?.component).toBe(AssetsPage)
-    expect((page!.inject as unknown as () => AssetsPageInjected)().mode).toBe('assets')
+    expect((page.inject as unknown as () => AssetsPageInjected)().mode).toBe('assets')
   })
 
   it('teardown removes the entries and the dictionaries', async () => {

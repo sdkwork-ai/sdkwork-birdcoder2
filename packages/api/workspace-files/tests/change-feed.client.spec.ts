@@ -44,7 +44,7 @@ describe('ChangeFeed — one Host stream per Session and target', () => {
     expect(remote.calls).toEqual(['changes', 'accept'])
     expect(remote.opened).toMatchObject([{ sessionId: S1, path: PATH }])
 
-    await remote.opened[0]!.source.deliver({ kind: 'change', change: { absolutePath: PATH, version: 'v1' } })
+    await remote.opened[0].source.deliver({ kind: 'change', change: { absolutePath: PATH, version: 'v1' } })
     await expect(second.it.next()).resolves.toEqual({ done: false, value: { kind: 'changed', version: 'v1' } })
     first.controller.abort()
     second.controller.abort()

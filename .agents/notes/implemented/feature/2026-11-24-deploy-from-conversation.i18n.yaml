@@ -1,0 +1,25 @@
+# Bilingual-pair consistency record for 2026-11-24-deploy-from-conversation.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-24-deploy-from-conversation.md
+/agent-note-deploy-from-the-conversation:
+  en: 294a9d1cbff7eb25
+  zh: 4a3e37b0e09548f1
+/agent-note-deploy-from-the-conversation/problem:
+  en: 443bc747d37d7e97
+  zh: ff146fe579549292
+/agent-note-deploy-from-the-conversation/decision:
+  en: 8687052fe389a252
+  zh: 13007164ab2c34fc
+/agent-note-deploy-from-the-conversation/related:
+  en: 785cd15f3f1c12cb
+  zh: 418e9c30ccbfdfba
+/agent-note-deploy-from-the-conversation/alternatives-considered:
+  en: 67550ecc6cf6a30d
+  zh: 19d6c7b3fe48e5b3
+/agent-note-deploy-from-the-conversation/consequences:
+  en: 664b9b0bbff44886
+  zh: 93312863363742ed
+/agent-note-deploy-from-the-conversation/verification:
+  en: 85ad96e6f9e63bce
+  zh: b6638a260c05b367

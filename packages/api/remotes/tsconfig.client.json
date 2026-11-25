@@ -77,6 +77,12 @@
       "path": "../../interaction/user-questions"
     },
     {
+      "path": "../../interaction/tool-sdkwork-deploy"
+    },
+    {
+      "path": "../../interaction/tool-sdkwork-knowledge"
+    },
+    {
       "path": "../job-controller/tsconfig.client.json"
     },
     {

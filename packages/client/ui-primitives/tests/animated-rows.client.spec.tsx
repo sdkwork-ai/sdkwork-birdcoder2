@@ -106,7 +106,7 @@ describe('AnimatedRows', () => {
     expect(within(tree).queryByText('a')).toBeNull()
     expect(animations.map(call => [call.element.textContent, call.options.duration]))
       .toEqual([['b', 200], ['c', 200], ['d', 100], ['a', 100]])
-    const leaving = animations[3] as RecordedAnimation
+    const leaving = animations[3]
     expect(leaving.element.inert).toBe(true)
     expect(leaving.element.closest('[aria-hidden="true"]')).not.toBeNull()
     expect(leaving.element.style.position).toBe('absolute')
@@ -122,7 +122,7 @@ describe('AnimatedRows', () => {
     expect(animations).toHaveLength(1)
     expect(animations[0]?.options.duration).toBe(100)
     expect(animations[0]?.element.inert).toBe(true)
-    finish(animations[0]!.animation)
+    finish(animations[0].animation)
     expect(animations[0]?.element.isConnected).toBe(false)
   })
 
@@ -155,7 +155,7 @@ describe('AnimatedRows', () => {
     const view = render(rows(['a', 'b']))
     arm()
     view.rerender(rows(['b', 'a']))
-    const moving = animations[1] as RecordedAnimation
+    const moving = animations[1]
     vi.spyOn(moving.element, 'getBoundingClientRect').mockImplementation(() => new DOMRect(
       0, moving.cancel.mock.calls.length === 0 ? 12 : 0, 200, 32,
     ))

@@ -54,7 +54,7 @@ describe('web shell base.css', () => {
     const rule = /:is\(([^)]*)\):where\(:not\(\[data-window-drag-exclude\] \*\)\)\s*\{[^}]*app-region:\s*no-drag/
       .exec(normalizedCss.split(scope)[1] ?? '')
     expect(rule, 'base.css declares no darwin interactive no-drag rule').not.toBeNull()
-    const declared = rule![1]!.split(',').map(part => part.trim()).join(', ')
+    const declared = rule![1].split(',').map(part => part.trim()).join(', ')
     expect(declared).toBe(INTERACTIVE_SELECTOR)
   })
 

@@ -27,7 +27,7 @@ describe('graphFromRoster', () => {
     const manifest = parseBootManifest(graphFromRoster(ROWS))
     expect(manifest.plugins).toEqual(ROWS.map(row => ({ id: row.name, inject: [...row.inject], immediately: row.immediately })))
     expect(manifest.modules.map(row => row.initialUrl)).toEqual(['plugins/local.js', 'plugins/local.js', 'plugins/local.js'])
-    const row = ROWS[1]!
+    const row = ROWS[1]
     expect(() => parseBootManifest(graphFromRoster([row, row]))).toThrow('duplicate graph entry "@x/a"')
     expect(() => parseBootManifest(graphFromRoster([]))).toThrow('must be a non-empty string array')
   })

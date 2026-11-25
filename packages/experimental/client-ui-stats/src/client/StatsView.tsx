@@ -94,7 +94,7 @@ export function StatsView(props: StatsViewProps): ReactElement {
     setView((current) => {
       const state = current.stepViews[turnNumber] ?? EMPTY_STEP_VIEW
       const open = { ...(state.open ?? {}) }
-      open[stepNumber] = open[stepNumber] !== true
+      open[stepNumber] = ! open[stepNumber]
       return {
         ...current,
         stepViews: { ...current.stepViews, [turnNumber]: { ...state, open } },

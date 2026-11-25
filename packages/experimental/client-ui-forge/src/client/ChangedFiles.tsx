@@ -60,7 +60,7 @@ function Row({ node, depth, done, props }: {
   const nameRef = useRef<HTMLSpanElement>(null)
   const marquee = useHoverMarquee(nameRef)
   const directory = node.kind === 'directory'
-  const expanded = directory && (state.query.trim() !== '' || state.collapsed[node.path] !== true)
+  const expanded = directory && (state.query.trim() !== '' || ! state.collapsed[node.path])
   const threads = node.kind === 'file' ? threadCounts?.get(node.path) ?? 0 : 0
   const renamed = node.kind === 'file' && node.file.previousPath !== null
     ? t('diff.renamedPath', { from: node.file.previousPath, path: node.path }) : null

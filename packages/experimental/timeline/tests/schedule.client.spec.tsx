@@ -468,9 +468,9 @@ describe('the column timeline', () => {
     expect(
       cards.every(card => /Open|Show/.test(card.querySelector('.timeline-block-open')?.textContent ?? '')),
     ).toBe(true)
-    fireEvent.click(cards[1] as HTMLElement)
+    fireEvent.click(cards[1])
     expect(open).not.toHaveBeenCalled()
-    fireEvent.click(cards[1] as HTMLElement)
+    fireEvent.click(cards[1])
     expect(open).toHaveBeenCalledWith('tiny')
   })
   it('pins tall-card content to the visible top and budgets complete text lines', () => {
@@ -606,9 +606,9 @@ describe('the column timeline', () => {
       Number.parseFloat(container.querySelector<HTMLElement>('.timeline-canvas')?.style.height ?? ''),
     ).toBeLessThan(1000)
     expect(cards.every(card => Number.parseFloat(card.style.height) === 1)).toBe(true)
-    fireEvent.click(cards[7] as HTMLElement)
+    fireEvent.click(cards[7])
     expect(open).not.toHaveBeenCalled()
-    fireEvent.click(cards[7] as HTMLElement)
+    fireEvent.click(cards[7])
     expect(open).toHaveBeenCalledWith('tiny-7')
     const scroll = screen.getByLabelText('History')
     for (let index = 0; index < 10; index++) fireEvent.keyDown(scroll, { key: '+' })

@@ -511,7 +511,7 @@ describe('sidebar entry click analytics', () => {
       ['sidebar_menu_click', { menu_name: 'cron', position: 'sidebar' }],
     ])
     expect(layout.selectPanel.mock.calls).toEqual([[PLUGINS], [SCHEDULES], [ALPHA], [BETA]])
-    expect(track.mock.invocationCallOrder[0]).toBeLessThan(layout.selectPanel.mock.invocationCallOrder[0]!)
+    expect(track.mock.invocationCallOrder[0]).toBeLessThan(layout.selectPanel.mock.invocationCallOrder[0])
   })
 
   it('reports every More button click, whether it opens or closes the menu', async () => {

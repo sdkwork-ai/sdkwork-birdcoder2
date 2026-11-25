@@ -186,7 +186,7 @@ const SCAFFOLD_VERSION_CONCURRENCY = 4
  */
 export async function resolveScaffoldVersions(
   scaffolds: readonly ApplicationScaffoldResponse[],
-  loadVersions: (templateId: string, signal?: AbortSignal | undefined) => Promise<ScaffoldVersionPage>,
+  loadVersions: (templateId: string, signal?: AbortSignal  ) => Promise<ScaffoldVersionPage>,
   options: { readonly signal?: AbortSignal | undefined } = {},
 ): Promise<Readonly<Record<string, string>>> {
   const { signal } = options

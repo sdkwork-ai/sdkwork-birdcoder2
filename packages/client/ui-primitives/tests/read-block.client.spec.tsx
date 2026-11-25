@@ -35,11 +35,11 @@ describe('highlightLines', () => {
     expect(result).not.toBeUndefined()
     expect(result).toHaveLength(2)
     // The keyword run carries a color style through a --shiki-* custom property.
-    const keyword = result![0]!.find(span => span.text === 'const')
+    const keyword = result![0].find(span => span.text === 'const')
     expect(keyword?.style?.color).toContain('var(--shiki-')
     // Whitespace between tokens is a run of its own; the comment is line two.
-    expect(result![0]!.map(span => span.text).join('')).toBe('const x = 1')
-    expect(result![1]!.map(span => span.text).join('')).toBe('// c')
+    expect(result![0].map(span => span.text).join('')).toBe('const x = 1')
+    expect(result![1].map(span => span.text).join('')).toBe('// c')
   })
 
   it('colors every run through a --shiki-* custom property', () => {

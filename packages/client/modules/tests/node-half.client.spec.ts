@@ -343,7 +343,7 @@ describe('client bundle activation', () => {
     scans.mockClear()
 
     const removed = names.splice(0, 2)
-    for (const name of [...removed, removed[0]!]) emitLoaderEntryChange(context, name)
+    for (const name of [...removed, removed[0]]) emitLoaderEntryChange(context, name)
     await Promise.resolve()
 
     expect(scans).toHaveBeenCalledTimes(1)
@@ -407,7 +407,7 @@ describe('client bundle activation', () => {
       try {
         for (const name of removed) emitLoaderEntryChange(context, name)
         expect(callbacks).toHaveLength(1)
-        expect(callbacks[0]!).not.toThrow()
+        expect(callbacks[0]).not.toThrow()
       } finally {
         enqueue.mockRestore()
       }
@@ -415,7 +415,7 @@ describe('client bundle activation', () => {
       expect(service.graph()).toBe(initial)
       for (const name of removed) expect(service.clientPath(name)).toBeDefined()
 
-      emitLoaderEntryChange(context, names[0]!)
+      emitLoaderEntryChange(context, names[0])
       await Promise.resolve()
       expect(service.graph()).toBe(initial)
 
@@ -607,7 +607,7 @@ describe('client bundle activation', () => {
     const { context, service } = constructWithRoute(entries, {
       internal: internal as unknown as NonNullable<Context['loader']['internal']>,
     })
-    const firstRevision = service.graph().entries[0]!.rev
+    const firstRevision = service.graph().entries[0].rev
     const warning = vi.spyOn(context.logger, 'warn').mockImplementation(() => undefined)
 
     entries.push(alias)
@@ -616,13 +616,13 @@ describe('client bundle activation', () => {
     expect(warning).toHaveBeenCalledWith(expect.objectContaining({
       message: expect.stringContaining(`package ${packageName} resolves from multiple active Loader sources`) as string,
     }))
-    expect(service.graph().entries[0]!.rev).toBe(firstRevision)
+    expect(service.graph().entries[0].rev).toBe(firstRevision)
 
     entries.splice(entries.indexOf(packageName), 1)
     emitLoaderEntryChange(context, packageName)
     await Promise.resolve()
     expect(service.graph().entries.map(entry => entry.id)).toEqual([packageName])
-    expect(service.graph().entries[0]!.rev).toBe(firstRevision)
+    expect(service.graph().entries[0].rev).toBe(firstRevision)
     expect(service.clientPath(packageName)).toBe(clientPath)
   })
 
@@ -691,10 +691,10 @@ describe('client bundle activation', () => {
     writeFileSync(clientPath, 'module.exports = {}\n')
     writeFileSync(`${clientPath}.map`, '{')
     const torn = constructWithRoute([packageName])
-    const tornRow = torn.service.graph().entries[0]!
+    const tornRow = torn.service.graph().entries[0]
     expect((await routeRequest(torn.route, tornRow.url)).body.toString('utf8'))
       .toContain(`sourceMappingURL=${mapReference(tornRow.url)}`)
-    const fallback = await routeRequest(torn.route, mapUrl(torn.service.graph().batches[0]!.url))
+    const fallback = await routeRequest(torn.route, mapUrl(torn.service.graph().batches[0].url))
     expect(JSON.parse(fallback.body.toString('utf8'))).toMatchObject({
       sections: [{ map: { sources: [`/plugins/${packageName}/client.js`] } }],
     })
@@ -710,7 +710,7 @@ describe('client bundle activation', () => {
       sources: ['src/index.ts'],
     }))
     const invalidUrl = constructWithRoute([packageName])
-    const invalidMapUrl = mapUrl(invalidUrl.service.graph().batches[0]!.url)
+    const invalidMapUrl = mapUrl(invalidUrl.service.graph().batches[0].url)
     expect(JSON.parse((await routeRequest(invalidUrl.route, invalidMapUrl)).body.toString('utf8'))).toMatchObject({
       sections: [{ map: { sources: [`/plugins/${packageName}/client.js`] } }],
     })
@@ -723,7 +723,7 @@ describe('client bundle activation', () => {
     writeFileSync(clientPath, 'module.exports = {}\n//# sourceMappingURL=client.js.map')
     writeFileSync(`${clientPath}.map`, '{')
     const { service, route } = constructWithRoute([packageName])
-    const batch = service.graph().batches[0]!
+    const batch = service.graph().batches[0]
     const sourceMapUrl = mapUrl(batch.url)
 
     const script = await routeRequest(route, batch.url)
@@ -801,7 +801,7 @@ describe('client bundle activation', () => {
     }
 
     const { service, route } = constructWithRoute(names)
-    const batch = service.graph().batches[0]!
+    const batch = service.graph().batches[0]
     const script = (await routeRequest(route, batch.url)).body.toString('utf8')
     expect(script).not.toContain('//# sourceURL=')
     expect(script).toContain(`//# sourceMappingURL=${mapReference(batch.url)}`)
@@ -840,12 +840,12 @@ describe('client bundle activation', () => {
     // Distinct sizes keep all three revisions distinct even within one filesystem clock tick.
     writeFileSync(clientPath, 'module.exports = { generation: 1 }\n')
     const { service, route } = constructWithRoute([packageName])
-    const first = service.graph().batches[0]!.url
+    const first = service.graph().batches[0].url
     const firstSize = service.artifactBaseline(packageName)!.size
 
     writeFileSync(clientPath, 'module.exports = { generation: 200 }\n')
     service.rebuilt(packageName)
-    const second = service.graph().batches[0]!.url
+    const second = service.graph().batches[0].url
     const secondSize = service.artifactBaseline(packageName)!.size
     expect(second).not.toBe(first)
     expect(secondSize).toBeGreaterThan(firstSize)
@@ -854,7 +854,7 @@ describe('client bundle activation', () => {
 
     writeFileSync(clientPath, 'module.exports = { generation: 30000 }\n')
     service.rebuilt(packageName)
-    const third = service.graph().batches[0]!.url
+    const third = service.graph().batches[0].url
     expect(third).not.toBe(first)
     expect(third).not.toBe(second)
     expect(service.artifactBaseline(packageName)!.size).toBeGreaterThan(secondSize)
@@ -896,7 +896,7 @@ describe('client bundle activation', () => {
     service.onRebuilt(onRebuilt)
     service.onGraphChanged(onGraphChanged)
 
-    expect(service.rebuilt(packageName)).toBe(graph.entries[0]!.rev)
+    expect(service.rebuilt(packageName)).toBe(graph.entries[0].rev)
     expect(service.graph()).toBe(graph)
     expect(onRebuilt).not.toHaveBeenCalled()
     expect(onGraphChanged).not.toHaveBeenCalled()
@@ -911,7 +911,7 @@ describe('client bundle activation', () => {
     const update = vi.spyOn(Hash.prototype, 'update')
     try {
       const service = construct([packageName])
-      const first = service.graph().entries[0]!.rev
+      const first = service.graph().entries[0].rev
       const before = statSync(clientPath)
       writeFileSync(clientPath, `module.exports = ${JSON.stringify('y'.repeat(64 * 1024))}\n`)
       utimesSync(clientPath, before.atime, new Date(before.mtimeMs + 1_000))
@@ -942,7 +942,7 @@ describe('client bundle activation', () => {
     }
 
     const rev = service.rebuilt(packageName)
-    expect(rev).not.toBe(before.entries[0]!.rev)
+    expect(rev).not.toBe(before.entries[0].rev)
     expect(construct([packageName]).graph()).toEqual(service.graph())
   })
 
@@ -964,7 +964,7 @@ describe('client bundle activation', () => {
     }).not.toBe(before.ctimeMs)
     expect(statSync(clientPath)).toMatchObject({ mtimeMs: before.mtimeMs, size: before.size })
 
-    expect(service.rebuilt(packageName)).not.toBe(first.entries[0]!.rev)
+    expect(service.rebuilt(packageName)).not.toBe(first.entries[0].rev)
     expect(construct([packageName]).graph()).toEqual(service.graph())
   })
 
@@ -996,7 +996,7 @@ describe('client bundle activation', () => {
       expect((await routeRequest(route, mapUrl(batch.url))).status).toBe(200)
     }
     for (let index = 0; index < batches.length - 1; index += 1) {
-      const entries = [...batches[index]!.entries, batches[index + 1]!.entries[0]!]
+      const entries = [...batches[index].entries, batches[index + 1].entries[0]]
       expect(Buffer.byteLength(mapUrl(comboReference(entries, '0'.repeat(12))))).toBeGreaterThan(3 * 1024)
     }
   })
@@ -1009,7 +1009,7 @@ describe('client bundle activation', () => {
     const map = '{"version":3,"names":[],"mappings":"AAAA","sources":["../../../packages/client/demo/src/index.tsx","https://cdn.example.test/library.js"]}\n'
     writeFileSync(`${clientPath}.map`, map)
     const { service, route } = constructWithRoute([packageName])
-    const row = service.graph().entries[0]!
+    const row = service.graph().entries[0]
     const singleScript = await routeRequest(route, row.url)
     expect(singleScript.body.toString('utf8')).toContain(`sourceMappingURL=${mapReference(row.url)}`)
     const singleMap = await routeRequest(route, mapUrl(row.url))
@@ -1030,7 +1030,7 @@ describe('client bundle activation', () => {
       }],
     })
 
-    const batch = service.graph().batches[0]!
+    const batch = service.graph().batches[0]
     expect(batch).toMatchObject({ phase: 'application', entries: [packageName] })
     const batchScript = await routeRequest(route, batch.url)
     expect(batchScript.status).toBe(200)
@@ -1063,7 +1063,7 @@ describe('client bundle activation', () => {
     utimesSync(clientPath, entryStat.atime, new Date(entryStat.mtimeMs + 1_000))
     const nextRev = service.rebuilt(packageName)
     expect(nextRev).not.toBe(row.rev)
-    const nextRow = service.graph().entries[0]!
+    const nextRow = service.graph().entries[0]
     expect(nextRow.rev).toBe(nextRev)
     const nextMap = await routeRequest(route, mapUrl(nextRow.url))
     expect(JSON.parse(nextMap.body.toString('utf8'))).toMatchObject({
@@ -1078,7 +1078,7 @@ describe('client bundle activation', () => {
     mkdirSync(dirname(clientPath), { recursive: true })
     writeFileSync(clientPath, 'module.exports = { load: () => require.async("./client.terminal.js") }\n')
     const { service, route } = constructWithRoute([packageName])
-    const row = service.graph().entries[0]!
+    const row = service.graph().entries[0]
 
     const startup = await routeRequest(route, row.url)
     expect(startup.status).toBe(200)
@@ -1105,7 +1105,7 @@ describe('client bundle activation', () => {
     writeFileSync(clientPath, 'module.exports = {}\n')
     writeFileSync(join(dirname(clientPath), 'client.extra.js'), 'module.exports = { marker: "extra chunk" }\n')
     const { service, route } = constructWithRoute([packageName])
-    const row = service.graph().entries[0]!
+    const row = service.graph().entries[0]
 
     const chunk = await routeRequest(route, chunkReference(packageName, 'client.extra.js', row.rev))
     expect(chunk.status).toBe(200)
@@ -1121,7 +1121,7 @@ describe('client bundle activation', () => {
     writeFileSync(chunkPath, 'module.exports = { marker: "pdf loaded" }\n')
     syncRefused.add(chunkPath)
     const { service, route } = constructWithRoute([packageName])
-    const row = service.graph().entries[0]!
+    const row = service.graph().entries[0]
     const url = chunkReference(packageName, 'client.pdf.js', row.rev)
 
     const chunk = await routeRequest(route, url)
@@ -1141,7 +1141,7 @@ describe('client bundle activation', () => {
     writeFileSync(chunkPath, 'module.exports = { marker: "excel loaded" }\n')
     asyncFailOnce.add(chunkPath)
     const { service, route } = constructWithRoute([packageName])
-    const url = chunkReference(packageName, 'client.excel.js', service.graph().entries[0]!.rev)
+    const url = chunkReference(packageName, 'client.excel.js', service.graph().entries[0].rev)
 
     await expect(routeRequest(route, url)).rejects.toThrow(`download failed for ${chunkPath}`)
     const retried = await routeRequest(route, url)
@@ -1169,7 +1169,7 @@ describe('client bundle activation', () => {
       writeFileSync(join(dirname(legacyPath), name), 'throw new Error("Node code must not reach a browser")\n')
     }
     const { service, route } = constructWithRoute([packageName])
-    const row = service.graph().entries[0]!
+    const row = service.graph().entries[0]
     expect(row.url).toContain(`${packageName}/client.js`)
     expect((await routeRequest(route, row.url)).body.toString('utf8')).toContain('browser: true')
     for (const name of ['client.node.js', 'client.node.helper.js']) {
@@ -1187,7 +1187,7 @@ describe('client bundle activation', () => {
     writeFileSync(clientPath, 'module.exports = { load: () => require.async("./client.terminal.js") }\n')
     writeFileSync(chunkPath, 'module.exports = { generation: 1 }\n')
     const { service, route } = constructWithRoute([packageName])
-    const firstRow = service.graph().entries[0]!
+    const firstRow = service.graph().entries[0]
     const firstUrl = chunkReference(packageName, 'client.terminal.js', firstRow.rev)
     expect((await routeRequest(route, firstUrl)).body.toString('utf8')).toContain('generation: 1')
 
@@ -1215,7 +1215,7 @@ describe('client bundle activation', () => {
       sources: ['/absolute.ts'],
     }))
     const { service, route } = constructWithRoute([packageName])
-    const response = await routeRequest(route, mapUrl(service.graph().batches[0]!.url))
+    const response = await routeRequest(route, mapUrl(service.graph().batches[0].url))
     const map = JSON.parse(response.body.toString('utf8')) as {
       sections: { map: { sourceRoot?: string; sources: string[] } }[]
     }
@@ -1245,7 +1245,7 @@ describe('client bundle activation', () => {
       }))
     }
     const { service, route } = constructWithRoute([firstName, secondName])
-    const response = await routeRequest(route, mapUrl(service.graph().batches[0]!.url))
+    const response = await routeRequest(route, mapUrl(service.graph().batches[0].url))
     const payload = JSON.parse(response.body.toString('utf8')) as ConstructorParameters<typeof SourceMap>[0]
     const sections = (payload as unknown as {
       sections: { offset: { line: number; column: number } }[]
@@ -1277,7 +1277,7 @@ describe('client bundle activation', () => {
     }))
 
     const { service, route } = constructWithRoute([unmappedName, mappedName])
-    const response = await routeRequest(route, mapUrl(service.graph().batches[0]!.url))
+    const response = await routeRequest(route, mapUrl(service.graph().batches[0].url))
     const payload = JSON.parse(response.body.toString('utf8')) as ConstructorParameters<typeof SourceMap>[0]
     const consumer = new SourceMap(payload)
     expect(consumer.findEntry(0, 0)).toMatchObject({
@@ -1406,7 +1406,7 @@ describe('package manifest refresh', () => {
     const packageName = '@fixture/refresh-declaration'
     writeBuiltPackage(packageName, { external: ['react'] })
     const { context, service } = constructWithRoute([packageName])
-    const before = service.graph().entries[0]!
+    const before = service.graph().entries[0]
     const changed = vi.fn()
     service.onGraphChanged(changed)
     const warning = vi.spyOn(context.logger, 'warn')
@@ -1430,7 +1430,7 @@ describe('package manifest refresh', () => {
     const packageName = '@fixture/refresh-moved'
     writeBuiltPackage(packageName, {})
     const { context, service } = constructWithRoute([packageName])
-    const before = service.graph().entries[0]!
+    const before = service.graph().entries[0]
     const moved = join(root!, 'node_modules', '@fixture', 'refresh-moved', 'dist', 'client.js')
     mkdirSync(dirname(moved), { recursive: true })
     writeFileSync(moved, 'module.exports = { moved: true }\n')
@@ -1439,7 +1439,7 @@ describe('package manifest refresh', () => {
     emitLoaderEntryChange(context, packageName)
     await Promise.resolve()
     expect(service.clientPath(packageName)).toBe(moved)
-    expect(service.graph().entries[0]!.rev).not.toBe(before.rev)
+    expect(service.graph().entries[0].rev).not.toBe(before.rev)
   })
 
   it('adds or removes the row when a restarted package gains or loses its client declaration', async () => {

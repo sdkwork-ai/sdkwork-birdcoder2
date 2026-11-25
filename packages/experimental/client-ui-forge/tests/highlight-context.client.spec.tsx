@@ -49,8 +49,8 @@ describe('oldSideLines', () => {
 
 describe('sideRun', () => {
   it('numbers a side of a run consecutively and has none for a side without lines', () => {
-    expect(sideRun(hunkRows(HUNKS[0]!), 'old')).toEqual({ side: 'old', first: 3, last: 5, texts: ['a3', 'x', 'a5'] })
-    expect(sideRun(hunkRows(HUNKS[0]!), 'new')).toEqual({ side: 'new', first: 3, last: 6, texts: ['a3', 'y', 'z', 'a5'] })
+    expect(sideRun(hunkRows(HUNKS[0]), 'old')).toEqual({ side: 'old', first: 3, last: 5, texts: ['a3', 'x', 'a5'] })
+    expect(sideRun(hunkRows(HUNKS[0]), 'new')).toEqual({ side: 'new', first: 3, last: 6, texts: ['a3', 'y', 'z', 'a5'] })
     expect(sideRun(hunkRows({ oldStart: 1, oldLines: 0, newStart: 1, newLines: 1, lines: ['+n'] }), 'old')).toBeUndefined()
     expect(runKey('c1', { side: 'new', first: 3, last: 6, texts: [] })).toBe('c1:new:3:6')
   })
@@ -130,10 +130,10 @@ describe('useContextHighlight', () => {
   it('keeps the tokens under their change, so another change of the file finds none before or after its text is read', () => {
     const { result, rerender } = hook()
     act(() => { vi.runAllTimers() })
-    expect(result.current.has(runKey('c1', RUNS[1]!))).toBe(true)
+    expect(result.current.has(runKey('c1', RUNS[1]))).toBe(true)
     // The same lines of the next change: in the very render that names it, its key finds no tokens of the last change.
     rerender({ runs: RUNS, sides: undefined, change: 'c2', highlighter: recorder(), selecting: false })
-    expect(result.current.get(runKey('c2', RUNS[1]!))).toBeUndefined()
+    expect(result.current.get(runKey('c2', RUNS[1]))).toBeUndefined()
     rerender({ runs: RUNS, sides: { new: NEW_SIDE, old: ['x', ...SIDES.old] }, change: 'c2', highlighter: recorder(), selecting: false })
     expect(result.current.size).toBe(0)
     act(() => { vi.runAllTimers() })
@@ -187,8 +187,8 @@ describe('useContextHighlight', () => {
     vi.stubGlobal('cancelIdleCallback', cancel)
     const { result, unmount } = hook()
     expect(queued).toHaveLength(1)
-    act(() => { queued[0]!() })
-    act(() => { queued[1]!() })
+    act(() => { queued[0]() })
+    act(() => { queued[1]() })
     expect(result.current.size).toBe(1)
     const again = hook({ sides: { ...SIDES } })
     again.unmount()

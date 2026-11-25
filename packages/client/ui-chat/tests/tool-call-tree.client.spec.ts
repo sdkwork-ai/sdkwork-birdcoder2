@@ -78,7 +78,7 @@ describe('ToolCallTree', () => {
       `call-${MAX_TOOL_CALL_TREE_DEPTH}`,
     ))).toBe(true)
 
-    let current: ToolCallBlock = tree.projectRunningCalls([root('call-0')])[0]!
+    let current: ToolCallBlock = tree.projectRunningCalls([root('call-0')])[0]
     let depth = 1
     while (current.subCalls.length > 0) {
       current = current.subCalls[0]!

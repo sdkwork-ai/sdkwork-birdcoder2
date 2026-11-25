@@ -183,7 +183,7 @@ it('updates plan cards only for their Turn’s plan data and preserves invocatio
     expect(source.getSnapshot()).toEqual([earlier.data, first.data, second.data])
     expect(screen.getAllByRole('button').map(button => button.getAttribute('data-plan-card')))
       .toEqual(['Earlier plan', 'First plan', 'Second plan'])
-    fireEvent.click(screen.getAllByRole('button')[0]!)
+    fireEvent.click(screen.getAllByRole('button')[0])
     expect(props.openPlan).toHaveBeenCalledWith(earlier.data.callId)
 
     act(() => {
@@ -228,7 +228,7 @@ describe('plan entry points and document', () => {
     expect(screen.getAllByRole('button').map(button => button.textContent)).toEqual([
       expect.stringContaining(plan.title), expect.stringContaining(revised.title), expect.stringContaining(revised.title),
     ])
-    fireEvent.click(screen.getAllByRole('button')[1]!)
+    fireEvent.click(screen.getAllByRole('button')[1])
     expect(openPlan).toHaveBeenCalledWith('call:2')
     view.rerender(<PlanCards {...{ ...props, usePlans: planHook([]) }} />)
     expect(view.container.innerHTML).toBe('')

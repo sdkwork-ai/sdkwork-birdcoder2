@@ -93,6 +93,7 @@ export const zh = {
   'skill.harmonyos': '鸿蒙原生应用开发',
   'skill.iosApp': 'iOS 原生开发',
   'skill.androidApp': 'Android 原生开发',
+  'skill.appDeploy': '部署发布',
   'skill.unityApp': 'Unity 应用开发',
   'skill.dshPlugin': 'dsh 插件开发',
   'skill.workbuddyPlugin': 'Workbuddy 插件开发',
@@ -113,6 +114,8 @@ export const zh = {
   'skill.visualPoster': '视觉海报',
   'skill.marketingPoster': '运营海报',
   'skill.meetingNotes': '会议纪要',
+  'skill.knowledgeArticle': '知识库文章',
+  'skill.contentPublish': '内容发布',
 } satisfies Record<string, string>
 
 /** The sdkworkSkills namespace key union. */
@@ -198,6 +201,7 @@ export const en = {
   'skill.harmonyos': 'HarmonyOS native dev',
   'skill.iosApp': 'iOS native dev',
   'skill.androidApp': 'Android native dev',
+  'skill.appDeploy': 'Deploy & publish',
   'skill.unityApp': 'Unity app dev',
   'skill.dshPlugin': 'dsh plugin dev',
   'skill.workbuddyPlugin': 'Workbuddy plugin dev',
@@ -218,4 +222,6 @@ export const en = {
   'skill.visualPoster': 'Visual poster',
   'skill.marketingPoster': 'Marketing poster',
   'skill.meetingNotes': 'Meeting notes',
+  'skill.knowledgeArticle': 'Knowledge article',
+  'skill.contentPublish': 'Content publish',
 } satisfies Record<SkillsKey, string>

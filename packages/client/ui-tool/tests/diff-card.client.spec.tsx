@@ -64,7 +64,7 @@ describe('diffCardModel', () => {
 
   it('retains the authored file label when navigation metadata identifies an absolute target', () => {
     expect(diffCardModel(settled({
-      meta: { path: '/b/notes/demo.txt', diffs: [{ ...DIFFS[0]!, path: '/b/notes/demo.txt' }] },
+      meta: { path: '/b/notes/demo.txt', diffs: [{ ...DIFFS[0], path: '/b/notes/demo.txt' }] },
     }))).toEqual({ card: { diffs: DIFFS } })
   })
   it('derives a running card from raw edit arguments', () => {

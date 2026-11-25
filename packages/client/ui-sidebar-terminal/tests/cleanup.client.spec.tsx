@@ -52,6 +52,6 @@ it('keeps cleanup failures separate and retries the terminal selected by the use
     'Terminal “Build” could not be ended: Host unavailableRetry',
     'Terminal “Tests” could not be ended: Process did not exitRetry',
   ])
-  fireEvent.click(within(notices[1]!).getByRole('button', { name: en.retry }))
+  fireEvent.click(within(notices[1]).getByRole('button', { name: en.retry }))
   expect(retryClose).toHaveBeenCalledExactlyOnceWith('tests')
 })

@@ -591,7 +591,7 @@ describe('run_code sub-dispatch cells', () => {
       settledSub(2, 'read', 7_300, 7_800),
     ]
     const turns = deriveTrajectoryLayout({ nodes: withSubCalls(subCalls), partial: null, runningCalls: [] })
-    const cells = turns[0]!.groups.flatMap(g => g.cells)
+    const cells = turns[0].groups.flatMap(g => g.cells)
     expect(cells.map(c => c.kind)).toEqual(['message', 'tool', 'subtool', 'subtool'])
     expect(cells[0]?.text).toBe('Tool call only')
     // Sequential indexes across the interleave; durations from the pair times.
@@ -610,7 +610,7 @@ describe('run_code sub-dispatch cells', () => {
       content: [{ type: 'text' as const, text: 'missing.txt does not exist' }, { type: 'text' as const, text: 'Check the file path.\n' }],
     }
     const turns = deriveTrajectoryLayout({ nodes: withSubCalls([sub]), partial: null, runningCalls: [] })
-    const cell = turns[0]!.groups.flatMap(group => group.cells).find(cell => cell.kind === 'subtool')
+    const cell = turns[0].groups.flatMap(group => group.cells).find(cell => cell.kind === 'subtool')
     expect(cell).toMatchObject({
       isError: true, resultPreviewMarkdown: 'missing.txt does not exist',
       outputDetail: 'missing.txt does not exist\nCheck the file path.\n',
@@ -624,7 +624,7 @@ describe('run_code sub-dispatch cells', () => {
       isError: true, error: { name: 'Interrupted', code: 'interrupted' }, content: [],
     }
     const turns = deriveTrajectoryLayout({ nodes: withSubCalls([sub]), partial: null, runningCalls: [] })
-    expect(turns[0]!.groups.flatMap(group => group.cells).find(cell => cell.kind === 'subtool'))
+    expect(turns[0].groups.flatMap(group => group.cells).find(cell => cell.kind === 'subtool'))
       .toMatchObject({ isError: true, result: 'interrupted', outputDetail: 'Interrupted: interrupted' })
   })
 
@@ -634,7 +634,7 @@ describe('run_code sub-dispatch cells', () => {
       turn: 0, step: 0, time: 6_400, subCalls: [],
     }
     const turns = deriveTrajectoryLayout({ nodes: withSubCalls([running]), partial: null, runningCalls: [] })
-    const sub = turns[0]!.groups.flatMap(g => g.cells).find(c => c.kind === 'subtool')
+    const sub = turns[0].groups.flatMap(g => g.cells).find(c => c.kind === 'subtool')
     expect(sub).toMatchObject({
       text: 'grep', previewMarkdown: '{"pattern":"x"}', timeSeconds: null,
     })
@@ -650,7 +650,7 @@ describe('run_code sub-dispatch cells', () => {
       subCalls: [leaf],
     }
     const turns = deriveTrajectoryLayout({ nodes: withSubCalls([child]), partial: null, runningCalls: [] })
-    const cells = turns[0]!.groups.flatMap(group => group.cells)
+    const cells = turns[0].groups.flatMap(group => group.cells)
     expect(cells.map(cell => cell.kind)).toEqual(['message', 'tool', 'subtool', 'subtool'])
     expect(cells.slice(2).map(cell => cell.callId)).toEqual([
       'p1:code:1',

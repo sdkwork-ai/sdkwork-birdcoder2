@@ -185,7 +185,7 @@ describe('QuoteNode composer lifecycle', () => {
     await vi.waitFor(() => { expect(quoteKeys(shell)).toHaveLength(0) })
     shell.editor.dispatchCommand(UNDO_COMMAND, undefined)
     await vi.waitFor(() => { expect(quoteKeys(shell)).toHaveLength(1) })
-    shell.editor.dispatchCommand(REMOVE_QUOTE_COMMAND, key!)
+    shell.editor.dispatchCommand(REMOVE_QUOTE_COMMAND, key)
     await vi.waitFor(() => { expect(quoteKeys(shell)).toHaveLength(0) })
     expect(shell.snapshot.draft).toBe('base ')
     shell.editor.getEditorState().read(() => {
@@ -196,7 +196,7 @@ describe('QuoteNode composer lifecycle', () => {
     const empty = bench().shell
     empty.insertQuote(quote)
     const [emptyKey] = quoteKeys(empty)
-    empty.editor.dispatchCommand(REMOVE_QUOTE_COMMAND, emptyKey!)
+    empty.editor.dispatchCommand(REMOVE_QUOTE_COMMAND, emptyKey)
     await vi.waitFor(() => { expect(quoteKeys(empty)).toHaveLength(0) })
     expect(empty.snapshot.draft).toBe('')
   })

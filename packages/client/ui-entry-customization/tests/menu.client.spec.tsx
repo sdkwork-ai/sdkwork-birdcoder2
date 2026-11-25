@@ -54,10 +54,10 @@ describe('More menu rows', () => {
     expect(b.view.queryByRole('separator')).toBeNull()
     fireEvent.click(b.view.getByRole('menuitem', { name: 'Browse other plugins' }))
     expect(b.browsePlugins).toHaveBeenCalledExactlyOnceWith()
-    expect(b.onDismiss.mock.invocationCallOrder[0]).toBeLessThan(b.browsePlugins.mock.invocationCallOrder[0]!)
+    expect(b.onDismiss.mock.invocationCallOrder[0]).toBeLessThan(b.browsePlugins.mock.invocationCallOrder[0])
     fireEvent.click(b.view.getByRole('menuitem', { name: 'Create your plugin' }))
     expect(b.createPlugin).toHaveBeenCalledExactlyOnceWith()
-    expect(b.onDismiss.mock.invocationCallOrder[1]).toBeLessThan(b.createPlugin.mock.invocationCallOrder[0]!)
+    expect(b.onDismiss.mock.invocationCallOrder[1]).toBeLessThan(b.createPlugin.mock.invocationCallOrder[0])
     expect(b.onOpen).not.toHaveBeenCalled()
     expect(b.onPinnedChange).not.toHaveBeenCalled()
   })
@@ -110,7 +110,7 @@ describe('More menu rows', () => {
     expect(b.view.getAllByRole('separator')).toHaveLength(1)
     fireEvent.click(b.view.getByRole('menuitem', { name: 'Tasks' }))
     expect(b.onOpen).toHaveBeenCalledExactlyOnceWith('tasks')
-    expect(b.onDismiss.mock.invocationCallOrder[0]).toBeLessThan(b.onOpen.mock.invocationCallOrder[0]!)
+    expect(b.onDismiss.mock.invocationCallOrder[0]).toBeLessThan(b.onOpen.mock.invocationCallOrder[0])
     expect(b.onPinnedChange).not.toHaveBeenCalled()
   })
 
@@ -185,7 +185,7 @@ describe('More menu registrations', () => {
     expect(sidebar().queryByRole('menuitem', { name: 'Browse other plugins' })).toBeNull()
     expect(sidebar().getByRole('menuitem', { name: 'Create your plugin' })).toBeTruthy()
     expect(sidebar().queryByRole('separator')).toBeNull()
-    const injected = b.runtime.slots.entries('sidebar.panellist.actions')[0]!.inject!() as { browsePlugins: () => void }
+    const injected = b.runtime.slots.entries('sidebar.panellist.actions')[0].inject!() as { browsePlugins: () => void }
     expect(() => { injected.browsePlugins() }).not.toThrow()
 
     const navigation = await b.runtime.mount({
@@ -243,10 +243,10 @@ describe('More menu registrations', () => {
     const menu = within(b.view.getByRole('menu', { name: seat }))
     fireEvent.click(menu.getByRole('menuitem', { name: 'Browse other plugins' }))
     expect(b.track).toHaveBeenCalledExactlyOnceWith('more_menu_item_click', { region, action: 'browse_plugins' })
-    expect(b.track.mock.invocationCallOrder[0]).toBeLessThan(b.openList.mock.invocationCallOrder[0]!)
+    expect(b.track.mock.invocationCallOrder[0]).toBeLessThan(b.openList.mock.invocationCallOrder[0])
     fireEvent.click(menu.getByRole('menuitem', { name: 'Create your plugin' }))
     expect(b.track).toHaveBeenLastCalledWith('more_menu_item_click', { region, action: 'create_plugin' })
-    expect(b.track.mock.invocationCallOrder[1]).toBeLessThan(b.startSession.mock.invocationCallOrder[0]!)
+    expect(b.track.mock.invocationCallOrder[1]).toBeLessThan(b.startSession.mock.invocationCallOrder[0])
     expect(b.track).toHaveBeenCalledTimes(2)
   })
 

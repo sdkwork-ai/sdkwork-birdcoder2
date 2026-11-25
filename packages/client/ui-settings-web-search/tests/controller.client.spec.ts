@@ -14,7 +14,7 @@ function acceptWrites<T>(host: StubConfigForm<T>): void {
     const value = { ...section() }
     const user = { ...layer() }
     for (const op of ops) {
-      const field = op.path[0]!
+      const field = op.path[0]
       if (op.op === 'set') {
         value[field] = op.value
         user[field] = op.value
@@ -676,7 +676,7 @@ describe('WebSearchCardController advanced override', () => {
       b.face.edit('count', '20')
       b.face.save()
       await vi.waitFor(() => { expect(b.api.mutate).toHaveBeenCalledTimes(1) })
-      const ops = b.api.mutate.mock.calls[0]![0]
+      const ops = b.api.mutate.mock.calls[0][0]
       expect(ops.map(op => op.path[0]).sort()).toEqual(['count', 'fetchBilling'])
       await vi.waitFor(() => { expect(b.state().saving).toBe(false) })
       expect(b.state()).toMatchObject({

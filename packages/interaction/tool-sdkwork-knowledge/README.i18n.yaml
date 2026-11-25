@@ -1,0 +1,55 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/interaction/tool-sdkwork-knowledge/README.md
+/:
+  en: 57e05446111b0808
+  zh: 76bd465f419ed65e
+/deepseek-ai-dsh-tool-sdkwork-knowledge:
+  en: c1c8132a46d6fab0
+  zh: 777baed81a62c1c0
+/deepseek-ai-dsh-tool-sdkwork-knowledge/summary:
+  en: 6a49d55e961db7dd
+  zh: 0467079e938089f6
+/deepseek-ai-dsh-tool-sdkwork-knowledge/table-of-contents:
+  en: 76368b6b1da79c80
+  zh: ac1bb7362e9b6e01
+/deepseek-ai-dsh-tool-sdkwork-knowledge/use-this-package:
+  en: 43f7b571c9c0d0ea
+  zh: b2fce6927f344c74
+/deepseek-ai-dsh-tool-sdkwork-knowledge/understand-the-implementation:
+  en: 9f92260062ec6fb6
+  zh: bcdbd2c3cefe5748
+/deepseek-ai-dsh-tool-sdkwork-knowledge/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-tool-sdkwork-knowledge/model-experience/sdkwork-knowledge-write:
+  en: 35684b61a7a338fc
+  zh: 35684b61a7a338fc
+/deepseek-ai-dsh-tool-sdkwork-knowledge/model-experience/sdkwork-knowledge-write/what-the-model-sees:
+  en: 756eb7996ddaf2d1
+  zh: a1f4ab77a031ba3e
+/deepseek-ai-dsh-tool-sdkwork-knowledge/model-experience/sdkwork-knowledge-write/token-effect:
+  en: 773385af2881b1a2
+  zh: 5453a904b6899e76
+/deepseek-ai-dsh-tool-sdkwork-knowledge/model-experience/sdkwork-knowledge-write/kv-cache-effect:
+  en: 04e9952a66f66586
+  zh: fc5b2c9d1789244e
+/deepseek-ai-dsh-tool-sdkwork-knowledge/model-experience/sdkwork-content-publish:
+  en: 92d97a76f181900c
+  zh: 92d97a76f181900c
+/deepseek-ai-dsh-tool-sdkwork-knowledge/model-experience/sdkwork-content-publish/what-the-model-sees:
+  en: c7c724a9c7bad9e0
+  zh: affd5dd6395c5dd5
+/deepseek-ai-dsh-tool-sdkwork-knowledge/model-experience/sdkwork-content-publish/token-effect:
+  en: 798c3f0b63930113
+  zh: 5642bd0449f1e9b4
+/deepseek-ai-dsh-tool-sdkwork-knowledge/model-experience/sdkwork-content-publish/kv-cache-effect:
+  en: f019e738f5818d53
+  zh: 2a38cc7f08483675
+/deepseek-ai-dsh-tool-sdkwork-knowledge/known-limitations-and-deferred-work:
+  en: a641f37e29a10851
+  zh: 2d001177440bd3b2
+/deepseek-ai-dsh-tool-sdkwork-knowledge/known-limitations-and-deferred-work/dev-note:
+  en: 7ffd6484380c06d1
+  zh: 81cd0ee3aaab67cc

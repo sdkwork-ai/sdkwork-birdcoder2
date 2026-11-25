@@ -115,14 +115,14 @@ describe('EmbeddedCourseApp', () => {
     const input = screen.getByLabelText('搜索课程、专栏、合集')
     fireEvent.change(input, { target: { value: 'AI' } })
     fireEvent.submit(input.closest('form') as HTMLFormElement)
-    await waitFor(() => expect(container.textContent).toContain('课程中心'))
+    await waitFor(() =>{  expect(container.textContent).toContain('课程中心') })
   })
 
   it('opens the full catalog from an empty search', async () => {
     render(<EmbeddedCourseApp t={t} client={fakeClient()} />)
     const input = screen.getByLabelText('搜索课程、专栏、合集')
     fireEvent.submit(input.closest('form') as HTMLFormElement)
-    await waitFor(() => expect(screen.getAllByText('课程中心').length).toBeGreaterThan(0))
+    await waitFor(() =>{  expect(screen.getAllByText('课程中心').length).toBeGreaterThan(0) })
   })
 
   it('offers the UGC upload entry in the embedded surface', async () => {

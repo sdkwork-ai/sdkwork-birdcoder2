@@ -208,7 +208,7 @@ export function LiveshareShareDialog({
         headless
         onClose={requestClose}
         title={t('dialog.title')}
-        className={css.modal as string}
+        className={css.modal}
       >
         <div className={css.panel}>
           <header className={css.panelHeader}>
@@ -244,7 +244,7 @@ export function LiveshareShareDialog({
               <span className={css.label}>{t('dialog.relay')}</span>
               <div className={css.linkRow}>
                 <Input
-                  className={css.relayInput as string}
+                  className={css.relayInput}
                   value={relayDraft}
                   disabled={relayBusy}
                   aria-label={t('dialog.relay')}
@@ -270,7 +270,7 @@ export function LiveshareShareDialog({
                 <span className={css.label}>{t('dialog.shareLink')}</span>
                 <div className={css.linkRow}>
                   <Input
-                    className={css.relayInput as string}
+                    className={css.relayInput}
                     value={link}
                     readOnly
                     aria-label={t('dialog.shareLink')}

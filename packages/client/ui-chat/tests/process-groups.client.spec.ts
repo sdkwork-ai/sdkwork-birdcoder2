@@ -132,7 +132,7 @@ describe('Definition-owned Chat process groups', () => {
       data: { root: { phase: 'preparing', args, callId: 'call', name: 'bash', turn: 1, step: 1, time: 2, subCalls: [] } },
     }
     expect(processActivity([node]).runningDetail).toBe(command.slice(0, 511))
-    args.append(escaped ? '\\udcbb' : command[512]!)
+    args.append(escaped ? '\\udcbb' : command[512])
     expect(args.refresh()).toBe(true)
     expect(processActivity([node]).runningDetail).toBe(command)
     args.append('x"}')
@@ -197,7 +197,7 @@ describe('Definition-owned Chat process groups', () => {
       data: { root: { phase: 'preparing', args: PartialArguments.EMPTY, callId: 'call', name: 'write', turn: 1, step: 1, time: 2, subCalls: [] } },
     }
     const h = harness([preparing])
-    const group = h.store.entries[0]!
+    const group = h.store.entries[0]
     if (group.kind !== 'group') throw new Error('expected group')
     const source = h.store.groupSource(group.key)
     expect(source.getSnapshot()?.data.summary.preparing).toBe(true)
@@ -222,7 +222,7 @@ describe('Definition-owned Chat process groups', () => {
       data: { root: { phase: 'preparing', args, callId: 'call', name, turn: 1, step: 1, time: 2, subCalls: [] } },
     }
     const h = harness([preparing])
-    const group = h.store.entries[0]!
+    const group = h.store.entries[0]
     if (group.kind !== 'group') throw new Error('expected group')
     const source = h.store.groupSource(group.key)
     expect(source.getSnapshot()?.data.summary).toEqual({
@@ -290,7 +290,7 @@ describe('Definition-owned Chat process groups', () => {
     expect(h.snapshot.order).toEqual(['control', 'reply', 'after'])
     expect(h.store.entries.map(entry => entry.kind)).toEqual(['node', 'group'])
     expect(h.store.entries[0]).toEqual({ kind: 'node', key: control.key })
-    const group = h.store.entries[1]!
+    const group = h.store.entries[1]
     if (group.kind !== 'group') throw new Error('expected group')
     expect(h.store.groupSource(group.key).getSnapshot()?.members.map(member => member.key)).toEqual(['reply', 'after'])
   })
@@ -299,7 +299,7 @@ describe('Definition-owned Chat process groups', () => {
     const b = tool('b', 4)
     const c = tool('c', 6)
     const h = harness([b, c])
-    const first = h.store.entries[0]!
+    const first = h.store.entries[0]
     if (first.kind !== 'group') throw new Error('expected group')
     const source = h.store.groupSource(first.key)
     const a = tool('a', 3, 'read')
@@ -321,7 +321,7 @@ describe('Definition-owned Chat process groups', () => {
 
   it.each(['reply', 'steering'] as const)('keeps a %s boundary between newly loaded work and an existing group', (boundary) => {
     const h = harness([tool('retained', 4)])
-    const first = h.store.entries[0]!
+    const first = h.store.entries[0]
     if (first.kind !== 'group') throw new Error('expected group')
     const source = h.store.groupSource(first.key)
     const previous = source.getSnapshot()
@@ -349,7 +349,7 @@ describe('Definition-owned Chat process groups', () => {
 
   it('resegments only the changed Turn without notifying historical Node or Group sources', () => {
     const h = harness([tool('history', 2), tool('live', 12, 'read', secondTurn)], twoTurns)
-    const first = h.store.entries[0]!
+    const first = h.store.entries[0]
     if (first.kind !== 'group') throw new Error('expected group')
     const source = h.store.groupSource(first.key)
     const previous = source.getSnapshot()
@@ -415,14 +415,14 @@ describe('Definition-owned Chat process groups', () => {
     h.builder.apply({ upserts: [{ ...boundary, visibility: 'hidden' }], timeline })
     h.commit()
     expect(h.store.entries.map(entry => entry.kind)).toEqual(['group'])
-    const first = h.store.entries[0]!
+    const first = h.store.entries[0]
     if (first.kind !== 'group') throw new Error('expected group')
     expect(h.store.groupSource(first.key).getSnapshot()?.members.map(member => member.key)).toEqual(['a', 'b'])
   })
 
   it('moves a group head between Turns in one atomic group update', () => {
     const h = harness([tool('moving', 2), tool('second', 12, 'bash', secondTurn)], twoTurns)
-    const first = h.store.entries[0]!
+    const first = h.store.entries[0]
     if (first.kind !== 'group') throw new Error('expected group')
     h.builder.apply({ upserts: [tool('moving', 2, 'bash', secondTurn)], timeline: twoTurns })
     h.commit()
@@ -433,7 +433,7 @@ describe('Definition-owned Chat process groups', () => {
 
   it('rereads only the changed group on a content update', () => {
     const h = harness([tool('history', 2, 'read'), separator(3, true), tool('live', 4)])
-    const history = h.store.entries[0]!
+    const history = h.store.entries[0]
     if (history.kind !== 'group') throw new Error('expected group')
     const previous = h.store.groupSource(history.key).getSnapshot()
     const live = tool('live', 4)
@@ -459,8 +459,8 @@ describe('Definition-owned Chat process groups', () => {
     const b = tool('b', 3)
     const c = tool('c', 4)
     const h = harness([a, b, c, separator(5, true), tool('later', 6)])
-    const first = h.store.entries[0]!
-    const last = h.store.entries[2]!
+    const first = h.store.entries[0]
+    const last = h.store.entries[2]
     if (first.kind !== 'group' || last.kind !== 'group') throw new Error('expected groups')
     const lastSnapshot = h.store.groupSource(last.key).getSnapshot()
     expect(h.store.groupSource(first.key).getSnapshot()?.data.summary.counts).toEqual([
@@ -477,7 +477,7 @@ describe('Definition-owned Chat process groups', () => {
   it('restores live detail when replacement removes a closing separator', () => {
     const a = tool('a', 2)
     const h = harness([a, separator(3, false)])
-    const first = h.store.entries[0]!
+    const first = h.store.entries[0]
     if (first.kind !== 'group') throw new Error('expected group')
     const source = h.store.groupSource(first.key)
     expect(source.getSnapshot()?.data.closed).toBe(true)
@@ -494,17 +494,17 @@ describe('Definition-owned Chat process groups', () => {
     expect(store.entries.map(entry => entry.kind)).toEqual(['node', 'group', 'node', 'group', 'node', 'group'])
     const groups = store.entries.filter(entry => entry.kind === 'group')
     expect(groups).toHaveLength(3)
-    expect(store.groupSource(groups[0]!.key).getSnapshot()?.members).toEqual([
+    expect(store.groupSource(groups[0].key).getSnapshot()?.members).toEqual([
       { kind: 'node', key: 'assistant', groupPart: 'reasoning' },
     ])
     expect(store.entries[2]).toEqual({ kind: 'node', key: 'assistant', groupPart: 'response' })
-    expect(store.groupSource(groups[1]!.key).getSnapshot()?.members.map(member => member.key)).toEqual(['a'])
-    expect(store.groupSource(groups[2]!.key).getSnapshot()?.members.map(member => member.key)).toEqual(['b'])
+    expect(store.groupSource(groups[1].key).getSnapshot()?.members.map(member => member.key)).toEqual(['a'])
+    expect(store.groupSource(groups[2].key).getSnapshot()?.members.map(member => member.key)).toEqual(['b'])
   })
 
   it('updates live detail without replacing roots or members and closes on the first reply', () => {
     const h = harness([assistant('first thought')])
-    const first = h.store.entries[0]!
+    const first = h.store.entries[0]
     if (first.kind !== 'group') throw new Error('expected group')
     const source = h.store.groupSource(first.key)
     const entries = h.store.entries
@@ -531,10 +531,10 @@ describe('Definition-owned Chat process groups', () => {
     const b = tool('b', 4)
     const h = harness([a, separator(3, false), b])
     expect(h.store.entries.map(entry => entry.kind)).toEqual(['group', 'node', 'group'])
-    const removed = h.store.entries[2]!
+    const removed = h.store.entries[2]
     if (removed.kind !== 'group') throw new Error('expected group')
     const source = h.store.groupSource(removed.key)
-    const head = h.store.entries[0]!
+    const head = h.store.entries[0]
     if (head.kind !== 'group') throw new Error('expected group')
     h.builder.apply({ upserts: [{ ...b, visibility: 'hidden' }], timeline })
     h.commit()
@@ -550,7 +550,7 @@ describe('Definition-owned Chat process groups', () => {
 
   it('closes an active group on a lifecycle-only update', () => {
     const h = harness([tool('a', 2)])
-    const first = h.store.entries[0]!
+    const first = h.store.entries[0]
     if (first.kind !== 'group') throw new Error('expected group')
     const source = h.store.groupSource(first.key)
     const ended: TurnLocation = {

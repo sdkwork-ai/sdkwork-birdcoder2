@@ -47,7 +47,7 @@ export function FontFamilyRow({ t, role, setFontFamily, useStore }: FontFamilyRo
       </div>
       <Input
         key={value}
-        className={css.field as string}
+        className={css.field}
         defaultValue={value}
         placeholder={t('fontFamily.placeholder')}
         aria-label={title}

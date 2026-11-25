@@ -33,7 +33,7 @@ async function bench() {
   ctx.provide('locale', locale)
   locale.register(NS, { zh, en })
   await ctx.plugin({ inject: [...inject], apply }).await()
-  const entry = slots.entriesOfSlot('sidebar.session.row.leading')[0]!
+  const entry = slots.entriesOfSlot('sidebar.session.row.leading')[0]
   const View = entry.component as (props: Record<string, unknown>) => ReactNode
   const marker = (projectionValues?: unknown, sourceTitle?: string) => render(<View
     sessionId={SHARED} t={locale.bind('liveshare')}

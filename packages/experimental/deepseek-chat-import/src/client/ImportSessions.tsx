@@ -1,6 +1,5 @@
 /** Sidebar action that imports a DeepSeek chat export uploaded from the browser into a chosen Workspace. */
 import { useEffect, useRef, useState } from 'react'
-import type { RefObject } from 'react'
 import clsx from 'clsx'
 import {
   Button, fileSizeText, IconChevronDownOutlineRegular, IconFolderCloseRegular, IconUploadOutlineMedium, IconUploadOutlineRegular,
@@ -223,7 +222,7 @@ function ImportDialog(
               // The button is mounted before the slot renders, so the runtime
               // value is an HTMLElement; adapt only at this boundary instead of
               // widening the shared slot contract (and its generated catalog).
-              anchorRef: workspaceButton as unknown as RefObject<HTMLElement>,
+              anchorRef: workspaceButton,
               selectedId: workspaceId,
               onPick: (id) => {
                 setWorkspaceId(id)

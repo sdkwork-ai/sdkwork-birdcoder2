@@ -113,7 +113,7 @@ it('starts the stream when access is granted and stops it when access is revoked
   expect(b.opened).toHaveLength(1)
   b.allowed.set(false)
   expect(b.ready()).toBe(false)
-  await vi.waitFor(() => { expect(b.opened[0]!.aborted).toBe(true) })
+  await vi.waitFor(() => { expect(b.opened[0].aborted).toBe(true) })
   b.allowed.set(true)
   await vi.waitFor(() => { expect(b.ready()).toBe(true) })
   expect(b.opened).toHaveLength(2)
@@ -122,7 +122,7 @@ it('starts the stream when access is granted and stops it when access is revoked
 
 it('discards frames a revoked stream still delivers and leaves reading unavailable', async () => {
   const b = await harness(true, true)
-  const first = b.streams[0]!
+  const first = b.streams[0]
   first.push({ type: 'baseline', items: [] })
   await vi.waitFor(() => { expect(b.ready()).toBe(true) })
   b.allowed.set(false)
@@ -139,12 +139,12 @@ it('discards frames a revoked stream still delivers and leaves reading unavailab
 
 it('keeps a quick re-grant\'s records and readiness while the revoked stream drains', async () => {
   const b = await harness(true, true)
-  const first = b.streams[0]!
+  const first = b.streams[0]
   first.push({ type: 'baseline', items: [] })
   await vi.waitFor(() => { expect(b.ready()).toBe(true) })
   b.allowed.set(false)
   b.allowed.set(true)
-  const second = b.streams[1]!
+  const second = b.streams[1]
   second.push({ type: 'baseline', items: [record('granted')] })
   await vi.waitFor(() => { expect(b.status.getSnapshot().get('granted' as SessionId)?.completionUnread).toBe(true) })
   first.push({ type: 'changed', state: record('revoked') })

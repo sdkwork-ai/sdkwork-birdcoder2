@@ -1,0 +1,40 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-experts/README.md
+/:
+  en: e7ab7130db8488b2
+  zh: f14e86b019b7036b
+/deepseek-ai-dsh-client-ui-sdkwork-experts:
+  en: e1eba9358866e1bb
+  zh: 21b43de02cc3e0e9
+/deepseek-ai-dsh-client-ui-sdkwork-experts/summary:
+  en: cf2ac56f61232789
+  zh: 93f8a0f30b8dbc0f
+/deepseek-ai-dsh-client-ui-sdkwork-experts/table-of-contents:
+  en: 3460b3e585e0c020
+  zh: 3460b3e585e0c020
+/deepseek-ai-dsh-client-ui-sdkwork-experts/use-this-package:
+  en: ecf696dc6094a9e9
+  zh: 1a5587f56f6d7815
+/deepseek-ai-dsh-client-ui-sdkwork-experts/understand-the-implementation:
+  en: 11f27b3f85ef599f
+  zh: e67c5f9fa9bbca4a
+/deepseek-ai-dsh-client-ui-sdkwork-experts/model-experience:
+  en: 215e7ba838619b7b
+  zh: 215e7ba838619b7b
+/deepseek-ai-dsh-client-ui-sdkwork-experts/model-experience/expert-tools-and-prompt-section:
+  en: 30ed5e815f9115a6
+  zh: 983c5e93895b5572
+/deepseek-ai-dsh-client-ui-sdkwork-experts/model-experience/expert-tools-and-prompt-section/what-the-model-sees:
+  en: 28c5d066c9175380
+  zh: 7b0c751f3f835722
+/deepseek-ai-dsh-client-ui-sdkwork-experts/model-experience/expert-tools-and-prompt-section/token-effect:
+  en: 772a5e442afee845
+  zh: 8dc0199e28e3d023
+/deepseek-ai-dsh-client-ui-sdkwork-experts/model-experience/expert-tools-and-prompt-section/kv-cache-effect:
+  en: 00956132bd4b8ec7
+  zh: 6366e1e13658e803
+/deepseek-ai-dsh-client-ui-sdkwork-experts/known-limitations-and-deferred-work:
+  en: 00ea8f2ec39a9a4d
+  zh: 34d4774fc99279d6

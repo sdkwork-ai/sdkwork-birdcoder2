@@ -313,7 +313,7 @@ function RowsSection({ rows, t, resolveText, toggle, configure }: {
         ? (
           <Input
             type="search"
-            className={css.partsFilter as string}
+            className={css.partsFilter}
             placeholder={t('partsFilter')}
             aria-label={t('partsFilter')}
             value={filter}
@@ -1157,7 +1157,7 @@ function InstallDialog({
         onClose={onClose}
         title={t(problem === null ? 'installConfirmedTitle' : 'installConfirmedRefused')}
         closeLabel={t('close')}
-        className={css.installDialog as string}
+        className={css.installDialog}
         footer={checking ? undefined : (
           <>
             <Button variant="outline" onClick={onClose}>{t('close')}</Button>
@@ -1195,8 +1195,8 @@ function InstallDialog({
         title={t('installTitle')}
         closeLabel={t('close')}
         {...install.mirrorRecovery ? {} : { description: t('installDescription') }}
-        className={css.installDialog as string}
-        contentClassName={css.installContent as string}
+        className={css.installDialog}
+        contentClassName={css.installContent}
         footer={(
           <div className={css.installFooter}>
             <p className={css.installSafety} role="note">
@@ -1416,7 +1416,7 @@ function InstallDialog({
   const changeable = phase === 'failed' && !approvable && install.failure?.failedAt === 'registry' && install.confirmed === undefined
   const subject = install.subject
   return (
-    <Modal open={install.open} onClose={onClose} title={heading} headless className={css.installDialog as string}>
+    <Modal open={install.open} onClose={onClose} title={heading} headless className={css.installDialog}>
       <div className={css.wizard} data-install-phase={phase}>
         <div className={css.wizardHead}>
           {phase === 'done' || (install.confirmed !== undefined && !pending)

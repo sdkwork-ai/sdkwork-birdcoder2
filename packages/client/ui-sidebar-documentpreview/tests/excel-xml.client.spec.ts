@@ -37,7 +37,7 @@ it.each(excelXmlCases)('preserves the complete preview for %s', async (name) => 
   const expected = await convertExcel(await excelXmlFixture('rich'), 'xlsx', limits)
   expect(await convertExcel(await excelXmlFixture(name), 'xlsx', limits)).toEqual(expected)
   expect(expected.unsupportedFeatures).toEqual(['charts', 'images', 'shapes', 'conditionalFormatting'])
-  const sheet = expected.sheets[0]!
+  const sheet = expected.sheets[0]
   expect(sheet.celldata!.find(cell => cell.r === 1 && cell.c === 1)!.v).toMatchObject({ v: 42, bl: 1, fc: '#112233', bg: '#FFFF00' })
   expect(sheet.config).toMatchObject({ merge: { '29_7': { r: 29, c: 7, rs: 1, cs: 3 } }, rowhidden: { 2: 0 }, colhidden: { 1: 0 } })
   expect(sheet.frozen).toMatchObject({ type: 'rangeBoth', range: { row_focus: 0, column_focus: 0 } })
@@ -76,7 +76,7 @@ it('preserves text split across escaped text and CDATA segments', async () => {
   const source = await excelXmlFixture('rich')
   const files = unzipSync(source)
   const path = 'xl/sharedStrings.xml'
-  files[path] = strToU8(strFromU8(files[path]!).replace('Item</t>', 'I<![CDATA[t]]>em</t>'))
+  files[path] = strToU8(strFromU8(files[path]).replace('Item</t>', 'I<![CDATA[t]]>em</t>'))
   expect(await convertExcel(new Uint8Array(zipSync(files)), 'xlsx', limits)).toEqual(await convertExcel(source, 'xlsx', limits))
 })
 
@@ -93,13 +93,13 @@ it('finds a drawing owned by a part at the package root', () => {
 it('rejects a worksheet relationship with no target', async () => {
   const files = unzipSync(await excelXmlFixture('rich'))
   const path = 'xl/_rels/workbook.xml.rels'
-  files[path] = strToU8(strFromU8(files[path]!).replace('Target="worksheets/sheet1.xml"', ''))
+  files[path] = strToU8(strFromU8(files[path]).replace('Target="worksheets/sheet1.xml"', ''))
   await expect(convertExcel(new Uint8Array(zipSync(files)), 'xlsx', limits)).rejects.toMatchObject({ code: 'invalid' })
 })
 
 it.each(['missing', 'external', 'duplicate'] as const)('rejects a %s officeDocument relationship', async (defect) => {
   const files = unzipSync(await excelXmlFixture('rich'))
-  const xml = strFromU8(files['_rels/.rels']!)
+  const xml = strFromU8(files['_rels/.rels'])
   const relation = xml.match(/<Relationship\b[^>]*officeDocument"[^>]*\/>/)![0]
   files['_rels/.rels'] = strToU8(xml.replace(relation, defect === 'missing' ? '' : defect === 'duplicate' ? relation + relation : relation.replace('/>', ' TargetMode="External"/>')))
   await expect(convertExcel(new Uint8Array(zipSync(files)), 'xlsx', limits)).rejects.toMatchObject({ code: 'invalid' })

@@ -163,11 +163,11 @@ describe('Tooltip', () => {
     expect(bubble.style.visibility).toBe('hidden')
     expect(measured.mock.contexts).toEqual([anchor, anchor])
     bubbleSize = { inlineSize: 100, blockSize: 20 }
-    act(() => { observers[0]!.deliver() })
+    act(() => { observers[0].deliver() })
     expect(screen.getByRole('tooltip').style.left).toBe('62px')
     fireEvent(window, new Event('resize'))
     expect(measured.mock.contexts).toEqual([anchor, anchor, anchor])
-    const disconnect = vi.spyOn(observers[0]!, 'disconnect')
+    const disconnect = vi.spyOn(observers[0], 'disconnect')
     view.unmount()
     expect(disconnect).toHaveBeenCalledOnce()
   })
@@ -192,11 +192,11 @@ describe('Tooltip', () => {
     measure.mockReturnValue(new DOMRect(180, 300, 22, 22))
     bubbleSize = { inlineSize: 195, blockSize: 66 }
     fireEvent(window, new Event('resize'))
-    act(() => { observers[0]!.deliver() })
+    act(() => { observers[0].deliver() })
     expect(bubble.dataset.side).toBe('bottom')
     expect(bubble.style.left).toBe('191px')
     expect(bubble.style.top).toBe('330px')
-    act(() => { observers[0]!.deliver() })
+    act(() => { observers[0].deliver() })
     expect(bubble.dataset.side).toBe('bottom')
     expect(document.activeElement).toBe(anchor)
 
@@ -453,7 +453,7 @@ describe('Tooltip', () => {
         </Tooltip>,
       )
       bubbleSize = { inlineSize: 100, blockSize: 20 }
-      act(() => { observers[0]!.deliver() })
+      act(() => { observers[0].deliver() })
       expect(screen.getByRole('tooltip').style.left).toBe('950px')
 
       Object.defineProperty(window, 'innerWidth', { configurable: true, value: 900 })

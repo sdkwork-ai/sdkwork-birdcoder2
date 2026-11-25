@@ -114,6 +114,7 @@
     "tests/input-plugin-extensions.e2e.ts",
     "tests/plugin-manager.e2e.ts",
     "tests/plugin-market-toolbar.e2e.ts",
+    "tests/expert-market-gallery.e2e.ts",
     "tests/plugin-sticky-motion.e2e.ts",
     "tests/entry-customization.e2e.ts",
     "tests/cua-optin.e2e.ts",

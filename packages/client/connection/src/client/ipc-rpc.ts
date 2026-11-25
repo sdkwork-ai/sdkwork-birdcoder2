@@ -150,7 +150,7 @@ async function *openDesktopStream(
   endpoint: string,
   payload: unknown,
   signal: AbortSignal,
-): AsyncGenerator<unknown> {
+): AsyncGenerator {
   signal.throwIfAborted()
   const inbox = new StreamFrameInbox()
   const handle = bridge.openStream({ endpoint, payload }, (frame) => { inbox.push(frame) })
@@ -214,6 +214,6 @@ class StreamFrameInbox {
       if (this.ended) return undefined
       await new Promise<void>((resolve) => { this.wake = resolve })
     }
-    return this.frames.shift() as DesktopStreamFrame
+    return this.frames.shift()
   }
 }

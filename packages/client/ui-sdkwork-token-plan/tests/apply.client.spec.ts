@@ -91,11 +91,11 @@ describe('ui-sdkwork-token-plan apply', () => {
       theme: { getColorScheme: () => string; subscribe: (listener: () => void) => void }
     }
     expect(injected.mode).toBe('token-plan')
-    expect(injected.env).toBe((context as never as { get: (key: string) => unknown }).get('env'))
-    expect(injected.iam).toBe((context as never as { get: (key: string) => unknown }).get('iam'))
+    expect(injected.env).toBe((context as { get: (key: string) => unknown }).get('env'))
+    expect(injected.iam).toBe((context as { get: (key: string) => unknown }).get('iam'))
     expect(injected.theme.getColorScheme()).toBe('light')
     const listener = vi.fn()
     injected.theme.subscribe(listener)
-    expect((context as never as { on: ReturnType<typeof vi.fn> }).on).toHaveBeenCalledWith('theme/change', listener)
+    expect((context as { on: ReturnType<typeof vi.fn> }).on).toHaveBeenCalledWith('theme/change', listener)
   })
 })

@@ -60,7 +60,7 @@ describe('Liveshare global share manager', () => {
     expect(screen.queryByRole('switch')).toBeNull()
     const opens = screen.getAllByRole('button', { name: 'Manage' })
     expect(opens).toHaveLength(2)
-    await act(async () => { fireEvent.click(opens[0]!) })
+    await act(async () => { fireEvent.click(opens[0]) })
     expect(opened).toEqual(['session-one:First session'])
   })
 
@@ -73,7 +73,7 @@ describe('Liveshare global share manager', () => {
       (sessionId, title) => { opened.push(`${sessionId}:${title}`) },
     )
     const opens = screen.getAllByRole('button', { name: 'Manage' })
-    await act(async () => { fireEvent.click(opens[0]!) })
+    await act(async () => { fireEvent.click(opens[0]) })
     expect(opened).toEqual(['session-one:First session'])
   })
 
@@ -87,7 +87,7 @@ describe('Liveshare global share manager', () => {
     )
     const [open] = screen.getAllByRole('button', { name: 'Manage' })
     expect(open).toHaveProperty('disabled', true)
-    await act(async () => { fireEvent.click(open!) })
+    await act(async () => { fireEvent.click(open) })
     expect(opened).toEqual([])
   })
 
@@ -96,7 +96,7 @@ describe('Liveshare global share manager', () => {
       stop: async () => accepted({ ok: true }),
     })
     await act(async () => {
-      fireEvent.click(screen.getAllByRole('button', { name: en['manage.cancelShare'] })[0]!)
+      fireEvent.click(screen.getAllByRole('button', { name: en['manage.cancelShare'] })[0])
     })
     const confirm = screen.getByRole('dialog', { name: en['manage.stop.title'] })
     await act(async () => {
@@ -115,7 +115,7 @@ describe('Liveshare global share manager', () => {
       stop: async () => refused('gateway/internal', {}),
     })
     await act(async () => {
-      fireEvent.click(screen.getAllByRole('button', { name: en['manage.cancelShare'] })[0]!)
+      fireEvent.click(screen.getAllByRole('button', { name: en['manage.cancelShare'] })[0])
     })
     const confirm = screen.getByRole('dialog', { name: en['manage.stop.title'] })
     await act(async () => {
@@ -133,7 +133,7 @@ describe('Liveshare global share manager', () => {
       stop: async () => refused('liveshareShares/owner-state-held', {}),
     })
     await act(async () => {
-      fireEvent.click(screen.getAllByRole('button', { name: en['manage.cancelShare'] })[0]!)
+      fireEvent.click(screen.getAllByRole('button', { name: en['manage.cancelShare'] })[0])
     })
     const confirm = screen.getByRole('dialog', { name: en['manage.stop.title'] })
     await act(async () => {
@@ -152,7 +152,7 @@ describe('Liveshare global share manager', () => {
       stop: async () => { throw new Error('gateway lost') },
     })
     await act(async () => {
-      fireEvent.click(screen.getAllByRole('button', { name: en['manage.cancelShare'] })[0]!)
+      fireEvent.click(screen.getAllByRole('button', { name: en['manage.cancelShare'] })[0])
     })
     const confirm = screen.getByRole('dialog', { name: en['manage.stop.title'] })
     await act(async () => {
@@ -169,7 +169,7 @@ describe('Liveshare global share manager', () => {
   it('cancels the stop confirmation without stopping the share', async () => {
     await showManager(async () => accepted({ shares: ROWS as never }))
     await act(async () => {
-      fireEvent.click(screen.getAllByRole('button', { name: en['manage.cancelShare'] })[0]!)
+      fireEvent.click(screen.getAllByRole('button', { name: en['manage.cancelShare'] })[0])
     })
     const confirm = screen.getByRole('dialog', { name: en['manage.stop.title'] })
     await act(async () => {
@@ -237,7 +237,7 @@ describe('Liveshare global share manager', () => {
   it('closes from its Done control', async () => {
     const onClose = vi.fn()
     await showManager(async () => accepted({ shares: [] }), undefined, onClose)
-    await act(async () => { fireEvent.click(screen.getAllByRole('button', { name: en['manage.done'] })[0]!) })
+    await act(async () => { fireEvent.click(screen.getAllByRole('button', { name: en['manage.done'] })[0]) })
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 })

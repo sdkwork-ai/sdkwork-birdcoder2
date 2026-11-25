@@ -1,0 +1,23 @@
+{
+  "name": "birdcoder-image",
+  "version": "0.1.0",
+  "scope": "product",
+  "requires": [
+    "references/ecommerce-detail.md",
+    "references/series-consistency.md"
+  ],
+  "files": [
+    {
+      "path": "SKILL.md",
+      "sha256": "d7a3f896fa7fe76be4464c2925f38e485aa366414406a5169079deebf6028e9d"
+    },
+    {
+      "path": "references/ecommerce-detail.md",
+      "sha256": "fa9358369e75981d52ed0d26c766252a1e26aae5f10fa056762d0ad85e76b0d6"
+    },
+    {
+      "path": "references/series-consistency.md",
+      "sha256": "2beb32e7270c961dde397c772362496417f08120dd7944a84fbe8ff761119b37"
+    }
+  ]
+}

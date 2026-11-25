@@ -113,7 +113,7 @@ describe('createPanelSource', () => {
     streams[0]?.push(ready())
     await vi.waitFor(() => { expect(panel.hooks.panel.getSnapshot().state).not.toBeNull() })
 
-    end(streams[0]!)
+    end(streams[0])
     await vi.waitFor(() => { expect(panel.hooks.panel.getSnapshot().disconnected).toBe(true) })
     expect(panel.hooks.panel.getSnapshot().state).toEqual(ready())
     panel.reconnect()

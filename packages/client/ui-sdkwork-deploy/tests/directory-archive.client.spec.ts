@@ -17,7 +17,7 @@ function textFile(path: string, content: string): PackableFile {
     path,
     name: path.split('/').pop() ?? path,
     size: bytes.length,
-    arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteLength) as ArrayBuffer,
+    arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteLength),
   }
 }
 

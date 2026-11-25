@@ -100,7 +100,7 @@ function developerToolsRowOf(c: TestClient): DeveloperToolsRowInjected {
 }
 
 function actionInjectedOf(c: TestClient): SettingsDocumentActionInjected {
-  const entry = ownEntries(c, 'settings.action')[0]!
+  const entry = ownEntries(c, 'settings.action')[0]
   return (entry.inject as unknown as () => SettingsDocumentActionInjected)()
 }
 
@@ -276,7 +276,7 @@ describe.skip('ui-settings-general apply', () => {
     // No ledger churn: freshness rides the thunk (and the renderer's locale
     // subscription), not re-registration.
     SEATS.forEach(([name], i) => {
-      expect(c.ctx.slots.getVersion(name)).toBe(zhVersions[i]!)
+      expect(c.ctx.slots.getVersion(name)).toBe(zhVersions[i])
       expect(ownEntries(c, name)).toHaveLength(1)
     })
     expect(generalLabel(c)).toBe('General')

@@ -28,11 +28,11 @@ function bonus(orderId: string, message = 'Awarded 5.00'): AccountNotificationBa
   return { nextPollAfterSeconds: 300, notifications: [notification(orderId, { body: message, displayUntil: '2099-01-01T00:00:00Z' })] }
 }
 function operations(c: TestClient): AccountSectionInjected {
-  const injected: object = c.ctx.slots.entries('settings.launcher')[0]!.inject!()
+  const injected: object = c.ctx.slots.entries('settings.launcher')[0].inject!()
   return injected as AccountSectionInjected
 }
 function notificationOperations(c: TestClient): AccountNotificationsInjected {
-  const injected: object = c.ctx.slots.entries('settings.launcher.notifications')[0]!.inject!()
+  const injected: object = c.ctx.slots.entries('settings.launcher.notifications')[0].inject!()
   return injected as AccountNotificationsInjected
 }
 beforeEach(() => { vi.stubEnv('DSH_CLIENT_VERSION', '0.0.0-test') })

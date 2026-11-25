@@ -218,7 +218,7 @@ describe('static Client dependency delivery', () => {
     try {
       const chunks = builds.flatMap(bundle => bundle.chunks).filter(chunk => chunk.type === 'chunk')
       expect(chunks.map(chunk => chunk.fileName)).toEqual(['index.js'])
-      const output = chunks[0]!.code
+      const output = chunks[0].code
       expect(output).toMatch(/import\s[^;]*from\s*["']ordinary-library["']/)
       expect(output).toMatch(/import\(["']ordinary-library\/lazy["']\)/)
       expect(output).not.toMatch(/require(?:\.async)?\(["']ordinary-library/)
@@ -293,9 +293,9 @@ describe('static Client dependency delivery', () => {
     expect(Object.keys(stylesheets!).sort()).toEqual([
       'src/Panel.module.css', 'src/global.css',
     ])
-    expect(stylesheets!['src/Panel.module.css']!.text(require))
+    expect(stylesheets!['src/Panel.module.css'].text(require))
       .toContain(`.${exports.classes.panel}{display:flex}`)
-    expect(stylesheets!['src/global.css']!.text(require))
+    expect(stylesheets!['src/global.css'].text(require))
       .toContain('.overlay{position:fixed}')
   })
 

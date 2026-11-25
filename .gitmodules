@@ -48,35 +48,3 @@
 	# Advance the pin with `git submodule update --remote plugins/sdkwork-deepseekbot`.
 	branch = main
 	shallow = true
-[submodule "plugins/sdkwork-dsh-agents"]
-	path = plugins/sdkwork-dsh-agents
-	# SDKWork's expert-market mirror (`@michengai/dsh-agency-agents`): the 331
-	# expert roster and expert teams the Experts tab embeds as its market chip.
-	# The mirror is the authority for the plugin's source and build; its `lib/`
-	# artifacts ship as committed, so this repository runs them instead of
-	# rebuilding. SSH is required because the repository is private to the org.
-	url = git@github.com:sdkwork-ai/sdkwork-dsh-agents.git
-	# Advance the pin with `git submodule update --remote plugins/sdkwork-dsh-agents`
-	# (`pnpm run update:expert-market` also relinks and runs the acceptance spec),
-	# which follows this branch; the committed gitlink stays the release pin.
-	branch = main
-[submodule "plugins/dsh-market"]
-	path = plugins/dsh-market
-	# SDKWork's fork of `dsh-market/dsh-market` (npm `dshmarket`): the plugin
-	# market the web bundle mounts as the Plugins tab's leading chip. The fork
-	# is the authority for the plugin's source and future product changes, so
-	# local fixes land there instead of upstream. Its `client/client.js` ships
-	# committed; its host half `lib/` is gitignored upstream, so this repository
-	# builds that half (`pnpm run build:dsh-market`) instead of rebuilding the
-	# whole plugin. The plugin's own `prepare` must stay the emit-only `tsc`
-	# (`--noCheck`) that the fork's `b7d62fd` set: a type-checked build resolves
-	# `@deepseek-ai/cordis` and `@deepseek-ai/schemastery` through
-	# `vendor/*/lib/types`, which a fresh clone has not compiled yet, so
-	# `pnpm install` died on TS2307 before any lane could build. The repository
-	# is public, so the gitlink clones over HTTPS like the upstream-owned
-	# entries and CI needs no deploy key.
-	url = https://github.com/sdkwork-ai/sdkwork-dsh-market.git
-	# Advance the pin with `git submodule update --remote plugins/dsh-market`,
-	# which follows this branch; the committed gitlink stays the release pin.
-	branch = main
-	shallow = true

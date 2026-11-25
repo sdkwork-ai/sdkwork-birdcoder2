@@ -177,7 +177,7 @@ describe('remote connection settings registration', () => {
       ? 'https://host.example/?token=private' : { url: 'https://host.example/', availability: 'available', loginUrlAllowed: true, ticket: 'none', pollIntervalMs: 1000 } }))
     const { ctx, slots, locale, fiber } = await bench(status)
     await vi.waitFor(() => { expect(status).toHaveBeenCalledWith('/api', 'remoteConnection/status', { args: { id: null } }, expect.any(AbortSignal)) })
-    const entry = slots.entries('settings.section')[0]!
+    const entry = slots.entries('settings.section')[0]
     expect(entry.options.id).toBe('remote-connection')
     const face = slots.spec('settings.remoteConnection.content')?.inject
     expect(typeof face?.create).toBe('function')

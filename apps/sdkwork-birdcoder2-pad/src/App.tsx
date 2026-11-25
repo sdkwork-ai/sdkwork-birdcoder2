@@ -27,7 +27,7 @@ function useWindowClass(initialWidth: number): TabletWindowClass {
       if (entry) setWidth(entry.contentRect.width)
     })
     observer.observe(document.documentElement)
-    return () => observer.disconnect()
+    return () =>{  observer.disconnect() }
   }, [])
   return resolveWindowClass(width)
 }

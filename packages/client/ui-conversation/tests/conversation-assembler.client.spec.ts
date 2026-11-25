@@ -580,10 +580,10 @@ describe('ConversationNodeAssembler', () => {
     for (const session of [first, second]) {
       session.assembler.append(shared)
       session.assembler.flush()
-      const start = session.probes[0]!.matches.at(-1)!
-      const update = session.probes[2]!.matches.at(-1)!
-      expect(start).toBe(session.probes[1]!.matches.at(-1))
-      expect(update).toBe(session.probes[3]!.matches.at(-1))
+      const start = session.probes[0].matches.at(-1)!
+      const update = session.probes[2].matches.at(-1)!
+      expect(start).toBe(session.probes[1].matches.at(-1))
+      expect(update).toBe(session.probes[3].matches.at(-1))
       expect(start).not.toBe(update)
       expect(start.role).toBe('start')
       expect(update.role).toBe('update')
@@ -595,8 +595,8 @@ describe('ConversationNodeAssembler', () => {
     }
     expect(new Set([...first.states(), ...second.states()]).size).toBe(8)
     for (const index of [0, 2]) {
-      const left = first.probes[index]!.matches.at(-1)!
-      const right = second.probes[index]!.matches.at(-1)!
+      const left = first.probes[index].matches.at(-1)!
+      const right = second.probes[index].matches.at(-1)!
       expect(left).not.toBe(right)
       expect(left.location).not.toBe(right.location)
     }
@@ -604,8 +604,8 @@ describe('ConversationNodeAssembler', () => {
     const secondSnapshot = testSnapshot(second.assembler)
     first.assembler.append(input(at(SessionSeq(5), 'shared/first-only', { turn: 1, step: 1 })))
     first.assembler.flush()
-    expect(first.probes[0]!.matches.at(-1)).not.toBe(first.probes[2]!.matches.at(-1))
-    expect(first.probes[2]!.matches.at(-1)!.event).toBe(shared.event)
+    expect(first.probes[0].matches.at(-1)).not.toBe(first.probes[2].matches.at(-1))
+    expect(first.probes[2].matches.at(-1)!.event).toBe(shared.event)
     expect(first.states()).toEqual([{ seqs: [4, 5] }, ...expectedStates.slice(1)])
     expect(testSnapshot(second.assembler)).toBe(secondSnapshot)
     expect(second.states()).toEqual(expectedStates)
@@ -866,7 +866,7 @@ describe('ConversationNodeAssembler', () => {
     assembler.flush()
     const before = testSnapshot(assembler)!
     expect(before.order).toHaveLength(6)
-    const unrelated = before.nodes.get(before.order[5]!)
+    const unrelated = before.nodes.get(before.order[5])
     const delta = transientChunk(1.5, 1, 1, {
       type: 'tool-call-delta', index: 0, id: brandString<ToolCallId>('shared'), name: 'write', argumentsDelta: '{}',
     })
@@ -887,7 +887,7 @@ describe('ConversationNodeAssembler', () => {
       expect(settled.nodes.get(key)?.data).toEqual({ count: 0, seqs: [1] })
       expect(settled.nodes.get(key)).not.toBe(partial.nodes.get(key))
     }
-    expect(settled.nodes.get(before.order[5]!)).toBe(unrelated)
+    expect(settled.nodes.get(before.order[5])).toBe(unrelated)
     assembler.rebuildRegistry()
     assembler.flush()
     const rebuilt = testSnapshot(assembler)!

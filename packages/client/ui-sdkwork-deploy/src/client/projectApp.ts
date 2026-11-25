@@ -41,6 +41,8 @@ export interface ProjectAppIdentity {
   readonly platforms: readonly string[]
   /** Product icon URL from `app.iconUrl` or `media.icons.primary.url`. */
   readonly iconUrl?: string
+  /** Catalog cover: the first preview, else the first screenshot, else the icon. */
+  readonly coverUrl?: string
   /** Canonical public website (`app.officialWebsiteUrl`). */
   readonly officialWebsiteUrl?: string
 }
@@ -248,6 +250,7 @@ function readIdentity(manifest: Record<string, unknown>): ProjectAppIdentity | u
   const runtimeFramework = stringValue(runtime?.['framework'])
   const deploymentProfile = stringValue(runtime?.['defaultDeploymentProfile'])
   const iconUrl = stringValue(app['iconUrl']) ?? stringValue(primaryIcon?.['url'])
+  const coverUrl = firstAssetUrl(media?.['previews']) ?? firstAssetUrl(media?.['screenshots']) ?? iconUrl
   const officialWebsiteUrl = stringValue(app['officialWebsiteUrl'])
   return {
     platforms: readPlatforms(publish?.['platforms']),
@@ -260,8 +263,19 @@ function readIdentity(manifest: Record<string, unknown>): ProjectAppIdentity | u
     ...(runtimeFramework === undefined ? {} : { runtimeFramework }),
     ...(deploymentProfile === undefined ? {} : { deploymentProfile }),
     ...(iconUrl === undefined ? {} : { iconUrl }),
+    ...(coverUrl === undefined ? {} : { coverUrl }),
     ...(officialWebsiteUrl === undefined ? {} : { officialWebsiteUrl }),
   }
+}
+
+/** The first entry URL of a media asset list (`media.previews`, `media.screenshots`). */
+function firstAssetUrl(value: unknown): string | undefined {
+  if (!Array.isArray(value)) return undefined
+  for (const entry of value) {
+    const url = stringValue(asRecord(entry)?.['url'])
+    if (url !== undefined) return url
+  }
+  return undefined
 }
 
 /** Parse a manifest text into its object form, tolerating absence and damage. */

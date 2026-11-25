@@ -181,7 +181,7 @@ describe('Assembled liveshare viewer page', () => {
     // tab type for one, so opening the path shows no file content.
     const fileLinks = [...document.querySelectorAll<HTMLButtonElement>('button[class*="fileLink"]')]
     expect(fileLinks.length).toBeGreaterThan(0)
-    await act(async () => { fireEvent.click(fileLinks[0] as HTMLButtonElement) })
+    await act(async () => { fireEvent.click(fileLinks[0]) })
     expect(reported.mock.calls.filter(([message]) => String(message).startsWith('[session-status]'))).toEqual([])
   }, 120_000)
 })

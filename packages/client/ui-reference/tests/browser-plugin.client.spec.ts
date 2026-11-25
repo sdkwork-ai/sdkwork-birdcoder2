@@ -363,7 +363,7 @@ describe('candidates', () => {
     const quoted = await source.candidates(session, request('READ', { quoted: true }))
     expect(quoted).toEqual([expect.objectContaining({ name: 'README.md', icon: 'file' })])
     expect(source.onPick({
-      candidate: quoted[0]!,
+      candidate: quoted[0],
       session,
       position: 'inline',
       via: 'menu',
@@ -496,7 +496,7 @@ describe('candidates', () => {
     ])
     const [candidate] = candidates
     expect(source.onPick({
-      candidate: candidate!,
+      candidate: candidate,
       session,
       position: 'inline',
       via: 'menu',
@@ -642,7 +642,7 @@ describe('pick and codec', () => {
     const [directory, file] = await source.candidates(session, request(''))
     expect(directory?.drill).toBe(true)
     expect(file?.drill).toBeUndefined()
-    expect(pick(source, directory!)).toEqual({
+    expect(pick(source, directory)).toEqual({
       insert: {
         source: 'reference',
         ref: '@src/',
@@ -651,8 +651,8 @@ describe('pick and codec', () => {
         clipboardText: '@src/',
       },
     })
-    expect(drill(source, directory!)).toEqual({ text: '@src/', continue: true })
-    expect(pick(source, file!)).toEqual({
+    expect(drill(source, directory)).toEqual({ text: '@src/', continue: true })
+    expect(pick(source, file)).toEqual({
       insert: {
         source: 'reference',
         ref: '@"docs/a b.md"',
@@ -662,7 +662,7 @@ describe('pick and codec', () => {
       },
     })
     const [quotedDirectory] = await source.candidates(session, request('', { quoted: true }))
-    expect(drill(source, quotedDirectory!)).toEqual({ text: '@"src/', continue: true })
+    expect(drill(source, quotedDirectory)).toEqual({ text: '@"src/', continue: true })
   })
 
   it('inserts sessions as atomic chips whose clipboard and model forms are canonical mentions', async () => {
@@ -689,10 +689,10 @@ describe('pick and codec', () => {
     const [directory, file] = await source.candidates(session, request(''))
     const folderFace = injectedPresence(ctx, 'folder')
     const fileFace = injectedPresence(ctx, 'file')
-    drill(source, directory!)
+    drill(source, directory)
     expect(folderFace(session.sessionId).keyedHooks.pathPresence('src/').getSnapshot()).toBeUndefined()
-    pick(source, directory!)
-    pick(source, file!)
+    pick(source, directory)
+    pick(source, file)
     expect(folderFace(session.sessionId).keyedHooks.pathPresence('src/').getSnapshot()).toBe('present')
     expect(fileFace(session.sessionId).keyedHooks.pathPresence('docs/a b.md').getSnapshot()).toBe('present')
     expect(folderFace(sid('other')).keyedHooks.pathPresence('src/').getSnapshot()).toBeUndefined()
@@ -706,7 +706,7 @@ describe('pick and codec', () => {
     await sessions.updateSummary(session.sessionId, { cwd: '/workspace' })
     await sessions.setProjection(session.sessionId, 'workingDirectory', '/workspace/.agents/worktrees/w')
     const [directory, file] = await source.candidates(session, request(''))
-    expect(pick(source, directory!)).toEqual({
+    expect(pick(source, directory)).toEqual({
       insert: {
         source: 'reference',
         ref: '@/workspace/.agents/worktrees/w/src/',
@@ -715,7 +715,7 @@ describe('pick and codec', () => {
         clipboardText: '@/workspace/.agents/worktrees/w/src/',
       },
     })
-    expect(pick(source, file!)).toEqual({
+    expect(pick(source, file)).toEqual({
       insert: {
         source: 'reference',
         ref: '@"/workspace/.agents/worktrees/w/docs/a b.md"',
@@ -724,10 +724,10 @@ describe('pick and codec', () => {
         clipboardText: '@"/workspace/.agents/worktrees/w/docs/a b.md"',
       },
     })
-    expect(drill(source, directory!)).toEqual({ text: '@src/', continue: true })
+    expect(drill(source, directory)).toEqual({ text: '@src/', continue: true })
     // A settled quoted folder closes the quote that its listed spelling leaves open for a descent.
     const [quotedDirectory] = await source.candidates(session, request('', { quoted: true }))
-    expect(pick(source, quotedDirectory!)).toMatchObject({ insert: { ref: '@"/workspace/.agents/worktrees/w/src/"' } })
+    expect(pick(source, quotedDirectory)).toMatchObject({ insert: { ref: '@"/workspace/.agents/worktrees/w/src/"' } })
     // The sent echo carries the absolute path, so that path is the one confirmed.
     expect(injectedPresence(ctx, 'folder')(session.sessionId).keyedHooks
       .pathPresence('/workspace/.agents/worktrees/w/src/').getSnapshot()).toBe('present')
@@ -740,7 +740,7 @@ describe('pick and codec', () => {
     const { source, sessions } = await bench()
     await sessions.updateSummary(session.sessionId, { cwd: '/work"space' })
     const [directory] = await source.candidates(session, request(''))
-    expect(pick(source, directory!)).toMatchObject({ insert: { ref: '@src/', clipboardText: '@src/' } })
+    expect(pick(source, directory)).toMatchObject({ insert: { ref: '@src/', clipboardText: '@src/' } })
   })
 
   it('ignores candidates that do not carry a source-owned value', async () => {

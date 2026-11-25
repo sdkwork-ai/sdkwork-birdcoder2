@@ -43,7 +43,7 @@ describe('MarkdownText math copy', () => {
     const view = render(<MarkdownText text={'Energy $E=mc^2$ and\n\n$$\n\\frac{a}{b}\n$$\n\nend'} />)
     const paragraphs = view.container.querySelectorAll('p')
     const inlineVisual = view.container.querySelector('.katex-html')!
-    const lastText = paragraphs[paragraphs.length - 1]!.firstChild!
+    const lastText = paragraphs[paragraphs.length - 1].firstChild!
     select(inlineVisual.firstChild!, 0, lastText, 3)
     const { data, prevented } = copy(inlineVisual)
     expect(prevented).toBe(true)

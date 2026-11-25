@@ -174,7 +174,7 @@ function referenceFixture({ runtime = 'web', dictionary = en }: { runtime?: 'web
 
 it('keeps core actions in product order across registration, remount and label changes', () => {
   const { catalog, fixedCatalog, store } = referenceFixture({ runtime: 'desktop' })
-  const template = catalog.getSnapshot()[0]!
+  const template = catalog.getSnapshot()[0]
   const core = [
     ['shortcuts.open', 'Keyboard shortcuts'], ['session.new', 'New session'],
     ['sidebar.left.toggle', 'Toggle left sidebar'], ['session.search', 'Search sessions'],
@@ -235,7 +235,7 @@ it('keeps core actions in product order across registration, remount and label c
 
 it('keeps product order for tied searches while prioritizing stronger matches', () => {
   const { catalog, store } = referenceFixture()
-  const template = catalog.getSnapshot()[0]!
+  const template = catalog.getSnapshot()[0]
   const first = { ...template, id: 'shortcuts.open' as ShortcutCommandId, label: 'Zulu', aliases: ['action', 's-e-a-r-c-h'] }
   const second = { ...template, id: 'session.new' as ShortcutCommandId, label: 'Alpha', aliases: ['action', 's-e-a-r-c-h'] }
   const extension = { ...template, id: 'extension.alpha' as ShortcutCommandId, label: 'Extension', aliases: ['action', 'search'] }

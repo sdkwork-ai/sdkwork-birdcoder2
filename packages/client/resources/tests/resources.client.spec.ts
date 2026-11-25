@@ -81,7 +81,7 @@ function scriptedProvider() {
       return stream
     }),
   } satisfies ResourceProvider<'feed'>
-  return { provider, opens, last: () => opens[opens.length - 1]! }
+  return { provider, opens, last: () => opens[opens.length - 1] }
 }
 
 const settle = (): Promise<void> => new Promise((resolve) => { setTimeout(resolve, 0) })

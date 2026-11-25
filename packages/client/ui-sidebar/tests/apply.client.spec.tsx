@@ -78,14 +78,14 @@ describe('ui-sidebar apply', () => {
     expect(b.slots.spec('sidebar.session.action')).toEqual({ kind: 'hoc', scope: 'root' })
     expect(b.slots.spec('sidebar.panellist')).toEqual({ kind: 'list', scope: 'root' })
     // Copy rides the standard locale seat, not the inject face.
-    expect(b.slots.entries('sidebar')[0]!.locale).toBe('sidebar')
+    expect(b.slots.entries('sidebar')[0].locale).toBe('sidebar')
     // The window-chrome occupant reuses the shell's inject face and locale.
     const leading = b.slots.entries('shell.leading')
     expect(leading).toHaveLength(1)
-    expect(leading[0]!.component).toBe(HeaderLeadingControls)
-    expect(leading[0]!.locale).toBe('sidebar')
-    expect(leading[0]!.inject).toBe(b.slots.entries('sidebar')[0]!.inject)
-    const injected = (b.slots.entries('sidebar')[0]!.inject as () => SidebarRootInjected)()
+    expect(leading[0].component).toBe(HeaderLeadingControls)
+    expect(leading[0].locale).toBe('sidebar')
+    expect(leading[0].inject).toBe(b.slots.entries('sidebar')[0].inject)
+    const injected = (b.slots.entries('sidebar')[0].inject as () => SidebarRootInjected)()
     expect(Object.keys(injected)).toEqual(['startSession', 'toggleSidebar', 'selectPanel', 'setPinned', 'trackEntryClick', 'hooks'])
     expect(injected.hooks.panels.getSnapshot()).toEqual([])
     expect(injected.hooks.entryPins.getSnapshot()).toEqual([])
@@ -107,7 +107,7 @@ describe('ui-sidebar apply', () => {
   it('forwards entry clicks to the optional product analytics service without tracking panel selection', async () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const injected = (b.slots.entries('sidebar')[0]!.inject as () => SidebarRootInjected)()
+    const injected = (b.slots.entries('sidebar')[0].inject as () => SidebarRootInjected)()
     // Ordinary Web mounts no analytics service; reporting is then a no-op.
     expect(() => { injected.trackEntryClick({ menu_name: 'more', position: 'sidebar' }) }).not.toThrow()
     const track = vi.fn<TrackProductEvent>()
@@ -120,7 +120,7 @@ describe('ui-sidebar apply', () => {
     expect(b.layout.selectPanel.mock.calls).toEqual([['plugins'], ['schedules']])
     expect(track).toHaveBeenCalledOnce()
     // The window-chrome occupant shares the same reporting callback.
-    const leading = (b.slots.entries('shell.leading')[0]!.inject as () => SidebarRootInjected)()
+    const leading = (b.slots.entries('shell.leading')[0].inject as () => SidebarRootInjected)()
     leading.trackEntryClick({ menu_name: 'cron', position: 'sidebar_more' })
     expect(track).toHaveBeenLastCalledWith('sidebar_menu_click', { menu_name: 'cron', position: 'sidebar_more' })
   })
@@ -153,7 +153,7 @@ describe('ui-sidebar apply', () => {
     const b = await bench()
     const sidebar = b.ctx.plugin({ inject: [...inject], apply })
     await sidebar.await()
-    const injected = (b.slots.entries('sidebar')[0]!.inject as () => SidebarRootInjected)()
+    const injected = (b.slots.entries('sidebar')[0].inject as () => SidebarRootInjected)()
     const panel = b.ctx.plugin({
       inject: ['slots'],
       apply(ctx: Context) {

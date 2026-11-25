@@ -1,0 +1,43 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/interaction/tool-sdkwork-deploy/README.md
+/:
+  en: c2ce345913a1b523
+  zh: bdd80a2bb7b489cb
+/deepseek-ai-dsh-tool-sdkwork-deploy:
+  en: 07003f8b266326a2
+  zh: b0cc4924165fef84
+/deepseek-ai-dsh-tool-sdkwork-deploy/summary:
+  en: e33977d69c2151be
+  zh: 04b7fb209dafee24
+/deepseek-ai-dsh-tool-sdkwork-deploy/table-of-contents:
+  en: 76368b6b1da79c80
+  zh: ba855365f31d3a78
+/deepseek-ai-dsh-tool-sdkwork-deploy/use-this-package:
+  en: c5749ca9ca390179
+  zh: f45cce5dad5a6a50
+/deepseek-ai-dsh-tool-sdkwork-deploy/understand-the-implementation:
+  en: 585134115883a849
+  zh: b3d6e28dd01b4512
+/deepseek-ai-dsh-tool-sdkwork-deploy/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-tool-sdkwork-deploy/model-experience/sdkwork-deploy-app:
+  en: 563985020d8ba927
+  zh: 563985020d8ba927
+/deepseek-ai-dsh-tool-sdkwork-deploy/model-experience/sdkwork-deploy-app/what-the-model-sees:
+  en: 8fe01377eace4e5e
+  zh: b6084202d33a2d5c
+/deepseek-ai-dsh-tool-sdkwork-deploy/model-experience/sdkwork-deploy-app/token-effect:
+  en: 73c4069fe3ef4159
+  zh: aa1bc60489629fa6
+/deepseek-ai-dsh-tool-sdkwork-deploy/model-experience/sdkwork-deploy-app/kv-cache-effect:
+  en: f019e738f5818d53
+  zh: 576a3e901ba877a1
+/deepseek-ai-dsh-tool-sdkwork-deploy/known-limitations-and-deferred-work:
+  en: da9f03f212e990cd
+  zh: 1a64c852f42505d8
+/deepseek-ai-dsh-tool-sdkwork-deploy/known-limitations-and-deferred-work/dev-note:
+  en: b6b2bef15feb6033
+  zh: b083dc57b770ef38

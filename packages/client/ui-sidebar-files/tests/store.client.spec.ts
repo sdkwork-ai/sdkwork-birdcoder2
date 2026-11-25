@@ -29,13 +29,13 @@ describe('createFilesStore', () => {
     store.actions.start(other, ROOT)
     store.actions.queried(PANE, 'target')
     store.actions.searching(PANE)
-    const search = store.getSnapshot().byPane[PANE]!.search
+    const search = store.getSnapshot().byPane[PANE].search
     store.actions.searchBarShown(PANE, true)
-    expect(store.getSnapshot().byPane[PANE]!.searchBarOpen).toBe(true)
-    expect(store.getSnapshot().byPane[other]!.searchBarOpen).toBe(false)
+    expect(store.getSnapshot().byPane[PANE].searchBarOpen).toBe(true)
+    expect(store.getSnapshot().byPane[other].searchBarOpen).toBe(false)
     store.actions.searchBarShown(PANE, false)
-    expect(store.getSnapshot().byPane[PANE]!.query).toBe('target')
-    expect(store.getSnapshot().byPane[PANE]!.search).toBe(search)
+    expect(store.getSnapshot().byPane[PANE].query).toBe('target')
+    expect(store.getSnapshot().byPane[PANE].search).toBe(search)
   })
 
   it('seeds a pane at its root with the root expanded and nothing loaded', () => {
@@ -55,20 +55,20 @@ describe('createFilesStore', () => {
     const getSnapshot = (): ReturnType<typeof store.getSnapshot> => store.getSnapshot()
     actions.start(PANE, ROOT)
     actions.loading(PANE, ROOT)
-    expect(getSnapshot().byPane[PANE]!.tree!.levels[ROOT]).toEqual({ kind: 'loading' })
+    expect(getSnapshot().byPane[PANE].tree!.levels[ROOT]).toEqual({ kind: 'loading' })
     const failure = new RemoteError('workspace-file/not-found', 'gone', { path: ROOT })
     actions.failed(PANE, ROOT, failure)
-    expect(getSnapshot().byPane[PANE]!.tree!.levels[ROOT]).toEqual({ kind: 'failed', failure })
+    expect(getSnapshot().byPane[PANE].tree!.levels[ROOT]).toEqual({ kind: 'failed', failure })
     actions.loading(PANE, ROOT)
-    expect(getSnapshot().byPane[PANE]!.tree!.levels[ROOT]).toEqual({ kind: 'loading' })
+    expect(getSnapshot().byPane[PANE].tree!.levels[ROOT]).toEqual({ kind: 'loading' })
     actions.loaded(PANE, ROOT, LEVEL)
-    expect(getSnapshot().byPane[PANE]!.tree!.levels[ROOT]).toEqual({ kind: 'ready', level: LEVEL })
+    expect(getSnapshot().byPane[PANE].tree!.levels[ROOT]).toEqual({ kind: 'ready', level: LEVEL })
   })
 
   it('retains a loaded level marked as refreshing while it is listed again, until the listing settles or fails', () => {
     const store = createFilesStore().create()
     const { actions } = store
-    const level = () => store.getSnapshot().byPane[PANE]!.tree!.levels[ROOT]
+    const level = () => store.getSnapshot().byPane[PANE].tree!.levels[ROOT]
     actions.start(PANE, ROOT)
     actions.loaded(PANE, ROOT, LEVEL)
     actions.loading(PANE, ROOT)
@@ -89,7 +89,7 @@ describe('createFilesStore', () => {
   it('ends the refresh of every level below a directory whose listing fails, and of none beside it', () => {
     const store = createFilesStore().create()
     const { actions } = store
-    const levels = () => store.getSnapshot().byPane[PANE]!.tree!.levels
+    const levels = () => store.getSnapshot().byPane[PANE].tree!.levels
     const src = `${ROOT}/src`
     const deep = `${src}/lib`
     const docs = `${src}/docs`
@@ -117,10 +117,10 @@ describe('createFilesStore', () => {
     actions.start(PANE, ROOT)
     actions.loaded(PANE, child, LEVEL)
     actions.toggled(PANE, child)
-    expect(getSnapshot().byPane[PANE]!.tree!.expanded).toEqual([ROOT, child])
+    expect(getSnapshot().byPane[PANE].tree!.expanded).toEqual([ROOT, child])
     actions.toggled(PANE, child)
-    expect(getSnapshot().byPane[PANE]!.tree!.expanded).toEqual([ROOT])
-    expect(getSnapshot().byPane[PANE]!.tree!.levels[child]).toEqual({ kind: 'ready', level: LEVEL })
+    expect(getSnapshot().byPane[PANE].tree!.expanded).toEqual([ROOT])
+    expect(getSnapshot().byPane[PANE].tree!.levels[child]).toEqual({ kind: 'ready', level: LEVEL })
   })
 
   it('keeps the automatic setting independent for each pane', () => {
@@ -129,10 +129,10 @@ describe('createFilesStore', () => {
     store.actions.start(PANE, ROOT)
     store.actions.start(other, ROOT)
     store.actions.autoRefresh(PANE, false)
-    expect(store.getSnapshot().byPane[PANE]!.tree!.autoRefresh).toBe(false)
-    expect(store.getSnapshot().byPane[other]!.tree!.autoRefresh).toBe(true)
+    expect(store.getSnapshot().byPane[PANE].tree!.autoRefresh).toBe(false)
+    expect(store.getSnapshot().byPane[other].tree!.autoRefresh).toBe(true)
     store.actions.autoRefresh(PANE, true)
-    expect(store.getSnapshot().byPane[PANE]!.tree!.autoRefresh).toBe(true)
+    expect(store.getSnapshot().byPane[PANE].tree!.autoRefresh).toBe(true)
   })
 
   it.each(['removed', 'file'] as const)('drops cached descendants and expansion when a directory is %s', (replacement) => {
@@ -152,7 +152,7 @@ describe('createFilesStore', () => {
     actions.loaded(PANE, ROOT, { entries: replacement === 'file'
       ? [{ name: 'src', type: 'file' }, { name: 'src-other', type: 'directory' }]
       : [{ name: 'src-other', type: 'directory' }], truncated: false })
-    const state = store.getSnapshot().byPane[PANE]!.tree!
+    const state = store.getSnapshot().byPane[PANE].tree!
     expect(state.expanded).toEqual([ROOT, sibling])
     expect(Object.keys(state.levels)).toEqual([ROOT, sibling])
     expect(state.levels[sibling]).toEqual({ kind: 'ready', level: LEVEL })

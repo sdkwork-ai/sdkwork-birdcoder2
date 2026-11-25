@@ -51,7 +51,7 @@ export class ElectronWebviewPresentation implements BrowserPresentation {
    */
   createElement(reservation: DesktopBrowserReservation): WebviewElement {
     const element = document.createElement('webview') as WebviewElement
-    element.className = css.webview as string
+    element.className = css.webview
     element.dataset.sidebarBrowserFrame = 'webview'
     element.setAttribute('name', reservation.lease)
     element.setAttribute('partition', reservation.partition)

@@ -44,7 +44,7 @@ it('cancels stale provider or locale requests and honors an explicit language af
   const b = fixture(), first = Promise.withResolvers<string>()
   b.translate.mockImplementationOnce(() => first.promise)
   const view = render(<TranslationBody {...b.props} />)
-  const firstSignal = b.translate.mock.calls[0]![1]
+  const firstSignal = b.translate.mock.calls[0][1]
   act(() => { b.preferences.set({ provider: 'bing', targetLanguage: 'ja' }) })
   expect(firstSignal.aborted).toBe(true)
   await view.findByText('bing:ja:Original paragraph')
@@ -104,7 +104,7 @@ it('keeps an unfinished streaming tail original and cancels the disclosure on un
   expect(b.translate.mock.calls[0]?.[0].text).toBe('First')
   expect(view.getByText('Tail', { exact: false })).toBeTruthy()
   expect(view.container.textContent).not.toContain(b.props.rawText)
-  const signal = b.translate.mock.calls[0]![1]
+  const signal = b.translate.mock.calls[0][1]
   view.unmount()
   expect(signal.aborted).toBe(true)
   pending.resolve('ignored')
@@ -115,7 +115,7 @@ it('cancels the previous request and rechunks when the request limit changes', a
   const b = fixture('abcdefghij'), first = Promise.withResolvers<string>()
   b.translate.mockImplementationOnce(() => first.promise)
   const view = render(<TranslationBody {...b.props} />)
-  const firstSignal = b.translate.mock.calls[0]![1]
+  const firstSignal = b.translate.mock.calls[0][1]
   act(() => { b.translationLimit.set(4) })
   expect(firstSignal.aborted).toBe(true)
   await view.findByText('google:zh:abcdgoogle:zh:efghgoogle:zh:ij')

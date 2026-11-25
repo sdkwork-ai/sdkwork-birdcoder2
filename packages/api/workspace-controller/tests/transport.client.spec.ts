@@ -160,7 +160,7 @@ describe('Workspace state stream', () => {
   it('delivers one baseline followed by increments', async ({ mock, start }) => {
     const { remote } = await gatewayClient(mock, start)
     const opening = baseline('one')
-    const view = opening.value.items[0]!
+    const view = opening.value.items[0]
     const increments: WorkspaceFollowFrame[] = [
       { type: 'upsert', workspace: view },
       { type: 'remove', workspaceId: view.workspaceId },

@@ -73,8 +73,8 @@ describe('HeroModeSwitch', () => {
     ])
     expect(pills.map(p => p.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false'])
     // The resting staging carries the active chrome; idle chips do not.
-    expect(pills[0]!.className).toContain('active')
-    expect(pills[1]!.className).not.toContain('active')
+    expect(pills[0].className).toContain('active')
+    expect(pills[1].className).not.toContain('active')
     // The group announces itself for assistive tech.
     expect(view.container.querySelector('[data-scene-pills]')!.getAttribute('aria-label')).toBe('heroSwitch.group')
   })
@@ -82,14 +82,14 @@ describe('HeroModeSwitch', () => {
   it('stages a scene on click without switching the frame mode', () => {
     const { view, scene } = mount()
     const pills = () => [...view.container.querySelectorAll('[data-scene-pills] > button')]
-    fireEvent.click(pills()[1]!) // video
+    fireEvent.click(pills()[1]) // video
     // Staging is store state, not navigation: the selection moves on screen.
     expect(scene.get()).toBe('video')
     expect(pills().map(p => p.getAttribute('aria-pressed'))).toEqual(['false', 'true', 'false'])
-    expect(pills()[1]!.className).toContain('active')
-    fireEvent.click(pills()[2]!) // document
+    expect(pills()[1].className).toContain('active')
+    fireEvent.click(pills()[2]) // document
     expect(scene.get()).toBe('document')
-    fireEvent.click(pills()[0]!) // back to code — the resting scene
+    fireEvent.click(pills()[0]) // back to code — the resting scene
     expect(scene.get()).toBe('code')
   })
 

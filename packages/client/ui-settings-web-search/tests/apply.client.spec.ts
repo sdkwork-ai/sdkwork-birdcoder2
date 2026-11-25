@@ -63,7 +63,7 @@ describe('ui-settings-web-search apply', () => {
     await ctx.plugin({ inject: [...inject], apply }).await()
 
     await vi.waitFor(() => { expect(slots.entries('plugins.item')).toHaveLength(1) })
-    const entry = slots.entries('plugins.item')[0]!
+    const entry = slots.entries('plugins.item')[0]
     expect(entry.options).toMatchObject({ id: 'web-search', order: 20 })
     expect(resolveSlotLabel(entry.options.label)).toBe('网页搜索与获取')
     expect(entry.locale).toBe(NS)

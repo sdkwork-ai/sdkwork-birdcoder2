@@ -115,7 +115,7 @@ it('renders after-model contributions between the model row and the other option
   setup(false, undefined, true)
   const rows = screen.getAllByRole('menuitem')
   expect(rows.map(row => row.textContent ?? '')).toEqual(['ModelFixture', 'Price group', 'Fixture settings'])
-  fireEvent.click(rows[1]!)
+  fireEvent.click(rows[1])
   expect(screen.getByRole('switch')).toBeTruthy()
   fireEvent.keyDown(screen.getByRole('switch'), { key: 'Escape' })
   expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Price group' }))

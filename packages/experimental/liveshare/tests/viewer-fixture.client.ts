@@ -1769,7 +1769,7 @@ function searchTokenSpans(value: string): { text: string; tokens: FixtureSearchT
     raw = ''
   }
   for (let index = 0; index < characters.length; index++) {
-    const character = characters[index] as string
+    const character = characters[index]
     const tokenBase = character.normalize('NFD').replace(/\p{M}+/gu, '')
     if (tokenBase === '') {
       if (start !== undefined) raw += character

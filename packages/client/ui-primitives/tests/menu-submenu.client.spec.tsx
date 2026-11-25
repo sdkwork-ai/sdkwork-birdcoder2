@@ -180,8 +180,8 @@ describe('Menu submenus', () => {
     const view = render(<Menu {...props} items={entries} />)
     fireEvent.click(screen.getByRole('menuitem', { name: 'Applications' }))
     expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'First app' }))
-    const changed: MenuEntry[] = change === 'removed' ? [entries[1]!]
-      : [{ ...entries[0]!, ...(change === 'disabled' ? { disabled: true } : { submenu: [] }) }, entries[1]!]
+    const changed: MenuEntry[] = change === 'removed' ? [entries[1]]
+      : [{ ...entries[0], ...(change === 'disabled' ? { disabled: true } : { submenu: [] }) }, entries[1]]
     view.rerender(<Menu {...props} items={changed} />)
     expect(screen.queryByRole('menuitem', { name: 'First app' })).toBeNull()
     expect(screen.getByRole('menuitem', { name: 'Other action' })).toBeDefined()
@@ -193,8 +193,8 @@ describe('Menu submenus', () => {
 
   it.each([390, 1024])('restores focus when an active footer submenu is removed at %ipx', (width) => {
     vi.stubGlobal('innerWidth', width)
-    const props = { open: true, anchor: null, items: [entries[1]!], onClose: vi.fn() }
-    const view = render(<Menu {...props} footer={[entries[0]!]} />)
+    const props = { open: true, anchor: null, items: [entries[1]], onClose: vi.fn() }
+    const view = render(<Menu {...props} footer={[entries[0]]} />)
     fireEvent.click(screen.getByRole('menuitem', { name: 'Applications' }))
     view.rerender(<Menu {...props} />)
     expect(screen.queryByRole('menuitem', { name: 'First app' })).toBeNull()
@@ -208,7 +208,7 @@ describe('Menu submenus', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'Applications' }))
     const outside = screen.getByRole('button', { name: 'Outside control' })
     act(() => { outside.focus() })
-    view.rerender(<Menu {...props} items={[entries[1]!]} />)
+    view.rerender(<Menu {...props} items={[entries[1]]} />)
     expect(screen.getByRole('menuitem', { name: 'Other action' })).toBeDefined()
     expect(document.activeElement).toBe(outside)
   })
@@ -216,7 +216,7 @@ describe('Menu submenus', () => {
   it('returns focus to the anchor when invalidation leaves no enabled root row', () => {
     vi.stubGlobal('innerWidth', 390)
     const props = { open: true, anchor: <button>More</button>, onClose: vi.fn() }
-    const view = render(<Menu {...props} items={[entries[0]!]} />)
+    const view = render(<Menu {...props} items={[entries[0]]} />)
     fireEvent.click(screen.getByRole('menuitem', { name: 'Applications' }))
     view.rerender(<Menu {...props} items={[]} />)
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'More' }))
@@ -413,7 +413,7 @@ describe('Menu submenus', () => {
 
   it('keeps child keyboard navigation when hover replaces its submenu', () => {
     render(<Menu open anchor={null} onClose={() => {}} items={[
-      entries[0]!,
+      entries[0],
       { id: 'next', label: 'Next group', submenu: [{ id: 'next-one', label: 'Next choice' }] },
     ]} />)
     fireEvent.click(screen.getByRole('menuitem', { name: 'Applications' }))
@@ -640,7 +640,7 @@ describe('Menu submenus', () => {
     const view = render(<Menu {...props} items={entries} />)
     const parent = screen.getByRole('menuitem', { name: 'Applications' })
     act(() => { parent.focus() })
-    view.rerender(<Menu {...props} items={[{ ...entries[0]!, submenu: [] }, entries[1]!]} />)
+    view.rerender(<Menu {...props} items={[{ ...entries[0], submenu: [] }, entries[1]]} />)
     expect(document.activeElement).toBe(parent)
     expect(screen.queryByRole('menuitem', { name: 'First app' })).toBeNull()
   })
@@ -660,7 +660,7 @@ describe('Menu submenus', () => {
 
   it('does not open disabled submenu parents and dismisses on outside pointerdown', () => {
     const close = vi.fn()
-    render(<Menu open anchor={null} items={[{ ...entries[0]!, disabled: true }]} onClose={close} />)
+    render(<Menu open anchor={null} items={[{ ...entries[0], disabled: true }]} onClose={close} />)
     pointer(screen.getByRole('menuitem'), 'pointerover', 'mouse')
     fireEvent.click(screen.getByRole('menuitem'))
     expect(screen.getAllByRole('menu')).toHaveLength(1)

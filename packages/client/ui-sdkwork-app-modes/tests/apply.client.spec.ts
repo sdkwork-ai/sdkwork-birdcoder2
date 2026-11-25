@@ -46,7 +46,7 @@ const sid = (value: string): SessionIdOf => value as SessionIdOf
 function summary(id: SessionIdOf, blank: boolean): SessionListState['byId'][SessionIdOf] {
   return {
     id, blank, displayTitle: id, running: false, updatedAt: 0,
-  } as SessionListState['byId'][SessionIdOf]
+  }
 }
 
 function listState(current: SessionIdOf | undefined, blank: boolean): SessionListState {
@@ -159,7 +159,7 @@ function rowFaceOf(slots: SlotRegistry, id: string) {
  * @returns the entry, its store instance, and the injected face.
  */
 function stripFaceOf(slots: SlotRegistry, key: typeof DOCK | typeof HERO_DOCK, sessionId?: SessionIdOf) {
-  const entry = slots.entries(key)[0]!
+  const entry = slots.entries(key)[0]
   const handle = entry.store as ReturnType<typeof createScenePrefsStore>
   const instance = sessionId === undefined ? handle.create() : handle.create(sessionId)
   const inject = entry.inject as unknown as (...args: unknown[]) => SceneSkillTagsInjected
@@ -177,7 +177,7 @@ describe('ui-sdkwork-app-modes apply', () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     expect(b.slots.entries(RAIL)).toHaveLength(1)
-    const rail = b.slots.entries(RAIL)[0]!
+    const rail = b.slots.entries(RAIL)[0]
     expect(rail.component).toBe(ModeRail)
     expect(rail.locale).toBe('appMode')
     // The rail's inject face carries the layout preference store and the
@@ -186,7 +186,7 @@ describe('ui-sdkwork-app-modes apply', () => {
     const railFace = (rail.inject as unknown as () => {
       layout: { get: () => { order: readonly string[]; hidden: readonly string[] } }
       registered: { getSnapshot: () => readonly string[] }
-    })!()
+    })()
     expect(railFace.layout.get().order).toEqual(CUSTOMIZABLE_MODES)
     expect(railFace.layout.get().hidden).toEqual(DEFAULT_HIDDEN)
     // The mirror syncs on the ledger subscription (microtask-batched): by the
@@ -218,13 +218,13 @@ describe('ui-sdkwork-app-modes apply', () => {
 
     const heroSwitch = b.slots.entries(HERO_SWITCH)
     expect(heroSwitch).toHaveLength(1)
-    expect(heroSwitch[0]!.component).toBe(HeroModeSwitch)
-    expect(heroSwitch[0]!.locale).toBe('appMode')
+    expect(heroSwitch[0].component).toBe(HeroModeSwitch)
+    expect(heroSwitch[0].locale).toBe('appMode')
     // The switcher seat is root-scoped: the pills stage without a session.
     expect(b.slots.spec(HERO_SWITCH)).toEqual({ kind: 'single', scope: 'root' })
     // The seat declares a store so the General page's switch can hide the pills.
-    expect(heroSwitch[0]!.store).not.toBeUndefined()
-    const switchInjected = (heroSwitch[0]!.inject as unknown as () => HeroModeSwitchInjected)()
+    expect(heroSwitch[0].store).not.toBeUndefined()
+    const switchInjected = (heroSwitch[0].inject as unknown as () => HeroModeSwitchInjected)()
     // The Code surface's switcher face is the staging store alone: no IAM
     // gate reaches the hero, so no pill click can raise a sign-in surface.
     expect(switchInjected).not.toHaveProperty('authGate')
@@ -236,14 +236,14 @@ describe('ui-sdkwork-app-modes apply', () => {
     // The skill-tag strip rides the composer dock below the input card.
     const dock = b.slots.entries(DOCK)
     expect(dock).toHaveLength(1)
-    expect(dock[0]!.component).toBe(SceneSkillTags)
-    expect(dock[0]!.locale).toBe('appMode')
-    expect(dock[0]!.options).toMatchObject({ id: 'hero-scene-skills' })
+    expect(dock[0].component).toBe(SceneSkillTags)
+    expect(dock[0].locale).toBe('appMode')
+    expect(dock[0].options).toMatchObject({ id: 'hero-scene-skills' })
     expect(b.slots.spec(DOCK)).toEqual({ kind: 'list', scope: 'session' })
     // The suggestion-preference mirror arrives as a declared store, and a
     // handle mounts under exactly one scope — so the session seat and the
     // cold-start seat carry one handle each, never a shared one.
-    expect(dock[0]!.store).not.toBeUndefined()
+    expect(dock[0].store).not.toBeUndefined()
 
     // ... and its cold-start half rides the root-scope hero dock, so the strip
     // survives the pre-Workspace state where no session exists at all.
@@ -254,7 +254,7 @@ describe('ui-sdkwork-app-modes apply', () => {
     expect(heroDock[0].options).toMatchObject({ id: 'hero-scene-skills-cold' })
     expect(b.slots.spec(HERO_DOCK)).toEqual({ kind: 'list', scope: 'root' })
     expect(heroDock[0].store).not.toBeUndefined()
-    expect(heroDock[0].store).not.toBe(dock[0]!.store)
+    expect(heroDock[0].store).not.toBe(dock[0].store)
 
     const rows = b.slots.entries(ROW).filter(e => e.component === SettingsToggleRow)
     expect(rows.map(e => e.options.id)).toEqual(['app-modes-sidebar', 'app-modes-hero-switch'])
@@ -265,10 +265,10 @@ describe('ui-sdkwork-app-modes apply', () => {
   it('mirrors registered rail-entry keys into the shell as entries come and go', async () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const rail = b.slots.entries(RAIL)[0]!
+    const rail = b.slots.entries(RAIL)[0]
     const face = (rail.inject as unknown as () => {
       registered: { getSnapshot: () => readonly string[] }
-    })!()
+    })()
     // The mirror syncs at apply and on every ledger mutation; slot
     // notifications are microtask-batched.
     await Promise.resolve()
@@ -306,11 +306,11 @@ describe('ui-sdkwork-app-modes apply', () => {
   it('navigates to the staged scene and consumes the staging when the first message lands', async () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const hero = b.slots.entries(HERO_SWITCH)[0]!
-    const scene = (hero.inject as unknown as () => HeroModeSwitchInjected)().scene!
+    const hero = b.slots.entries(HERO_SWITCH)[0]
+    const scene = (hero.inject as unknown as () => HeroModeSwitchInjected)().scene
     scene.set('video')
     // The same current session flips blank → non-blank: the submission.
-    b.list.update((d) => { d.byId[sid('s1')]!.blank = false })
+    b.list.update((d) => { d.byId[sid('s1')].blank = false })
     expect(b.layout.setMode).toHaveBeenCalledWith('video')
     expect(scene.get()).toBe('code')
     expect(b.gate.openSignInOverlay).not.toHaveBeenCalled()
@@ -319,10 +319,10 @@ describe('ui-sdkwork-app-modes apply', () => {
   it('navigates to document through the same observer without touching the gate', async () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const hero = b.slots.entries(HERO_SWITCH)[0]!
-    const scene = (hero.inject as unknown as () => HeroModeSwitchInjected)().scene!
+    const hero = b.slots.entries(HERO_SWITCH)[0]
+    const scene = (hero.inject as unknown as () => HeroModeSwitchInjected)().scene
     scene.set('document')
-    b.list.update((d) => { d.byId[sid('s1')]!.blank = false })
+    b.list.update((d) => { d.byId[sid('s1')].blank = false })
     expect(b.layout.setMode).toHaveBeenCalledWith('document')
     expect(scene.get()).toBe('code')
   })
@@ -331,10 +331,10 @@ describe('ui-sdkwork-app-modes apply', () => {
     const b = await bench()
     b.gate.isSignedIn.mockImplementation(() => false)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const hero = b.slots.entries(HERO_SWITCH)[0]!
-    const scene = (hero.inject as unknown as () => HeroModeSwitchInjected)().scene!
+    const hero = b.slots.entries(HERO_SWITCH)[0]
+    const scene = (hero.inject as unknown as () => HeroModeSwitchInjected)().scene
     scene.set('video')
-    b.list.update((d) => { d.byId[sid('s1')]!.blank = false })
+    b.list.update((d) => { d.byId[sid('s1')].blank = false })
     // The frame lands on the scene; the destination page owns asking for a
     // session, so no navigation path here raises the overlay.
     expect(b.layout.setMode).toHaveBeenCalledWith('video')
@@ -344,8 +344,8 @@ describe('ui-sdkwork-app-modes apply', () => {
   it('another session becoming current never consumes a staging on its own', async () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const hero = b.slots.entries(HERO_SWITCH)[0]!
-    const scene = (hero.inject as unknown as () => HeroModeSwitchInjected)().scene!
+    const hero = b.slots.entries(HERO_SWITCH)[0]
+    const scene = (hero.inject as unknown as () => HeroModeSwitchInjected)().scene
     scene.set('video')
     // Switch current to an already-active session: a session change is not a
     // first-message flip, so the staging survives untouched.
@@ -389,7 +389,7 @@ describe('ui-sdkwork-app-modes apply', () => {
 
     // The pill seat's own store follows the same preference, so a hidden
     // switcher never renders after the scope resolves.
-    const hero = b.slots.entries(HERO_SWITCH)[0]!
+    const hero = b.slots.entries(HERO_SWITCH)[0]
     const seat = (hero.store as ReturnType<typeof createSettingsToggleStore>).create()
     const seatFace = (hero.inject as unknown as (a: typeof seat.actions) => HeroModeSwitchInjected)(seat.actions)
     expect(seat.getSnapshot().value).toBe(false)
@@ -478,7 +478,7 @@ describe('ui-sdkwork-app-modes skill-preference mirror', () => {
   it('the session seat mirrors through its baked actions, not the session id', async () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const entry = b.slots.entries(DOCK)[0]!
+    const entry = b.slots.entries(DOCK)[0]
     const handle = entry.store as ReturnType<typeof createScenePrefsStore>
     const instance = handle.create(sid('s1'))
     // The factory's own call: a body reading only its first parameter binds

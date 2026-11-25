@@ -110,7 +110,7 @@ function scene(options: WhaleArtwork = WHALE_ARTWORK, missingContext = -1) {
 describe('official home pixel whale', () => {
   it('alternates dots and code on completed clicks, without interrupting or automatically repeating', () => {
     const s = scene()
-    const output = s.contexts[0]!
+    const output = s.contexts[0]
     expect(s.image.hasAttribute('src')).toBe(false)
     expect(s.frames.size).toBe(0)
     s.click()
@@ -118,7 +118,7 @@ describe('official home pixel whale', () => {
     s.click()
     expect(s.frames.size).toBe(0)
     s.load()
-    expect(s.canvases[1]!.width).toBe(0)
+    expect(s.canvases[1].width).toBe(0)
     s.step(1500)
     expect(output.arc).toHaveBeenCalled()
     expect(output.globalAlpha).toBe(1)
@@ -132,7 +132,7 @@ describe('official home pixel whale', () => {
     s.step(6100)
     expect(output.arc).toHaveBeenCalledTimes(draws)
     expect(output.drawImage).toHaveBeenCalled()
-    expect(s.contexts[2]!.fillText).toHaveBeenCalled()
+    expect(s.contexts[2].fillText).toHaveBeenCalled()
     expect(s.contexts).toHaveLength(4)
     s.step(12000)
     expect(s.frames.size).toBe(0)
@@ -150,15 +150,15 @@ describe('official home pixel whale', () => {
     }
     s.click(); s.load(); s.step(5800)
     s.click(); s.step(7300)
-    const texts = s.contexts[2]!.fillText.mock.calls.map(call => call[0])
+    const texts = s.contexts[2].fillText.mock.calls.map(call => call[0])
     expect(texts.length).toBeGreaterThan(0)
     expect(texts.every(text => options.phrases.includes(text))).toBe(true)
-    const mask = s.contexts[3]!.putImageData.mock.calls.at(-1)![0].data
+    const mask = s.contexts[3].putImageData.mock.calls.at(-1)![0].data
     expect(mask[3]).toBe(180)
     expect(mask[7]).toBe(0)
-    const count = s.contexts[2]!.fillText.mock.calls.length
+    const count = s.contexts[2].fillText.mock.calls.length
     s.step(7400)
-    expect(s.contexts[2]!.fillText).toHaveBeenCalledTimes(count)
+    expect(s.contexts[2].fillText).toHaveBeenCalledTimes(count)
   })
 
   it('plays only when its handle requests it', () => {
@@ -174,11 +174,11 @@ describe('official home pixel whale', () => {
     s.width(390)
     s.step(16)
     s.click(); s.load(); s.step(1500)
-    const dot = s.contexts[0]!.arc.mock.calls.at(-1)!
+    const dot = s.contexts[0].arc.mock.calls.at(-1)!
     expect(dot[0]).toBeLessThan(0)
     expect(s.canvas.width).toBe(780)
     s.step(5800); s.click(); s.step(7300)
-    const image = s.contexts[0]!.drawImage.mock.calls.at(-1)!
+    const image = s.contexts[0].drawImage.mock.calls.at(-1)!
     expect(image[1]).toBeLessThan(0)
     expect(image[3]).toBeGreaterThan(390)
     expect(s.canvas.width).toBe(780)
@@ -230,12 +230,12 @@ describe('official home pixel whale', () => {
   it('redraws for theme and size changes without decoding the atlas again', () => {
     const s = scene()
     s.click(); s.load(); s.step(100)
-    const draws = s.contexts[0]!.arc.mock.calls.length
+    const draws = s.contexts[0].arc.mock.calls.length
     s.theme()
     s.theme()
-    expect(s.contexts[0]!.arc.mock.calls.length).toBe(draws)
+    expect(s.contexts[0].arc.mock.calls.length).toBe(draws)
     s.step(150)
-    expect(s.contexts[0]!.arc.mock.calls.length).toBeGreaterThan(draws)
+    expect(s.contexts[0].arc.mock.calls.length).toBeGreaterThan(draws)
     s.width(0)
     s.step(200)
     expect(s.frames.size).toBe(0)
@@ -249,11 +249,11 @@ describe('official home pixel whale', () => {
   it('throttles to the artwork frame rate and relays out the code fill on resize', () => {
     const s = scene()
     s.click(); s.load(); s.step(100)
-    const draws = s.contexts[0]!.arc.mock.calls.length
+    const draws = s.contexts[0].arc.mock.calls.length
     s.step(110)
-    expect(s.contexts[0]!.arc).toHaveBeenCalledTimes(draws)
+    expect(s.contexts[0].arc).toHaveBeenCalledTimes(draws)
     s.step(5800); s.click(); s.step(7300)
-    const lettering = s.contexts[2]!
+    const lettering = s.contexts[2]
     const layouts = lettering.setTransform.mock.calls.length
     s.width(900)
     s.step(7320)
@@ -315,6 +315,6 @@ describe('official home pixel whale', () => {
     expect(warning).toHaveBeenCalledOnce()
     s.click(); s.step(100)
     expect(s.frames.size).toBe(0)
-    expect(s.contexts[0]!.arc).not.toHaveBeenCalled()
+    expect(s.contexts[0].arc).not.toHaveBeenCalled()
   })
 })

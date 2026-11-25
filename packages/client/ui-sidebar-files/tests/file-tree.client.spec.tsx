@@ -81,7 +81,7 @@ describe('FileTree', () => {
     fireEvent.click(row(view.container, 'pr/Assets'))
     fireEvent.click(row(view.container, 'pr/src'))
     expect(onToggle.mock.calls).toEqual([[CHANGES[6], true], [CHANGES[2], false]])
-    expect(onToggle.mock.calls[0]![0]).toBe(CHANGES[6])
+    expect(onToggle.mock.calls[0][0]).toBe(CHANGES[6])
   })
 
   it('hands a pressed file to the caller, and lists anything else without opening it', () => {
@@ -144,7 +144,7 @@ describe('FileTree', () => {
       rerender({ expanded: ['pr/src'], entries: relisted, directories: { 'pr/src': { truncated: true } }, onOpen })
       expect(compare).not.toHaveBeenCalled()
       fireEvent.click(row(view.container, 'pr/src/file10.ts'))
-      expect(onOpen.mock.calls[0]![0]).toBe(relisted[0])
+      expect(onOpen.mock.calls[0][0]).toBe(relisted[0])
       const added: TreeEntry = { path: 'pr/src/util/b.ts', name: 'b.ts' }
       rerender({ expanded: ['pr/src'], entries: [...CHANGES, added] })
       expect(compare).not.toHaveBeenCalled()

@@ -10,7 +10,7 @@ const theme = ['design-platform.css', 'base.css'].map(name => read(`../../ui-the
 
 describe('WebSearchCard stylesheet', () => {
   it('references only defined theme tokens', () => {
-    const used = [...new Set([...page.matchAll(/var\((--dsw-[\w-]+)/g)].map(match => match[1]!))]
+    const used = [...new Set([...page.matchAll(/var\((--dsw-[\w-]+)/g)].map(match => match[1]))]
     expect(used.length).toBeGreaterThan(0)
     expect(used.filter(token => !theme.includes(`${token}:`))).toEqual([])
   })

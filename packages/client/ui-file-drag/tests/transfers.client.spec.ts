@@ -49,7 +49,7 @@ it('compares original Blob bytes by digest and copies a mismatching resource', a
   const files = new FileTransfers(desktop, vi.fn())
   const prepared = await files.prepare({ ...blobSource(), resourceAddress: 'dsh-resource://file/session/s/report.pdf', outputExtension: '.bin' }, signal())
   expect(desktop.prepare).toHaveBeenNthCalledWith(1, expect.objectContaining({ kind: 'resource', size: 13 }), expect.any(String))
-  const request = vi.mocked(desktop.prepare).mock.calls[0]![0]
+  const request = vi.mocked(desktop.prepare).mock.calls[0][0]
   expect(request.kind === 'resource' ? request.sha256 : undefined).toMatch(/^[a-f0-9]{64}$/u)
   expect(desktop.prepare).toHaveBeenNthCalledWith(2, expect.objectContaining({ kind: 'bytes', name: 'report.bin', outputExtension: '.bin' }), expect.any(String))
   prepared.release()
@@ -132,7 +132,7 @@ it('copies already loaded PDF bytes when optional resource authorization rejects
   vi.mocked(desktop.prepare).mockRejectedValueOnce(new Error('Host resource unavailable'))
   const files = new FileTransfers(desktop, vi.fn())
   const prepared = await files.prepare({ ...blobSource(), resourceAddress: 'dsh-resource://file/session/s/report.pdf' }, signal())
-  const request = vi.mocked(desktop.prepare).mock.calls[1]![0]
+  const request = vi.mocked(desktop.prepare).mock.calls[1][0]
   expect(request.kind).toBe('bytes')
   expect(request.name).toBe('report.pdf')
   if (request.kind === 'bytes') expect(new TextDecoder().decode(request.bytes)).toBe('%PDF-original')
@@ -149,7 +149,7 @@ it('sends cancellation before native preparation has returned its handle', async
   const preparing = files.prepare(blobSource(), controller.signal)
   const rejected = expect(preparing).rejects.toThrow()
   await vi.waitFor(() => { expect(desktop.prepare).toHaveBeenCalledOnce() })
-  const requestId = vi.mocked(desktop.prepare).mock.calls[0]![1]
+  const requestId = vi.mocked(desktop.prepare).mock.calls[0][1]
   controller.abort()
   expect(desktop.cancel).toHaveBeenCalledWith(requestId)
   pending.resolve('late' as FileDragHandle)

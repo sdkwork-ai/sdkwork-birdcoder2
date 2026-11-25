@@ -92,7 +92,7 @@ describe('ToolCallTree', () => {
     const view = render(<ToolCallTree {...initial} />)
     expect(owners).toHaveLength(101)
     owners.length = 0
-    const changed = { ...children[42]!, isError: true }
+    const changed = { ...children[42], isError: true }
     const next = { ...block, subCalls: children.map((child, index) => index === 42 ? changed : child) }
     view.rerender(<ToolCallTree {...initial} node={{ ...initial.node, data: { root: next } }} />)
     expect(owners.map(owner => owner.callId)).toEqual(['parent', 'child-42'])
@@ -126,8 +126,8 @@ describe('ToolCallTree', () => {
     expect(rows).toHaveLength(2)
     expect(owners.map(owner => owner.useDisclosure)).toEqual([useDisclosure, useDisclosure])
     const dispatched = [...owners]
-    fireEvent.click(rows[0]!)
-    fireEvent.click(rows[1]!)
+    fireEvent.click(rows[0])
+    fireEvent.click(rows[1])
     expect(view.getByText('Parent output')).toBeTruthy()
     expect(view.getByText('Child output')).toBeTruthy()
 
@@ -136,7 +136,7 @@ describe('ToolCallTree', () => {
     expect(view.queryByText('Child output')).toBeNull()
     expect([...view.container.querySelectorAll('[data-expandable]')]).toEqual(rows)
     expect(owners).toEqual(dispatched)
-    fireEvent.click(rows[1]!)
+    fireEvent.click(rows[1])
     expect(view.getByText('Child output')).toBeTruthy()
     expect(view.queryByText('Parent output')).toBeNull()
   })

@@ -188,7 +188,7 @@ export class IncrementalMarkdownParser {
   private fenceValue(state: Pick<OpenFenceState, 'syntheticPrefix'>, text: string): string | undefined {
     const root = this.parse(`${state.syntheticPrefix}${text}`)
     if (root.children.length !== 1) return undefined
-    const node = root.children[0] as RootContent
+    const node = root.children[0]
     return node.type === 'code' ? node.value : undefined
   }
 
@@ -219,8 +219,8 @@ export class IncrementalMarkdownParser {
     const openingLine = source.slice(lineStart, terminatorEnd).replace(/[\r\n]+$/, '')
     const opening = /^( {0,3})(`{3,}|~{3,})/.exec(openingLine)
     if (opening === null) return null
-    const indent = opening[1] as string
-    const run = opening[2] as string
+    const indent = opening[1]
+    const run = opening[2]
     /* v8 ignore next -- mdast positions a fenced code node at the matched delimiter after indentation. */
     if (lineStart + indent.length !== startOffset) return null
     const marker = run[0] as '`' | '~'
@@ -269,7 +269,7 @@ export class IncrementalMarkdownParser {
     if (stableValue === undefined) return undefined
     // OpenFenceState is private and is installed only from this exact retained
     // code entry; updates replace that entry with another positioned Code.
-    const block = state.tail[state.codeIndex] as PositionedBlock
+    const block = state.tail[state.codeIndex]
     const previousNode = block.node as Code & { position: NonNullable<Code['position']> }
     const end = advancePoint(
       state.end,

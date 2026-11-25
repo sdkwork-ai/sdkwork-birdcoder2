@@ -107,8 +107,8 @@ export function ReviewTab({
   }, [file, diffState, sessionId, seq, index, loadChangesDiff])
   const phase = usePresentedOpen(value => file === undefined ? undefined : value[changedFileUrl(sessionId, seq, index)])
   const [menuOpen, setMenuOpen] = useState(false)
-  const split = state?.split === true
-  const wrap = state?.wrap === true
+  const split =  state?.split
+  const wrap =  state?.wrap
   const native = host !== null && host !== 'error' && host.available && phase !== 'nativeUnavailable'
   const summaryState = summary === undefined || summary === 'loading' ? 'loading' : summary === 'missing' ? 'missing' : 'ready'
   return (

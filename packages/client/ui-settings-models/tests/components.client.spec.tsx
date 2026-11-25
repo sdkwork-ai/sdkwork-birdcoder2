@@ -894,7 +894,7 @@ describe('ModelsSection', () => {
       provider="deepseek-official"
       displayName="DeepSeek"
       hideTitle
-      namespace={wireNamespaces()[0]!}
+      namespace={wireNamespaces()[0]}
       schema={settingsSchema}
       settingsPath={[]}
       operations={operationsWith(face)}
@@ -975,8 +975,8 @@ describe('ModelsSection', () => {
     const ids = screen.getAllByLabelText(new RegExp(en.modelId))
     const names = screen.getAllByLabelText(new RegExp(en.modelName))
     expandRow(3)
-    fireEvent.change(ids[2] as HTMLInputElement, { target: { value: 'private-preview' } })
-    fireEvent.change(names[2] as HTMLInputElement, { target: { value: 'Private Preview' } })
+    fireEvent.change(ids[2], { target: { value: 'private-preview' } })
+    fireEvent.change(names[2], { target: { value: 'Private Preview' } })
     // Only row 3 is open, so its capacity is addressed by its own label.
     fireEvent.change(screen.getByLabelText(`${en.contextWindow} 3`), { target: { value: '131072' } })
     fireEvent.click(within(screen.getByRole('group', { name: `${en.modelInputTypes} 3` })).getByRole('checkbox', { name: en.modelInputImage }))
@@ -999,7 +999,7 @@ describe('ModelsSection', () => {
 
   it('edits the DeepSeek endpoint and credential without a protocol selection', async () => {
     const namespace: SettingsNamespaceView = {
-      ...wireNamespaces()[0]!,
+      ...wireNamespaces()[0],
       ns: 'llm-deepseek',
       value: { apiKeyEnv: 'DEEPSEEK_API_KEY', models: DEFAULT_DEEPSEEK_MODELS },
       user: {},
@@ -1047,7 +1047,7 @@ describe('ModelsSection', () => {
     fireEvent.click(screen.getByText(en.customized))
     fireEvent.click(screen.getByText(en.addModel))
     const ids = screen.getAllByLabelText(new RegExp(en.modelId))
-    fireEvent.change(ids[2] as HTMLInputElement, { target: { value: 'deepseek-v4-flash' } })
+    fireEvent.change(ids[2], { target: { value: 'deepseek-v4-flash' } })
     fireEvent.click(screen.getByText(en.apply))
 
     await screen.findByText(`Model 3: ${en.modelIdDuplicate}`)
@@ -1121,20 +1121,20 @@ describe('ModelsSection', () => {
     expandRow(2)
     const windows = capacityInputs(en.contextWindow)
     // The inherited 1000000 reads back short.
-    expect((windows[0] as HTMLInputElement).value).toBe('1M')
+    expect((windows[0]).value).toBe('1M')
 
     // Keystrokes stay verbatim while the row has focus, so typing `1000` does
     // not rewrite itself to `1K` mid-word.
-    fireEvent.change(windows[0] as HTMLInputElement, { target: { value: '1000' } })
-    expect((windows[0] as HTMLInputElement).value).toBe('1000')
-    fireEvent.change(windows[0] as HTMLInputElement, { target: { value: '1000K' } })
-    expect((windows[0] as HTMLInputElement).value).toBe('1000K')
+    fireEvent.change(windows[0], { target: { value: '1000' } })
+    expect((windows[0]).value).toBe('1000')
+    fireEvent.change(windows[0], { target: { value: '1000K' } })
+    expect((windows[0]).value).toBe('1000K')
     // Blur settles the row to the canonical spelling of the same count.
-    fireEvent.blur(windows[0] as HTMLInputElement)
-    expect((windows[0] as HTMLInputElement).value).toBe('1M')
+    fireEvent.blur(windows[0])
+    expect((windows[0]).value).toBe('1M')
 
-    fireEvent.change(windows[1] as HTMLInputElement, { target: { value: '256K' } })
-    fireEvent.blur(windows[1] as HTMLInputElement)
+    fireEvent.change(windows[1], { target: { value: '256K' } })
+    fireEvent.blur(windows[1])
     fireEvent.click(screen.getByText(en.apply))
 
     await waitFor(() => { expect(mutate).toHaveBeenCalledTimes(1) })
@@ -1158,12 +1158,12 @@ describe('ModelsSection', () => {
     expandRow(1)
     expandRow(2)
     const windows = capacityInputs(en.contextWindow)
-    fireEvent.change(windows[0] as HTMLInputElement, { target: { value: '1 gazillion' } })
+    fireEvent.change(windows[0], { target: { value: '1 gazillion' } })
     // Blurring a row that is not the edited one leaves the buffer alone.
-    fireEvent.blur(windows[1] as HTMLInputElement)
-    fireEvent.blur(windows[0] as HTMLInputElement)
+    fireEvent.blur(windows[1])
+    fireEvent.blur(windows[0])
     // The text the user typed is still there to correct.
-    expect((windows[0] as HTMLInputElement).value).toBe('1 gazillion')
+    expect((windows[0]).value).toBe('1 gazillion')
 
     fireEvent.click(screen.getByText(en.apply))
     await screen.findByText(`Model 1: ${en.modelContextInvalid}`)
@@ -1222,12 +1222,12 @@ describe('ModelsSection', () => {
     expandRow(1)
     expandRow(2)
     const windows = capacityInputs(en.contextWindow)
-    fireEvent.change(windows[0] as HTMLInputElement, { target: { value: 'not a number' } })
-    fireEvent.blur(windows[0] as HTMLInputElement)
-    fireEvent.change(windows[1] as HTMLInputElement, { target: { value: '2M' } })
+    fireEvent.change(windows[0], { target: { value: 'not a number' } })
+    fireEvent.blur(windows[0])
+    fireEvent.change(windows[1], { target: { value: '2M' } })
 
-    expect((windows[0] as HTMLInputElement).value).toBe('not a number')
-    expect((windows[1] as HTMLInputElement).value).toBe('2M')
+    expect((windows[0]).value).toBe('not a number')
+    expect((windows[1]).value).toBe('2M')
   })
 
   it('re-keys the typed text around a removed row', async () => {
@@ -1235,30 +1235,30 @@ describe('ModelsSection', () => {
     fireEvent.click(screen.getByText(en.customized))
     const windows = (): HTMLInputElement[] => capacityInputs(en.contextWindow)
     const removeRow = (at: number): void => {
-      fireEvent.click(screen.getAllByLabelText(new RegExp(en.removeModel))[at] as HTMLElement)
+      fireEvent.click(screen.getAllByLabelText(new RegExp(en.removeModel))[at])
     }
     // Three rows, with text parked on the outer two.
     fireEvent.click(screen.getByText(en.addModel))
     expandRow(1)
     expandRow(2)
     expandRow(3)
-    fireEvent.change(windows()[0] as HTMLInputElement, { target: { value: 'top text' } })
-    fireEvent.blur(windows()[0] as HTMLInputElement)
-    fireEvent.change(windows()[2] as HTMLInputElement, { target: { value: 'bottom text' } })
-    fireEvent.blur(windows()[2] as HTMLInputElement)
+    fireEvent.change(windows()[0], { target: { value: 'top text' } })
+    fireEvent.blur(windows()[0])
+    fireEvent.change(windows()[2], { target: { value: 'bottom text' } })
+    fireEvent.blur(windows()[2])
 
     // Dropping the middle row leaves the row above untouched and carries the
     // row below down with its own text, rather than stranding it.
     removeRow(1)
     expect(windows()).toHaveLength(2)
-    expect((windows()[0] as HTMLInputElement).value).toBe('top text')
-    expect((windows()[1] as HTMLInputElement).value).toBe('bottom text')
+    expect((windows()[0]).value).toBe('top text')
+    expect((windows()[1]).value).toBe('bottom text')
 
     // Dropping a row that holds text takes that text with it; the survivor
     // keeps its own rather than inheriting the deleted row's.
     removeRow(0)
     expect(windows()).toHaveLength(1)
-    expect((windows()[0] as HTMLInputElement).value).toBe('bottom text')
+    expect((windows()[0]).value).toBe('bottom text')
   })
 
   it('drops the typed text when reset replaces the rows it annotated', async () => {
@@ -1271,14 +1271,14 @@ describe('ModelsSection', () => {
     fireEvent.click(screen.getByText(en.customized))
     expandRow(1)
     const windows = capacityInputs(en.contextWindow)
-    fireEvent.change(windows[0] as HTMLInputElement, { target: { value: 'garbage' } })
-    fireEvent.blur(windows[0] as HTMLInputElement)
+    fireEvent.change(windows[0], { target: { value: 'garbage' } })
+    fireEvent.blur(windows[0])
     fireEvent.click(screen.getByText(en.resetModels))
 
     // Reset collapses every row, so the restored capacity needs opening again.
     expandRow(1)
     const restored = capacityInputs(en.contextWindow)
-    expect((restored[0] as HTMLInputElement).value).toBe('1M')
+    expect((restored[0]).value).toBe('1M')
 
     // Reset put the draft back where it started, so Apply writes nothing at
     // all rather than persisting whatever the stale text had parsed to.
@@ -1302,7 +1302,7 @@ describe('ModelsSection', () => {
     expect(screen.getByLabelText<HTMLInputElement>(`${en.maxTokens} 2`).value).toBe('64K')
 
     // Dropping the row above carries the cap text down with its own row.
-    fireEvent.click(screen.getAllByLabelText(new RegExp(en.removeModel))[0] as HTMLElement)
+    fireEvent.click(screen.getAllByLabelText(new RegExp(en.removeModel))[0])
     expect(screen.getByLabelText<HTMLInputElement>(`${en.maxTokens} 1`).value).toBe('64K')
     // The disclosure closes on a second press.
     expandRow(1)
@@ -1325,12 +1325,12 @@ describe('ModelsSection', () => {
     await mountDeepSeekCard()
     fireEvent.click(screen.getByText(en.customized))
     const ids = screen.getAllByLabelText<HTMLInputElement>(new RegExp(en.modelId))
-    fireEvent.change(ids[0] as HTMLInputElement, { target: { value: '  deepseek-v4-flash  ' } })
-    fireEvent.blur(ids[0] as HTMLInputElement)
-    expect((ids[0] as HTMLInputElement).value).toBe('deepseek-v4-flash')
+    fireEvent.change(ids[0], { target: { value: '  deepseek-v4-flash  ' } })
+    fireEvent.blur(ids[0])
+    expect((ids[0]).value).toBe('deepseek-v4-flash')
     // A settled id needs no second trim.
-    fireEvent.blur(ids[0] as HTMLInputElement)
-    expect((ids[0] as HTMLInputElement).value).toBe('deepseek-v4-flash')
+    fireEvent.blur(ids[0])
+    expect((ids[0]).value).toBe('deepseek-v4-flash')
 
     // An id that is only whitespace is as absent as an empty one, and a padded
     // id is a duplicate of its trimmed twin.
@@ -1363,7 +1363,7 @@ describe('ModelsSection', () => {
       mutate: vi.fn(() => Promise.resolve(remoteOk(wireNamespaces()[0]))),
     })
     fireEvent.click(screen.getByText(en.customized))
-    fireEvent.click(screen.getAllByLabelText(new RegExp(en.removeModel))[0] as HTMLElement)
+    fireEvent.click(screen.getAllByLabelText(new RegExp(en.removeModel))[0])
     fireEvent.click(screen.getByLabelText(new RegExp(en.removeModel)))
     expect(screen.getByText(en.modelsEmpty)).toBeTruthy()
     fireEvent.click(screen.getByText(en.resetModels))
@@ -1372,8 +1372,8 @@ describe('ModelsSection', () => {
     const names = screen.getAllByLabelText(new RegExp(en.modelName))
     expandRow(1)
     const windows = capacityInputs(en.contextWindow)
-    fireEvent.change(names[0] as HTMLInputElement, { target: { value: '' } })
-    fireEvent.change(windows[0] as HTMLInputElement, { target: { value: '' } })
+    fireEvent.change(names[0], { target: { value: '' } })
+    fireEvent.change(windows[0], { target: { value: '' } })
     fireEvent.click(screen.getByText(en.apply))
 
     await waitFor(() => { expect(mutate).toHaveBeenCalledTimes(1) })
@@ -1545,7 +1545,7 @@ describe('ModelsSection', () => {
   })
 
   it('retries only the credential after refreshed settings already committed', async () => {
-    const committed = wireNamespaces()[2]!
+    const committed = wireNamespaces()[2]
     const afterSettings: SettingsNamespaceView = {
       ...committed,
       value: { providers: {
@@ -1703,7 +1703,7 @@ describe('ModelsSection', () => {
       .getByRole('button', { name: openaiCopy(en.deleteConfirm) }))
     await waitFor(() => { expect(unset).toHaveBeenCalledWith('OPENAI_API_KEY') })
     await waitFor(() => { expect(mutate).toHaveBeenCalledTimes(1) })
-    expect(unset.mock.invocationCallOrder[0]).toBeLessThan(mutate.mock.invocationCallOrder[0] as number)
+    expect(unset.mock.invocationCallOrder[0]).toBeLessThan(mutate.mock.invocationCallOrder[0])
     expect(screen.queryByRole('dialog', { name: openaiCopy(en.deleteTitle) })).toBeNull()
     expect(mutate.mock.calls[0]).toEqual([
       'llm-pi-ai',
@@ -1730,7 +1730,7 @@ describe('ModelsSection', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: en.close }))
     expect(screen.getByRole('dialog', { name: openaiCopy(en.deleteTitle) })).toBe(dialog)
     expect(mutate).toHaveBeenCalledOnce()
-    await act(async () => { resolveRemoval(remoteOk(wireNamespaces()[2]!)) })
+    await act(async () => { resolveRemoval(remoteOk(wireNamespaces()[2])) })
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: openaiCopy(en.deleteTitle) })).toBeNull()
     })
@@ -2072,7 +2072,7 @@ describe('ModelsSection', () => {
     expect(screen.getAllByLabelText(en.keyInput)).toHaveLength(2)
 
     // The setup card is the first one on the page, above the add block.
-    fireEvent.click(screen.getAllByText(en.cancel)[0] as HTMLElement)
+    fireEvent.click(screen.getAllByText(en.cancel)[0])
     // The add card kept its draft…
     expect(screen.getByLabelText(en.provider)).toBeTruthy()
     // …and DeepSeek collapsed to an ordinary row carrying the missing-key dot.
@@ -2132,7 +2132,7 @@ describe('ModelsSection', () => {
   it('keeps a failed identified deletion recoverable in its confirmation dialog', async () => {
     const mutate = vi.fn()
       .mockResolvedValueOnce(remoteFail('the host refused', 'settings/rejected'))
-      .mockResolvedValueOnce(remoteOk(wireNamespaces()[2]!))
+      .mockResolvedValueOnce(remoteOk(wireNamespaces()[2]))
     const { unset } = await mountSection({ mutate })
     fireEvent.click(screen.getByRole('button', { name: openaiCopy(en.removeProvider) }))
     const dialog = screen.getByRole('dialog', { name: openaiCopy(en.deleteTitle) })
@@ -2678,7 +2678,7 @@ it('keeps an inherited profile endpoint ahead of dynamic provider configuration'
 it('renders the localized account row as signed in without an edit action', async () => {
   const scripted = scriptedFace({})
   const { controller } = await mountFace(scripted)
-  const row = controller.store.getSnapshot().rows[0]!
+  const row = controller.store.getSnapshot().rows[0]
   await act(async () => { controller.store.update((state) => {
     state.rows = [{ ...row, accountAvailable: true, entry: { ...row.entry, provider: 'deepseek-account' } }]
   }) })

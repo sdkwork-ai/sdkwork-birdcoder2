@@ -320,7 +320,7 @@ it('removes a view synchronously, keeps cleanup retryable, and never deletes a r
   expect(service.closeFailures.getSnapshot()).toEqual([])
   closing.resolve(failure('termination refused'))
   await expect.poll(() => service.closeFailures.getSnapshot().length).toBe(1)
-  const failed = service.closeFailures.getSnapshot()[0]!
+  const failed = service.closeFailures.getSnapshot()[0]
   service.retryClose(failed.id)
   service.retryClose(failed.id)
   await expect.poll(() => service.closeFailures.getSnapshot()).toEqual([])
@@ -631,9 +631,9 @@ it('waits for both active and detached stream finalizers during plugin disposal 
         else signal?.addEventListener('abort', () => { resolve() }, { once: true })
       })
     } finally {
-      started[current]!.resolve(undefined)
-      await release[current]!.promise
-      finished[current]!.resolve(undefined)
+      started[current].resolve(undefined)
+      await release[current].promise
+      finished[current].resolve(undefined)
     }
   }))
   const model = service.view(sessionId, 'tab', 'tab')
@@ -641,17 +641,17 @@ it('waits for both active and detached stream finalizers during plugin disposal 
   await model.refresh()
   await expect.poll(() => model.state.getSnapshot().writable).toBe(true)
   model.connect()
-  await started[0]!.promise
+  await started[0].promise
   await expect.poll(() => model.state.getSnapshot().writable).toBe(true)
   let disposed = false
   const disposing = dispose().then(() => { disposed = true })
-  await started[1]!.promise
-  release[1]!.resolve(undefined)
-  await finished[1]!.promise
+  await started[1].promise
+  release[1].resolve(undefined)
+  await finished[1].promise
   // Drain runnable disposal continuations; only the held old finalizer may keep teardown pending.
   await setImmediate()
   expect(disposed).toBe(false)
-  release[0]!.resolve(undefined)
+  release[0].resolve(undefined)
   await disposing
   expect(disposed).toBe(true)
   expect(h.remote.close).not.toHaveBeenCalled()

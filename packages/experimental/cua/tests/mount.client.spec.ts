@@ -87,7 +87,7 @@ it('reads the Windows provider from the Host inventory when the helper cannot re
       { moduleName: '@deepseek-ai/dsh-cua-windows', enabled: true, fiberPhase: 'failed', entryId: brandString<PluginEntryId>('cua-windows') },
     ] } })
     await f.ctx.plugin({ inject: [...inject], apply: ctx => mountCuaPermissions(ctx, contribution) })
-    const actions = f.ctx.slots.entries('plugins.bundle.config')[0]!.inject!()
+    const actions = f.ctx.slots.entries('plugins.bundle.config')[0].inject!()
     actionsOf(actions)
     actions.refresh()
     await vi.waitFor(() => { expect(actions.hooks.cuaPermissions.getSnapshot().windowsProvider.error).toBe('inventory unavailable') })
@@ -101,12 +101,12 @@ it('withdraws the permission Remote and all controls with the optional plugin', 
   try {
     const fiber = f.ctx.plugin({ inject: [...inject], apply: ctx => mountCuaPermissions(ctx, contribution) })
     await fiber
-    const approval = f.ctx.slots.entries('conversation.composer')[0]!
+    const approval = f.ctx.slots.entries('conversation.composer')[0]
     const select = approval.select as (owner: { pendingInteraction: undefined }) => unknown
     expect(select({ pendingInteraction: undefined })).toBeNull()
     const presentation = approval.inject!() as Pick<ApplicationApprovalProps, 'resolveText'>
     expect(presentation.resolveText({ en: 'Localized', zh: 'Localized' })).toBe('Localized')
-    const entry = f.ctx.slots.entries('plugins.bundle.config')[0]!
+    const entry = f.ctx.slots.entries('plugins.bundle.config')[0]
     const actions = entry.inject!()
     actionsOf(actions)
     actions.refresh()
@@ -142,19 +142,19 @@ it('withdraws the permission Remote and all controls with the optional plugin', 
       })
     }
     for (const name of ['plugins.bundle.activation', 'shell.overlay'] as const) {
-      const other = f.ctx.slots.entries(name)[0]!
+      const other = f.ctx.slots.entries(name)[0]
       const otherActions = other.inject!()
       actionsOf(otherActions)
       expect(otherActions.hooks.cuaPermissions).toBe(actions.hooks.cuaPermissions)
     }
-    const settings = f.ctx.slots.entries('plugins.bundle.config')[0]!.inject!()
+    const settings = f.ctx.slots.entries('plugins.bundle.config')[0].inject!()
     assert(typeof settings.setPtcDefault === 'function')
-    expect(f.ctx.slots.entries('plugins.bundle.activation')[0]!.inject!()).not.toHaveProperty('setPtcDefault')
+    expect(f.ctx.slots.entries('plugins.bundle.activation')[0].inject!()).not.toHaveProperty('setPtcDefault')
     expect(f.setDefault).not.toHaveBeenCalled()
     await (settings.setPtcDefault as () => Promise<boolean>)()
     expect(f.setDefault).toHaveBeenCalledExactlyOnceWith('selectedDefault', 'ptc')
     assert(typeof settings.setPersistentPtc === 'function')
-    expect(f.ctx.slots.entries('plugins.bundle.activation')[0]!.inject!()).not.toHaveProperty('setPersistentPtc')
+    expect(f.ctx.slots.entries('plugins.bundle.activation')[0].inject!()).not.toHaveProperty('setPersistentPtc')
     expect(f.setPersistent).not.toHaveBeenCalled()
     await (settings.setPersistentPtc as () => Promise<boolean>)()
     expect(f.setPersistent).toHaveBeenCalledExactlyOnceWith()
@@ -184,7 +184,7 @@ it.each(['plugin', 'root'])('keeps the Remote mounted until an accepted revoke c
   let closing: Promise<void> | undefined
   try {
     const fiber = await f.ctx.plugin({ inject: [...inject], apply: ctx => mountCuaPermissions(ctx, contribution) })
-    const actions = f.ctx.slots.entries('plugins.bundle.config')[0]!.inject!()
+    const actions = f.ctx.slots.entries('plugins.bundle.config')[0].inject!()
     actionsOf(actions)
     actions.revoke('a'.repeat(64) as import('../src/access-types.ts').CuaApplicationId)
     await entered.promise
@@ -218,7 +218,7 @@ it('resumes queries when a management operation settles without a mounted permis
   try {
     f.changes.set(true)
     const fiber = await f.ctx.plugin({ inject: [...inject], apply: ctx => mountCuaPermissions(ctx, contribution) })
-    const actions = f.ctx.slots.entries('plugins.bundle.config')[0]!.inject!()
+    const actions = f.ctx.slots.entries('plugins.bundle.config')[0].inject!()
     actionsOf(actions)
     expect(actions.hooks.cuaPermissions.getSnapshot().changing).toBe(true)
     actions.refresh()

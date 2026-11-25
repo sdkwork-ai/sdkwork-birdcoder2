@@ -142,7 +142,7 @@ it('shows only the terminal screen while connected and detaches on unmount', () 
 it('keeps one emulator across rename and locale updates, applies snapshots and output once, and releases listeners', () => {
   const snapshot: TerminalViewState = { ...idle, info, phase: 'connected', writable: true, render: { revision: 1, frame: { type: 'snapshot', writable: true, sequence: 0, info, screen: 'restored' } } }
   const h = mount(snapshot)
-  const terminal = fake.terminals[0]!
+  const terminal = fake.terminals[0]
   expect(terminal.reset).toHaveBeenCalledOnce()
   expect(terminal.write).toHaveBeenCalledWith('restored', expect.any(Function))
   expect(h.model.acknowledge).toHaveBeenCalledWith(1)
@@ -167,7 +167,7 @@ it('marks emulator input as typed only shortly after a person gesture, never for
   const now = vi.spyOn(performance, 'now').mockReturnValue(1000)
   const snapshot: TerminalViewState = { ...idle, info, phase: 'connected', writable: true }
   const h = mount(snapshot)
-  const terminal = fake.terminals[0]!
+  const terminal = fake.terminals[0]
   terminal.input?.('\x1b[?1;2c')
   expect(h.model.write).toHaveBeenLastCalledWith('\x1b[?1;2c', false)
   fireEvent.keyDown(terminal.textarea!, { key: 'l' })
@@ -202,7 +202,7 @@ it('displays disconnect, close and exit states and offers explicit reconnection 
   expect(h.view.getByRole('status').textContent).toBe(en.connecting)
   h.update({ ...idle, info, phase: 'connected' })
   expect(h.view.getByRole('status').textContent).toContain(en.readonly)
-  expect(fake.terminals[0]!.options.disableStdin).toBe(true)
+  expect(fake.terminals[0].options.disableStdin).toBe(true)
   fireEvent.click(h.view.getByRole('button', { name: en.control }))
   expect(h.model.connect).toHaveBeenCalledOnce()
   for (const phase of ['disconnected', 'failed'] as const) {
@@ -227,7 +227,7 @@ it('updates screen, cursor and selection colors without replacing the terminal o
   const colors = { backgroundColor: 'rgb(255, 255, 255)', color: 'rgb(23, 25, 29)' }
   vi.spyOn(window, 'getComputedStyle').mockImplementation(() => colors as CSSStyleDeclaration)
   const h = mount({ ...idle, info, phase: 'connected', writable: true })
-  const terminal = fake.terminals[0]!
+  const terminal = fake.terminals[0]
   expect(terminal.options.theme).toMatchObject({
     background: colors.backgroundColor, foreground: colors.color, cursor: colors.color, selectionForeground: colors.backgroundColor,
   })
@@ -251,7 +251,7 @@ it('updates screen, cursor and selection colors without replacing the terminal o
 it('applies the terminal font list and size and refits without replacing the terminal', () => {
   const state: TerminalViewState = { ...idle, info, phase: 'connected', writable: true }
   const h = mount(state)
-  const terminal = fake.terminals[0]!
+  const terminal = fake.terminals[0]
   const stack = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
   expect(terminal.options.fontFamily).toBe(stack)
   h.model.resize.mockClear()
@@ -285,7 +285,7 @@ it('reads the current theme on xterm render and releases the cursor listener on 
   const readStyle = window.getComputedStyle.bind(window)
   vi.spyOn(window, 'getComputedStyle').mockImplementation(element => element === cursor ? readStyle(element) : colors as CSSStyleDeclaration)
   const h = mount({ ...idle, info, phase: 'connected', writable: true })
-  const terminal = fake.terminals[0]!
+  const terminal = fake.terminals[0]
   const screen = terminal.textarea!.parentElement!
   screen.append(cursor)
   const appliedTheme = terminal.options.theme
@@ -308,7 +308,7 @@ it('reads the current theme on xterm render and releases the cursor listener on 
 it('fits only visible writable terminals with measurable dimensions and clamps the provider limits', () => {
   const state: TerminalViewState = { ...idle, info, phase: 'connected', writable: true }
   const h = mount(state)
-  const terminal = fake.terminals[0]!
+  const terminal = fake.terminals[0]
   expect(h.model.resize).toHaveBeenCalledWith(120, 40)
   h.model.resize.mockClear()
   fake.dimensions = { cols: 500, rows: 300 }
@@ -453,7 +453,7 @@ it.each(titleSurfaces)('removes the native $name listener when its title unmount
 
 it('starts a recovered screen with no local history when environment discovery is unavailable', () => {
   mount({ ...idle, info, environment: undefined })
-  expect(fake.terminals[0]!.options).toHaveProperty('scrollback', 0)
+  expect(fake.terminals[0].options).toHaveProperty('scrollback', 0)
 })
 
 
@@ -482,7 +482,7 @@ it.each([en, zh])('offers an explicit new terminal for missing instances without
 
 it('removes a stale emulator when the Host confirms the terminal is missing', () => {
   const h = mount({ ...idle, info, phase: 'connected', writable: true })
-  const terminal = fake.terminals[0]!
+  const terminal = fake.terminals[0]
   h.update({ ...idle, info, phase: 'failed', issue: 'missingTerminal' })
   expect(terminal.dispose).toHaveBeenCalledOnce()
   expect(h.view.queryByRole('textbox')).toBeNull()

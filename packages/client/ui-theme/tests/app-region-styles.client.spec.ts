@@ -200,7 +200,7 @@ function openingTags(source: string): string[] {
     let quote: string | undefined
     let end = open + 1
     for (; end < source.length; end += 1) {
-      const character = source[end]!
+      const character = source[end]
       if (quote !== undefined) {
         if (character === quote) quote = undefined
         continue

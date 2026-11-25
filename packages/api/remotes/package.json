@@ -91,6 +91,8 @@
     "@deepseek-ai/dsh-typert-protocol": "workspace:*",
     "@deepseek-ai/dsh-user-approval": "workspace:*",
     "@deepseek-ai/dsh-user-questions": "workspace:*",
+    "@deepseek-ai/dsh-tool-sdkwork-deploy": "workspace:*",
+    "@deepseek-ai/dsh-tool-sdkwork-knowledge": "workspace:*",
     "@deepseek-ai/cordis": "workspace:~",
     "zod": "4.6.6",
     "@deepseek-ai/dsh-command-feedback": "workspace:*",

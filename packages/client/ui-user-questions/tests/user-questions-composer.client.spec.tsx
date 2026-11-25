@@ -443,7 +443,7 @@ describe('QuestionComposer', () => {
       { id: 'second', question: 'Second question?', options: [{ label: 'Continue', description: 'Second detail.' }] },
     ])
     render(<QuestionComposer matched={carrier} {...kit} />)
-    fireEvent.click(screen.getAllByRole('button', { name: '展开' })[1] as HTMLElement)
+    fireEvent.click(screen.getAllByRole('button', { name: '展开' })[1])
     expect(screen.getByRole('button', { name: '收起' })).toBeTruthy()
 
     // Another surface of the same Session moves the shared question position.
@@ -668,7 +668,7 @@ describe('PendingQuestion domain face', () => {
 
     render(<QuestionComposer matched={carrier} {...kit} />)
 
-    expect(screen.getByRole('heading', { name: QUESTIONS[0]!.question })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: QUESTIONS[0].question })).toBeTruthy()
     expect(screen.getByText(`1 / ${QUESTIONS.length}`)).toBeTruthy()
   })
 

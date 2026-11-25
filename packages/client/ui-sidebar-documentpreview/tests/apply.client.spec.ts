@@ -112,7 +112,7 @@ describe('ui-sidebar-documentpreview apply', () => {
       ['sidebar.right.pane.tab', '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/compaction', 'documentMarkdown', SummaryPreview],
       ['sidebar.right.pane.tab.title', '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/compaction', 'documentMarkdown', SummaryTitle],
     ])
-    expect(Object.keys(registered[0]!.children!)).toEqual([
+    expect(Object.keys(registered[0].children!)).toEqual([
       'sidebar.right.tab.document', 'sidebar.right.tab.document.actions',
       'sidebar.right.tab.document.unpreviewable', 'sidebar.right.tab.document.action',
     ])

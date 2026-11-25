@@ -76,7 +76,7 @@ describe('front-end model configuration projection', () => {
     await writeFile(target, '{"version":1,"document":{"revision":4,"channels":[]}}\n', 'utf8')
     const rejected = await writeFrontendModelConfigProjection(sessionPath, session(), {
       endpoint: 'https://api.example.com/app/v3/api/ai/frontend_config',
-      fetch: vi.fn(async () => new Response('{}', { status: 401 })) as unknown as typeof fetch,
+      fetch: vi.fn(async () => new Response('{}', { status: 401 })),
     })
     expect(rejected).toBe(false)
     expect(await readFile(target, 'utf8')).toContain('"revision":4')
@@ -89,7 +89,7 @@ describe('front-end model configuration projection', () => {
       fetch: vi.fn(async () => new Response('{"revision":1}', {
         status: 200,
         headers: { 'content-type': 'application/json' },
-      })) as unknown as typeof fetch,
+      })),
     })
     expect(written).toBe(false)
   })
@@ -99,7 +99,7 @@ describe('front-end model configuration projection', () => {
     const fetchMock = vi.fn()
     const written = await writeFrontendModelConfigProjection(sessionPath, session(), {
       endpoint: '',
-      fetch: fetchMock as unknown as typeof fetch,
+      fetch: fetchMock,
     })
     expect(written).toBe(false)
     expect(fetchMock).not.toHaveBeenCalled()

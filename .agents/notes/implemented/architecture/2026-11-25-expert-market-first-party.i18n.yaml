@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-25-expert-market-first-party.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-25-expert-market-first-party.md
+/agent-note-ship-the-expert-market-as-a-first-party-package:
+  en: 51a2e357154f0016
+  zh: 631968b43ca25ba6
+/agent-note-ship-the-expert-market-as-a-first-party-package/problem:
+  en: 94f0b86a406d737e
+  zh: fbcaf7bacb415762
+/agent-note-ship-the-expert-market-as-a-first-party-package/decision:
+  en: 8becb5a28e543e21
+  zh: 9d838be44fdef0a1
+/agent-note-ship-the-expert-market-as-a-first-party-package/alternatives-considered:
+  en: d8765db9e6709c47
+  zh: 43c613a2ab588719
+/agent-note-ship-the-expert-market-as-a-first-party-package/consequences:
+  en: 0232fc6f086e827b
+  zh: 0c10fcdc3dc0276a
+/agent-note-ship-the-expert-market-as-a-first-party-package/verification:
+  en: 1b3a66170bed77a4
+  zh: f662370e2c933f2f

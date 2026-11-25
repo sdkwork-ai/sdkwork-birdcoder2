@@ -98,15 +98,15 @@ it('withdraws every account surface and the account stream on revocation, and re
     apply(ctx as never)
     expect(new Set(guards.map(guard => guard.action))).toEqual(new Set(['account/watch']))
     grant(guards)
-    await streams[0]!.accepted
+    await streams[0].accepted
     expect(surfaces()).toEqual({ 'settings.launcher': 1, 'settings.notice': 1, 'shell.quota-notice': 1, 'settings.models.sign-in': 1, 'settings.section': 1 })
 
     revoke(guards)
-    expect(streams[0]!.signal.aborted).toBe(true)
+    expect(streams[0].signal.aborted).toBe(true)
     expect(surfaces()).toEqual({ 'settings.launcher': 0, 'settings.notice': 0, 'shell.quota-notice': 0, 'settings.models.sign-in': 0, 'settings.section': 0 })
 
     grant(guards)
-    await streams[1]!.accepted
+    await streams[1].accepted
     expect(surfaces()).toEqual({ 'settings.launcher': 1, 'settings.notice': 1, 'shell.quota-notice': 1, 'settings.models.sign-in': 1, 'settings.section': 1 })
   } finally {
     revoke(guards)
@@ -176,8 +176,8 @@ it('drops reads a revoked grant started, and the next grant shows no account sec
   try {
     apply(ctx as never)
     grant(guards)
-    firstFrames[0]!.release()
-    await firstFrames[0]!.accepted
+    firstFrames[0].release()
+    await firstFrames[0].accepted
     expect(registered.get('settings.section')).toBe(1)
 
     // The profile read started under the first grant settles only after the revocation.
@@ -189,8 +189,8 @@ it('drops reads a revoked grant started, and the next grant shows no account sec
 
     grant(guards)
     expect(registered.get('settings.section')).toBe(0)
-    firstFrames[1]!.release()
-    await firstFrames[1]!.accepted
+    firstFrames[1].release()
+    await firstFrames[1].accepted
     expect(registered.get('settings.section')).toBe(1)
   } finally {
     revoke(guards)
@@ -252,7 +252,7 @@ function revocationHarness(scripts: StreamScript[]) {
       $stream: () => {
         const abort = new AbortController()
         const delivered = Promise.withResolvers<undefined>()
-        const script = scripts[accepted.length]!
+        const script = scripts[accepted.length]
         accepted.push(delivered.promise)
         return {
           signal: abort.signal,

@@ -203,7 +203,7 @@ describe('TrajectoryTable', () => {
   })
 
   it('localizes the summary for folded Assistant tool calls', () => {
-    const assistant = TURNS[0]!.groups[0]!.cells[0]!
+    const assistant = TURNS[0].groups[0].cells[0]
     render(
       <LocalizedTrajectoryTable
         t={tZh}
@@ -843,7 +843,7 @@ describe('TrajectoryTable', () => {
     view.rerender(
       <TrajectoryTable
         turns={turns}
-        streamingCells={[{ ...cells[0]!, text: 'Context 1 streaming update' }]}
+        streamingCells={[{ ...cells[0], text: 'Context 1 streaming update' }]}
         {...FOLD_PROPS}
       />,
     )
@@ -1315,10 +1315,10 @@ describe('TrajectoryTable', () => {
       expect(disclosures.every(el => !el.open)).toBe(true)
       expect(disclosures.map((el): unknown => JSON.parse(el.querySelector('pre')!.textContent)))
         .toEqual([content[1], content[3], content[4]])
-      const blocks = [...disclosures[0]!.parentElement!.children]
+      const blocks = [...disclosures[0].parentElement!.children]
       expect(blocks.map(el => el.tagName)).toEqual(['SECTION', 'DETAILS', 'SECTION', 'DETAILS', 'DETAILS'])
-      expect(blocks[0]!.querySelector('pre')!.textContent).toBe('**before**')
-      expect(blocks[2]!.querySelector('pre')!.textContent).toBe('after')
+      expect(blocks[0].querySelector('pre')!.textContent).toBe('**before**')
+      expect(blocks[2].querySelector('pre')!.textContent).toBe('after')
     },
   )
 
@@ -1469,9 +1469,9 @@ describe('TrajectoryTable', () => {
     }],
   }]
 
-  const NESTED_CALLS = NESTED_CALL_TURNS[0]!.groups[0]!.cells
-  const NESTED_ASSISTANT_ID = trajectoryRecordId(NESTED_CALLS[0]!)
-  const NESTED_TOOL_ID = trajectoryRecordId(NESTED_CALLS[1]!)
+  const NESTED_CALLS = NESTED_CALL_TURNS[0].groups[0].cells
+  const NESTED_ASSISTANT_ID = trajectoryRecordId(NESTED_CALLS[0])
+  const NESTED_TOOL_ID = trajectoryRecordId(NESTED_CALLS[1])
 
   function toggled<T>(current: ReadonlySet<T>, id: T): Set<T> {
     const next = new Set(current)

@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-24-workspace-row-menus-starved-by-failed-plugin.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-11-24-workspace-row-menus-starved-by-failed-plugin.md
+/agent-note-workspace-row-menus-starved-by-a-failed-plugin:
+  en: 0be13d53e3a9eb7b
+  zh: 1de2fd9bd39fb060
+/agent-note-workspace-row-menus-starved-by-a-failed-plugin/problem:
+  en: 919cf89d186592b0
+  zh: 9c311080f90c4289
+/agent-note-workspace-row-menus-starved-by-a-failed-plugin/decision:
+  en: 19d3c26c16d0eeb8
+  zh: 08ac18346f8dbfb6
+/agent-note-workspace-row-menus-starved-by-a-failed-plugin/alternatives-considered:
+  en: d902b0a7d4a5375a
+  zh: 5bcb8767032a7622
+/agent-note-workspace-row-menus-starved-by-a-failed-plugin/consequences:
+  en: ec3ff0ea9a438bea
+  zh: 93879db0d3696666

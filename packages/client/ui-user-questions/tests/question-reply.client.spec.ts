@@ -265,7 +265,7 @@ describe('answeredQuestionDefinition', () => {
       [ptcCall({ questions: [{ id: 'plan', question: 'Approve?', intent: { kind: 'plan-review' } }] }), ptcResult()],
     ]) {
       const run = answerAssembler()
-      run.assembler.replaceWindow([{ type: 'event', event: call! }, { type: 'event', event: result! }], false)
+      run.assembler.replaceWindow([{ type: 'event', event: call }, { type: 'event', event: result }], false)
       run.assembler.flush()
       expect(run.nodes()).toEqual([])
     }

@@ -185,7 +185,7 @@ describe('TeamBoard', () => {
     expect(details.querySelector('dl, dt, dd')).toBeNull()
     expect(screen.queryByText(TASK_1)).toBeNull()
     expect(screen.queryByText('src')).toBeNull()
-    expect(screen.queryByText(task.writeScopeWarnings[0]!)).toBeNull()
+    expect(screen.queryByText(task.writeScopeWarnings[0])).toBeNull()
     expect(screen.getAllByRole('button')).toHaveLength(2)
     fireEvent.click(row('Review implementation'))
     expect(first.getAttribute('aria-expanded')).toBe('false')
@@ -292,9 +292,9 @@ describe('TeamBoard', () => {
     expect(details.textContent).toBe(`${task.description}${zh.owner}: ${zh.unowned}`)
     expect(details.querySelector('dl, dt, dd')).toBeNull()
     for (const metadata of [
-      TASK_1, TASK_2, 'Prepare shared types', 'missing', 'src', task.writeScopeWarnings[0]!, zh.blocked,
+      TASK_1, TASK_2, 'Prepare shared types', 'missing', 'src', task.writeScopeWarnings[0], zh.blocked,
     ]) expect(within(details).queryByText(metadata)).toBeNull()
-    expect(b.sessions.getSnapshot().projectionsBySession[SESSION]!.values.agentTeam?.tasks[0]).toEqual({
+    expect(b.sessions.getSnapshot().projectionsBySession[SESSION].values.agentTeam?.tasks[0]).toEqual({
       ...unowned, status: 'pending', blockedBy: [TASK_2, 'missing' as TeamTaskId],
     })
   })

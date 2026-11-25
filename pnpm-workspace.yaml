@@ -8,8 +8,7 @@ packages:
   # `plugins/*` stays outside tsdown's build globs (`vendor/*`, `packages/*/*`):
   # each plugin ships its own build, and its artifacts are committed upstream
   # rather than produced by this repository's build — except the entries whose
-  # upstreams gitignore them (`sdkwork-deepseekbot`, `dsh-better-sidebar`, and
-  # the host half of `dsh-market`), which this repository builds on install and
+  # upstreams gitignore them (`sdkwork-deepseekbot` and `dsh-better-sidebar`), which this repository builds on install and
   # in the artifacts gate (see plugins/README.md).
   - "plugins/*"
   # The assistant surface (助理 / Assistant): SDKWork's BotHarness mirror is a
@@ -114,6 +113,8 @@ packages:
   # so client bundles inline their sibling source on the release runner.
   - "../sdkwork-mcp/sdks/sdkwork-mcp-backend-sdk/sdkwork-mcp-backend-sdk-typescript"
   - "../sdkwork-plugins/sdks/sdkwork-plugins-backend-sdk/sdkwork-plugins-backend-sdk-typescript"
+  - "../sdkwork-plugins/sdks/sdkwork-plugins-app-sdk/sdkwork-plugins-app-sdk-typescript"
+  - "../sdkwork-plugins/apps/sdkwork-plugins-pc/packages/sdkwork-plugins-pc-marketplace"
   - "../sdkwork-skills/sdks/sdkwork-skills-backend-sdk/sdkwork-skills-backend-sdk-typescript"
   - "../sdkwork-skills/sdks/sdkwork-skills-app-sdk/sdkwork-skills-app-sdk-typescript"
   - "../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-runtime-pc-react"
@@ -268,87 +269,6 @@ packages:
 linkWorkspacePackages: true
 
 overrides:
-  # The expert-market plugin (`plugins/sdkwork-dsh-agents`) declares
-  # `@deepseek-ai/dsh` as an OPTIONAL peer, but `auto-install-peers` still
-  # resolves that edge. Left alone the range fetches the published line
-  # (0.2.0-rc.2) and pulls a second, complete harness closure into this
-  # workspace's lockfile. The plugin is mounted by THIS build, so the host it
-  # names is this checkout: point the edge at the workspace CLI, which
-  # `linkWorkspacePackages` then links instead of resolving a registry copy.
-  # The pin must name the version this workspace carries: the link only happens
-  # when the override equals the member's version, and a stale pin silently
-  # resolves the published tarball instead (which drags in a second closure —
-  # and a `dsh-subprocess-local` build script the install allowlist refuses).
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh': '0.2.3-alpha.2'
-  # The expert-market plugin's Typert edges resolve the published 0.2.2-rc.1
-  # pair, whose protocol entry re-exports `TypertRegistryContract` from
-  # `./types.ts` — a type alias the registry's `declare module` augmentation
-  # cannot reach, so `ctx.typert.register` misses its `register` member and the
-  # plugin's own typecheck gate fails. The workspace carries 0.2.3-alpha.2, whose
-  # sources declare the contract in place; the scoped pins point the plugin's
-  # edges there (linkWorkspacePackages links them instead of fetching), which
-  # also drops the second Typert instance the plugin's runtime otherwise
-  # carries beside the workspace sources.
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-typert-protocol': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-typert-registry': '0.2.3-alpha.2'
-  # The plugin is mounted by THIS build, so every remaining @deepseek-ai edge
-  # typechecks against the types it actually runs against: this checkout's
-  # sources, not the 0.2.2-rc.1 tarballs its manifest pins. The plugin was
-  # authored against the published line and its own CI installs those, so the
-  # rows stay scoped to this plugin — the workspace's own workspace:*
-  # declarations are untouched. Bump each pin together with the workspace
-  # release version; a stale pin resolves the published tarball again and the
-  # plugin's typecheck gate fails loudly (rc.1's TypertRegistryContract
-  # re-export already proved that).
-  '@michengai/dsh-agency-agents>@deepseek-ai/cordis': 'link:vendor/cordis'
-  '@michengai/dsh-agency-agents>@deepseek-ai/schemastery': 'link:vendor/schemastery'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-api-remotes': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-connection': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-locale': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-ui-conversation': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-ui-input-trigger': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-ui-primitives': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-ui-settings': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-client-ui-slots': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-host-webserver': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-llm': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-settings': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-subagent': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-system-prompt': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-tools': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-session': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-agent': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-attachment': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-brand': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-ptc-runtime': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-sandbox': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-sandbox-policy': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-scope': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-session-projection': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-user-approval': '0.2.3-alpha.2'
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh-util-time': '0.2.3-alpha.2'
-  # The plugin market (`plugins/dsh-market`) joins the workspace as the fork's
-  # own submodule, so its `@deepseek-ai/*` edges resolve to the sources this
-  # build actually runs instead of the published line its manifest pins. Two
-  # of them matter at runtime: `schemastery` is the host half's only framework
-  # import (the market's Config schema), and a registry copy would be a second
-  # schema builder beside the host's; `cordis` supplies the `Context` type the
-  # host half compiles against. The rest are dev-time edges for the client
-  # typecheck this repository does not run, but pointing them at the workspace
-  # keeps a second harness closure (and its peer graph) out of the lockfile.
-  'dshmarket>@deepseek-ai/cordis': 'link:vendor/cordis'
-  'dshmarket>@deepseek-ai/schemastery': 'link:vendor/schemastery'
-  'dshmarket>@deepseek-ai/dsh-settings': '0.2.3-alpha.2'
-  'dshmarket>@deepseek-ai/dsh-client-runtime': '0.2.3-alpha.2'
-  'dshmarket>@deepseek-ai/dsh-client-ui-primitives': '0.2.3-alpha.2'
-  # Two upstream devDependencies of the fork name packages this checkout no
-  # longer carries (`@deepseek-ai/dsh-invariants`,
-  # `@deepseek-ai/dsh-client-ui-settings-plugins`). Nothing in the plugin's
-  # `src/` imports either — only its own test fixtures spell them — so they are
-  # removed here instead of resolving the published 0.1.0 line, which would pull
-  # a second, complete harness closure (test kits included) into this lockfile.
-  'dshmarket>@deepseek-ai/dsh-invariants': '-'
-  'dshmarket>@deepseek-ai/dsh-client-ui-settings-plugins': '-'
   # Converge rolldown on 1.2.7 (the version this repository built with before
   # the upstream sync): 1.1.x panics with "SymbolRef ... is not in any chunk"
   # on the knowledge bundle's sibling-sourced graph.

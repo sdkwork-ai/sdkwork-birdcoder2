@@ -415,24 +415,24 @@ describe('translation scope discovery', () => {
 
   it('parses submodule paths and keeps their working trees out of the corpus', () => {
     const submodules = parseGitmodulePaths([
-      '[submodule "plugins/dsh-market"]',
-      '\tpath = plugins/dsh-market',
-      '\turl = git@github.com:sdkwork-ai/sdkwork-dsh-market.git',
+      '[submodule "plugins/dsh-mcp-connector"]',
+      '\tpath = plugins/dsh-mcp-connector',
+      '\turl = https://github.com/duhu2000/dsh-mcp-connector.git',
       '[submodule "vendor/cordis"]',
       '\tpath = vendor\\cordis',
     ].join('\n'))
-    expect(submodules).toEqual(['plugins/dsh-market', 'vendor/cordis'])
+    expect(submodules).toEqual(['plugins/dsh-mcp-connector', 'vendor/cordis'])
 
     // A bilingual README inside the submodule is scope-eligible, which is why
     // discovery has to drop it before pairing: the sidecar cannot live here.
-    expect(isTranslationScopeFile('plugins/dsh-market/README.md')).toBe(true)
-    expect(isTranslationScopeFile('plugins/dsh-market/README.zh.md')).toBe(true)
-    expect(isSubmodulePath('plugins/dsh-market/README.md', submodules)).toBe(true)
-    expect(isSubmodulePath('plugins/dsh-market', submodules)).toBe(true)
+    expect(isTranslationScopeFile('plugins/dsh-mcp-connector/README.md')).toBe(true)
+    expect(isTranslationScopeFile('plugins/dsh-mcp-connector/README.zh.md')).toBe(true)
+    expect(isSubmodulePath('plugins/dsh-mcp-connector/README.md', submodules)).toBe(true)
+    expect(isSubmodulePath('plugins/dsh-mcp-connector', submodules)).toBe(true)
     // The boundary is the directory itself: a sibling name that merely shares
     // the prefix is not inside the submodule.
-    expect(isSubmodulePath('plugins/dsh-market-notes/README.md', submodules)).toBe(false)
-    expect(isSubmodulePath('plugins/dsh-marketx', submodules)).toBe(false)
+    expect(isSubmodulePath('plugins/dsh-mcp-connector-notes/README.md', submodules)).toBe(false)
+    expect(isSubmodulePath('plugins/dsh-mcp-connector-extra', submodules)).toBe(false)
   })
 })
 

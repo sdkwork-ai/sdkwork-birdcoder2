@@ -84,9 +84,9 @@ describe('experimental Inspector Client plugin', () => {
     const ctx = new Context()
     try {
       await ctx.plugin({ apply }).await()
-      const first = FakeWebSocket.sockets[0]!
+      const first = FakeWebSocket.sockets[0]
       first.open()
-      const opened = JSON.parse(first.sent[0]!) as { source: { sourceId: string; generation: string } }
+      const opened = JSON.parse(first.sent[0]) as { source: { sourceId: string; generation: string } }
       first.receive({ v: 0, t: 'source/accepted', sourceId: opened.source.sourceId, generation: opened.source.generation })
       window.dispatchEvent(new Event('visibilitychange'))
       expect(first.readyState).toBe(FakeWebSocket.OPEN)
@@ -96,9 +96,9 @@ describe('experimental Inspector Client plugin', () => {
       window.dispatchEvent(new Event('pageshow'))
       window.dispatchEvent(new Event('pageshow'))
       expect(FakeWebSocket.sockets).toHaveLength(2)
-      const second = FakeWebSocket.sockets[1]!
+      const second = FakeWebSocket.sockets[1]
       second.open()
-      const resumed = JSON.parse(second.sent[0]!) as { source: { sourceId: string; generation: string } }
+      const resumed = JSON.parse(second.sent[0]) as { source: { sourceId: string; generation: string } }
       expect(resumed.source.sourceId).toBe(opened.source.sourceId)
       expect(resumed.source.generation).not.toBe(opened.source.generation)
     } finally { await ctx.fiber.dispose() }
@@ -112,11 +112,11 @@ describe('experimental Inspector Client plugin', () => {
     const ctx = new Context()
     const fiber = ctx.plugin({ apply })
     await fiber.await()
-    const socket = FakeWebSocket.sockets[0]!
+    const socket = FakeWebSocket.sockets[0]
     expect(socket.url).toBe(bootstrap.endpoint)
     expect(socket.protocol).toBe(bootstrap.protocol)
     socket.open()
-    const open = JSON.parse(socket.sent[0]!) as {
+    const open = JSON.parse(socket.sent[0]) as {
       source: { sourceId: string; generation: string }
     }
     socket.receive({
@@ -125,7 +125,7 @@ describe('experimental Inspector Client plugin', () => {
       sourceId: open.source.sourceId,
       generation: open.source.generation,
     })
-    expect(JSON.parse(socket.sent[1]!) as unknown).toMatchObject({
+    expect(JSON.parse(socket.sent[1]) as unknown).toMatchObject({
       t: 'source/replace',
       records: [{ topic: 'cordis/tree', payload: { schemaVersion: 0, truncated: false } }],
     })
@@ -193,17 +193,17 @@ describe('experimental Inspector Client plugin', () => {
     const ctx = new Context()
     const fiber = ctx.plugin({ apply })
     await fiber.await()
-    const firstSocket = FakeWebSocket.sockets[0]!
+    const firstSocket = FakeWebSocket.sockets[0]
     firstSocket.open()
-    const firstOpen = JSON.parse(firstSocket.sent[0]!) as {
+    const firstOpen = JSON.parse(firstSocket.sent[0]) as {
       source: { sourceId: string; generation: string }
     }
 
     firstSocket.close()
     await vi.waitFor(() => { expect(FakeWebSocket.sockets).toHaveLength(2) })
-    const secondSocket = FakeWebSocket.sockets[1]!
+    const secondSocket = FakeWebSocket.sockets[1]
     secondSocket.open()
-    const secondOpen = JSON.parse(secondSocket.sent[0]!) as {
+    const secondOpen = JSON.parse(secondSocket.sent[0]) as {
       source: { sourceId: string; generation: string }
     }
     expect(secondOpen.source.sourceId).toBe(firstOpen.source.sourceId)
@@ -218,9 +218,9 @@ describe('experimental Inspector Client plugin', () => {
     const firstContext = new Context()
     const firstFiber = firstContext.plugin({ apply })
     await firstFiber.await()
-    const firstSocket = FakeWebSocket.sockets[0]!
+    const firstSocket = FakeWebSocket.sockets[0]
     firstSocket.open()
-    const firstOpen = JSON.parse(firstSocket.sent[0]!) as {
+    const firstOpen = JSON.parse(firstSocket.sent[0]) as {
       source: { sourceId: string; generation: string }
     }
     await firstFiber.dispose()
@@ -228,9 +228,9 @@ describe('experimental Inspector Client plugin', () => {
     const secondContext = new Context()
     const secondFiber = secondContext.plugin({ apply })
     await secondFiber.await()
-    const secondSocket = FakeWebSocket.sockets[1]!
+    const secondSocket = FakeWebSocket.sockets[1]
     secondSocket.open()
-    const secondOpen = JSON.parse(secondSocket.sent[0]!) as {
+    const secondOpen = JSON.parse(secondSocket.sent[0]) as {
       source: { sourceId: string; generation: string }
     }
 
@@ -290,9 +290,9 @@ describe('experimental Inspector Client plugin', () => {
     const ctx = new Context()
     const fiber = ctx.plugin({ apply })
     await fiber.await()
-    const socket = FakeWebSocket.sockets[0]!
+    const socket = FakeWebSocket.sockets[0]
     socket.open()
-    const open = JSON.parse(socket.sent[0]!) as { source: { sourceId: string } }
+    const open = JSON.parse(socket.sent[0]) as { source: { sourceId: string } }
 
     expect(open.source.sourceId).toMatch(/^client-/u)
     await fiber.dispose()
@@ -304,9 +304,9 @@ describe('experimental Inspector Client plugin', () => {
     const ctx = new Context()
     const fiber = ctx.plugin({ apply })
     await fiber.await()
-    const socket = FakeWebSocket.sockets[0]!
+    const socket = FakeWebSocket.sockets[0]
     socket.open()
-    const open = JSON.parse(socket.sent[0]!) as {
+    const open = JSON.parse(socket.sent[0]) as {
       source: { sourceId: string; generation: string }
     }
     socket.receive({
@@ -359,12 +359,12 @@ describe('experimental Inspector Client plugin', () => {
     const ctx = new Context()
     const fiber = ctx.plugin({ apply })
     await fiber.await()
-    const socket = FakeWebSocket.sockets[0]!
+    const socket = FakeWebSocket.sockets[0]
 
     ctx.inspector.publish('client/first', { ordinal: 1 })
     ctx.inspector.publish('client/second', { ordinal: 2 })
     socket.open()
-    const open = JSON.parse(socket.sent[0]!) as {
+    const open = JSON.parse(socket.sent[0]) as {
       source: { sourceId: string; generation: string }
     }
     socket.receive({
@@ -374,8 +374,8 @@ describe('experimental Inspector Client plugin', () => {
       generation: open.source.generation,
     })
 
-    const replacement = JSON.parse(socket.sent[1]!) as { nextSequence: number }
-    const append = JSON.parse(socket.sent[2]!) as {
+    const replacement = JSON.parse(socket.sent[1]) as { nextSequence: number }
+    const append = JSON.parse(socket.sent[2]) as {
       firstSequence: number
       droppedBefore: number
       records: Array<{ topic: string }>
@@ -410,9 +410,9 @@ describe('experimental Inspector Client plugin', () => {
     const ctx = new Context()
     const fiber = ctx.plugin({ apply })
     await fiber.await()
-    const socket = FakeWebSocket.sockets[0]!
+    const socket = FakeWebSocket.sockets[0]
     socket.open()
-    const open = JSON.parse(socket.sent[0]!) as {
+    const open = JSON.parse(socket.sent[0]) as {
       source: { sourceId: string; generation: string; capabilities: Array<{ type: string }> }
     }
     expect(open.source.capabilities).toEqual(expect.arrayContaining([{ type: 'client-sources' }]))
@@ -485,7 +485,7 @@ describe('experimental Inspector Client plugin', () => {
       await vi.waitFor(() => { expect(fetch).toHaveBeenCalledTimes(2) })
       expect(FakeWebSocket.sockets).toHaveLength(1)
       await fiber.dispose()
-      expect(FakeWebSocket.sockets[0]!.readyState).toBe(FakeWebSocket.CLOSED)
+      expect(FakeWebSocket.sockets[0].readyState).toBe(FakeWebSocket.CLOSED)
     } finally { await ctx.fiber.dispose() }
   })
 
@@ -500,12 +500,12 @@ describe('experimental Inspector Client plugin', () => {
       response = Response.json(bootstrap)
       ctx.emit('connection/reset')
       await vi.waitFor(() => { expect(FakeWebSocket.sockets).toHaveLength(1) })
-      const first = FakeWebSocket.sockets[0]!
+      const first = FakeWebSocket.sockets[0]
       response = Response.json({ ...bootstrap, protocol: 'dsh-inspector-v0-new-worker' })
       ctx.emit('connection/reset')
       await vi.waitFor(() => { expect(FakeWebSocket.sockets).toHaveLength(2) })
       expect(first.readyState).toBe(FakeWebSocket.CLOSED)
-      expect(FakeWebSocket.sockets[1]!.protocol).toBe('dsh-inspector-v0-new-worker')
+      expect(FakeWebSocket.sockets[1].protocol).toBe('dsh-inspector-v0-new-worker')
     } finally { await ctx.fiber.dispose() }
   })
 
@@ -526,7 +526,7 @@ describe('experimental Inspector Client plugin', () => {
       respond(Response.json({ ...bootstrap, protocol: 'dsh-inspector-v0-late-worker' }))
       await disposed
       expect(FakeWebSocket.sockets).toHaveLength(1)
-      expect(FakeWebSocket.sockets[0]!.readyState).toBe(FakeWebSocket.CLOSED)
+      expect(FakeWebSocket.sockets[0].readyState).toBe(FakeWebSocket.CLOSED)
     } finally {
       respond(Response.json(bootstrap))
       await ctx.fiber.dispose()

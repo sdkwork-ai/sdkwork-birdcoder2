@@ -265,7 +265,7 @@ export function RailCustomizeDialog({
       }}
       footer={(
         <>
-          <Button variant="outline" className={css.reset} onClick={() => layout.reset()}>
+          <Button variant="outline" className={css.reset} onClick={() =>{  layout.reset() }}>
             {t('rail.customize.reset')}
           </Button>
           <Button variant="primary" onClick={onClose}>{t('rail.customize.done')}</Button>

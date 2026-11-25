@@ -341,9 +341,9 @@ describe('TerminalBlock run-state dot', () => {
     expect(view.container.querySelectorAll('[class^="_runStateLabel_"]')).toHaveLength(1)
     expect(runStateOf(view.container)).toEqual({ state: 'error', label: '失败' })
     const rows = view.container.querySelectorAll('[class^="_promptLine_"]')
-    expect(rows[0]!.querySelector('[data-state]')).not.toBeNull()
-    expect(rows[1]!.querySelector('[data-state]')).toBeNull()
-    expect(rows[2]!.querySelector('[data-state]')).toBeNull()
+    expect(rows[0].querySelector('[data-state]')).not.toBeNull()
+    expect(rows[1].querySelector('[data-state]')).toBeNull()
+    expect(rows[2].querySelector('[data-state]')).toBeNull()
   })
 
   it('keeps the running dot even while a settled-looking status pill is supplied', () => {

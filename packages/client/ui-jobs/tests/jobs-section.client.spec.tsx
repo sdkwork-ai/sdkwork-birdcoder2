@@ -389,12 +389,12 @@ describe('JobsSection group folds', () => {
     render(<JobsSection {...props([...live(7), ...done(1)])} />)
     // The most recently started rows stay; the control is the group's last row, an item of the list.
     expect(items()).toEqual(['live-6', 'live-5', 'live-4', 'live-3', 'live-2', '[显示其余 2 个运行中]', '{已结束 1}'])
-    const control = folds()[0] as HTMLElement
+    const control = folds()[0]
     expect([control.getAttribute('aria-label'), control.getAttribute('aria-expanded')]).toEqual(['显示其余 2 个运行中（运行中的后台任务）', 'false'])
     fireEvent.click(control)
     expect(items()).toEqual(['live-6', 'live-5', 'live-4', 'live-3', 'live-2', 'live-1', 'live-0', '[收起]', '{已结束 1}'])
     expect([folds()[0]?.getAttribute('aria-label'), folds()[0]?.getAttribute('aria-expanded')]).toEqual(['收起（运行中的后台任务）', 'true'])
-    fireEvent.click(folds()[0] as HTMLElement)
+    fireEvent.click(folds()[0])
     expect(items()).toHaveLength(7)
   })
 
@@ -404,7 +404,7 @@ describe('JobsSection group folds', () => {
     expect(folds().map(control => control.textContent)).toEqual(['显示其余 2 个运行中'])
     fireEvent.click(settledToggle(8))
     expect(items().slice(6)).toEqual(['{已结束 8}', 'done-7', 'done-6', 'done-5', 'done-4', 'done-3', '[显示其余 3 个已结束]'])
-    const settled = folds()[1] as HTMLElement
+    const settled = folds()[1]
     expect(settled.getAttribute('aria-label')).toBe('显示其余 3 个已结束（已结束的后台任务）')
     fireEvent.click(settled)
     // Each control folds only its own group.
@@ -424,7 +424,7 @@ describe('JobsSection group folds', () => {
     expect(folds()).toHaveLength(0)
     first.unmount()
     const second = render(<JobsSection {...props(done(9), undefined, {}, undefined, undefined, store)} />)
-    fireEvent.click(folds()[0] as HTMLElement)
+    fireEvent.click(folds()[0])
     expect(store.getSnapshot().unfolded).toEqual({ live: false, settled: true })
     fireEvent.click(screen.getByRole('button', { name: zh['section.clear'] }))
     expect(store.getSnapshot().unfolded).toEqual({ live: false, settled: false })
@@ -440,7 +440,7 @@ describe('JobsSection group folds', () => {
   it('keeps a group unfolded when the section mounts again for the same Session', () => {
     const store = createJobsSectionStore().create()
     const first = render(<JobsSection {...props(live(8), undefined, {}, undefined, undefined, store)} />)
-    fireEvent.click(folds()[0] as HTMLElement)
+    fireEvent.click(folds()[0])
     first.unmount()
     render(<JobsSection {...props(live(8), undefined, {}, undefined, undefined, store)} />)
     expect(items()).toHaveLength(9)
@@ -451,14 +451,14 @@ describe('JobsSection group folds', () => {
     const stop = vi.fn()
     const observe = vi.fn(() => stop)
     render(<JobsSection {...props(live(7), observe)} />)
-    fireEvent.click(folds()[0] as HTMLElement)
+    fireEvent.click(folds()[0])
     // live-0 started first, so the fold holds it back.
     fireEvent.click(screen.getByRole('button', { name: zh['row.expandAria'].replace('{label}', 'live-0') }))
     expect(observe).toHaveBeenCalledExactlyOnceWith(SESSION, 'live-0')
-    fireEvent.click(folds()[0] as HTMLElement)
+    fireEvent.click(folds()[0])
     expect(stop).toHaveBeenCalledTimes(1)
     expect(screen.queryByText('live-0')).toBeNull()
-    fireEvent.click(folds()[0] as HTMLElement)
+    fireEvent.click(folds()[0])
     expect(observe).toHaveBeenCalledTimes(2)
     expect(screen.getByRole('button', { name: zh['row.collapseAria'].replace('{label}', 'live-0') })).toBeDefined()
   })

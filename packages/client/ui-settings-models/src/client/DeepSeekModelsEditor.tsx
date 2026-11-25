@@ -216,7 +216,7 @@ export function DeepSeekModelsEditor(props: DeepSeekModelsEditorProps): ReactNod
           )
           : null}
       </div>
-      <AnimatedRows className={styles['modelList'] as string} rowKeys={rowState.rows.map(row => String(row.key))} ready resetKey="">
+      <AnimatedRows className={styles['modelList']} rowKeys={rowState.rows.map(row => String(row.key))} ready resetKey="">
         {props.models.length === 0 ? <p className={styles['modelEmpty']}>{props.t('modelsEmpty')}</p> : null}
         {rowState.rows.map(({ model, key, expanded, order }, index) => (
           <ModelRow

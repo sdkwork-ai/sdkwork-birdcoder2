@@ -5,7 +5,6 @@ import clsx from 'clsx'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ScheduleCatalogEntry, ScheduleCreateRequest, ScheduleEditRequest, ScheduleId } from '@deepseek-ai/dsh-schedule/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
 import {
   Button, IconCloseOutlineRegular, IconEllipsisOutlineRegular, IconPauseOutlineRegular, IconPlayOutlineRegular,
   IconChevronRightOutlineRegular, Menu, MenuItemButton, Modal, Tooltip,
@@ -261,7 +260,7 @@ function TaskDetailView(props: TaskDetailProps): ReactNode {
   const nextRunAt = task === undefined ? '' : taskNextRunAt(task)
   const next = task === undefined ? undefined : nextRunParts(nextRunAt, t('time.locale'), now, t)
   // SessionListState gives every listed id a byId row.
-  const choices = sessions.ids.map(value => ({ value, label: (sessions.byId[value] as SessionSummary).displayTitle }))
+  const choices = sessions.ids.map(value => ({ value, label: (sessions.byId[value]).displayTitle }))
   const setDraft = (value: TaskEditorDraft): void => {
     props.actions.setDraft(key, { base, draft: value, ...(task === undefined ? { initial } : {}),
       ...(cached?.failure === 'host.conflict' ? { failure: cached.failure } : {}) })
@@ -420,7 +419,7 @@ function TaskDetailView(props: TaskDetailProps): ReactNode {
       </footer>}
     </aside>
     {task !== undefined && <Modal open={confirmId === task.id}
-      className={css.confirmDialog as string} contentClassName={css.confirmContent as string}
+      className={css.confirmDialog} contentClassName={css.confirmContent}
       title={t('delete.title')} description={t('delete.description')} closeLabel={t('delete.close')} onClose={() => { onConfirm(null) }}
       footer={<div className={css.confirmActions}>
         <Button data-modal-autofocus onClick={() => { onConfirm(null) }}>{t('delete.cancel')}</Button>

@@ -79,7 +79,7 @@ export function readOwnerIdentity(value: unknown, relay: string): OwnerIdentityS
   if (reported !== undefined && relay !== '' && reported !== relay) {
     return { state: 'relay-changed', relay, ...(readText(body, 'displayName') === undefined
       ? {}
-      : { displayName: readText(body, 'displayName') as string }) }
+      : { displayName: readText(body, 'displayName') }) }
   }
   const displayName = readText(body, 'displayName')
   const avatarUrl = readText(body, 'avatarUrl')

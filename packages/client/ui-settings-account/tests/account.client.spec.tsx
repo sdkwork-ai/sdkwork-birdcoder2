@@ -580,7 +580,7 @@ it('shows unavailable details and keeps external Platform links usable in a brow
   for (const link of unavailable) expect(link.getAttribute('href')).toBe('http://localhost:8081/usage')
   for (const name of [en.usage, en.topUp, en.balanceUnavailable]) {
     const event = new MouseEvent('click', { bubbles: true, cancelable: true })
-    screen.getAllByRole('link', { name })[0]!.dispatchEvent(event)
+    screen.getAllByRole('link', { name })[0].dispatchEvent(event)
     expect(event.defaultPrevented).toBe(false)
   }
 })
@@ -591,7 +591,7 @@ it('opens the embedded Platform page from a failed balance row on Desktop', asyn
   mount({ status: 'credential-stored', attempt: null }, en, { balance: { status: 'failed' } }, platform)
   // Both failed rows reach the same destination as the Usage action, so the user can
   // inspect the balance the Harness could not load without leaving the app.
-  await act(async () => { fireEvent.click(screen.getAllByRole('link', { name: en.balanceUnavailable })[0]!) })
+  await act(async () => { fireEvent.click(screen.getAllByRole('link', { name: en.balanceUnavailable })[0]) })
   expect(platform.open).toHaveBeenCalledWith('usage', expect.anything())
   await act(async () => { fireEvent.click(screen.getByRole('button', { name: en.backToHarness })) })
   expect(platform.close).toHaveBeenCalledOnce()

@@ -13,10 +13,10 @@ Error: cannot get property "connection.authentication" without inject
     at Proxy.admit (packages/client/connection/lib/index.js:434)
     at Proxy.requestRejection (...)
     at fence (dsh-better-sidebar/lib/index.js)
-    at checkAuthAndMutation (sdkwork-dsh-agents/lib/...)
+    at checkAuthAndMutation (ui-sdkwork-experts/lib/...)
 ```
 
-The throw surfaced as a broken app, not as an authentication answer. WebServer's per-request guard answers `400` with an empty body for a handler that rejects, so `/sidebar/api/*`, the `/sidebar/ws/agent-opens` upgrade, and the expert market's `/api/michengai/dsh-agency-agents/{sidebar-entry,online-update,composer-recommend}` routes all failed on every call while the plugins stayed `active`. Because the failing call sits on the shared admission path, each new plugin that fences its own routes inherits the same failure.
+The throw surfaced as a broken app, not as an authentication answer. WebServer's per-request guard answers `400` with an empty body for a handler that rejects, so `/sidebar/api/*`, the `/sidebar/ws/agent-opens` upgrade, and the expert market's `/api/sdkwork/experts/{sidebar-entry,composer-recommend}` routes all failed on every call while the plugins stayed `active`. Because the failing call sits on the shared admission path, each new plugin that fences its own routes inherits the same failure.
 
 ## Decision
 

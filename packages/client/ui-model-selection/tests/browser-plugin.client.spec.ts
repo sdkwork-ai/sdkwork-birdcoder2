@@ -232,7 +232,7 @@ describe('ui-model-selection dual entry', () => {
     const input = projection('owned')
     const options = await b.popup().options(input, new AbortController().signal)
     b.rejectSelection()
-    await expect(b.popup().onSelect(options[0]!, input)).rejects.toThrow(zh['error.sessionInUse'])
+    await expect(b.popup().onSelect(options[0], input)).rejects.toThrow(zh['error.sessionInUse'])
     expect(b.ctx.modelDirectories.directoryFor(sid('owned')).store.getSnapshot()).toMatchObject({
       status: 'error', pending: null, error: 'session/writer-held: writer held',
     })
@@ -292,7 +292,7 @@ describe('ui-model-selection dual entry', () => {
       b.setGroups([{ id: 'birdcoder', name: 'BirdCoder', models: [{ id: 'deepseek/deepseek-v4-pro', name: 'DeepSeek-V4-Pro' }] }])
       return true
     })
-    await b.popup().onSelect(options[0]!, projection('s1'))
+    await b.popup().onSelect(options[0], projection('s1'))
     expect(b.iam.requestSignIn).toHaveBeenCalledOnce()
     expect(b.hostCurrent()).toEqual({ provider: 'birdcoder', model: 'deepseek/deepseek-v4-pro' })
   })
@@ -324,9 +324,9 @@ describe('ui-model-selection dual entry', () => {
   it('orders BirdCoder first, then account and official, while retaining third-party catalog order', async () => {    const b = await bench()
     try {
       b.setGroups([
-        GROUPS[1]!, GROUPS[0]!, { ...GROUPS[0]!, id: 'deepseek-account', name: 'DeepSeek Account' },
-        { ...GROUPS[0]!, id: 'birdcoder', name: 'BirdCoder' },
-        { ...GROUPS[1]!, id: 'last-provider', name: 'Last Provider' },
+        GROUPS[1], GROUPS[0], { ...GROUPS[0], id: 'deepseek-account', name: 'DeepSeek Account' },
+        { ...GROUPS[0], id: 'birdcoder', name: 'BirdCoder' },
+        { ...GROUPS[1], id: 'last-provider', name: 'Last Provider' },
       ])
       b.remote.emit('llm/adapters-updated', [])
       b.mint('s1')
@@ -380,7 +380,7 @@ describe('ui-model-selection dual entry', () => {
   it.each(['en', 'zh'] as const)('localizes account provider headings in the %s model popup', async (locale) => {
     const b = await bench(locale)
     try {
-      b.setGroups([{ ...GROUPS[0]!, id: 'deepseek-account', name: 'DeepSeek Account' }])
+      b.setGroups([{ ...GROUPS[0], id: 'deepseek-account', name: 'DeepSeek Account' }])
       b.remote.emit('llm/adapters-updated', [])
       b.mint('s1')
       const options = await b.popup().options(projection('s1'), new AbortController().signal)
@@ -393,7 +393,7 @@ describe('ui-model-selection dual entry', () => {
   it('removes account models from the picker after sign-out', async () => {
     const b = await bench('en')
     try {
-      b.setGroups([{ ...GROUPS[0]!, id: 'deepseek-account', name: 'DeepSeek Account' }, ...GROUPS])
+      b.setGroups([{ ...GROUPS[0], id: 'deepseek-account', name: 'DeepSeek Account' }, ...GROUPS])
       b.remote.emit('llm/adapters-updated', [])
       b.mint('s1')
       const before = await b.popup().options(projection('s1'), new AbortController().signal)
