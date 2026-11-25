@@ -267,3 +267,8 @@ build/
 # Agent-authored HTML share output (Trae share packages and generated demo sites).
 /.trae-html-share-packages/
 /sites/
+
+# Local leftover clone of the removed expert-market submodule. The expert market
+# is first-party now (`packages/client/ui-sdkwork-experts`); the submodule must
+# not come back, and this checkout must never be committed.
+/plugins/sdkwork-dsh-agents/
