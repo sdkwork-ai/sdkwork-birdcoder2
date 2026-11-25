@@ -61,7 +61,7 @@ afterEach(() => { cleanup() })
 
 describe('expert gallery panel', () => {
   it('renders the category chip rail and the sort control over the roster', async () => {
-    render(<AgencySettingsPanel {...(panelProps() as never)} />)
+    render(<AgencySettingsPanel {...(panelProps() as unknown as Parameters<typeof AgencySettingsPanel>[0])} />)
     const category = await screen.findByRole('group', { name: '分类' })
     expect(within(category).getByRole('button', { name: '全部分类' })).toBeTruthy()
     expect(within(category).getByRole('button', { name: '产品' })).toBeTruthy()
@@ -75,7 +75,7 @@ describe('expert gallery panel', () => {
   })
 
   it('filters by a category chip and keeps the 专家 / 专家团 tabs', async () => {
-    render(<AgencySettingsPanel {...(panelProps() as never)} />)
+    render(<AgencySettingsPanel {...(panelProps() as unknown as Parameters<typeof AgencySettingsPanel>[0])} />)
     const category = await screen.findByRole('group', { name: '分类' })
     const product = within(category).getByRole('button', { name: '产品' })
     fireEvent.click(product)

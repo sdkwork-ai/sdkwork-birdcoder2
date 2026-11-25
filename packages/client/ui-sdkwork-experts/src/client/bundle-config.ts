@@ -6,8 +6,8 @@ export const BUNDLE_KEY = '@deepseek-ai/dsh-client-ui-sdkwork-experts'
 export const SIDEBAR_PANEL_ID = 'agency-agents'
 export const SIDEBAR_PANEL_ORDER = 4
 
-export function AgencySidebarIcon(props?: { size?: number }): React.ReactElement {
-  const size = props && typeof props.size === 'number' ? props.size : 16
+export function AgencySidebarIcon(props: { size?: number } = {}): React.ReactElement {
+  const size = typeof props.size === 'number' ? props.size : 16
   return React.createElement('svg', {
     viewBox: '0 0 16 16',
     width: size,
@@ -258,7 +258,7 @@ export function setupSidebarEntry(
             order: SIDEBAR_PANEL_ORDER,
             label: () => ctx.locale.bind(ns)('settings.title'),
             locale: ns,
-          }, (ownerProps: { size?: number }) => React.createElement(AgencySidebarIcon, ownerProps))
+          }, (ownerProps: React.Attributes & { size?: number }) => React.createElement(AgencySidebarIcon, ownerProps))
           offRow = typeof res === 'function' ? res : () => {}
         } catch {}
       }

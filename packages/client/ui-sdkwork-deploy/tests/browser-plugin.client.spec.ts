@@ -89,6 +89,7 @@ async function bench(options: {
   fiber: ReturnType<Context['plugin']>
   env: ReturnType<typeof stubEnv>
   iam: ReturnType<typeof stubIam>
+  onEvent: ReturnType<typeof vi.fn>
 }> {
   const env = options.env ?? stubEnv()
   const iam = options.iam ?? stubIam()

@@ -165,9 +165,9 @@ describe('verification files · upload', () => {
 
     fireEvent.change(view.getByLabelText(/选择文件/u), { target: { files: [pickedFile('MP_verify_new.txt', 'fresh-token')] } })
     await waitFor(() => {
-      expect((view.getByLabelText('文件名')).value).toBe('MP_verify_new.txt')
+      expect((view.getByLabelText('文件名') as HTMLInputElement).value).toBe('MP_verify_new.txt')
     })
-    expect((view.getByLabelText('文件内容')).value).toBe('fresh-token')
+    expect((view.getByLabelText('文件内容') as HTMLInputElement).value).toBe('fresh-token')
 
     fireEvent.click(view.getByRole('button', { name: '上传' }))
     await waitFor(() => {
@@ -178,7 +178,7 @@ describe('verification files · upload', () => {
       )
     })
     expect(await view.findByText(zh['verification.uploaded'])).toBeTruthy()
-    expect((view.getByLabelText('文件名')).value).toBe('')
+    expect((view.getByLabelText('文件名') as HTMLInputElement).value).toBe('')
     expect(api.verificationFiles.list).toHaveBeenCalledTimes(2)
   })
 

@@ -285,7 +285,7 @@ describe('sdkwork_content_publish', () => {
   })
 
   it('publishes to a Host platform through its configured adapter', async () => {
-    const requests: { method?: string; url?: string }[] = []
+    const requests: { method?: string | undefined; url?: string | undefined }[] = []
     const server = createServer((request, response) => {
       requests.push({ method: request.method, url: request.url })
       request.resume()

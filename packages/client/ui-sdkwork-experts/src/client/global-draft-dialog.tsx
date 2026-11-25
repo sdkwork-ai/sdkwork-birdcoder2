@@ -11,11 +11,11 @@ import { personaLocale, type AgencyLocale } from '../agency-locale.js'
 import { acceptCatalog } from './catalog.js'
 import type { CatalogSnapshot, CustomExpertInput } from '../expert-contract.js'
 import type { TeamInput, TeamSnapshot } from '../team-contract.js'
-import type { AgencyCatalogRemote } from './remote.js'
+import type { AgencyCatalogRemote, AgencyTeamsRemote } from './remote.js'
 
 export interface GlobalDraftDialogOptions {
   proposal: StoredProposal
-  remote: AgencyCatalogRemote
+  remote: AgencyCatalogRemote & Partial<AgencyTeamsRemote>
   locale: AgencyLocale
   isCurrent: () => boolean
   revalidate: () => Promise<boolean>
@@ -40,6 +40,12 @@ export function openGlobalDraftEditor(options: GlobalDraftDialogOptions): () => 
       options.onClose?.()
     })
   }
+
+  // A Host that predates team editing exposes the catalog only. A team draft
+  // then has nothing to save against, so the dialog closes rather than editing
+  // a roster it cannot commit.
+  const getTeams = options.remote.getTeams?.bind(options.remote)
+  const saveTeam = options.remote.saveTeam?.bind(options.remote)
 
   function ExpertHost() {
     const [catalog, setCatalog] = React.useState<CatalogSnapshot | null>(null)
@@ -85,14 +91,17 @@ export function openGlobalDraftEditor(options: GlobalDraftDialogOptions): () => 
     )
   }
 
-  function TeamHost() {
+  function TeamHost({ getTeams, saveTeam }: {
+    getTeams: AgencyTeamsRemote['getTeams']
+    saveTeam: AgencyTeamsRemote['saveTeam']
+  }) {
     const [data, setData] = React.useState<{ catalog: CatalogSnapshot; teams: TeamSnapshot } | null>(null)
     const [loading, setLoading] = React.useState(true)
 
     const fetchAll = React.useCallback(async (initial = false) => {
       const [catalogData, teamData] = await Promise.all([
         unwrap<CatalogSnapshot>(options.remote.getCatalog()),
-        unwrap<TeamSnapshot>(options.remote.getTeams()),
+        unwrap<TeamSnapshot>(getTeams()),
       ])
       const valid = !cleaned && options.isCurrent() && (!initial || await options.revalidate())
       if (!valid || cleaned || !options.isCurrent()) {
@@ -102,7 +111,7 @@ export function openGlobalDraftEditor(options: GlobalDraftDialogOptions): () => 
       setData({ catalog: catalogData, teams: teamData })
       setLoading(false)
       return teamData
-    }, [])
+    }, [getTeams])
 
     React.useEffect(() => {
       let active = true
@@ -126,7 +135,7 @@ export function openGlobalDraftEditor(options: GlobalDraftDialogOptions): () => 
           refresh={() => fetchAll()}
           save={async (value, enabled, revision) => {
             const rev = revision ?? data.teams.revision
-            await unwrap(options.remote.saveTeam(value, enabled, rev))
+            await unwrap(saveTeam(value, enabled, rev))
             options.onSaved?.()
             cleanup()
           }}
@@ -135,8 +144,17 @@ export function openGlobalDraftEditor(options: GlobalDraftDialogOptions): () => 
     )
   }
 
-  root.render(
-    options.proposal.kind === 'expert' ? <ExpertHost /> : <TeamHost />,
-  )
+  if (options.proposal.kind !== 'expert') {
+    if (getTeams === undefined || saveTeam === undefined) {
+      // A Host that predates team editing exposes the catalog only, so a team
+      // draft has nothing to save against and the dialog closes.
+      cleanup()
+      return cleanup
+    }
+    root.render(<TeamHost getTeams={getTeams} saveTeam={saveTeam} />)
+    return cleanup
+  }
+
+  root.render(<ExpertHost />)
   return cleanup
 }

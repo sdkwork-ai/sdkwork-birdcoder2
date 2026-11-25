@@ -63,15 +63,15 @@ describe('PersonaDialog', () => {
     expect(within(roles).getAllByRole('radio')).toHaveLength(8)
     const teacher = within(roles).getByRole('radio', { name: /^老师/ })
     expect((teacher as HTMLInputElement).checked).toBe(true)
-    expect((within(roles).getByRole('radio', { name: /^学员/ })).checked).toBe(false)
+    expect((within(roles).getByRole('radio', { name: /^学员/ }) as HTMLInputElement).checked).toBe(false)
     // The chosen card carries the corner check glyph; the others do not.
     expect(teacher.closest('label')?.querySelector('svg')).not.toBeNull()
     expect(within(roles).getByRole('radio', { name: /^学员/ }).closest('label')?.querySelector('svg')).toBeNull()
     const interests = within(dialog).getByRole('group', { name: /^关注方向/ })
     expect(within(interests).getAllByRole('checkbox')).toHaveLength(12)
-    expect((within(interests).getByRole('checkbox', { name: '考研' })).checked).toBe(true)
-    expect((within(interests).getByRole('checkbox', { name: '编程开发' })).checked).toBe(true)
-    expect((within(interests).getByRole('checkbox', { name: '保研' })).checked).toBe(false)
+    expect((within(interests).getByRole('checkbox', { name: '考研' }) as HTMLInputElement).checked).toBe(true)
+    expect((within(interests).getByRole('checkbox', { name: '编程开发' }) as HTMLInputElement).checked).toBe(true)
+    expect((within(interests).getByRole('checkbox', { name: '保研' }) as HTMLInputElement).checked).toBe(false)
     // The legend counts the chosen directions with the shipped copy.
     expect(within(dialog).getByText('已选 2 项')).not.toBeNull()
   })
@@ -88,7 +88,7 @@ describe('PersonaDialog', () => {
     const interests = within(dialog).getByRole('group', { name: /^关注方向/ })
     expect(within(interests).getAllByRole('checkbox')).toHaveLength(2)
     // A stored direction the catalog no longer allows is neither rendered nor counted.
-    expect((within(interests).getByRole('checkbox', { name: '考研' })).checked).toBe(true)
+    expect((within(interests).getByRole('checkbox', { name: '考研' }) as HTMLInputElement).checked).toBe(true)
     expect(within(dialog).getByText('已选 2 项')).not.toBeNull()
   })
 
@@ -109,12 +109,12 @@ describe('PersonaDialog', () => {
     const dialog = screen.getByRole('dialog')
     const roles = within(dialog).getByRole('group', { name: '你的角色' })
     fireEvent.click(within(roles).getByRole('radio', { name: /^合作伙伴/ }))
-    expect((within(roles).getByRole('radio', { name: /^合作伙伴/ })).checked).toBe(true)
+    expect((within(roles).getByRole('radio', { name: /^合作伙伴/ }) as HTMLInputElement).checked).toBe(true)
     const interests = within(dialog).getByRole('group', { name: /^关注方向/ })
     fireEvent.click(within(interests).getByRole('checkbox', { name: '就业求职' }))
-    expect((within(interests).getByRole('checkbox', { name: '就业求职' })).checked).toBe(true)
+    expect((within(interests).getByRole('checkbox', { name: '就业求职' }) as HTMLInputElement).checked).toBe(true)
     fireEvent.click(within(interests).getByRole('checkbox', { name: '就业求职' }))
-    expect((within(interests).getByRole('checkbox', { name: '就业求职' })).checked).toBe(false)
+    expect((within(interests).getByRole('checkbox', { name: '就业求职' }) as HTMLInputElement).checked).toBe(false)
   })
 
   it('blocks saving without a role and keeps the dialog open', () => {
@@ -147,7 +147,7 @@ describe('PersonaDialog', () => {
     })
     expect(save).toHaveBeenCalledTimes(1)
     expect(onClose).not.toHaveBeenCalled()
-    expect((screen.getByRole('radio', { name: /^员工/ })).checked).toBe(true)
+    expect((screen.getByRole('radio', { name: /^员工/ }) as HTMLInputElement).checked).toBe(true)
   })
 
   it('reports a transport failure instead of escaping an unhandled rejection', async () => {
@@ -162,7 +162,7 @@ describe('PersonaDialog', () => {
 
   it('disables saving while the Host document is read-only and explains why', () => {
     picker({ writable: false })
-    expect((screen.getByRole('button', { name: '保存' })).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: '保存' }) as HTMLButtonElement).disabled).toBe(true)
     expect(screen.getByRole('status').textContent).toContain('当前设置不可写，暂时无法保存选择。')
   })
 

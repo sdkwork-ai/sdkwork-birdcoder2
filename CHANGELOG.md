@@ -118,7 +118,7 @@
 #### 合并后的 fork 变更（2026-11-21 起）
 
 * **模型调用失败诊断**（`7f45a280fc`、`e40b6de8d3`）：`llm-pi-ai` 在 provider 调用失败时上报精确的请求体，便于定位网关改写与凭据问题；对应断言补了对缺失日志调用的保护。
-* **子模块前移到远端默认分支 HEAD**：`plugins/dsh-mcp-connector` 0.2.119 → 0.2.120（OAuth 回调兼容修复），`plugins/dsh-better-sidebar` 0.32.1 → 0.33.0（0.2.3 的 admit 注入 `connection.authentication`）；其余六个子模块已在最新指针。
+* **子模块前移到远端默认分支 HEAD**：`plugins/dsh-mcp-connector` 0.2.119 → 0.2.120（OAuth 回调兼容修复），`plugins/dsh-better-sidebar` 0.32.1 → 0.33.0（0.2.3 的 admit 注入 `connection.authentication`，再前移到 v0.33.0 发布合并与 PC 右键菜单上下文修复），`plugins/dsh-im` → 0.2.2-rc.5 客户端行兼容基线；其余子模块已在最新指针。
 * **品牌清单驱动构建与安装产品名**：`apps/web/scripts/build-brand.ts` 从 `brands/<key>.json` 取 `displayName` 注入 HTML `<title>` 与 PWA `manifest.webmanifest`，显式 `DSH_BRAND` / `DSH_CLIENT_TITLE` 可覆盖且失败即报错；桌面安装器的八份 locale 用 `{product}` 占位符由 `renderInstallerStrings()` 填入 `desktop.productName`，原生 window-frame 报告标题从构建期生成的 `installer-product.h` 读取（缺省回落到签入的 `installer-product-name.h`）。`LocaleRuntime.setBrand` 同时覆盖 fork 名、上游名与误拼写的 `Birdcoder`，并新增 `readOemCompanyName()` 投影；`agent.app.config.json` 统一为 `BirdCoder`。
 * **设置菜单「我的域名」**：`ui-sdkwork-deploy` 增加域名中心对话框与验证逻辑，从设置入口直接管理域名；`llm-pi-ai` 在重命名 catalog id 下沿用 relay 模型事实并补测试；关于面板的安装身份与抽屉表面同步刷新。
 
@@ -131,6 +131,12 @@
 * **安装修复命令**（`feat(scripts): add admin:repair:installation reconciliation command`）：`scripts/bootstrap/installation-repair.ts` + `repair-installation.mjs` 对齐本地安装记录与应用锚点，附 128 行规格。
 * **预览客户端按面分目录**（`refactor(preview): group preview clients and row menus into per-surface directories`）：audio/image/video/pdf/docx/xlsx/pptx 预览与行菜单各自成目录；`xlsx` 表头填充改用活动主题 token（`fix(xlsx-preview): use the active header fill token in the sheet grid`）。
 * **打包与配置**：`fix(pack): treat git dirty marker as build-time provenance`、`fix(build): tolerate vanished files and out-of-tree links when stamping`、重新生成部署 profile 的 env 文件、`mcp-connector` 前移到 0.2.119。
+
+#### 本轮发布新增（重发 0.2.3-alpha.2）
+
+* **可携带技能包与插件市场**（`cc2b8fcf6d`）：随包发布可移植技能包与 SDKWork 插件市场；新增 `birdcoder-app-deploy`、`birdcoder-content-publish`、`birdcoder-knowledge-article` 等技能与配套规范参考，支持从对话直接部署应用（`deploy-from-conversation`）；专家市场改为一方能力并收敛 agent-notes 归档清单。
+* **专家团类型安全**（`6fee904572`）：`ui-sdkwork-experts` 的设置配置与成员解析保持类型安全。
+* **客户端类型门禁修复**：补齐 `ui-sdkwork-experts` 的 teams remote 可选兼容与 locale/t 注入、tabler 图标入口、`ui-sdkwork-*` 测试夹具的 DOM 断言类型；`runtime` 会话位置数据联合补上 Step 分支。类型门禁 `tsc -b tsconfig.client.tests.json` 恢复全绿。
 
 #### 发布准备（本版本打包前）
 

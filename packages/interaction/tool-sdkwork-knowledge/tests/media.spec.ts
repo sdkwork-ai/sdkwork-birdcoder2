@@ -112,7 +112,7 @@ async function videoFile(): Promise<string> {
 
 describe('facebook adapter', () => {
   it('posts text and a link to the Page feed', async () => {
-    const server = await mockPlatform((request, response) => {
+    const server = await mockPlatform((_request, response) => {
       json(response, 200, { id: 'post-1' })
     })
     try {
@@ -136,7 +136,7 @@ describe('facebook adapter', () => {
   })
 
   it('uploads a photo when an image path is given', async () => {
-    const server = await mockPlatform((request, response) => {
+    const server = await mockPlatform((_request, response) => {
       json(response, 200, { id: 'photo-1', post_id: 'post-2' })
     })
     const directory = await mkdtemp(join(tmpdir(), 'dsh-media-img-'))
@@ -159,7 +159,7 @@ describe('facebook adapter', () => {
   })
 
   it('reports the platform rejection message', async () => {
-    const server = await mockPlatform((request, response) => {
+    const server = await mockPlatform((_request, response) => {
       json(response, 400, { error: { message: 'Invalid OAuth access token', code: 190 } })
     })
     try {
@@ -179,7 +179,7 @@ describe('facebook adapter', () => {
 
 describe('twitter adapter', () => {
   it('creates a text post with the bearer token', async () => {
-    const server = await mockPlatform((request, response) => {
+    const server = await mockPlatform((_request, response) => {
       json(response, 201, { data: { id: 'tweet-1' } })
     })
     try {
@@ -244,7 +244,7 @@ describe('douyin adapter', () => {
 
 describe('credential resolution', () => {
   it('reads the token from the named environment variable', async () => {
-    const server = await mockPlatform((request, response) => {
+    const server = await mockPlatform((_request, response) => {
       json(response, 201, { data: { id: 'tweet-env' } })
     })
     const account: HostMediaAccount = {

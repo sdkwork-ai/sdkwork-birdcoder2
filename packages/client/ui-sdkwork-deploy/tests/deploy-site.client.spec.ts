@@ -89,7 +89,7 @@ describe('deployed-site helpers', () => {
   })
 
   it('names the tab type and its guide entry from the dictionary', () => {
-    const definition = deploySiteDefinition(translate)
+    const definition = deploySiteDefinition(translate as unknown as Parameters<typeof deploySiteDefinition>[0])
     expect(definition).toMatchObject({ kind: 'sdkwork-deploy-site', priority: 'builtin', keepMounted: true })
     expect(definition.title('sidebar://sdkwork-deploy-site')).toBe(translate('site.tabTitle'))
     expect(definition.guide?.[0]?.title()).toBe(translate('site.guideTitle'))
