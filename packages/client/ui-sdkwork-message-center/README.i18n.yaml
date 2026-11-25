@@ -1,0 +1,34 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-message-center/README.md
+/:
+  en: a705a2d18f0c9557
+  zh: f50f8ba0a3711a08
+/deepseek-ai-dsh-client-ui-sdkwork-message-center:
+  en: 3821f534ca32d2a3
+  zh: 2c185f67bf47791e
+/deepseek-ai-dsh-client-ui-sdkwork-message-center/summary:
+  en: e1ebe3a9028bb719
+  zh: 15e0f96045413d01
+/deepseek-ai-dsh-client-ui-sdkwork-message-center/table-of-contents:
+  en: 6c5fa201f719427c
+  zh: d8068c06772729ff
+/deepseek-ai-dsh-client-ui-sdkwork-message-center/use-this-package:
+  en: 05b5a63830218971
+  zh: 8bdef271bf2478db
+/deepseek-ai-dsh-client-ui-sdkwork-message-center/notification-contract:
+  en: c5b6dc0d23fdb8db
+  zh: efaa3701e08ba605
+/deepseek-ai-dsh-client-ui-sdkwork-message-center/configuration:
+  en: 1cd3116df2e38e82
+  zh: 54b7653de946450a
+/deepseek-ai-dsh-client-ui-sdkwork-message-center/model-experience:
+  en: d7b2e1118fcba259
+  zh: 144845511d35b175
+/deepseek-ai-dsh-client-ui-sdkwork-message-center/model-experience/kv-cache-effect:
+  en: 36d3b31bd102d53b
+  zh: 05cdbfed1963f52e
+/deepseek-ai-dsh-client-ui-sdkwork-message-center/known-limitations-and-deferred-work:
+  en: 1f2f70526fecf1f7
+  zh: 94be7cf9a090584e

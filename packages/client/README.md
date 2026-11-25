@@ -54,6 +54,7 @@ The kernel packages boot and serve the page; the UI feature packages present it.
 | [`ui-sdkwork-drive/`](ui-sdkwork-drive/README.md) | Provides the SDKWork-backed Drive mode as an independent plugin | — |
 | [`ui-sdkwork-assets/`](ui-sdkwork-assets/README.md) | Provides the Assets mode as an independent module | — |
 | [`ui-sdkwork-token-plan/`](ui-sdkwork-token-plan/README.md) | Provides the SDKWork membership and commerce mode as an independent plugin | — |
+| [`ui-sdkwork-message-center/`](ui-sdkwork-message-center/README.md) | Provides the SDKWork account message center as the rail shortcut above Settings and its overlay | — |
 | [`ui-sdkwork-pptx-preview/`](ui-sdkwork-pptx-preview/README.md) | Draws `.pptx` presentations in the right Sidebar's document tab with an offline OOXML renderer | `ctx.documentPreviews` |
 | [`ui-sdkwork-docx-preview/`](ui-sdkwork-docx-preview/README.md) | Draws `.docx` documents in the right Sidebar's document tab with an offline WordprocessingML renderer | `ctx.documentPreviews` |
 | [`ui-sdkwork-xlsx-preview/`](ui-sdkwork-xlsx-preview/README.md) | Draws `.xlsx` workbooks in the right Sidebar's document tab with an offline SpreadsheetML renderer | `ctx.documentPreviews` |

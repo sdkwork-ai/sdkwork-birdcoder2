@@ -1,0 +1,41 @@
+/* The message-center rail shortcut: one 44px icon cell in the rail's
+   `mode.rail.panel` seat, directly above Settings. Same cell geometry and
+   hover language as the mode entries; the unread badge is the only extra
+   chrome. */
+
+.entry {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.entry:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.entry:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary-new-colorprimary-new-color);
+  outline-offset: 1px;
+}
+
+/* Unread marker: a small dot on the glyph's top-right, not a count, so the
+   cell stays a fixed 44px target. */
+.badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dsw-alias-state-error-primary);
+}

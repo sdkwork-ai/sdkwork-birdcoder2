@@ -198,6 +198,7 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/client/ui-sdkwork-generations-assets': { kind: 'none', reason: 'Browser-side SDKWork asset library UI; its business HTTP requests remain separate from Harness model requests.' },
   'packages/client/ui-sdkwork-generations-video': { kind: 'none', reason: 'Browser-side SDKWork generations UI; its business HTTP requests remain separate from Harness model requests.' },
   'packages/client/ui-sdkwork-token-plan': { kind: 'none', reason: 'Browser-side SDKWork membership and order commerce UI; its business HTTP requests remain separate from Harness model requests.' },
+  'packages/client/ui-sdkwork-message-center': { kind: 'none', reason: 'Browser-side SDKWork notification list; its business HTTP requests remain separate from Harness model requests.' },
   'packages/client/ui-sdkwork-official-accounts': { kind: 'none', reason: 'Browser-side SDKWork official-account management dialog; its business HTTP requests remain separate from Harness model requests.' },
   'packages/client/ui-sdkwork-dns': { kind: 'none', reason: 'Browser-side SDKWork domain management dialog; its business HTTP requests remain separate from Harness model requests.' },
   'packages/client/ui-sdkwork-certificate': { kind: 'none', reason: 'Browser-side SDKWork certificate management dialog; its business HTTP requests remain separate from Harness model requests.' },

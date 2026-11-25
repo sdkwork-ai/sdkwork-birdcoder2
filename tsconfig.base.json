@@ -440,6 +440,8 @@
       "@deepseek-ai/dsh-client-ui-sdkwork-persona/client": ["./packages/client/ui-sdkwork-persona/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-feedback": ["./packages/client/ui-sdkwork-feedback/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-feedback/client": ["./packages/client/ui-sdkwork-feedback/src/client"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-message-center": ["./packages/client/ui-sdkwork-message-center/src"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-message-center/client": ["./packages/client/ui-sdkwork-message-center/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-assets": ["./packages/client/ui-sdkwork-assets/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-assets/client": ["./packages/client/ui-sdkwork-assets/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-deploy": ["./packages/client/ui-sdkwork-deploy/src"],

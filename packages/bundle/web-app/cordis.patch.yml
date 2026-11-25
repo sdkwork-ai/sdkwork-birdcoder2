@@ -767,6 +767,13 @@
     - id: ui-sdkwork-token-plan
       name: '@deepseek-ai/dsh-client-ui-sdkwork-token-plan'
 
+    # Message center: the mail icon in the mode rail's panel seat directly above
+    # Settings and the overlay listing the signed-in account's app
+    # notifications through the SDKWork notification API. The rail badge counts
+    # unread notifications; the center marks one consumed when it is opened.
+    - id: ui-sdkwork-message-center
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-message-center'
+
     - id: ui-sdkwork-apikey
       name: '@deepseek-ai/dsh-client-ui-sdkwork-apikey'
 

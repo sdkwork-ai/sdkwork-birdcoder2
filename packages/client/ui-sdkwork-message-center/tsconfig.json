@@ -1,0 +1,68 @@
+{
+  "extends": "../../../tsconfig.base.client.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    // The sdkwork sibling package enters this program as external source (its
+    // manifest points exports at src). It is written for the sdkwork flag set
+    // (strict only), so the harness's stricter flags are relaxed for THIS
+    // project's program; the package's own code still follows the harness
+    // conventions.
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitOverride": false,
+    // The sdkwork source is type-checked by the dedicated tests project
+    // (tsconfig.tests.json) under the same relaxed flags; this project
+    // resolves and emits declarations without re-checking the external
+    // source.
+    "noCheck": true,
+    // The sdkwork import resolves to a local declaration facade
+    // (sdkwork-types/) so the emit program never pulls the sdkwork source;
+    // the tests project is the drift guard against the real package.
+    "paths": {
+      "@sdkwork/sdk-common": ["./sdkwork-types/sdk-common.d.ts"]
+    }
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../store"
+    },
+    {
+      "path": "../locale/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-layout"
+    },
+    {
+      "path": "../ui-primitives"
+    },
+    {
+      "path": "../ui-renderer"
+    },
+    {
+      "path": "../ui-sdkwork-app-modes"
+    },
+    {
+      "path": "../ui-sdkwork-env/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-sdkwork-iam"
+    },
+    {
+      "path": "../ui-slots"
+    }]
+}

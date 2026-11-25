@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-26-sdkwork-message-center.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-26-sdkwork-message-center.md
+/agent-note-sdkwork-message-center-in-the-mode-rail:
+  en: fce516555ad810ce
+  zh: 34a6c225ba74710a
+/agent-note-sdkwork-message-center-in-the-mode-rail/problem:
+  en: 3813420c15105e59
+  zh: ec28d6e18b8026cd
+/agent-note-sdkwork-message-center-in-the-mode-rail/decision:
+  en: f5fba7234f88cfb6
+  zh: 51e1f22f90ed6365
+/agent-note-sdkwork-message-center-in-the-mode-rail/alternatives-considered:
+  en: 7eee7c56072ffd88
+  zh: 6f504b8e3c31f68d
+/agent-note-sdkwork-message-center-in-the-mode-rail/consequences:
+  en: b12a69c88fa7d37e
+  zh: 5a140a09ab6c2011

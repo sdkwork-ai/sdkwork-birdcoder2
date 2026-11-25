@@ -1,0 +1,82 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // The full typecheck project: checks this package's own code AND the
+    // sdkwork sibling source it composes against (its exports point at src,
+    // so node_modules resolution joins it as source). The emit project
+    // (tsconfig.json) ships declarations with noCheck; this project is the
+    // real gate and the drift guard for the sdkwork surface. noEmit keeps the
+    // external source out of the declaration machinery.
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "noCheck": false,
+    // The sdkwork closure (sdk-common's utils) references Node globals.
+    "types": ["node"],
+    "rootDir": "../../../..",
+    // One React type identity for the whole program.
+    "paths": {
+      "react": ["./node_modules/@types/react/index.d.ts"],
+      "react-dom": ["./node_modules/@types/react-dom/index.d.ts"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
+      "react-dom/*": ["./node_modules/@types/react-dom/*"]
+    }
+  },
+  "include": [
+    "src",
+    "tests",
+    // The sdkwork closure this program composes. Listed (and test files
+    // excluded) so the composite-era file-list rule accepts the imported
+    // sources; the packages themselves stay outside the project tree.
+    "../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src",
+    "../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src"
+  ],
+  "exclude": [
+    "../../../../sdkwork-*/**/*.test.ts",
+    "../../../../sdkwork-*/**/*.test.tsx",
+    "../../../../sdkwork-*/**/*.spec.ts",
+    "../../../../sdkwork-*/**/*.spec.tsx",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../store"
+    },
+    {
+      "path": "../locale/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-layout"
+    },
+    {
+      "path": "../ui-primitives"
+    },
+    {
+      "path": "../ui-renderer"
+    },
+    {
+      "path": "../ui-sdkwork-app-modes"
+    },
+    {
+      "path": "../ui-sdkwork-env/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-sdkwork-iam"
+    },
+    {
+      "path": "../ui-slots"
+    }]
+}

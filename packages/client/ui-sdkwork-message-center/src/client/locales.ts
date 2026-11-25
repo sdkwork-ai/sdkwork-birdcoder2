@@ -1,0 +1,68 @@
+/** `messageCenter` namespace dictionaries: the rail shortcut, the center shell, and its states. */
+
+/** Simplified Chinese dictionary (the key-set source of truth). */
+export const zh = {
+  'rail.label': '消息中心',
+  'rail.aria': '打开消息中心',
+  'rail.unreadAria': '打开消息中心，{count} 条未读',
+  'title': '消息中心',
+  'close': '关闭',
+  'summary.unread': '{count} 条未读',
+  'list.label': '消息列表',
+  'loading': '正在加载消息…',
+  'empty.title': '暂无消息',
+  'empty.detail': '新的账户通知会出现在这里。',
+  'action.retry': '重试',
+  'action.signIn': '登录',
+  'action.view': '点击查看',
+  'action.expand': '展开',
+  'action.collapse': '收起',
+  'action.loadMore': '加载更多',
+  'action.back': '返回',
+  'error.unauthorized.title': '登录后查看消息',
+  'error.unauthorized.detail': '使用你的 SDKWork 账户登录后即可查看账户消息。',
+  'error.unavailable': '暂时无法连接消息服务，请稍后重试。',
+  'error.unknown': '消息加载失败，请稍后重试。',
+  'error.banner': '刷新失败，以下为上次加载的消息。',
+  'unconfigured.title': '未配置消息服务',
+  'unconfigured.detail': '当前环境未配置 SDKWork 服务地址，无法加载消息。',
+  'detail.title': '消息详情',
+  'detail.openLink': '打开相关链接',
+  'day.today': '今天',
+  'day.yesterday': '昨天',
+} satisfies Record<string, string>
+
+/** The messageCenter namespace key union. */
+export type MessageCenterKey = keyof typeof zh
+
+/** English dictionary, checked complete against the zh key set. */
+export const en = {
+  'rail.label': 'Message center',
+  'rail.aria': 'Open the message center',
+  'rail.unreadAria': 'Open the message center, {count} unread',
+  'title': 'Message center',
+  'close': 'Close',
+  'summary.unread': '{count} unread',
+  'list.label': 'Messages',
+  'loading': 'Loading messages…',
+  'empty.title': 'No messages yet',
+  'empty.detail': 'New account notifications will appear here.',
+  'action.retry': 'Retry',
+  'action.signIn': 'Sign in',
+  'action.view': 'View',
+  'action.expand': 'Expand',
+  'action.collapse': 'Collapse',
+  'action.loadMore': 'Load more',
+  'action.back': 'Back',
+  'error.unauthorized.title': 'Sign in to view messages',
+  'error.unauthorized.detail': 'Sign in with your SDKWork account to view account messages.',
+  'error.unavailable': 'The message service is unreachable. Try again later.',
+  'error.unknown': 'Messages could not be loaded. Try again later.',
+  'error.banner': 'Refresh failed; showing the last loaded messages.',
+  'unconfigured.title': 'Message service not configured',
+  'unconfigured.detail': 'This environment has no SDKWork service address, so messages cannot load.',
+  'detail.title': 'Message details',
+  'detail.openLink': 'Open related link',
+  'day.today': 'Today',
+  'day.yesterday': 'Yesterday',
+} satisfies Record<MessageCenterKey, string>
