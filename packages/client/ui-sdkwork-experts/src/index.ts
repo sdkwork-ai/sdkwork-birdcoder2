@@ -885,8 +885,9 @@ export function apply(ctx: Context, config: Config): void {
   }
   const settingsApi = ctx.settings as { configure?: (policy: { auto?: boolean }, owner?: unknown) => () => void }
   const fiber = (ctx as { fiber?: object }).fiber
-  if (typeof ctx.effect === 'function' && fiber !== undefined && typeof settingsApi.configure === 'function') {
-    ctx.effect(() => settingsApi.configure({ auto: false }, fiber), 'sdkwork-experts: settings presentation')
+  const configureSettings = settingsApi.configure
+  if (typeof ctx.effect === 'function' && fiber !== undefined && typeof configureSettings === 'function') {
+    ctx.effect(() => configureSettings({ auto: false }, fiber), 'sdkwork-experts: settings presentation')
   }
   if (typeof ctx.effect === 'function') {
     ctx.effect(() => {
@@ -1384,12 +1385,17 @@ export function apply(ctx: Context, config: Config): void {
       const locale = creationLocale()
       const catalog = await library.catalog()
       const membersRaw = Array.isArray(args.members) ? args.members : []
-      const members = membersRaw.map((m: Record<string, unknown>) => ({
-        expertSlug: String(m?.expertSlug ?? '').trim(),
-        duty: String(m?.duty ?? '').trim(),
-        instructions: String(m?.instructions ?? '').trim(),
-        ...(m?.reason ? { reason: String(m.reason).trim() } : {}),
-      }))
+      const members = membersRaw.map((value) => {
+        const m = (typeof value === 'object' && value !== null && !Array.isArray(value)
+          ? value
+          : {}) as Record<string, unknown>
+        return {
+          expertSlug: String(m.expertSlug ?? '').trim(),
+          duty: String(m.duty ?? '').trim(),
+          instructions: String(m.instructions ?? '').trim(),
+          ...(m.reason ? { reason: String(m.reason).trim() } : {}),
+        }
+      })
 
       const rawTeam = {
         name: String(args.name ?? '').trim(),
