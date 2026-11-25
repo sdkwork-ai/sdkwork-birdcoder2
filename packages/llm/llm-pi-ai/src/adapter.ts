@@ -137,6 +137,14 @@ export interface PiAiAdapterOptions {
    * conversation report them again.
    */
   onThinkingOmitted?: (detail: { provider: string; model: string; count: number }) => void
+  /** Log the exact JSON payload after a provider rejects or fails a model request. */
+  onRequestFailure?: (detail: {
+    provider: string
+    model: string
+    sessionId?: string
+    failure: string
+    requestBody: string
+  }) => void
 }
 
 /** The two auth injectables a pi-ai collection is built with. */
@@ -274,6 +282,26 @@ function requestHeaders(
       'REQUEST_HEADERS', { cause: error },
     )
   }
+}
+
+/** Keep OpenAI-compatible request routing bound to the model selected by the Session. */
+function withSelectedOpenAiModel(payload: unknown, model: Model<Api>): Record<string, unknown> {
+  if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) {
+    throw new LlmError('pi-ai produced a non-object OpenAI Chat Completions payload', 'INVALID_CONFIG')
+  }
+  if (model.id.trim().length === 0) {
+    throw new LlmError(`pi-ai provider "${model.provider}" resolved an empty model id`, 'INVALID_CONFIG')
+  }
+  return { ...payload, model: model.id }
+}
+
+/** Preserve a structured failure's message and code in request diagnostics. */
+function requestFailureText(failure: unknown): string {
+  if (failure instanceof Error) return failure.message
+  if (failure !== null && typeof failure === 'object') {
+    return JSON.stringify(failure) ?? String(failure)
+  }
+  return String(failure)
 }
 
 /**
@@ -442,6 +470,19 @@ export class PiAiAdapter extends LlmAdapter {
     // the one it started with and the next call picks up the new one.
     const profile = this.profileOf(snapshot, options.provider)
     const model = this.modelOf(snapshot, options.provider, options.model)
+    let requestBody: string | undefined
+    let requestFailureReported = false
+    const reportRequestFailure = (failure: unknown): void => {
+      if (requestBody === undefined || requestFailureReported || options.signal?.aborted) return
+      requestFailureReported = true
+      this.config.onRequestFailure?.({
+        provider: options.provider,
+        model: model.id,
+        ...options.sessionId === undefined ? {} : { sessionId: String(options.sessionId) },
+        failure: requestFailureText(failure),
+        requestBody,
+      })
+    }
     const updates = conversationUpdates(model)
     // pi-ai collapses Anthropic tool updates without an initially active declaration.
     const tools = options.tools ?? []
@@ -495,6 +536,13 @@ export class PiAiAdapter extends LlmAdapter {
       })
       const events = snapshot.models.streamSimple(model, context, {
         ...profileOptions(profile, reasoning, apiKey),
+        onPayload: (payload) => {
+          const prepared = model.api === 'openai-completions'
+            ? withSelectedOpenAiModel(payload, model)
+            : payload
+          requestBody = JSON.stringify(prepared)
+          return prepared
+        },
         ...options.temperature === undefined ? {} : { temperature: options.temperature },
         ...options.maxTokens === undefined ? {} : { maxTokens: options.maxTokens },
         ...options.sessionId === undefined ? {} : { sessionId: String(options.sessionId) },
@@ -510,6 +558,9 @@ export class PiAiAdapter extends LlmAdapter {
             exhausted = true
             return
           }
+          if (result.value.type === 'finish' && result.value.reason.kind === 'error') {
+            reportRequestFailure(result.value.reason.failure)
+          }
           yield result.value
         }
       } finally {
@@ -522,6 +573,7 @@ export class PiAiAdapter extends LlmAdapter {
         }
       }
     } catch (error: unknown) {
+      reportRequestFailure(error)
       if (timeoutOf(watchdog.signal, 'LLM_STREAM_IDLE_TIMEOUT') !== undefined) {
         throw new LlmError(`pi-ai stream idle timeout after ${streamIdleTimeoutMs}ms`, 'TIMEOUT', { cause: error })
       }

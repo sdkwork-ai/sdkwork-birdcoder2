@@ -6,7 +6,7 @@ export const zh = {
   'dialog.description': '告诉我们你的问题或建议，我们会尽快处理。',
   'dialog.close': '关闭',
   'dialog.unconfigured.title': '未配置反馈服务',
-  'dialog.unconfigured.detail': '请在设置中配置 ui-sdkwork-env 的环境 baseUrl 后提交反馈。',
+  'dialog.unconfigured.detail': '请在设置中配置服务地址后提交反馈。',
   'dialog.type': '反馈类型',
   'dialog.type.bug': '问题反馈',
   'dialog.type.suggestion': '功能建议',
@@ -22,7 +22,7 @@ export const zh = {
   'dialog.submitting': '提交中…',
   'dialog.success': '感谢你的反馈！',
   'dialog.error': '提交失败，请稍后重试',
-  'dialog.error.unauthorized': '请先登录 SDKWork 账号后再提交反馈',
+  'dialog.error.unauthorized': '请先登录账号后再提交反馈',
 } satisfies Record<string, string>
 
 /** The ui-sdkwork-feedback namespace key union. */
@@ -34,7 +34,7 @@ export const en = {
   'dialog.description': 'Tell us about a problem or a suggestion — we will follow up.',
   'dialog.close': 'Close',
   'dialog.unconfigured.title': 'Feedback service not configured',
-  'dialog.unconfigured.detail': 'Configure the ui-sdkwork-env environment baseUrl in settings to submit feedback.',
+  'dialog.unconfigured.detail': 'Configure the service base URL in Settings to submit feedback.',
   'dialog.type': 'Feedback type',
   'dialog.type.bug': 'Bug report',
   'dialog.type.suggestion': 'Feature suggestion',
@@ -50,5 +50,5 @@ export const en = {
   'dialog.submitting': 'Submitting…',
   'dialog.success': 'Thank you for your feedback!',
   'dialog.error': 'Submission failed, please try again later',
-  'dialog.error.unauthorized': 'Sign in with your SDKWork account before submitting feedback',
+  'dialog.error.unauthorized': 'Sign in before submitting feedback',
 } satisfies Record<UiFeedbackKey, string>

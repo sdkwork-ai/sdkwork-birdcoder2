@@ -118,7 +118,7 @@ describe('PointsRechargeDialog', () => {
 
     expect(screen.queryByTestId('recharge-dialog')).toBeNull()
     const modal = screen.getByRole('dialog', { name: '算力账户充值' })
-    expect(modal.textContent).toContain('请先在设置中配置 SDKWork API 环境。')
+    expect(modal.textContent).toContain('请先在设置中配置 API 环境。')
     fireEvent.click(screen.getByRole('button', { name: '完成' }))
     expect(onClose).toHaveBeenCalledTimes(1)
   })

@@ -1,4 +1,9 @@
-﻿import { readInstallerLocales, renderInstallerStrings } from './installer-locales.mjs'
+import {
+  PRODUCT_HEADER_FILENAME,
+  readInstallerLocales,
+  renderInstallerProductHeader,
+  renderInstallerStrings,
+} from './installer-locales.mjs'
 import { officePackageDirectories } from '../../../scripts/libreoffice-packages.mjs'
 import { X509Certificate } from 'node:crypto'
 import { readFileSync } from 'node:fs'
@@ -367,7 +372,15 @@ export function createElectronBuilderConfig(
         '-OutputDirectory', join(buildPaths.root, 'installer-ui')], {
         env: scrubWindowsSigningEnvironment(env), windowsHide: true,
       })
-      await writeFile(join(buildPaths.root, 'installer-ui', 'strings.nsh'), renderInstallerStrings(readInstallerLocales()), 'utf8')
+      await writeFile(join(buildPaths.root, 'installer-ui', 'strings.nsh'), renderInstallerStrings(readInstallerLocales(), brand.desktop.productName), 'utf8')
+      // The native helper draws the restart banner title and the report headers,
+      // so its product name is generation-time copy as well; the checked-in
+      // `installer-product-name.h` includes this file and falls back when absent.
+      await writeFile(
+        join(buildPaths.root, 'installer-ui', PRODUCT_HEADER_FILENAME),
+        renderInstallerProductHeader(brand.desktop.productName),
+        'utf8',
+      )
       if (windowsSigner !== undefined) {
         await windowsSigner({ path: join(buildPaths.root, 'installer-ui', 'window-frame.dll'), hash: 'sha256', isNest: false })
       }

@@ -28,9 +28,9 @@ const APPLICATION = {
   environment: 'production',
   deploymentMode: 'saas',
   product: {
-    name: 'SDKWork Birdcoder',
+    name: 'Birdcoder',
     vendor: 'SDKWork',
-    appKey: 'sdkwork-birdcoder2',
+    appKey: 'birdcoder',
     iconUrl: 'https://cdn.sdkwork.com/icon.png',
     websiteUrl: 'https://sdkwork.com/apps/sdkwork-birdcoder',
     supportUrl: 'https://sdkwork.com/support',
@@ -96,11 +96,11 @@ describe('About surfaces', () => {
     const assembly = await bench()
     await vi.waitFor(() => { expect(sdk.retrieve).toHaveBeenCalledTimes(1) })
     const view = assembly.renderSlot('settings.section', { close: () => {} })
-    expect(view.view.getByText('SDKWork Birdcoder')).not.toBeNull()
+    expect(view.view.getByText('Birdcoder')).not.toBeNull()
     expect(view.view.getByText('382418217538162688')).not.toBeNull()
     expect(view.view.getByText('已连接平台')).not.toBeNull()
-    expect(view.view.getByText('应用方式')).not.toBeNull()
-    expect(view.view.getByText('网页应用')).not.toBeNull()
+    // The release environment keeps deployment diagnostics off the surface.
+    expect(view.view.queryByText('部署信息')).toBeNull()
     view.view.getByRole('button', { name: '刷新' }).click()
     await vi.waitFor(() => { expect(sdk.retrieve).toHaveBeenCalledTimes(2) })
   })
@@ -113,7 +113,7 @@ describe('About surfaces', () => {
     if (service === undefined) throw new Error('the About service was not provided')
     act(() => { service.open() })
     expect(screen.getByRole('dialog')).not.toBeNull()
-    expect(screen.getByText('SDKWork Birdcoder')).not.toBeNull()
+    expect(screen.getByText('Birdcoder')).not.toBeNull()
     fireEvent.keyDown(document, { key: 'Escape' })
     await vi.waitFor(() => { expect(screen.queryByRole('dialog')).toBeNull() })
     act(() => { service.open() })

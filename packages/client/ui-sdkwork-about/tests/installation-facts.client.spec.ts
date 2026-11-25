@@ -10,9 +10,9 @@ const RESPONSE = {
   environment: 'production',
   deploymentMode: 'saas',
   product: {
-    name: 'SDKWork Birdcoder',
+    name: 'Birdcoder',
     vendor: 'SDKWork',
-    appKey: 'sdkwork-birdcoder2',
+    appKey: 'birdcoder',
     iconUrl: 'https://cdn.sdkwork.com/icon.png',
     websiteUrl: 'https://sdkwork.com/apps/sdkwork-birdcoder',
     supportUrl: 'https://sdkwork.com/support',

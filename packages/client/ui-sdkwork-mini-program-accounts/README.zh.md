@@ -26,7 +26,7 @@ SDKWork 小程序账号插件（浏览器侧）：在设置菜单弹出面板中
 - `src/client/miniProgramHost.ts` 用共享的 `ui-sdkwork-env` 网关地址和 `ui-sdkwork-iam` 会话构造一个 IAM **后台**生成客户端，并在每次读取前把会话镜像进浏览器全局 token manager；随后用 `createMiniProgramController(createMiniProgramOperatorTransport(createMiniProgramBackendOperations(client.iamOauth.iam.oauth)))` 构建共享控制器。宿主 revision 计数器在每次环境或会话切换时前进，因此环境切换后弹窗会重新读取控制器。
 - `src/client/miniProgramApi.ts` 只负责生成客户端的构造；账号模型、一次性“集成 → 账号”创建、各类变更与文案都在 `@sdkwork/iam-pc-mini-program` 中。
 - `src/client/MiniProgramsWorkspace.tsx` 在 `SdkworkThemeProvider` 与 `SdkworkI18nProvider`（面板自带 catalog）下挂载共享面板，并把宿主语言 id（`zh`/`en`）映射到 catalog 标签。
-- `src/client/MiniProgramsModal.tsx` 是弹窗框架：判断网关地址是否已配置、是否存在 IAM 会话、工作区该渲染哪个共享控制器。关闭路径为头部按钮、遮罩点击和 Escape。账号列表、新增/编辑抽屉、删除确认与登录检测都由面板拥有；这些浮层会 portal 到 `document.body`，因此弹窗打开期间在 body 上设置 portal 标记，本插件的受作用域样式表会把它们抬到宿主层之上。
+- `src/client/MiniProgramsModal.tsx` 是弹窗框架：判断网关地址是否已配置、是否存在 IAM 会话、工作区该渲染哪个共享控制器。关闭路径为头部按钮、遮罩点击和 Escape。账号列表、新增/编辑抽屉、删除确认与登录检测都由面板拥有；这些浮层会 portal 到 `document.body`，因此弹窗打开期间在 body 上设置 portal 标记，本插件的受作用域样式表会把它们抬到宿主层之上。新增/编辑抽屉与 Harness 中每个记录抽屉一样从左侧弹出，并从桌面标题栏（顶栏）下方开始：那条 strip 是窗口的原生拖拽区域，按几何命中且无视绘制顺序，抽屉画上去后自身关闭控件会被窗口拖拽吞掉。抽屉绘制宿主的记录抽屉表面别名，因此从面板打开的抽屉与 Harness 工作区打开的抽屉是同一种材质。
 - 面板使用 IAM 仓库源码中的 Tailwind 工具类。`src/client/miniProgramView.css` 与 `tsdown.config.ts` 把这些工具类编译进插件包，并包在 `@layer dsh-sdkwork-mini-program-embed` 与 `@scope (data-mini-program-embed)` 中（对 body 上的浮层再输出一份），使共享类名既不污染宿主，也不会被其他包的副本覆盖。`src/client/embedScope.ts` 是两端共享作用域名的唯一来源。
 - 国际化按归属拆分：本命名空间（`src/client/locales.ts`）只承载设置行框架文案（标题、描述、提示与登录引导），所有账号/面板文案都在 `@sdkwork/iam-pc-mini-program` 的 catalog 中，不在此重复。
 

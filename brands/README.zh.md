@@ -32,6 +32,8 @@
 | `key` | 小写品牌键；决定文件名并出现在日志中 | `birdcoder` |
 | `displayName` | 直接读取清单的界面所用的产品名 | `BirdCoder` |
 | `companyName` | 打包元数据中的厂商名 | `SDKWork` |
+| `links.privacy` / `links.terms` | 未登录欢迎页页脚可打开的产品页面；除这三条外一律拒绝 | `https://sdkwork.com/privacy` |
+| `links.docs` | 提供网络代理指南的文档站源站（不带末尾斜杠） | `https://docs.sdkwork.com` |
 | `home.dirName` | 用户主目录下的 Harness home 目录名；带点且小写，避免在大小写不敏感的文件系统上互相冲突 | `.birdcoder` |
 | `desktop.appId` | 反向域名标识；发布通道的 `DSH_DESKTOP_APP_ID` 仍然优先 | `com.sdkwork.birdcoder` |
 | `desktop.productName` | Electron 产品名；决定 userData、单实例锁与日志目录 | `BirdCoder` |
@@ -59,7 +61,7 @@
 
 ## 新增品牌
 
-1. 把 `brands/birdcoder.json` 复制为 `brands/<key>.json`，修改 `key`、`displayName`、`companyName`、`home.dirName` 与每个 `desktop` 值。
+1. 把 `brands/birdcoder.json` 复制为 `brands/<key>.json`，修改 `key`、`displayName`、`companyName`、`links` 与每个 `desktop` 值。
 2. 替换该品牌的构建期位图：`build/icon.{ico,icns,png}`、`resources/icon{,-windows,-macos}.png`、安装器品牌图（`pnpm --dir apps/desktop run generate-icons` 与 `generate-installer-brand` 重新生成出厂那一套），以及欢迎页标识。运行时从不替换图片。
 3. 用 `DSH_BRAND=<key>`（以及该通道的 `DSH_DESKTOP_APP_ID`、`DSH_DESKTOP_UNSIGNED`、签名变量）通过 `package:*` 脚本构建。
 4. 校验：`pnpm exec vitest run apps/desktop/tests/brand-manifest.spec.ts apps/desktop/tests/brand-home.spec.ts apps/desktop/tests/desktop-application-identity.spec.ts`，然后并排安装两个品牌，确认两个 home（`~/.birdcoder`、`~/.<key>`）、两个 userData 目录、两个 URL scheme 与两个命令。

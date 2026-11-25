@@ -17,6 +17,7 @@ import type { Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { clientBuildEnvironmentDefines } from '../../scripts/client-build-environment.ts'
+import { resolveBuildTitle, replaceDocumentTitle, retitleManifest } from './scripts/build-brand.ts'
 import { WEB_SOURCE_ALIASES } from './vite-source-aliases.ts'
 import { productWebBundleIsolation } from './product-isolation.ts'
 import { katexWoff2Fonts } from './katex-fonts.ts'
@@ -26,20 +27,33 @@ const repoRoot = src('../..')
 const STANDALONE_ERROR = 'apps/web is not a standalone application: bare Vite cannot inject window.__DSH_BOOT__. '
   + 'From a repository checkout, run `pnpm dsh web`; an installed package uses `dsh web`. '
   + 'For client-plugin HMR, run `pnpm run dev:web`, which starts `dsh web` and the rebuild watchers together.'
-const DEFAULT_CLIENT_TITLE = 'DSH Local Build'
 
-/** Escape build-time text before placing it in the HTML title element. */
-function escapeHtmlText(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-}
-
-/** Project the public build title into the initial HTML document. */
+/**
+ * Project the build-time brand identity into the document title and the
+ * installed PWA name.
+ *
+ * Both ship with the build, so they follow the selected brand manifest instead
+ * of a literal: the checked-in document carries the shipped brand only as a
+ * fallback for builds that select none.
+ * @returns the HTML-title plugin.
+ */
 function clientDocumentTitle(): Plugin {
-  const title = escapeHtmlText(process.env.DSH_CLIENT_TITLE ?? DEFAULT_CLIENT_TITLE)
+  const title = resolveBuildTitle(process.env, src('../../brands'))
   return {
     name: 'dsh-client-document-title',
     transformIndexHtml(html) {
-      return html.replace('<title>DSH Local Build</title>', `<title>${title}</title>`)
+      if (title === undefined) return html
+      // Replace whatever title the checked-in document carries: a literal
+      // target rots the moment the shell's own title changes.
+      return replaceDocumentTitle(html, title)
+    },
+    async writeBundle(options) {
+      if (title === undefined) return
+      const dir = options.dir ?? (options.file === undefined ? undefined : dirname(options.file))
+      if (dir === undefined) return
+      const file = join(dir, 'manifest.webmanifest')
+      if (!existsSync(file)) return
+      await writeFile(file, retitleManifest(await readFile(file, 'utf8'), title), 'utf8')
     },
   }
 }

@@ -12,14 +12,14 @@ import clsx from 'clsx'
 import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
 import {
   BirdLogo, IconRefreshOutlineRegular,
-  IconRightUpOutlineRegular, IconWarningTriangleOutlineRegular, useClipboardCopy,
+  IconRightUpOutlineRegular, IconWarningTriangleOutlineRegular, readOemCompanyName, useClipboardCopy,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
   AboutDeploymentMode, AboutEnvironmentTier, AboutInstallationFacts,
   AboutProductFacts, AboutReleaseScope,
 } from './installation-facts.ts'
 import {
-  SHIPPED_PRODUCT_APP_KEY, SHIPPED_PRODUCT_LINKS, SHIPPED_PRODUCT_VENDOR,
+  SHIPPED_PRODUCT_APP_KEY, SHIPPED_PRODUCT_LINKS,
 } from './installation-facts.ts'
 import type {
   AboutAppMode, AboutInstallationSnapshot, AboutLocalFacts, AboutUnavailableReason,
@@ -167,14 +167,41 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
+/**
+ * Keep one platform product link usable.
+ *
+ * The platform row is the deployment's own product record, so its links are the
+ * deployment's site: an OEM profile publishes its own destinations there, and
+ * pinning them to the shipped build's domain would silently send the reader to
+ * another brand. Only a value that is not a plain HTTP(S) destination falls back
+ * to the shipped destination, so a malformed row never renders a dead button.
+ * @param value - platform-supplied product URL.
+ * @param key - which shipped destination the URL belongs to.
+ * @returns the accepted URL or the shipped canonical destination.
+ */
+function productLink(value: string | undefined, key: keyof typeof SHIPPED_PRODUCT_LINKS): string {
+  const fallback = SHIPPED_PRODUCT_LINKS[key]
+  const text = value?.trim()
+  if (text === undefined || text === '') return fallback
+  try {
+    const url = new URL(text)
+    // The About surface only opens web destinations: a non-web scheme or an
+    // embedded credential has no business in a product link.
+    if (!['http:', 'https:'].includes(url.protocol) || url.username !== '' || url.password !== '') return fallback
+    return text
+  } catch {
+    return fallback
+  }
+}
+
 /** Product links shown for the resolved installation or the shipped identity. */
 function productLinks(product: AboutProductFacts | undefined) {
   if (product === undefined) return SHIPPED_PRODUCT_LINKS
   return {
-    websiteUrl: product.websiteUrl || SHIPPED_PRODUCT_LINKS.websiteUrl,
-    supportUrl: product.supportUrl || SHIPPED_PRODUCT_LINKS.supportUrl,
-    privacyPolicyUrl: product.privacyPolicyUrl || SHIPPED_PRODUCT_LINKS.privacyPolicyUrl,
-    termsOfServiceUrl: product.termsOfServiceUrl || SHIPPED_PRODUCT_LINKS.termsOfServiceUrl,
+    websiteUrl: productLink(product.websiteUrl, 'websiteUrl'),
+    supportUrl: productLink(product.supportUrl, 'supportUrl'),
+    privacyPolicyUrl: productLink(product.privacyPolicyUrl, 'privacyPolicyUrl'),
+    termsOfServiceUrl: productLink(product.termsOfServiceUrl, 'termsOfServiceUrl'),
   }
 }
 
@@ -195,12 +222,17 @@ export function AboutContent({ t, local, installation, variant, onRefresh }: Abo
   const registeredAppId = application?.appId
   const appKey = product?.appKey ?? SHIPPED_PRODUCT_APP_KEY
   const environment = application?.environment ?? local.environment
+  // The deployment card is diagnostic material; a release (production)
+  // environment keeps it off the end-user surface.
+  const showDeployment = environment !== 'production'
   const mode = application?.deploymentMode
   const scope = application?.releaseScope
   const organization = application?.organizationId
   const tenant = application?.tenantId
   const links = productLinks(product)
-  const vendor = product?.vendor ?? SHIPPED_PRODUCT_VENDOR
+  // The platform answers for a registered installation; an OEM deployment's own
+  // profile supplies the publisher before the platform does.
+  const vendor = product?.vendor ?? readOemCompanyName()
   const shortCommit = local.commit === undefined ? undefined : local.commit.slice(0, 7)
   const commitLabel = shortCommit === undefined
     ? undefined
@@ -264,48 +296,50 @@ export function AboutContent({ t, local, installation, variant, onRefresh }: Abo
         <FieldRow label={t('field.vendor')} value={vendor} t={t} />
       </Card>
 
-      <Card title={t('section.deployment')}>
-        <FieldRow label={t('field.appMode')} value={t(APP_MODE_KEYS[local.appMode])} t={t} />
-        <FieldRow label={t('field.environment')} value={t(ENVIRONMENT_KEYS[environment])} t={t} />
-        <FieldRow
-          label={t('field.deploymentMode')}
-          value={mode === undefined ? t('value.unknown') : t(MODE_KEYS[mode])}
-          t={t}
-          pending={loading && mode === undefined}
-        />
-        <FieldRow
-          label={t('field.releaseScope')}
-          value={scope === undefined ? t('value.unknown') : t(SCOPE_KEYS[scope])}
-          t={t}
-          pending={loading && scope === undefined}
-        />
-        <FieldRow
-          label={t('field.tenant')}
-          value={tenant ?? t('value.unknown')}
-          t={t}
-          mono
-          pending={loading && tenant === undefined}
-        />
-        {showOrganization && (
-          <FieldRow label={t('field.organization')} value={organization} t={t} mono />
-        )}
-        <FieldRow
-          label={t('field.apiBaseUrl')}
-          value={local.apiBaseUrl === '' ? t('value.unknown') : local.apiBaseUrl}
-          t={t}
-          mono
-          copyText={local.apiBaseUrl === '' ? undefined : local.apiBaseUrl}
-        />
-        {commitLabel !== undefined && (
+      {showDeployment && (
+        <Card title={t('section.deployment')}>
+          <FieldRow label={t('field.appMode')} value={t(APP_MODE_KEYS[local.appMode])} t={t} />
+          <FieldRow label={t('field.environment')} value={t(ENVIRONMENT_KEYS[environment])} t={t} />
           <FieldRow
-            label={t('field.commit')}
-            value={commitLabel}
+            label={t('field.deploymentMode')}
+            value={mode === undefined ? t('value.unknown') : t(MODE_KEYS[mode])}
+            t={t}
+            pending={loading && mode === undefined}
+          />
+          <FieldRow
+            label={t('field.releaseScope')}
+            value={scope === undefined ? t('value.unknown') : t(SCOPE_KEYS[scope])}
+            t={t}
+            pending={loading && scope === undefined}
+          />
+          <FieldRow
+            label={t('field.tenant')}
+            value={tenant ?? t('value.unknown')}
             t={t}
             mono
-            copyText={local.commit}
+            pending={loading && tenant === undefined}
           />
-        )}
-      </Card>
+          {showOrganization && (
+            <FieldRow label={t('field.organization')} value={organization} t={t} mono />
+          )}
+          <FieldRow
+            label={t('field.apiBaseUrl')}
+            value={local.apiBaseUrl === '' ? t('value.unknown') : local.apiBaseUrl}
+            t={t}
+            mono
+            copyText={local.apiBaseUrl === '' ? undefined : local.apiBaseUrl}
+          />
+          {commitLabel !== undefined && (
+            <FieldRow
+              label={t('field.commit')}
+              value={commitLabel}
+              t={t}
+              mono
+              copyText={local.commit}
+            />
+          )}
+        </Card>
+      )}
 
       <section className={css.card} aria-label={t('section.links')}>
         <h3 className={css.cardTitle}>{t('section.links')}</h3>

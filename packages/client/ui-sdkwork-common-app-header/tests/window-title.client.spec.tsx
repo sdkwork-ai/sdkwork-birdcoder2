@@ -23,7 +23,7 @@ const TITLES: Record<Exclude<WindowTitleMode, 'drive'>, string> = {
   assets: '资产',
   search: '搜索',
   account: '账号',
-  'token-plan': 'Token Plan',
+  'token-plan': '会员套餐',
   'demand-hall': '需求大厅',
 }
 

@@ -5,7 +5,12 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, it, onTestFinished } from 'vitest'
-import { readInstallerLocales, renderInstallerStrings } from '../scripts/installer-locales.mjs'
+import {
+  PRODUCT_TOKEN,
+  readInstallerLocales,
+  renderInstallerProductHeader,
+  renderInstallerStrings,
+} from '../scripts/installer-locales.mjs'
 
 function fixture(): string {
   const directory = mkdtempSync(join(tmpdir(), 'dsh-installer-locales-'))
@@ -47,12 +52,36 @@ it.each([
   ['invisible character', (resource: ReturnType<typeof readInstallerLocales>[number]) => { resource.strings.INSTALLER_INSTALL = 'Install\u200b' }, 'invisible'],
   ['byte-order mark', (resource: ReturnType<typeof readInstallerLocales>[number]) => { resource.strings.INSTALLER_INSTALL = 'Install\ufeff' }, 'invisible'],
   ['invalid compiler token', (resource: ReturnType<typeof readInstallerLocales>[number]) => { resource.nsisLanguage = 'JA\n!error' }, 'invalid NSIS language'],
+  ['dropped product token', (resource: ReturnType<typeof readInstallerLocales>[number]) => { resource.strings.INSTALLER_RUNNING = 'Acme is running.' }, 'format placeholders'],
 ])('rejects %s', (_name, mutate, diagnostic) => {
   const directory = fixture()
   const resource = readInstallerLocales(directory).find(locale => locale.id === 'ja_JP')!
   mutate(resource)
   writeFileSync(join(directory, 'ja_JP.json'), JSON.stringify(resource))
   expect(() => readInstallerLocales(directory)).toThrow(diagnostic)
+})
+
+it('renders the selected brand name into every product mention', () => {
+  const locales = readInstallerLocales()
+  // The resources carry a token, so no language ships a hard-coded product name.
+  expect(locales.flatMap(locale => Object.values(locale.strings)).join('\n')).not.toContain('BirdCoder')
+  expect(renderInstallerStrings(locales)).toContain('LangString INSTALLER_RUNNING ${LANG_ENGLISH} "BirdCoder is running.')
+  const oem = renderInstallerStrings(locales, 'Acme Coder')
+  expect(oem).not.toContain(PRODUCT_TOKEN)
+  expect(oem).toContain('"Acme Coder is running.')
+  expect(oem).toContain('无法启动 Acme Coder')
+  expect(oem).toContain('当前设备在多个位置安装了 Acme Coder')
+  expect(oem).toContain('{LANG_ENGLISH} "Acme Coder is installed in multiple locations"'.replace('{LANG', '${LANG'))
+  expect(() => renderInstallerStrings(locales, '   ')).toThrow(/product name must not be empty/)
+})
+
+it('renders the native helper product-name header from the selected brand', () => {
+  expect(renderInstallerProductHeader('BirdCoder')).toContain('#define DSH_INSTALLER_PRODUCT_NAME L"BirdCoder"')
+  expect(renderInstallerProductHeader('Acme Coder')).toContain('#define DSH_INSTALLER_PRODUCT_NAME L"Acme Coder"')
+  // A name carrying a quote or a backslash cannot break the C++ literal.
+  expect(renderInstallerProductHeader('A"B\\C')).toContain('L"A\\"B\\\\C"')
+  expect(() => renderInstallerProductHeader('   ')).toThrow(/must not be empty/)
+  expect(() => renderInstallerProductHeader('bad\u0000name')).toThrow(/control characters/)
 })
 
 it('escapes literal NSIS syntax without changing translated text', () => {

@@ -3,8 +3,8 @@
   "kind": "agent.app",
   "app": {
     "key": "sdkwork-birdcoder2",
-    "name": "SDKWork Birdcoder",
-    "displayName": "SDKWork Birdcoder",
+    "name": "BirdCoder",
+    "displayName": "BirdCoder",
     "description": "SDKWork BirdCoder coding workbench application.",
     "vendor": "SDKWork",
     "officialWebsiteUrl": "https://www.birdcoder.com",
@@ -127,12 +127,12 @@
         "format": "PNG",
         "fileSizeBytes": 1048576,
         "alphaChannel": false,
-        "caption": "SDKWork Birdcoder product screenshot.",
+        "caption": "SDKWork BirdCoder product screenshot.",
         "sortOrder": 0,
         "enabled": true,
         "metadata": {
           "generatedPlaceholder": true,
-          "altText": "SDKWork Birdcoder app screenshot."
+          "altText": "SDKWork BirdCoder app screenshot."
         }
       }
     ],
@@ -149,12 +149,12 @@
         "format": "PNG",
         "fileSizeBytes": 786432,
         "alphaChannel": false,
-        "caption": "SDKWork Birdcoder preview.",
+        "caption": "SDKWork BirdCoder preview.",
         "sortOrder": 0,
         "enabled": true,
         "metadata": {
           "generatedPlaceholder": true,
-          "altText": "SDKWork Birdcoder preview cover."
+          "altText": "SDKWork BirdCoder preview cover."
         }
       }
     ],
@@ -285,7 +285,6 @@
         "appName": "SDKWork Birdcoder",
         "appSlug": "sdkwork-birdcoder",
         "appKey": "sdkwork-birdcoder2",
-        "sourceDirectory": "D:\\sdkwork-space\\sdkwork-birdcoder2",
         "updatedAt": "2026-11-13T11:59:56.975Z"
       }
     }

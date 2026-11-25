@@ -31,6 +31,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
 import { DeployPublishAction } from './DeployPublishAction.tsx'
 import { DeployedAppsDialog, type DeployedAppsDialogInjected } from './DeployedAppsDialog.tsx'
+import { DomainCenterDialog, type DomainCenterDialogInjected } from './DomainCenterDialog.tsx'
 /* Host stylesheet for the AppOperationsDialogs the publish flow mounts: those
    components render the delivery-ledger class vocabulary unstyled and expect
    the host to style it. */
@@ -508,4 +509,37 @@ export function apply(ctx: ClientContext): void {
       },
     }),
   }, DeployedAppsDialog))
+
+  // The settings-menu popover's "我的域名" row: the shell owns the row and the
+  // drawer's visibility, this plugin owns the root-domain/hostname/verification
+  // surfaces behind it. Same injected face as the app-inventory drawer — the
+  // generated clients, the sign-in gesture and the host readiness facts.
+  ctx.slots.inject('settings.dns', () => ctx.slots.register({
+    name: 'settings.dns',
+    locale: NS,
+    inject: (): DomainCenterDialogInjected => ({
+      host,
+      startSignIn: () => { iam.startSignIn?.() },
+      hooks: {
+        available: {
+          getSnapshot: () => env.apiBaseUrl().trim() !== '',
+          subscribe: listener => env.subscribe(listener),
+        },
+        signedIn: {
+          getSnapshot: () => {
+            const session = iam.controller.getState().session
+            return session !== null && session !== undefined
+          },
+          subscribe: listener => iam.controller.subscribe(listener),
+        },
+        revision: {
+          getSnapshot: () => deployedAppsRevision,
+          subscribe: (listener) => {
+            deployedAppsRevisionListeners.add(listener)
+            return () => { deployedAppsRevisionListeners.delete(listener) }
+          },
+        },
+      },
+    }),
+  }, DomainCenterDialog))
 }

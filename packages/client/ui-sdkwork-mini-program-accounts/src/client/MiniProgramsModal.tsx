@@ -12,8 +12,11 @@
  * The shared `WideModal` owns the overlay layer, the header, and every
  * dismissal path (close control, mask click, Escape); the panel's create/edit
  * drawer and delete confirmation portal to `document.body`, so
- * `miniProgramView.css` lifts them above this harness layer and the body portal
- * marker is set for the modal's open lifetime.
+ * `miniProgramView.css` lifts them above this harness layer, opens the drawer
+ * from the left, and stops it and its mask below the desktop caption strip —
+ * the window's native drag region, which would otherwise swallow the drawer's
+ * own close control. The body portal marker is set for the modal's open
+ * lifetime.
  */
 import { useEffect, useMemo, type ReactNode } from 'react'
 import { WideModal } from '@deepseek-ai/dsh-client-ui-primitives'

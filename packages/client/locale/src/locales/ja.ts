@@ -34,7 +34,7 @@ export const ja = {
   'collapse': '折りたたむ',
   'expand': '展開',
   'back': '戻る',
-  'brand.localBuild': 'DSHローカルビルド',
+  'brand.localBuild': 'BirdCoderローカルビルド',
   'workspace.defaultName': 'デフォルトワークスペース',
   'unknown': '不明',
   'none': 'なし',

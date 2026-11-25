@@ -12,6 +12,8 @@
 export const OEM_BOOT_GLOBAL = '__DSH_OEM__'
 /** Brand rendered when the page carries no OEM projection. */
 export const DEFAULT_BRAND_NAME = 'BirdCoder'
+/** Vendor rendered on surfaces that name the publisher when the page carries no OEM projection. */
+export const DEFAULT_COMPANY_NAME = 'SDKWork'
 /** SDKWork IAM app-api origin shipped when the page carries no OEM projection. */
 export const DEFAULT_IAM_BASE_URL = 'https://api.birdcoder.com'
 /** Hosted SDKWork IAM authorization origin shipped when the page carries no OEM projection. */
@@ -44,6 +46,24 @@ export function readOemBrandName(source: unknown = (globalThis as Record<string,
   if (typeof name !== 'string') return DEFAULT_BRAND_NAME
   const text = name.trim()
   if (text === '' || text.length > 64 || /[\u0000-\u001f\u007f]/u.test(text)) return DEFAULT_BRAND_NAME
+  return text
+}
+
+/**
+ * Read the vendor/company name from one page projection.
+ * @param source - projection value; defaults to the page global.
+ * @returns the validated company name, or the shipped default.
+ */
+export function readOemCompanyName(
+  source: unknown = (globalThis as Record<string, unknown>)[OEM_BOOT_GLOBAL],
+): string {
+  if (!record(source)) return DEFAULT_COMPANY_NAME
+  const brand = source.brand
+  if (!record(brand)) return DEFAULT_COMPANY_NAME
+  const name = brand.companyName
+  if (typeof name !== 'string') return DEFAULT_COMPANY_NAME
+  const text = name.trim()
+  if (text === '' || text.length > 64 || /[\u0000-\u001f\u007f]/u.test(text)) return DEFAULT_COMPANY_NAME
   return text
 }
 

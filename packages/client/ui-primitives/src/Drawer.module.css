@@ -36,7 +36,10 @@
   padding: 20px 24px;
   box-sizing: border-box;
   border-radius: 0 var(--dsw-radius-panel) var(--dsw-radius-panel) 0;
-  background: var(--dsw-alias-bg-layer-2);
+  /* The record-drawer sheet is its own surface role: the embedded SDKWork IAM
+     drawer paints the same alias, so a drawer opened from either workspace
+     reads as the same material. See `design-platform.css` for the palettes. */
+  background: var(--dsw-alias-bg-drawer);
   box-shadow: var(--dsw-shadow-lv3);
   animation: drawerPanelEnter var(--ds-transition-duration) var(--ds-ease-in-out);
   /* Elevated surface: the scrollbar thumb takes the l2 elevation tokens, so

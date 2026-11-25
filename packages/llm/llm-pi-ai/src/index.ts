@@ -313,6 +313,16 @@ export function apply(ctx: Context, config: Config): void {
     onThinkingOmitted: ({ provider, model, count }) => {
       ctx.logger.debug(`llm-pi-ai: omitted stale thinking from ${count} assistant message(s) for route "${provider}/${model}"`)
     },
+    onRequestFailure: ({ provider, model, sessionId, failure, requestBody }) => {
+      ctx.logger.error(
+        'llm-pi-ai: model request failed\nroute: %s/%s\nsession: %s\nfailure: %s\nrequest body:\n%s',
+        provider,
+        model,
+        sessionId ?? '(unknown)',
+        failure,
+        requestBody,
+      )
+    },
   })
   // Independent of the route set: signing in is what makes a route worth
   // adding, so the flows are offered before any profile names their provider.

@@ -34,7 +34,7 @@ export const pt = {
   'collapse': 'Recolher',
   'expand': 'Expandir',
   'back': 'Voltar',
-  'brand.localBuild': 'Versão local do DSH',
+  'brand.localBuild': 'Versão local do BirdCoder',
   'workspace.defaultName': 'Espaço de trabalho padrão',
   'unknown': 'Desconhecido',
   'none': 'Nenhum',

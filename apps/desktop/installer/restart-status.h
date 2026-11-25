@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include "restart-banner.h"
+#include "installer-product-name.h"
 
 namespace restart_status {
 struct Launch {
@@ -122,7 +123,7 @@ extern "C" void CALLBACK ShowRestartStatusW(HWND, HINSTANCE instance, LPWSTR raw
     layout.dialog.cy = 50;
     HWND window = CreateDialogIndirectParamW(instance, &layout.dialog, nullptr, restart_status::Dialog, 0);
     if (!window) return;
-    SetWindowTextW(window, L"DeepSeek Harness");
+    SetWindowTextW(window, DSH_INSTALLER_PRODUCT_NAME);
     const DWORD style = WS_CHILD | WS_VISIBLE;
     HWND image = CreateWindowW(L"STATIC", L"", style | SS_ICON, 0,0,0,0, window,
         reinterpret_cast<HMENU>(restart_banner::iconId), instance, nullptr);

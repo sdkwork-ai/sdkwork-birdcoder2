@@ -254,7 +254,7 @@ describe('PublishScaffoldFlow credential self-heal over a real SDK stack', () =>
     host.mount()
     try {
       await mountFlow(host)
-      expect(container?.textContent).toContain('当前部署未配置 SDKWork 服务地址')
+      expect(container?.textContent).toContain('当前部署未配置服务地址')
       expect(gateway.requests).toEqual([])
     } finally {
       host.dispose()
