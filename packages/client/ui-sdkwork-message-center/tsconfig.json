@@ -3,6 +3,7 @@
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.client.tsbuildinfo",
     // The sdkwork sibling package enters this program as external source (its
     // manifest points exports at src). It is written for the sdkwork flag set
     // (strict only), so the harness's stricter flags are relaxed for THIS
@@ -27,6 +28,11 @@
   },
   "include": [
     "src"
+  ],
+  // The Host loader entry (src/index.ts) is the sibling tsconfig.host.json
+  // program; it emits lib/types/index.js for the bundle's Node half.
+  "exclude": [
+    "src/index.ts"
   ],
   "references": [
     {

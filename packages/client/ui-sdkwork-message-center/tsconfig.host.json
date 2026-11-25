@@ -1,0 +1,25 @@
+{
+  // Host face of a split client package: the browser-only plugin's host loader
+  // entry, which only declares the polling interval and page size forwarded to
+  // the browser half. The browser face is the sibling tsconfig.json program;
+  // the two faces merge cordis Context under the same keys, so they meet only
+  // through the shared src/types.ts contract and never in one program.
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.host.tsbuildinfo"
+  },
+  "files": [
+    "src/index.ts",
+    "src/types.ts"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    }
+  ]
+}
