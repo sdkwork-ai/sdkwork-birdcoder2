@@ -12,7 +12,6 @@ import {
   bootstrapSdkworkMembershipAppService,
   configureSdkworkMembershipAppServiceProvider,
   configureSdkworkMembershipSessionTokenProvider,
-  unwrapSdkworkMembershipPageItems,
   type SdkworkMembershipAppService,
 } from '@sdkwork/membership-service'
 import {
@@ -77,10 +76,17 @@ export interface TokenPlanAccountSummary {
   /** Current plan name (`undefined` when the account has no named plan). */
   planName: string | undefined
   /**
-   * Spendable compute-point balance read from the Token Bank account
-   * (`undefined` when the gateway omitted it).
+   * Remaining compute points the account owns: spendable plus the points the
+   * gateway currently holds for in-flight requests (`undefined` when the
+   * gateway omitted the wallet balance). This is the figure a balance surface
+   * shows: reading only the spendable share would make the balance appear to
+   * jump every time a model call starts or settles.
    */
   points: number | undefined
+  /** Points spendable right now (`undefined` when the gateway omitted them). */
+  available: number | undefined
+  /** Points held by in-flight requests (`undefined` when the gateway omitted them). */
+  frozen: number | undefined
   /** Whether the account currently holds an active membership. */
   active: boolean
 }
@@ -105,9 +111,15 @@ export interface TokenPlanPointsHistoryEntry {
   changeAmount: number
   /** Balance after this entry, when the gateway reported it. */
   afterBalance: number | undefined
-  /** Wire source classification (for example `purchase` or `usage`). */
+  /**
+   * Wire business type of the Token Bank ledger row (for example
+   * `gateway_invocation_billing` or `token_bank_grant`).
+   */
   sourceType: string | undefined
-  /** Human-readable remark supplied by the gateway. */
+  /**
+   * Human-readable remark when the gateway sends one. The Token Bank ledger
+   * carries only its business type, so this stays undefined there.
+   */
   remark: string | undefined
   /** ISO timestamp supplied by the gateway. */
   createdAt: string | undefined
@@ -119,13 +131,16 @@ export interface TokenPlanPointsSnapshot {
   planName: string | undefined
   /** Whether the account currently holds an active membership. */
   active: boolean
-  /** Total remaining compute points. */
+  /**
+   * Total remaining compute points: spendable plus points held by in-flight
+   * requests. The figure only moves when a charge settles.
+   */
   points: number | undefined
   /** Points currently spendable. */
   available: number | undefined
   /** Points held by pending operations. */
   frozen: number | undefined
-  /** First page of the points ledger, newest first. */
+  /** First page of the Token Bank ledger, newest first. */
   history: readonly TokenPlanPointsHistoryEntry[]
 }
 
@@ -156,33 +171,75 @@ function pointsFromMicro(value: unknown): number | undefined {
   return micro / POINTS_PER_MICRO_UNIT
 }
 
+/**
+ * Points the account still owns: spendable plus the points a running request
+ * holds.
+ *
+ * The gateway precharges every model call by moving the reserved amount from
+ * `availableAmount` into `frozenAmount`, then returns the unused remainder when
+ * the call settles. `availableAmount` alone therefore drops whenever a request
+ * starts and comes back when it settles, which reads as a balance that changes
+ * on every refresh even though nothing was spent. Balance surfaces show this
+ * total instead; the settings page still renders the available/frozen split.
+ *
+ * `pendingAmount` is excluded: those points are awaiting settlement rather than
+ * counted among the points the owner currently holds.
+ * @param account - the Token Bank wallet read from the account app.
+ * @returns the owned points, or undefined while the spendable balance is unknown.
+ */
+export function computeAccountTotal(account: TokenPlanComputeAccount | undefined): number | undefined {
+  if (account?.available === undefined) return undefined
+  return account.available + (account.frozen ?? 0)
+}
+
 /** Read a non-empty string from an unknown gateway field. */
 function text(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined
 }
 
 /**
- * Project one points-ledger page onto the rows the balances section renders.
- * A malformed page degrades to an empty ledger rather than taking down the
- * whole points summary.
- * @param payload - the resolved history response.
- * @returns the parsed ledger rows, newest first as the gateway sent them.
+ * Read the rows of one Token Bank ledger page. The generated account client
+ * returns `{ items, pageInfo }`; a raw transport envelope (`data.items`) is
+ * accepted too so the ledger keeps rendering when a host composes the client
+ * itself. A malformed page degrades to an empty ledger rather than taking down
+ * the whole points summary.
+ * @param payload - the resolved ledger response.
+ * @returns the row objects, newest first as the gateway sent them.
  */
-function pointsHistoryOf(payload: unknown): TokenPlanPointsHistoryEntry[] {
-  let items: Record<string, unknown>[]
-  try {
-    items = unwrapSdkworkMembershipPageItems<Record<string, unknown>>(payload)
-  } catch {
-    return []
-  }
-  return items.map((item, index) => {
+function walletLedgerRowsOf(payload: unknown): Record<string, unknown>[] {
+  if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) return []
+  const root = payload as Record<string, unknown>
+  if ('code' in root && Number(root.code) !== 0) return []
+  const page = 'data' in root && typeof root.data === 'object' && root.data !== null
+    ? root.data as Record<string, unknown>
+    : root
+  const items = page.items
+  if (!Array.isArray(items)) return []
+  return items.filter(
+    (item): item is Record<string, unknown> =>
+      typeof item === 'object' && item !== null && !Array.isArray(item),
+  )
+}
+
+/**
+ * Project one Token Bank ledger page onto the rows the balances section
+ * renders. The ledger stores unsigned micro-point amounts plus a direction, so
+ * the displayed change carries the sign and the balance-after figure is
+ * converted to points.
+ * @param payload - the resolved ledger response.
+ * @returns the parsed ledger rows, newest first.
+ */
+function walletHistoryOf(payload: unknown): TokenPlanPointsHistoryEntry[] {
+  return walletLedgerRowsOf(payload).map((item, index) => {
     const createdAt = text(item.createdAt)
+    const amount = pointsFromMicro(item.amount) ?? 0
+    const debit = text(item.direction)?.toLowerCase() === 'debit'
     return {
       id: text(item.id) ?? `${createdAt ?? 'entry'}-${String(index)}`,
-      changeAmount: finiteNumber(item.changeAmount) ?? 0,
-      afterBalance: finiteNumber(item.afterBalance),
-      sourceType: text(item.sourceType),
-      remark: text(item.remark),
+      changeAmount: debit ? -amount : amount,
+      afterBalance: pointsFromMicro(item.balanceAfter),
+      sourceType: text(item.businessType),
+      remark: undefined,
       createdAt,
     }
   })
@@ -412,6 +469,8 @@ export class TokenPlanService {
    * settings-menu wallet card. A signed-out account returns undefined instead
    * of opening a sign-in surface: the menu already offers that row. Partial
    * gateway answers are kept, so a plan-name failure still shows the balance.
+   * The reported `points` is the owned total (see `computeAccountTotal`), so a
+   * model call starting or settling cannot change the figure the card shows.
    * @returns the account-wallet summary, or undefined while signed out.
    */
   async readAccountSummary(): Promise<TokenPlanAccountSummary | undefined> {
@@ -431,50 +490,69 @@ export class TokenPlanService {
     }
     const info = infoResult.status === 'fulfilled' ? itemOf(infoResult.value) : undefined
     const status = statusResult.status === 'fulfilled' ? itemOf(statusResult.value) : undefined
+    const account = accountResult.status === 'fulfilled' ? accountResult.value : undefined
     return {
       planName: text(info?.planName),
       // The Token Bank wallet owns the compute balance. The membership status
       // `pointBalance` counts a different asset, so a failed wallet read
       // reports no balance rather than substituting that figure.
-      points: accountResult.status === 'fulfilled' ? accountResult.value?.available : undefined,
+      points: computeAccountTotal(account),
+      available: account?.available,
+      frozen: account?.frozen,
       active: status?.active === true,
     }
   }
 
   /**
-   * Read the plan, wallet split, and recent ledger for the settings balances
-   * section. A partial gateway answer is kept: a failed plan read still shows
-   * the total, and a failed ledger still shows the balance.
+   * Read the plan and the Token Bank wallet (total plus the available/frozen
+   * split) for the settings balances section, together with the recent Token
+   * Bank ledger. The Membership points asset is a different account, so it is
+   * never substituted here: every points surface in the app reads the wallet
+   * the purchase dialog tops up. A partial gateway answer is kept: a failed
+   * plan read still shows the balance, and a failed ledger still shows it.
    * @returns the points snapshot, or undefined while signed out.
    */
   async readPointsSnapshot(): Promise<TokenPlanPointsSnapshot | undefined> {
     if (this.iam.controller.getState().session === null) return undefined
     const membership = this.readCommerce().membership.memberships
-    const [infoResult, statusResult, balanceResult, historyResult] = await Promise.allSettled([
+    const [infoResult, statusResult, accountResult, historyResult] = await Promise.allSettled([
       membership.current.retrieve(),
       membership.current.status.retrieve(),
-      membership.points.balance.retrieve(),
-      membership.points.history.list({ page: 1, pageSize: 20 }),
+      this.readComputeAccount(),
+      this.readTokenBankHistory(),
     ])
     if (
       infoResult.status === 'rejected'
       && statusResult.status === 'rejected'
-      && balanceResult.status === 'rejected'
+      && accountResult.status === 'rejected'
       && historyResult.status === 'rejected'
     ) {
       throw infoResult.reason instanceof Error ? infoResult.reason : new Error(String(infoResult.reason))
     }
     const info = infoResult.status === 'fulfilled' ? itemOf(infoResult.value) : undefined
     const status = statusResult.status === 'fulfilled' ? itemOf(statusResult.value) : undefined
-    const balance = balanceResult.status === 'fulfilled' ? itemOf(balanceResult.value) : undefined
+    const account = accountResult.status === 'fulfilled' ? accountResult.value : undefined
     return {
       planName: text(info?.planName),
       active: status?.active === true,
-      points: finiteNumber(balance?.points) ?? finiteNumber(status?.pointBalance),
-      available: finiteNumber(balance?.availablePoints),
-      frozen: finiteNumber(balance?.frozenPoints),
-      history: historyResult.status === 'fulfilled' ? pointsHistoryOf(historyResult.value) : [],
+      points: computeAccountTotal(account),
+      available: account?.available,
+      frozen: account?.frozen,
+      history: historyResult.status === 'fulfilled' ? historyResult.value : [],
     }
+  }
+
+  /**
+   * Read the newest Token Bank ledger page through the same account client the
+   * balance reads use, so a ledger failure cannot mask a balance.
+   * @returns the projected ledger rows.
+   */
+  private async readTokenBankHistory(): Promise<TokenPlanPointsHistoryEntry[]> {
+    const payload = await this.readAccountClient().tokenBank.ledgerEntries.list({
+      page: '1',
+      pageSize: '20',
+    })
+    return walletHistoryOf(payload)
   }
 
   /** Observe IAM or environment changes and invalidate environment-specific clients.

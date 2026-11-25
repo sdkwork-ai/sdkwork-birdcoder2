@@ -11,7 +11,7 @@ import { TokenPlanPage, type TokenPlanPageInjected, type TokenPlanTheme } from '
 import { PointsRechargeDialog, type PointsRechargeDialogInjected } from './PointsRechargeDialog.tsx'
 import type { EnvServiceLike } from './token-plan-service.ts'
 import type { IamServiceLike } from './token-plan-service.ts'
-import { TokenPlanService } from './token-plan-service.ts'
+import { TokenPlanService, computeAccountTotal } from './token-plan-service.ts'
 import { SettingsMenuPlanCard, type SettingsMenuPlanInjected } from './SettingsMenuPlanCard.tsx'
 import { SettingsPointsSection, type SettingsPointsSectionInjected } from './SettingsPointsSection.tsx'
 import { en, zh, type TokenPlanKey } from './locales.ts'
@@ -88,7 +88,7 @@ export function apply(ctx: ClientContext): void {
           return undefined
         }
       },
-      readBalance: () => walletService.readComputeAccount().then(account => account?.available),
+      readBalance: () => walletService.readComputeAccount().then(computeAccountTotal),
     }),
   }, PointsRechargeDialog))
 

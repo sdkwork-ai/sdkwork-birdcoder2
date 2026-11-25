@@ -11,7 +11,7 @@
  */
 
 import { useSyncExternalStore } from 'react'
-import type { TokenPlanComputeAccount } from './token-plan-service.ts'
+import { computeAccountTotal, type TokenPlanComputeAccount } from './token-plan-service.ts'
 
 /** Lifecycle of the account read that backs the points surfaces. */
 export type TokenPlanAccountStatus = 'signed-out' | 'loading' | 'ready' | 'error'
@@ -20,7 +20,10 @@ export type TokenPlanAccountStatus = 'signed-out' | 'loading' | 'ready' | 'error
 export interface TokenPlanAccountSnapshot {
   /** Whether the read belongs to a guest, is in flight, settled, or failed. */
   status: TokenPlanAccountStatus
-  /** Spendable points; `null` while unknown or unreported. */
+  /**
+   * Remaining points the account owns: spendable plus points an in-flight
+   * request holds. `null` while unknown or unreported.
+   */
   points: number | null
   /** Full wallet facts for surfaces that need the available/frozen split. */
   account: TokenPlanComputeAccount | undefined
@@ -99,7 +102,7 @@ export function createTokenPlanAccountStore(
       }
       publish({
         account,
-        points: account.available ?? null,
+        points: computeAccountTotal(account) ?? null,
         status: 'ready',
       })
     } catch {

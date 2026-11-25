@@ -74,6 +74,16 @@
   white-space: nowrap;
 }
 
+/* The available/frozen split under the figures: a quiet caption that explains
+ * why the total did not move while a model call holds part of the balance. */
+.pointsSplit {
+  margin: -4px 0 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 /* The loading state reserves the exact value line so the card never jumps when
  * the summary lands. */
 .skeleton {

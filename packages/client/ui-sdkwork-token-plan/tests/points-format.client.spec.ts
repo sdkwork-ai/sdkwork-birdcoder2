@@ -25,9 +25,9 @@ describe('points formatting', () => {
   })
 
   it('resolves plan labels with member and free fallbacks', () => {
-    expect(planLabelOf({ planName: '体验版', points: 1, active: true }, t)).toBe('体验版')
-    expect(planLabelOf({ planName: undefined, points: 1, active: true }, t)).toBe('会员')
-    expect(planLabelOf({ planName: undefined, points: 1, active: false }, t)).toBe('免费版')
+    expect(planLabelOf({ planName: '体验版', points: 1, available: 1, frozen: 0, active: true }, t)).toBe('体验版')
+    expect(planLabelOf({ planName: undefined, points: 1, available: 1, frozen: 0, active: true }, t)).toBe('会员')
+    expect(planLabelOf({ planName: undefined, points: 1, available: 1, frozen: 0, active: false }, t)).toBe('免费版')
   })
 
   it('clamps progress percentages', () => {

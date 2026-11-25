@@ -25,9 +25,16 @@ const order = vi.hoisted(() => ({
 
 const account = vi.hoisted(() => {
   const retrieveAccount = vi.fn()
+  const listLedger = vi.fn()
   return {
     retrieveAccount,
-    createClient: vi.fn(() => ({ tokenBank: { account: { retrieve: retrieveAccount } } })),
+    listLedger,
+    createClient: vi.fn(() => ({
+      tokenBank: {
+        account: { retrieve: retrieveAccount },
+        ledgerEntries: { list: listLedger },
+      },
+    })),
   }
 })
 
@@ -202,10 +209,38 @@ describe('TokenPlanService account summary', () => {
     await expect(service.readAccountSummary()).resolves.toEqual({
       planName: '体验版',
       points: 42.5,
+      available: 42.5,
+      frozen: 0,
       active: true,
     })
     // The membership status balance is a different asset; it stays unused.
     expect(retrieveStatus).toHaveBeenCalled()
+  })
+
+  it('counts points a running request holds so the balance does not jump', async () => {
+    const retrieve = vi.fn().mockResolvedValue({ planName: '体验版' })
+    const retrieveStatus = vi.fn().mockResolvedValue({ active: true })
+    membership.bootstrap.mockImplementationOnce(() => ({
+      memberships: { current: { retrieve, status: { retrieve: retrieveStatus } } },
+    }))
+    // The gateway precharges every model call: 25 spendable + 16.5 held by one
+    // in-flight request is the account's 41.5 remaining points.
+    account.retrieveAccount.mockResolvedValue({
+      assetType: 'token_bank',
+      availableAmount: '25000000',
+      frozenAmount: '16500000',
+      pendingAmount: '0',
+    })
+    const fixture = harness({ session: { accessToken: 'access', authToken: 'auth' } })
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
+
+    await expect(service.readAccountSummary()).resolves.toEqual({
+      planName: '体验版',
+      points: 41.5,
+      available: 25,
+      frozen: 16.5,
+      active: true,
+    })
   })
 
   it('keeps the balance when only the plan read fails', async () => {
@@ -221,6 +256,8 @@ describe('TokenPlanService account summary', () => {
     await expect(service.readAccountSummary()).resolves.toEqual({
       planName: undefined,
       points: 12.5,
+      available: 12.5,
+      frozen: undefined,
       active: false,
     })
   })
@@ -238,6 +275,8 @@ describe('TokenPlanService account summary', () => {
     await expect(service.readAccountSummary()).resolves.toEqual({
       planName: '体验版',
       points: undefined,
+      available: undefined,
+      frozen: undefined,
       active: true,
     })
   })
@@ -332,68 +371,108 @@ describe('TokenPlanService points snapshot', () => {
     vi.clearAllMocks()
   })
 
-  it('reads the plan, wallet split, and recent ledger', async () => {
+  it('reads the plan, the Token Bank wallet split, and its recent ledger', async () => {
     const retrieve = vi.fn().mockResolvedValue({ planName: '体验版' })
+    // The membership points asset is a different account: it must not appear.
     const retrieveStatus = vi.fn().mockResolvedValue({ active: true, pointBalance: 610.57 })
-    const retrieveBalance = vi.fn().mockResolvedValue({ points: 610.57, availablePoints: 600.57, frozenPoints: 10 })
-    const listHistory = vi.fn().mockResolvedValue({
-      code: 0,
-      data: {
-        items: [
-          { id: 'h1', changeAmount: -4.34, afterBalance: 610.57, sourceType: 'usage', remark: '自动化任务', createdAt: '2026-11-11T09:07:00Z' },
-          { id: 'h2', changeAmount: 100, afterBalance: 614.91, sourceType: 'reward' },
-        ],
-        pageInfo: { mode: 'offset', page: 1, pageSize: 20, totalItems: 2 },
-      },
-    })
     membership.bootstrap.mockImplementationOnce(() => ({
-      memberships: {
-        current: { retrieve, status: { retrieve: retrieveStatus } },
-        points: { balance: { retrieve: retrieveBalance }, history: { list: listHistory } },
-      },
+      memberships: { current: { retrieve, status: { retrieve: retrieveStatus } } },
     }))
+    account.retrieveAccount.mockResolvedValue({
+      assetType: 'token_bank',
+      availableAmount: '25000000',
+      frozenAmount: '16500000',
+      pendingAmount: '0',
+    })
+    account.listLedger.mockResolvedValue({
+      items: [
+        {
+          id: 'l1',
+          direction: 'debit',
+          amount: '434000',
+          balanceBefore: '41934000',
+          balanceAfter: '41500000',
+          businessType: 'gateway_invocation_billing',
+          createdAt: '2026-11-11T09:07:00Z',
+        },
+        {
+          id: 'l2',
+          direction: 'credit',
+          amount: '100000000',
+          balanceBefore: '31500000',
+          balanceAfter: '131500000',
+          businessType: 'token_bank_grant',
+          createdAt: '2026-11-10T09:07:00Z',
+        },
+      ],
+      pageInfo: { mode: 'offset', page: 1, pageSize: 20, totalItems: 2 },
+    })
     const fixture = harness({ session: { accessToken: 'access', authToken: 'auth' } })
     const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
 
     await expect(service.readPointsSnapshot()).resolves.toEqual({
       planName: '体验版',
       active: true,
-      points: 610.57,
-      available: 600.57,
-      frozen: 10,
+      points: 41.5,
+      available: 25,
+      frozen: 16.5,
       history: [
         {
-          id: 'h1',
-          changeAmount: -4.34,
-          afterBalance: 610.57,
-          sourceType: 'usage',
-          remark: '自动化任务',
+          id: 'l1',
+          changeAmount: -0.434,
+          afterBalance: 41.5,
+          sourceType: 'gateway_invocation_billing',
+          remark: undefined,
           createdAt: '2026-11-11T09:07:00Z',
         },
         {
-          id: 'h2',
+          id: 'l2',
           changeAmount: 100,
-          afterBalance: 614.91,
-          sourceType: 'reward',
+          afterBalance: 131.5,
+          sourceType: 'token_bank_grant',
           remark: undefined,
-          createdAt: undefined,
+          createdAt: '2026-11-10T09:07:00Z',
         },
       ],
     })
-    expect(listHistory).toHaveBeenCalledWith({ page: 1, pageSize: 20 })
+    expect(account.listLedger).toHaveBeenCalledWith({ page: '1', pageSize: '20' })
   })
 
-  it('degrades a malformed history page to an empty ledger', async () => {
+  it('accepts a raw envelope page from a composed transport', async () => {
     const retrieve = vi.fn().mockResolvedValue({ planName: '体验版' })
-    const retrieveStatus = vi.fn().mockResolvedValue({ active: false, pointBalance: 0 })
-    const retrieveBalance = vi.fn().mockResolvedValue({ points: 0, availablePoints: 0, frozenPoints: 0 })
-    const listHistory = vi.fn().mockResolvedValue({ code: 500, detail: 'history unavailable' })
     membership.bootstrap.mockImplementationOnce(() => ({
-      memberships: {
-        current: { retrieve, status: { retrieve: retrieveStatus } },
-        points: { balance: { retrieve: retrieveBalance }, history: { list: listHistory } },
-      },
+      memberships: { current: { retrieve, status: { retrieve: vi.fn().mockResolvedValue({ active: false }) } } },
     }))
+    account.retrieveAccount.mockResolvedValue({ availableAmount: '6000000', frozenAmount: '0' })
+    account.listLedger.mockResolvedValue({
+      code: 0,
+      data: {
+        items: [{ id: 'l1', direction: 'debit', amount: '500000', businessType: 'gateway_invocation_billing' }],
+      },
+    })
+    const fixture = harness({ session: { accessToken: 'access', authToken: 'auth' } })
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
+
+    const snapshot = await service.readPointsSnapshot()
+    expect(snapshot?.history).toEqual([
+      {
+        id: 'l1',
+        changeAmount: -0.5,
+        afterBalance: undefined,
+        sourceType: 'gateway_invocation_billing',
+        remark: undefined,
+        createdAt: undefined,
+      },
+    ])
+  })
+
+  it('degrades a malformed ledger page to an empty ledger', async () => {
+    const retrieve = vi.fn().mockResolvedValue({ planName: '体验版' })
+    membership.bootstrap.mockImplementationOnce(() => ({
+      memberships: { current: { retrieve, status: { retrieve: vi.fn().mockResolvedValue({ active: false }) } } },
+    }))
+    account.retrieveAccount.mockResolvedValue({ availableAmount: '0', frozenAmount: '0' })
+    account.listLedger.mockResolvedValue({ code: 500, detail: 'history unavailable' })
     const fixture = harness({ session: { accessToken: 'access', authToken: 'auth' } })
     const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
 

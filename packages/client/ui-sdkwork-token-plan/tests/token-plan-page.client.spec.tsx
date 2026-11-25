@@ -86,6 +86,10 @@ const readTeamSubscriptionPort = vi.fn(() => teamPort)
 const readComputeAccount = vi.fn()
 
 vi.mock('../src/client/token-plan-service.ts', () => ({
+  // The page's account store derives the displayed total through this helper,
+  // so the module mock keeps the same arithmetic as the real service.
+  computeAccountTotal: (account?: { available?: number; frozen?: number }) =>
+    account?.available === undefined ? undefined : account.available + (account.frozen ?? 0),
   TokenPlanService: class {
     isConfigured(): boolean { return configured }
     openSignIn(): void { openSignIn() }

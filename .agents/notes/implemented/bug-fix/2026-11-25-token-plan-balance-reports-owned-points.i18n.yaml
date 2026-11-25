@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-25-token-plan-balance-reports-owned-points.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-11-25-token-plan-balance-reports-owned-points.md
+/agent-note-token-plan-balance-surfaces-report-owned-points:
+  en: 4412e5aa4d669b13
+  zh: dccb73842fa54271
+/agent-note-token-plan-balance-surfaces-report-owned-points/problem:
+  en: 2b419e6a6c16f84a
+  zh: 0390b3cc98617b2d
+/agent-note-token-plan-balance-surfaces-report-owned-points/decision:
+  en: b7432597c8bc1887
+  zh: 8a1986fd37ee6528
+/agent-note-token-plan-balance-surfaces-report-owned-points/alternatives-considered:
+  en: afd899bc8c2cecff
+  zh: ad5c8c106ed854c8
+/agent-note-token-plan-balance-surfaces-report-owned-points/consequences:
+  en: 7a3d27dd59fc1050
+  zh: d81d06653cd995bb

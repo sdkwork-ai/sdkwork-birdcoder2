@@ -16,6 +16,8 @@ function card(overrides: Partial<SettingsMenuPlanCardProps> = {}) {
   const readSummary = vi.fn().mockResolvedValue({
     planName: '体验版',
     points: 610.57,
+    available: 610.57,
+    frozen: 0,
     active: true,
   })
   const props: SettingsMenuPlanCardProps = {
@@ -56,6 +58,32 @@ describe('SettingsMenuPlanCard', () => {
     expect(openPointsRecharge).toHaveBeenCalledTimes(1)
     expect(close).toHaveBeenCalledTimes(2)
     expect(close.mock.invocationCallOrder[1]).toBeLessThan(openPointsRecharge.mock.invocationCallOrder[0])
+  })
+
+  it('names the points a running request holds beside the owned total', async () => {
+    card({
+      readSummary: vi.fn().mockResolvedValue({
+        planName: '体验版',
+        points: 41.5,
+        available: 25,
+        frozen: 16.5,
+        active: true,
+      }),
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('settings-menu-points-value').textContent).toBe('41.5')
+    })
+    // The precharge a running request holds is explained instead of showing a
+    // smaller balance that would look like an unexplained change on refresh.
+    expect(screen.getByTestId('settings-menu-points-split').textContent).toBe('可用 25 · 冻结 16.5')
+  })
+
+  it('omits the split while nothing is held', async () => {
+    card()
+
+    await screen.findByText('体验版')
+    expect(screen.queryByTestId('settings-menu-points-split')).toBeNull()
   })
 
   it('renders the Token Bank account balance at four decimal places', async () => {

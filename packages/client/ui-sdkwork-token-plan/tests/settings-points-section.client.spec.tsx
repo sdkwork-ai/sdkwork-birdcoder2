@@ -23,8 +23,8 @@ function section(overrides: Partial<SettingsPointsSectionProps> = {}, signedIn =
         id: 'h1',
         changeAmount: -4.34,
         afterBalance: 610.57,
-        sourceType: 'usage',
-        remark: '自动化任务',
+        sourceType: 'gateway_invocation_billing',
+        remark: undefined,
         createdAt: '2026-11-11T09:07:00Z',
       },
     ],
@@ -53,7 +53,7 @@ describe('SettingsPointsSection', () => {
     expect(screen.getAllByText('10').length).toBeGreaterThan(0)
 
     fireEvent.click(screen.getByRole('tab', { name: '变动明细' }))
-    expect(await screen.findByText('自动化任务')).not.toBeNull()
+    expect(await screen.findByText('模型调用扣费')).not.toBeNull()
     expect(screen.getByText('-4.34')).not.toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: '升级套餐' }))
@@ -93,5 +93,29 @@ describe('SettingsPointsSection', () => {
     })
     fireEvent.click(await screen.findByRole('tab', { name: '变动明细' }))
     expect(screen.getByText('暂无积分记录')).not.toBeNull()
+  })
+
+  it('falls back to the raw business type for a ledger reason it has no copy for', async () => {
+    section({
+      readPoints: vi.fn().mockResolvedValue({
+        planName: '体验版',
+        active: true,
+        points: 6,
+        available: 6,
+        frozen: 0,
+        history: [
+          {
+            id: 'h1',
+            changeAmount: 1,
+            afterBalance: 6,
+            sourceType: 'operator_bonus',
+            remark: undefined,
+            createdAt: '2026-11-11T09:07:00Z',
+          },
+        ],
+      }),
+    })
+    fireEvent.click(await screen.findByRole('tab', { name: '变动明细' }))
+    expect(screen.getByText('operator_bonus')).not.toBeNull()
   })
 })

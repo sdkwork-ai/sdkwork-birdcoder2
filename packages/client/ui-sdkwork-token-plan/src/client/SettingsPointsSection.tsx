@@ -2,8 +2,11 @@
  * Settings-center "套餐与积分" page: the account's plan, remaining compute
  * points, wallet split, and recent points ledger.
  *
- * The page reads the same Membership service as the Token Plan catalog and the
- * settings-menu wallet card, so the figures agree across all three surfaces.
+ * Every figure comes from the Token Bank wallet the settings-menu card and the
+ * purchase dialog report: the total (spendable plus points a running request
+ * holds), its available/frozen split, and the Token Bank ledger. The Membership
+ * points asset is a different account and is never substituted here, so the
+ * menu card and this page cannot disagree.
  * It is a settings section rather than a second modal: the settings center is
  * already the modal, and the nav rail is where users look for account facts.
  */
@@ -14,8 +17,24 @@ import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@dee
 // Type-only: pulls the 'settings.section' owner share into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { TokenPlanPointsHistoryEntry, TokenPlanPointsSnapshot } from './token-plan-service.ts'
+import type { TokenPlanKey } from './locales.ts'
 import { formatPointBalance, formatPointsChange, formatPointsTime, planLabelOf, pointsPercent } from './points-format.ts'
 import css from './SettingsPointsSection.module.css'
+
+/**
+ * Ledger business types the activity list can name in the user's language.
+ * Anything absent (an operator adjustment type this host does not know yet)
+ * renders as the gateway's own value rather than being dropped.
+ */
+const HISTORY_REASON_KEYS: Partial<Record<string, TokenPlanKey>> = {
+  gateway_invocation_billing: 'settings.points.reasonModelUsage',
+  manual_adjustment: 'settings.points.reasonAdjustment',
+  token_bank_grant: 'settings.points.reasonGrant',
+  token_bank_issue: 'settings.points.reasonGrant',
+  token_bank_purchase_credit: 'settings.points.reasonPurchase',
+  token_bank_reversal: 'settings.points.reasonReversal',
+  token_bank_transfer: 'settings.points.reasonTransfer',
+}
 
 /** Injected business face of the balances page. */
 export interface SettingsPointsSectionInjected {
@@ -84,12 +103,31 @@ function ProgressRow({
 }
 
 /**
+ * Describe one ledger row: a gateway remark when there is one, the localized
+ * name of a known business type, or the raw business type as a last resort.
+ * @param entry - the points-history entry.
+ * @param t - locale lookup.
+ * @returns the row description, or undefined when the gateway sent neither.
+ */
+function ledgerDescription(
+  entry: TokenPlanPointsHistoryEntry,
+  t: (key: TokenPlanKey) => string,
+): string | undefined {
+  if (entry.remark !== undefined) return entry.remark
+  const sourceType = entry.sourceType
+  if (sourceType === undefined) return undefined
+  const reason = HISTORY_REASON_KEYS[sourceType]
+  return reason === undefined ? sourceType : t(reason)
+}
+
+/**
  * Render one ledger row.
  * @param props.entry - the points-history entry.
+ * @param props.t - locale lookup.
  * @returns a table row.
  */
-function HistoryRow({ entry }: { entry: TokenPlanPointsHistoryEntry }) {
-  const description = entry.remark ?? entry.sourceType
+function HistoryRow({ entry, t }: { entry: TokenPlanPointsHistoryEntry; t: (key: TokenPlanKey) => string }) {
+  const description = ledgerDescription(entry, t)
   return (
     <div className={css.historyRow}>
       <div className={css.historyMain}>
@@ -271,7 +309,7 @@ export function SettingsPointsSection(props: SettingsPointsSectionProps): React.
                       <span>{t('settings.points.amount')}</span>
                       <span>{t('settings.points.balance')}</span>
                     </div>
-                    {history.map(entry => <HistoryRow key={entry.id} entry={entry} />)}
+                    {history.map(entry => <HistoryRow key={entry.id} entry={entry} t={t} />)}
                   </>
                 )}
             </div>

@@ -58,6 +58,21 @@ describe('Token Bank account store', () => {
     expect(read).toHaveBeenCalledTimes(2)
   })
 
+  it('counts points a running request holds in the owned balance', async () => {
+    const read = vi.fn().mockResolvedValue({
+      assetType: 'token_bank',
+      available: 25,
+      frozen: 16.5,
+      pending: 0,
+    })
+    const store = createTokenPlanAccountStore({ read, signedIn: () => true })
+
+    await store.refresh()
+    // The gateway precharges the running request: it holds 16.5 of the 41.5
+    // remaining points, so a spendable-only figure would read 25 here.
+    expect(store.getSnapshot()).toMatchObject({ points: 41.5, status: 'ready' })
+  })
+
   it('keeps the last settled balance when a refresh fails', async () => {
     const read = vi.fn()
       .mockResolvedValueOnce(computeAccount(9))

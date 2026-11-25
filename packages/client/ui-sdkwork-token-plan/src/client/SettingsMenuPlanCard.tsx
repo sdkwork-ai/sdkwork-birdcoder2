@@ -5,12 +5,15 @@
  * The card owns the account-facing half of the Token Plan surface: the plan
  * comes from the Membership commerce service the page uses, and the balance is
  * the Token Bank account the recharge dialog tops up, so the two figures cannot
- * drift from the catalog or the purchase. Both actions leave the menu:
- * `升级套餐` opens the Token Plan mode, `购买积分` asks the shell for the points
- * purchase modal on the `settings.pointsRecharge` seat. The menu takes itself
- * down first in both cases so it never covers the surface it opened, and the
- * purchase modal lives on the shell rather than in this card because the
- * popover unmounts its content on close.
+ * drift from the catalog or the purchase. The balance figure is the points the
+ * account owns (spendable plus the points an in-flight request holds); when a
+ * request holds points the card also spells the available/frozen split out, so
+ * a model call starting or settling never looks like a changed balance. Both
+ * actions leave the menu: `升级套餐` opens the Token Plan mode, `购买积分` asks
+ * the shell for the points purchase modal on the `settings.pointsRecharge`
+ * seat. The menu takes itself down first in both cases so it never covers the
+ * surface it opened, and the purchase modal lives on the shell rather than in
+ * this card because the popover unmounts its content on close.
  *
  * The card has no cache of its own: mounting it re-reads the wallet, so the
  * balance the user sees after a top-up is the settled one.
@@ -87,6 +90,13 @@ export function SettingsMenuPlanCard(props: SettingsMenuPlanCardProps): React.Re
   const summary = state.status === 'ready' ? state.summary : undefined
   const plan = state.status === 'error' ? '—' : planLabelOf(summary, t)
   const pointsText = summary?.points === undefined ? '—' : formatPointBalance(summary.points)
+  // Points a running request holds are still the account's: naming the split
+  // keeps the total honest while a model call is in flight.
+  const splitText = summary?.available === undefined || (summary.frozen ?? 0) <= 0
+    ? undefined
+    : t('menu.pointsSplit')
+      .replace('{available}', formatPointBalance(summary.available))
+      .replace('{frozen}', formatPointBalance(summary.frozen ?? 0))
   const busy = state.status === 'loading'
 
   return (
@@ -125,6 +135,13 @@ export function SettingsMenuPlanCard(props: SettingsMenuPlanCardProps): React.Re
             )}
         </div>
       </div>
+      {splitText === undefined
+        ? null
+        : (
+          <p className={css.pointsSplit} data-testid="settings-menu-points-split">
+            {splitText}
+          </p>
+        )}
       <div className={css.actions}>
         <Button variant="primary" className={css.action} onClick={leaveForTokenPlan}>
           {t('menu.upgrade')}
