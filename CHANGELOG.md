@@ -137,6 +137,7 @@
 * **可携带技能包与插件市场**（`cc2b8fcf6d`）：随包发布可移植技能包与 SDKWork 插件市场；新增 `birdcoder-app-deploy`、`birdcoder-content-publish`、`birdcoder-knowledge-article` 等技能与配套规范参考，支持从对话直接部署应用（`deploy-from-conversation`）；专家市场改为一方能力并收敛 agent-notes 归档清单。
 * **专家团类型安全**（`6fee904572`）：`ui-sdkwork-experts` 的设置配置与成员解析保持类型安全。
 * **客户端类型门禁修复**：补齐 `ui-sdkwork-experts` 的 teams remote 可选兼容与 locale/t 注入、tabler 图标入口、`ui-sdkwork-*` 测试夹具的 DOM 断言类型；`runtime` 会话位置数据联合补上 Step 分支。类型门禁 `tsc -b tsconfig.client.tests.json` 恢复全绿。
+* **打包门禁修复**：`tsconfig.base.json` 用 `analyze-sdkwork-closure.mjs --rewrite` 移除 4 个不再被导入覆盖的 `@sdkwork/agents-pc-agents/*` 精确路径；`ui-sdkwork-experts/tests/sdkwork-catalog-sync.spec.ts` 按客户端测试面约定改名为 `.client.spec.ts`；`sdkwork-plugins` 的 release pin 从 `8c06d3a5` 前移到含 `sdkwork-plugins-pc-marketplace` 的远端 HEAD `b1f937e`（本地 `../sdkwork-*` 相对路径不变），`scripts/sdkwork-sources.manifest.json` 与 `agent.workflow.json` 双记录同步，lockfile 已有对应 importer。
 
 #### 发布准备（本版本打包前）
 
