@@ -352,8 +352,8 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
         onClose={closeDetails}
       />}
       <Modal
-        className={css.confirmDialog as string}
-        contentClassName={css.confirmContent as string}
+        className={css.confirmDialog}
+        contentClassName={css.confirmContent}
         open={clearConfirm}
         title={t('clear.title', { count: endedCount })}
         description={t('clear.description')}

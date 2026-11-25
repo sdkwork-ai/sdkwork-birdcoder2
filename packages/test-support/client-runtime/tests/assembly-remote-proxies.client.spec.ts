@@ -42,7 +42,7 @@ describe('remote proxies over a booted client', () => {
     onTestFinished(() => client.dispose())
     expect([...client.ctx.loader.entries()].map(entry => entry.options.name)).not.toContain(name)
     const remote = (client.ctx as unknown as { remote: RemoteFace }).remote
-    await expect(remote.officeKit!.render!({ path: 'report.docx' })).resolves.toEqual(ok({ bytes: 3 }))
+    await expect(remote.officeKit.render({ path: 'report.docx' })).resolves.toEqual(ok({ bytes: 3 }))
     expect(mock.log.calls('officeKit/render').map(call => call.args)).toEqual([[{ path: 'report.docx' }]])
   })
 
@@ -60,8 +60,8 @@ describe('remote proxies over a booted client', () => {
       m.unary('session/cancel', { ok: false, error: { code: 'session/not-found', message: 'gone', details: {} } })
     })
     expect([...client.ctx.loader.entries()].map(entry => entry.options.name)).not.toContain('@deepseek-ai/dsh-api-remotes')
-    await expect(remote.session!.rename!({ sessionId: 's1', title: 'renamed' })).resolves.toEqual({ ok: true, value: { title: 'renamed', seq: 3 } })
-    await expect(remote.session!.cancel!({ sessionId: 's1' }, new AbortController().signal))
+    await expect(remote.session.rename({ sessionId: 's1', title: 'renamed' })).resolves.toEqual({ ok: true, value: { title: 'renamed', seq: 3 } })
+    await expect(remote.session.cancel({ sessionId: 's1' }, new AbortController().signal))
       .resolves.toEqual({ ok: false, error: { code: 'session/not-found', message: 'gone', details: {} } })
     expect(mock.log.calls('session/rename').map(call => call.args)).toEqual([[{ sessionId: 's1', title: 'renamed' }]])
     expect(mock.log.calls('session/cancel').map(call => call.args)).toEqual([[{ sessionId: 's1' }]])
@@ -73,7 +73,7 @@ describe('remote proxies over a booted client', () => {
     const mock = RemoteMock.create().load(remoteDefaultResponses)
     const client = await TestClient.start({ roster: API_ROSTER }, mock)
     const remote = (client.ctx as unknown as { remote: RemoteFace }).remote
-    await expect(remote.session!.search!({ query: 'x' })).resolves.toMatchObject({
+    await expect(remote.session.search({ query: 'x' })).resolves.toMatchObject({
       ok: false,
       error: { code: 'gateway/internal', message: expect.stringMatching(/^client api: session\/search failed: remote-mock: no rule for session\/search; registered: \$events, /) as string },
     })
@@ -86,11 +86,11 @@ describe('remote proxies over a booted client', () => {
       m.unary('session/rename', () => Promise.reject(new Error('wire down')))
       m.unary('session/cancel', () => new Promise(() => {}))
     })
-    await expect(remote.session!.rename!({ sessionId: 's1', title: 't' })).resolves.toMatchObject({
+    await expect(remote.session.rename({ sessionId: 's1', title: 't' })).resolves.toMatchObject({
       ok: false, error: { code: 'gateway/internal', message: 'client api: session/rename failed: wire down' },
     })
     const controller = new AbortController()
-    const cancelling = remote.session!.cancel!({ sessionId: 's1' }, controller.signal) as Promise<unknown>
+    const cancelling = remote.session.cancel({ sessionId: 's1' }, controller.signal) as Promise<unknown>
     controller.abort()
     await expect(cancelling).resolves.toMatchObject({ ok: false, error: { code: 'gateway/cancelled' } })
     expect(mock.log.calls('session/rename').map(call => call.state)).toEqual(['failed'])
@@ -103,8 +103,8 @@ describe('remote proxies over a booted client', () => {
       m.stream('session/control', ((_args, stream) => { stream.fail(new Error('flap')) }))
     })
     const signal = new AbortController().signal
-    await expect(drain(remote.session!.follow!({ address: { kind: 'session', sessionId: 's1' } }, signal) as AsyncIterable<unknown>))
+    await expect(drain(remote.session.follow({ address: { kind: 'session', sessionId: 's1' } }, signal) as AsyncIterable<unknown>))
       .resolves.toEqual([{ type: 'a' }, { type: 'b' }])
-    await expect(drain(remote.session!.control!({}) as AsyncIterable<unknown>)).rejects.toThrow('flap')
+    await expect(drain(remote.session.control({}) as AsyncIterable<unknown>)).rejects.toThrow('flap')
   })
 })

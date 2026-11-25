@@ -1,7 +1,7 @@
 /** Anchor-preserving tooltips; an optional body portal escapes clipping containers and stacking contexts that cap the bubble's z-index. */
 
 import { cloneElement, createContext, useCallback, useContext, useEffect, useId, useRef, useState } from 'react'
-import type { FocusEventHandler, MouseEventHandler, MutableRefObject, PointerEventHandler, ReactElement, Ref } from 'react'
+import type { FocusEventHandler, MouseEventHandler, PointerEventHandler, ReactElement, Ref } from 'react'
 import { createPortal } from 'react-dom'
 import { ShortcutKeys } from './ShortcutKeys.tsx'
 import { placeTooltip, type TooltipSide } from './tooltip-placement.ts'
@@ -80,7 +80,7 @@ export function Tooltip({ label, shortcutKeys, side = 'right', align = 'center',
   const mergedRef = useCallback((el: HTMLElement | null) => {
     anchor.current = el
     if (typeof childRef === 'function') childRef(el)
-    else if (childRef != null) (childRef as MutableRefObject<HTMLElement | null>).current = el
+    else if (childRef != null) (childRef).current = el
   }, [childRef])
   const [pos, setPos] = useState<DOMRect | null>(null)
   const bubble = useRef<HTMLSpanElement | null>(null)

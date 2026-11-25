@@ -109,7 +109,7 @@ describe('FilesBody', () => {
       fireEvent.change(input, { target: { value: 'target' } })
       await searchesSettled()
     })
-    const search = h.instance.getSnapshot().byPane[PANE]!.search
+    const search = h.instance.getSnapshot().byPane[PANE].search
     const body = h.view.container.querySelector('[data-files-body]')!
     expect(body.getAttribute('data-files-view')).toBe('search')
     expect(names(h.view.container)).toContain(`${ROOT}/src/target.ts`)
@@ -117,8 +117,8 @@ describe('FilesBody', () => {
     expect(document.activeElement).toBe(toggle)
     expect(h.view.queryByRole('searchbox')).toBeNull()
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
-    expect(h.instance.getSnapshot().byPane[PANE]!.query).toBe('target')
-    expect(h.instance.getSnapshot().byPane[PANE]!.search).toBe(search)
+    expect(h.instance.getSnapshot().byPane[PANE].query).toBe('target')
+    expect(h.instance.getSnapshot().byPane[PANE].search).toBe(search)
     expect(h.view.container.querySelector('[data-files-body]')).toBe(body)
     h.view.unmount()
     const back = h.remount()
@@ -146,7 +146,7 @@ describe('FilesBody', () => {
     await act(async () => { fireEvent.keyDown(result, { key: 'Escape' }) })
     const body = h.view.container.querySelector('[data-files-body]')!
     expect(body.getAttribute('data-files-view')).toBe('tree')
-    expect(h.instance.getSnapshot().byPane[PANE]!.query).toBe('')
+    expect(h.instance.getSnapshot().byPane[PANE].query).toBe('')
     expect(h.view.queryByRole('searchbox')).toBeNull()
     expect(document.activeElement).toBe(body)
   })
@@ -159,7 +159,7 @@ describe('FilesBody', () => {
     await act(async () => { fireEvent.click(toggle) })
     h.searches.answerWith(undefined)
     fireEvent.change(h.view.getByRole('searchbox'), { target: { value: 'target' } })
-    const running = h.searches.started[0]!
+    const running = h.searches.started[0]
     fireEvent.click(toggle)
     expect(running.signal.aborted).toBe(false)
     expect(h.view.container.querySelector('[data-files-body]')?.getAttribute('aria-busy')).toBe('true')
@@ -365,7 +365,7 @@ describe('FilesBody', () => {
     await act(() => script.watches.ready(child))
     await act(() => script.settle({ ok: true, value: ROOT_LEVEL }))
     act(() => { instance.actions.loaded(PANE, collapsed, ROOT_LEVEL) })
-    const cached = instance.getSnapshot().byPane[PANE]!.tree!
+    const cached = instance.getSnapshot().byPane[PANE].tree!
     const childRow = view.container.querySelector(`[data-files-path="${child}"]`)
     const body = view.container.querySelector('[data-files-body]')!
     fireEvent.scroll(body, { target: { scrollTop: 120 } })
@@ -377,7 +377,7 @@ describe('FilesBody', () => {
     expect(script.list.mock.calls.slice(2).map(call => call[1])).toEqual([ROOT])
     expect(script.list).toHaveBeenLastCalledWith(SESSION, ROOT, rootStream.signal)
     // A level listed again keeps its entries, marked as refreshing.
-    expect(instance.getSnapshot().byPane[PANE]!.tree!.levels)
+    expect(instance.getSnapshot().byPane[PANE].tree!.levels)
       .toEqual({ ...cached.levels, [ROOT]: { ...cached.levels[ROOT], refreshing: true } })
     expect(view.container.querySelector('[data-files-row="loading"]')).toBeNull()
     await act(async () => {
@@ -385,12 +385,12 @@ describe('FilesBody', () => {
       await script.waitForList(3)
     })
     expect(script.list.mock.calls.slice(2).map(call => call[1])).toEqual([ROOT, child])
-    expect(instance.getSnapshot().byPane[PANE]!.tree!.levels)
+    expect(instance.getSnapshot().byPane[PANE].tree!.levels)
       .toEqual({ ...cached.levels, [child]: { ...cached.levels[child], refreshing: true } })
     await act(() => script.settle({ ok: true, value: ROOT_LEVEL }))
     expect(view.container.querySelector(`[data-files-path="${child}"]`)).toBe(childRow)
     expect(body.scrollTop).toBe(120)
-    expect(instance.getSnapshot().byPane[PANE]!.tree!.expanded).toEqual([ROOT, child])
+    expect(instance.getSnapshot().byPane[PANE].tree!.expanded).toEqual([ROOT, child])
     expect(script.watches.opened.map(stream => stream.path)).toEqual([ROOT, child])
     expect(view.container.querySelector('[data-files-reload]')?.getAttribute('aria-label')).toBe(zh.reload)
   })
@@ -411,7 +411,7 @@ describe('FilesBody', () => {
     act(() => { fireEvent.click(view.getByRole('button', { name: zh.reload })) })
     await act(() => script.settle({ ok: true, value: ROOT_LEVEL }))
     expect(script.list).toHaveBeenCalledTimes(2)
-    expect(instance.getSnapshot().byPane[PANE]!.tree!.autoRefresh).toBe(false)
+    expect(instance.getSnapshot().byPane[PANE].tree!.autoRefresh).toBe(false)
     expect(automatic.getAttribute('aria-pressed')).toBe('false')
   })
 })

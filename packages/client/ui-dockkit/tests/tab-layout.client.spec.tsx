@@ -101,7 +101,7 @@ it('keeps primary selection and secondary menus separate from middle-click closi
 it('retains visited bodies and hands keyboard focus to the newly selected strip', () => {
   const controller = seededController()
   controller.setExpanded(true)
-  const first = getPane(controller.getSnapshot().state, controller.getSnapshot().state.rootId).tabs[0]!
+  const first = getPane(controller.getSnapshot().state, controller.getSnapshot().state.rootId).tabs[0]
   const second = controller.openContent({ kind: 'file', contentId: 'file:b', title: 'B' })
   controller.focusTab(first)
   const h = mounted(controller, { keepMounted: () => true })
@@ -144,7 +144,7 @@ it('keeps body ancestors through pane moves, floating, raising and docking', () 
   fireEvent.pointerDown(h.node('[data-dockkit-divider]'), { button: 0, pointerId: 1 })
   expect(h.callbacks.onDividerPressed).toHaveBeenCalledOnce()
   h.redraw({ preview: undefined })
-  const secondPane = getPane(state, split.children[1]!).id
+  const secondPane = getPane(state, split.children[1]).id
   fireEvent.click(h.node(`[data-dockkit-content="${tab}"] [data-dockkit-tab="${tab}"]`))
   expect(controller.getSnapshot().state.activePaneId).toBe(split.children[0])
   act(() => { controller.focusPane(secondPane); h.redraw() })
@@ -154,12 +154,12 @@ it('keeps body ancestors through pane moves, floating, raising and docking', () 
   fireEvent.pointerDown(h.node(`[data-dockkit-content="${tab}"]`), { button: 0, pointerId: 1 })
   fireEvent.click(body)
   fireEvent.focus(body)
-  expect(controller.getSnapshot().state.activePaneId).toBe(getPane(state, split.children[0]!).id)
+  expect(controller.getSnapshot().state.activePaneId).toBe(getPane(state, split.children[0]).id)
   act(() => { controller.placeTab(tab, secondPane, 0); h.redraw() })
   expect(h.body(tab)).toBe(body)
   expect(body.closest('[data-dockkit-host]')).toBe(host)
   act(() => { controller.floatTab(tab); h.redraw() })
-  const floating = controller.getSnapshot().state.floats[0]!
+  const floating = controller.getSnapshot().state.floats[0]
   expect(body.closest('[data-dockkit-host]')).toBe(host)
   expect(host.getAttribute('data-dockkit-host')).toBe('float')
   act(() => { controller.setExpanded(false); h.redraw() })
@@ -187,7 +187,7 @@ it('does not re-render a docked or floating body while a float gesture redraws t
   h.redraw({ callbacks: { ...h.callbacks, renderTab } })
   const rendered = renderTab.mock.calls.length
   expect(rendered).toBeGreaterThan(0)
-  const floating = controller.getSnapshot().state.floats[0]!
+  const floating = controller.getSnapshot().state.floats[0]
   fireEvent.pointerDown(h.node(`[data-dockkit-float="${floating}"] [data-dockkit-float-grip]`),
     { pointerId: 3, button: 0, clientX: 150, clientY: 90 })
   for (const x of [170, 190, 210]) fireEvent.pointerMove(window, { pointerId: 3, clientX: x, clientY: 90 })
@@ -203,7 +203,7 @@ it('does not re-render a docked or floating body while a float gesture redraws t
 it('unmounts unretained bodies and restores focus to their replacement strip', () => {
   const controller = seededController()
   controller.setExpanded(true)
-  const first = getPane(controller.getSnapshot().state, controller.getSnapshot().state.rootId).tabs[0]!
+  const first = getPane(controller.getSnapshot().state, controller.getSnapshot().state.rootId).tabs[0]
   const second = controller.openContent({ kind: 'file', contentId: 'file:b', title: 'B' })
   controller.focusTab(first)
   const h = mounted(controller)
@@ -221,7 +221,7 @@ it('unmounts unretained bodies and restores focus to their replacement strip', (
 it.for(['new-control', 'origin-control', 'document', 'no-focus'] as const)('transfers tab focus without overriding a new owner: %s', (kind, test) => {
   const controller = seededController()
   controller.setExpanded(true)
-  const first = getPane(controller.getSnapshot().state, controller.getSnapshot().state.rootId).tabs[0]!
+  const first = getPane(controller.getSnapshot().state, controller.getSnapshot().state.rootId).tabs[0]
   const second = controller.openContent({ kind: 'file', contentId: 'file:b', title: 'B' })
   controller.focusTab(first)
   const h = mounted(controller)
@@ -246,7 +246,7 @@ it.for(['new-control', 'origin-control', 'document', 'no-focus'] as const)('tran
 it('does not require a docked strip when a selected tab becomes floating in the same update', () => {
   const controller = seededController()
   controller.setExpanded(true)
-  const first = getPane(controller.getSnapshot().state, controller.getSnapshot().state.rootId).tabs[0]!
+  const first = getPane(controller.getSnapshot().state, controller.getSnapshot().state.rootId).tabs[0]
   const second = controller.openContent({ kind: 'file', contentId: 'file:b', title: 'B' })
   controller.focusTab(first)
   const h = mounted(controller)
@@ -365,7 +365,7 @@ it('places a selected tab\'s strip moved to another pane from that pane\'s last 
     const state = controller.getSnapshot().state
     const split = getNode(state, state.rootId)
     if (split.kind !== 'split') throw new Error('expected a split')
-    const target = getPane(state, split.children[1]!).id
+    const target = getPane(state, split.children[1]).id
     act(() => { controller.focusTab(moved); h.redraw() })
     offsets.set(h.node(`[data-dockkit-strip-tabs="${target}"]`), 70)
     writes.length = 0

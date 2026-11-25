@@ -33,7 +33,7 @@ function reuseReferences<Value>(
   equal: (left: Value, right: Value) => boolean,
 ): readonly Value[] {
   return previous === next || (previous.length === next.length
-    && previous.every((value, index) => equal(value, next[index] as Value)))
+    && previous.every((value, index) => equal(value, next[index])))
     ? previous
     : next
 }

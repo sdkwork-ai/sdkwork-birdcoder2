@@ -195,7 +195,7 @@ describe('directory-picker-native client half', () => {
     const b = await bench()
     b.declare()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const entry = b.slots.entries(HOLES[0])[0]!
+    const entry = b.slots.entries(HOLES[0])[0]
     const injected = (entry.inject as () => { pick: () => Promise<string | null> })()
     await expect(injected.pick()).resolves.toBe('/tmp/picked')
     expect(b.pickDirectory).toHaveBeenCalledOnce()
@@ -214,7 +214,7 @@ describe('directory-picker-native client half', () => {
     const fiber = b.ctx.plugin({ inject: [...inject], apply })
     try {
       await fiber.await()
-      const entry = b.slots.entries(HOLES[0])[0]!
+      const entry = b.slots.entries(HOLES[0])[0]
       const injected = (entry.inject as () => { pick: () => Promise<string | null> })()
       await expect(injected.pick()).resolves.toBe('/desktop/workspace')
       expect(desktopIpc.invoke).toHaveBeenCalledExactlyOnceWith('dsh-desktop:directory-pick')
@@ -233,7 +233,7 @@ describe('directory-picker-native client half', () => {
     const fiber = b.ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     try {
-      const entry = b.slots.entries(HOLES[0])[0]!
+      const entry = b.slots.entries(HOLES[0])[0]
       const injected = (entry.inject as () => { pick: () => Promise<string | null> })()
       await expect(injected.pick()).resolves.toBe('/desktop/workspace')
       pick.mockResolvedValue(null)

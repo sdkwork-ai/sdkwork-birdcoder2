@@ -386,7 +386,7 @@ function visiblePendingKind(kind: string | undefined): SessionPendingInteraction
 
 function runningChildCount(list: SessionListState, parentId: SessionId, statuses: SessionStatuses): number {
   return list.projectionsBySession[parentId]?.values.subagentCatalog?.reduce(
-    (count, child) => count + ((statuses.get(child.id)?.running ?? list.byId[child.id]?.running) === true ? 1 : 0),
+    (count, child) => count + ((statuses.get(child.id)?.running ?? list.byId[child.id]?.running) ? 1 : 0),
     0,
   ) ?? 0
 }
@@ -562,7 +562,7 @@ export function sessionSearchIndex(
     const summary = list.byId[id]
     return summary !== undefined && !summary.blank && sessionVisible(summary, current, archived, archivedFilter)
   })
-  const sessions = orderByRecency(visible, list.byId).map(id => list.byId[id] as SessionSummary)
+  const sessions = orderByRecency(visible, list.byId).map(id => list.byId[id])
   const keys = (summary: SessionSummary): SearchKeys => ({ fuzzy: [sessionTitle(summary), labelOf(summary)], substring: [summary.id] })
   return previous === undefined ? new TextSearchIndex(sessions, keys) : previous.update(sessions, keys)
 }

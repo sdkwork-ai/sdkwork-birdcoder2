@@ -1356,7 +1356,7 @@ describe('WorkspaceBrowser', () => {
     expect(within(tree).getByText('gone')).toBeTruthy()
     const unarchive = within(tree).getAllByRole('button', { name: '取消归档' })
     expect(unarchive).toHaveLength(1)
-    fireEvent.click(unarchive[0]!)
+    fireEvent.click(unarchive[0])
     expect(unarchiveSession).toHaveBeenCalledWith(sid('gone'))
   })
 
@@ -1868,7 +1868,7 @@ describe('WorkspaceBrowser', () => {
       const input = screen.getByPlaceholderText('搜索会话名称')
       fireEvent.change(input, { target: { value: 'first' } })
       await act(async () => { await vi.advanceTimersByTimeAsync(250) })
-      const firstSignal = searchSessions.mock.calls[0]?.[1] as AbortSignal
+      const firstSignal = searchSessions.mock.calls[0]?.[1]
       expect(firstSignal.aborted).toBe(false)
 
       fireEvent.change(input, { target: { value: 'second' } })
@@ -2718,7 +2718,7 @@ describe('Workspace tree grouping', () => {
     })
     fireEvent.click(screen.getByText('Child'))
     fireEvent.click(within(section('Child')).getByRole('button', { name: '展开其余 2 个会话' }))
-    fireEvent.click(within(section('Projects')).getAllByRole('button', { name: '展开其余 2 个会话' })[0]!)
+    fireEvent.click(within(section('Projects')).getAllByRole('button', { name: '展开其余 2 个会话' })[0])
     expect(screen.getByText('child-7')).toBeTruthy()
     expect(screen.getByText('root-7')).toBeTruthy()
     fireEvent.click(screen.getByText('Child'))

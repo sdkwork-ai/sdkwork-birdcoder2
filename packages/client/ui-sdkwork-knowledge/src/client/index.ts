@@ -15,6 +15,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
+// Type-only: pulls ctx.remote and its forwarded knowledge request into this program.
+import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
@@ -27,6 +29,7 @@ import type {
 } from './knowledgebaseHost.ts'
 import { configureKnowledgebaseHost } from './knowledgebaseHost.ts'
 import { createKnowledgeBaseCatalog, type KnowledgeBaseCatalog } from './knowledgeCatalog.ts'
+import { runKnowledgeConversation } from './knowledgeConversation.ts'
 import { KnowledgeRailEntry, type KnowledgeRailEntryInjected } from './RailEntry.tsx'
 import { KnowledgePage, type KnowledgePageInjected } from './KnowledgePage.tsx'
 import { en, zh, type KnowledgeKey } from './locales.ts'
@@ -62,7 +65,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 const NS = 'knowledge'
 
 /** Services required by the Knowledge Base mode plugin. */
-export const inject = ['slots', 'locale', 'env', 'iam', 'theme']
+export const inject = ['slots', 'locale', 'env', 'iam', 'theme', 'remote']
 
 /**
  * Configure the SDKWork host adapter through an injectable test seam.
@@ -91,13 +94,29 @@ export function apply(ctx: ClientContext): void {
     getColorScheme: () => themeRuntime.getTheme().active.colorScheme,
     subscribe: listener => ctx.on('theme/change', listener),
   }
+  const env = ctx.get('env') as EnvService
+  const iam = ctx.get('iam') as KnowledgebaseHostIam
   const adapter = createKnowledgebaseAdapter(
-    ctx.get('env') as EnvService,
-    ctx.get('iam') as KnowledgebaseHostIam,
+    env,
+    iam,
     ctx.locale,
     theme,
   )
   ctx.effect(() => () => { adapter.dispose() }, 'ui-sdkwork-knowledge: SDKWork host adapter')
+
+  // The Host tools `sdkwork_knowledge_write` and `sdkwork_content_publish` forward
+  // each article or media operation over the `sdkwork-knowledge/request`
+  // waterfall. It runs here because the generated Knowledge Base app client is
+  // bound to the credentials this client already holds: an IAM user session, or
+  // the environment's static access token on a non-interactive deployment.
+  ctx.effect(() => ctx.remote.$on('sdkwork-knowledge/request', request => runKnowledgeConversation({
+    isSignedIn: () => {
+      const session = iam.controller.getState().session
+      return session !== null || env.accessToken().trim() !== ''
+    },
+    listBases: () => knowledgeSelectionService.getBases(),
+    client: () => adapter.knowledgebaseClient(),
+  }, request)), 'ui-sdkwork-knowledge: conversation bridge')
 
   // Composer capability surfaces read this service to offer the user's knowledge
   // bases and to retrieve passages for the message being composed.

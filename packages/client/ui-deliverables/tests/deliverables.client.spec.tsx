@@ -963,7 +963,7 @@ describe('plugin registration', () => {
     }
     expect(preview.mock.calls).toEqual(Array.from({ length: 4 }, () => ['out/report.docx']))
     expect(fetcher).not.toHaveBeenCalled()
-    const face: DeliverablesInjected = entry!.inject!(brandString<SessionId>('child-session') as never) as Record<string, unknown> & DeliverablesInjected
+    const face: DeliverablesInjected = entry.inject!(brandString<SessionId>('child-session') as never) as Record<string, unknown> & DeliverablesInjected
     fetcher.mockResolvedValueOnce(Response.json({ name: 'desktop', available: true, fileManager: 'finder' }))
     await face.reloadPresentedHost()
     expect(face.hooks.presentedHost.getSnapshot()).toMatchObject({ name: 'desktop' })
@@ -981,7 +981,7 @@ describe('plugin registration', () => {
     face.openChangesReview({ sessionId: brandString<SessionId>('child-session'), seq: 5, turn: 3 }, 1)
     expect(openResource).toHaveBeenCalledWith('dsh-resource://changes-review/session/child-session/5/3', { params: { index: 1 } })
     expect((registered as { title(address: string): string }).title('dsh-resource://changes-review/session/child-session/5/3')).toBe('Review · turn 3')
-    const tabFace: ReviewInjected = tabEntry!.inject!(brandString<SessionId>('child-session') as never) as Record<string, unknown> & ReviewInjected
+    const tabFace: ReviewInjected = tabEntry.inject!(brandString<SessionId>('child-session') as never) as Record<string, unknown> & ReviewInjected
     fetcher.mockResolvedValueOnce(Response.json({ turn: 3, cwd: '/workspace', files: [], total: 0, added: 0, deleted: 0 }))
     await tabFace.loadChangesSummary(brandString<SessionId>('child-session'), 6)
     expect(tabFace.hooks.changesSummary.getSnapshot()['api/changes.summary?sessionId=child-session&seq=6']).toEqual({ turn: 3, cwd: '/workspace', files: [], total: 0, added: 0, deleted: 0 })
@@ -1074,7 +1074,7 @@ describe('presented files', () => {
     fireEvent.click(view.getByRole('button', { name: 'Preview report-0.docx in sidebar' }))
     expect(preview).toHaveBeenCalledTimes(1)
     expect(preview).toHaveBeenLastCalledWith('report-0.docx')
-    fireEvent.click(view.getAllByRole('button', { name: 'Native file action' })[0]!)
+    fireEvent.click(view.getAllByRole('button', { name: 'Native file action' })[0])
     expect(props.openPresented).toHaveBeenCalledWith('child-session', 2, 0, 'open', undefined)
     fireEvent.click(view.getByRole('button', { name: 'Collapse delivered files' }))
     expect(view.container.querySelectorAll('[data-presented-file]')).toHaveLength(4)

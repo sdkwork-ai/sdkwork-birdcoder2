@@ -161,7 +161,7 @@ async function mountSeat(viewportWidth = 1440, canShow = true, entryCount = 0, o
   }
   const instance = runtime.storeOf('rightbar.session', reference) as ReturnType<ReturnType<typeof createSidebarRightStore>['create']>
   const controller = runtime.ctx.sidebarRight
-  const layout = () => instance.getSnapshot().bySession[SESSION]!.layout
+  const layout = () => instance.getSnapshot().bySession[SESSION].layout
   const open = (name = 'a.txt', options?: Parameters<typeof controller.openResource>[1]) => {
     act(() => { controller.openResource(`dsh-resource://file/session/s-test/${name}`, options) })
     return controller.active()!
@@ -576,7 +576,7 @@ describe('RightbarSeat presentation', () => {
   it.each([0, 1, 2])('selects the default from %i guide entries and protects only a sole guide', async (entryCount) => {
     const h = await mountSeat(1440, true, entryCount)
     act(() => { h.controller.toggleExpanded() })
-    const initial = Object.values(h.layout().tabs)[0]!
+    const initial = Object.values(h.layout().tabs)[0]
     expect(initial.kind).toBe(entryCount === 1 ? 'text' : 'guide')
     if (entryCount !== 1) {
       expect(h.view.container.querySelectorAll('[data-dockkit-tab-close]')).toHaveLength(0)
@@ -594,7 +594,7 @@ describe('RightbarSeat presentation', () => {
     // The close leaves the layout empty; the next expansion reseeds.
     expect(Object.keys(h.layout().tabs)).toHaveLength(0)
     act(() => { h.controller.toggleExpanded() })
-    const reseeded = Object.values(h.layout().tabs)[0]!
+    const reseeded = Object.values(h.layout().tabs)[0]
     expect(reseeded.kind).toBe('text')
     expect(reseeded.id).not.toBe(initial.id)
     fireEvent.click(element(h.view.container, '[data-dockkit-add-tab]'))
@@ -619,7 +619,7 @@ describe('RightbarSeat presentation', () => {
     const h = await mountSeat()
     const floating = h.open('floating.txt')
     act(() => { h.controller.float(floating.id) })
-    const paneId = getPane(h.layout(), h.layout().floats[0]!).id
+    const paneId = getPane(h.layout(), h.layout().floats[0]).id
     expect(h.view.container.querySelector('[data-dockkit-tab-close]')).toBeNull()
     const close = document.querySelector<HTMLButtonElement>(`[data-dockkit-float-close="${paneId}"]`)
     expect(close).not.toBeNull()
@@ -1080,7 +1080,7 @@ describe('slot-owned useTabInfo', () => {
     expect(h.instance.getSnapshot()).toBe(stored)
     expect(splitButtons()).toHaveLength(2)
     expect([...splitButtons()].every(button => button.hasAttribute('disabled'))).toBe(true)
-    const right = dockPaneIds(h.layout())[1]!
+    const right = dockPaneIds(h.layout())[1]
     h.open('right.txt', { paneId: right })
     const guide = getPane(h.layout(), right).tabs.find(id => h.layout().tabs[id]?.kind === 'guide')!
     act(() => { h.actions.closeTab(SESSION, guide) })

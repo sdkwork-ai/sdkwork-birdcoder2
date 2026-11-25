@@ -19,22 +19,29 @@ pin bump; the [naming contract](../AGENTS.md#sdkwork-fork-naming-contract)
 applies to fork-authored packages, and these keep their upstream names on
 purpose so `git submodule update` stays a fast-forward.
 
-**Fork-owned exception.** `dsh-market`, `dsh-ui-usage-billing`,
-`sdkwork-deepseekbot` and `sdkwork-dsh-agents` are the entries whose `url`
-points at an SDKWork-owned repository. That repository *is* the plugin's
-upstream: its source is edited there, built there, and pinned here, so the
-frozen-read-only rule and the "fix it upstream" workflow above describe the
-remaining entries, not these
+**Fork-owned exception.** `dsh-ui-usage-billing` and `sdkwork-deepseekbot` are
+the entries whose `url` points at an SDKWork-owned repository. That repository
+*is* the plugin's upstream: its source is edited there, built there, and pinned
+here, so the frozen-read-only rule and the "fix it upstream" workflow above
+describe the remaining entries, not these
 ([usage billing](../.agents/notes/implemented/architecture/2026-11-08-forked-usage-billing-settings-card.md),
-[assistant](../.agents/notes/implemented/architecture/2026-11-08-deepseekbot-assistant-surface.md),
-[plugin market](../.agents/notes/implemented/architecture/2026-11-19-forked-plugin-market.md)).
+[assistant](../.agents/notes/implemented/architecture/2026-11-08-deepseekbot-assistant-surface.md)).
+
+**The expert market left this directory.** `sdkwork-dsh-agents` (the
+`@michengai/dsh-agency-agents` mirror) was the third fork-owned entry until it
+became a first-party package: the expert market is now
+[`packages/client/ui-sdkwork-experts`](../packages/client/ui-sdkwork-experts/README.md),
+built by this repository like every other `packages/*` member, and its expert
+data, categories and teams are initialized from `sdkwork-specs` and owned by
+`sdkwork-agents`. Do not re-add the submodule: a second link would ship a second
+expert market whose data does not come from `sdkwork-agents` (the bundle
+acceptance spec fails if `.gitmodules` or the working tree mentions it again).
 
 `plugins/*` is outside tsdown's build globs (`vendor/*`, `packages/*/*`): each
 plugin ships its own build, and its artifacts are committed upstream instead of
 being produced by this repository's build — except `sdkwork-deepseekbot` and
 `dsh-better-sidebar`, whose upstreams gitignore their artifacts and which this
-repository builds on install, and `dsh-market`, whose browser half is committed
-upstream while its host half `lib/` is built here (see each section below).
+repository builds on install (see each section below).
 
 ## dsh-im — IM channels
 
@@ -354,216 +361,6 @@ on disk under `$DSH_HOME`, and the `mcp`-prefixed loader entries the row created
 disappear with the row's composition. The plugin's own `showSidebarEntry`
 config is unrelated to this page: the tab embeds the panel and suppresses the
 row, so the row's stand-alone page is not a second entry either way.
-
-## dsh-market — the plugin market (插件市场)
-
-[`dsh-market`](https://github.com/sdkwork-ai/sdkwork-dsh-market) is the SDKWork
-fork of `dsh-market/dsh-market` (npm `dshmarket`), the community catalog the
-Plugins tab opens on. It is **mounted by default** as the `dsh-market` row in
-`packages/bundle/web-app/cordis.patch.yml`, so a shipped build — and the desktop
-layer patched over it — browses, searches, installs, updates, backs up and
-diagnoses community plugins with no installer step.
-
-One row carries both halves. The host half serves `/dsh-market/*` on
-`ctx.webServer`, drives the profile's own pnpm, and keeps the installed-plugin
-state, snapshots and diagnostics; the browser half publishes the `market`
-control (contract version 1, with `render`) that
-`packages/client/ui-sdkwork-markets` renders in place as the leading chip of the
-Plugins tab, and registers the market's Settings section and its own
-plugin-configuration card. The package's own `dsh.bundle.patch` is deliberately
-**not** added to the profile's bundle list: this row is the single mount, and a
-profile that selected the `dshmarket` bundle as well would mount the market
-twice (it has no double-mount guard).
-
-**Fork-owned.** The repository above is a fork of `dsh-market/dsh-market` and is
-the authority for the plugin's source and future product changes; the gitlink
-pins the fork's own release commit. Local fixes belong there, not in this
-checkout, and upstream releases are fork merges rather than pin bumps.
-
-**Pin.** The gitlink is `e8dc352`, the fork's `main` tip at pin time (plugin
-version 1.73.22). The browser half (`client/client.js`) ships committed in the
-fork and this repository never regenerates it. The host half (`lib/`) is
-gitignored there, so this repository builds it.
-
-**Build.** `pnpm run build:dsh-market` compiles `lib/` from the fork's `src/`
-with its own `tsconfig.json` and the TypeScript version the fork pins, and
-records a content-addressed stamp in `.dsh-build/dsh-market-build.json`, so a
-rebuild happens only when the sources, the artifacts, or the build mode change.
-Two modes are stamped:
-
-- **checked** — the Host compiler has emitted the `vendor/cordis` and
-  `vendor/schemastery` declarations, so the compile type-checks against the
-  framework sources this build runs. `pnpm run build:artifacts` runs the
-  `dsh-market` gate after `host-src`, so a packaged or released build always
-  takes this mode.
-- **emit-only** — a fresh checkout's `postinstall` runs before any Host compiler
-  pass and those linked packages carry no `lib/types` yet, so the build emits
-  `lib/` with `tsc --noCheck` and the checkout can boot. A later artifacts build
-  replaces that output with the checked build; the stamp records which mode
-  produced what is on disk.
-
-`postinstall` runs it with `--optional` beside the assistant and better-sidebar
-builds. Both paths skip quietly in checkouts that never initialized the
-submodule, and a lane that packages the plugin fails at the artifact gate
-instead of shipping an import that cannot load. Because only `lib/` is produced
-here, a client-half change must be built and committed in the fork.
-
-`pnpm pack` (the Desktop packaging loops every `plugins/*/package.json`) runs
-the fork's own `prepack`, which recompiles both halves, so the packed tarball
-always carries a `lib/` matching its sources.
-
-**Dependencies.** The scoped `dshmarket>` overrides in `pnpm-workspace.yaml`
-point its framework edges at this checkout: `@deepseek-ai/cordis` and
-`@deepseek-ai/schemastery` link to `vendor/`, and the rest resolve to the
-workspace's `0.2.2-rc.5` packages. Two upstream devDependencies that name
-packages this checkout no longer carries (`@deepseek-ai/dsh-invariants`,
-`@deepseek-ai/dsh-client-ui-settings-plugins`) are removed by the same block:
-nothing in the plugin's `src/` imports them, and leaving them would pull the
-published `0.1.0` line — a second complete harness closure — into the lockfile.
-Its runtime dependencies are downloaded into `plugins/dsh-market/node_modules`
-by `pnpm install`.
-
-**Update.**
-
-```sh
-git submodule update --init --remote plugins/dsh-market   # follows `branch = main`
-pnpm install                                              # relink, install, build `lib/`
-pnpm exec vitest run packages/bundle/web-app/tests/built-in-plugin-market.spec.ts
-```
-
-Then commit the new gitlink with the refreshed `pnpm-lock.yaml`. A fresh
-checkout gets a loadable `lib/` from `pnpm install` itself (the emit-only mode
-above); `pnpm run build:artifacts` then redoes it checked. Booting without ever
-installing dependencies — or in a checkout whose submodule is not populated —
-leaves the `dsh-market` row failing its import.
-
-**Verification.** `packages/bundle/web-app/tests/built-in-plugin-market.spec.ts`
-asserts the composed row, the linked manifest's `dsh.client` web declaration and
-`dsh.bundle.patch`, both shipped entry artifacts (`lib/index.js` and the
-committed `client/client.js`), and that the browser half still publishes the
-`market` control at contract version 1 with a `render` method, and proves the
-check rejects each incomplete form. The real web roster
-(`packages/test-support/client-runtime`) carries `dshmarket` among its browser
-rows with its three `dsh.client.inject` edges, which
-`assembly-bundle-roster.client.spec.ts` pins. A source `dsh web` boot of a
-scratch `$DSH_HOME` answers `/dsh-market/status` with the fork's version and
-`selfManaged: false` from the built host half, and its shell preloads
-`dshmarket/client.js`.
-
-**Documentation.** The fork keeps its own English/Chinese `README` pair in its
-repository. The translation-pairing gate skips submodule working trees for that
-reason: a sidecar written under `plugins/` could not survive the next
-`git submodule update` and would be missing from a fresh checkout, so the pair
-stays the fork's to keep current.
-
-**Turning it off.** Disable the row from a later patch layer
-(`- id: dsh-market` with `disabled: true`) or delete it from the web-app patch.
-The whole catalog goes with it; the Plugins tab's install/reload affordances
-remain as the way back. Installed plugins, snapshots and preferences already
-stored under `$DSH_HOME` stay on disk.
-
-## sdkwork-dsh-agents — the expert market (专家市场)
-
-[`sdkwork-dsh-agents`](https://github.com/sdkwork-ai/sdkwork-dsh-agents) is the
-SDKWork expert market: the `@michengai/dsh-agency-agents` DSH plugin, which
-carries 331 domain experts across 22 divisions, five built-in expert teams, a
-create-with-AI flow, the `list_experts` / `summon_expert` /
-`summon_expert_team` tools, the 设置 → 专家 management page and the composer
-`@` picker. It is one of the **fork-owned** entries above — the SDKWork mirror
-is the authority for its source — and it is **mounted by default** as the
-`agency-agents-remote` and `agency-agents` rows in
-`packages/bundle/web-app/cordis.patch.yml`, so a shipped build — and the desktop
-layer patched over it — offers the expert market with no installer step.
-
-Two rows carry it. `agency-agents-remote` registers the plugin's Typert remote
-namespace, which the browser half reads the roster and writes the enabled list
-through (`ctx.remote.agencyAgents`). `agency-agents` mounts the host half (the
-persona library over the package's own `assets/agency-agents{,-zh}` personas,
-the summon tools, the `agency-agents` settings namespace, the configurable
-subagent provider) and the browser half (the `agency-agents` main panel, its
-`sidebar.panellist` row, the 设置 → 专家 page, the composer picker and the
-task-recommendation bar). The row pins `entryLocation: both` because the
-browser half registers its `main` panel only while the plugin's own entry is
-enabled; the plugin's shipped default is settings-only, which would leave the
-Experts tab's market chip with nothing to embed.
-
-**Experts tab integration.** The fork's market page
-(`packages/client/ui-sdkwork-markets`) hosts the Experts tab as a two-chip
-sub-root: the cloud catalog leads, and 专家市场 follows it. That chip renders
-the plugin's registered `main` panel in place — this page renders another
-package's component, it does not reimplement the roster — and declares the
-plugin's sidebar row embedded through `ctx.sdkworkSidebar`, so the market keeps
-exactly one navigation entry. The panel is drawn with the props its
-registration injects — the plugin's translator, its `remote.agencyAgents`
-client and its team-selection callbacks — because that registration targets the
-`main` seat and a bare render of it throws; `mainPanelWatch` resolves the face
-once per registration and the tab passes it. The panel key (`agency-agents`) is
-the one soft contract between the two packages: `EXPERT_MARKET_PANEL_ID` in
-`packages/client/ui-sdkwork-markets/src/client/expertMarketPanel.ts`, pinned
-against the shipped `lib/client.js` by
-`packages/bundle/web-app/tests/built-in-expert-market.spec.ts`. When the row is
-off — or a person switches the plugin's own entry to settings-only — the chip
-states that the market is unavailable instead of framing a panel nobody
-registers.
-
-**Pin.** The gitlink is `3612123`, the SDKWork mirror's `main` tip at pin time
-(plugin version 1.2.26), whose committed `lib/` artifacts — `lib/index.js`,
-`lib/client.js`, `lib/remote.js` and the shared `lib/src-*.js` chunk — this
-repository runs as shipped rather than rebuilding them. The pin must be a
-revision where the committed build and the sources agree.
-
-**Dependencies.** `pnpm install` links the plugin's peer closure to this
-workspace's own packages (its devDependencies name every `@deepseek-ai/dsh-*`
-package at this repository's version, and `linkWorkspacePackages` resolves them
-to the members) and installs its one runtime dependency, `zod`. Its optional
-`@deepseek-ai/dsh` peer would otherwise auto-install the published line and pull
-a second, complete harness closure into the lockfile; the
-`@michengai/dsh-agency-agents>@deepseek-ai/dsh` override in
-`pnpm-workspace.yaml` points that one edge at `apps/cli` instead. The plugin is
-a workspace member for dependency installation and loading only: `plugins/*`
-stays outside tsdown's build globs, and its `lib/` ships from its own
-repository.
-
-**Update (随时更新).** The gitlink tracks the mirror's `main`, so advancing it
-is one command — it moves the pin, relinks the workspace, and re-runs the
-acceptance spec:
-
-```sh
-pnpm run update:expert-market   # submodule update --remote + pnpm install + the acceptance spec
-pnpm run check:expert-market    # report drift against origin/main without moving the pin
-```
-
-Then commit the new gitlink together with `pnpm-lock.yaml`. The manual
-equivalent is:
-
-```sh
-git submodule update --init --remote plugins/sdkwork-dsh-agents
-pnpm install
-pnpm exec vitest run packages/bundle/web-app/tests/built-in-expert-market.spec.ts
-```
-
-The plugin's own online updater (插件 → `@michengai/dsh-agency-agents` → 在线更新)
-refreshes the roster inside a running install; the gitlink is what a *build*
-ships. Re-check the mirror for a new release before each release of this fork —
-nothing here notices one, so an unreviewed pin silently ships the previous
-roster.
-
-**Verification.**
-`packages/bundle/web-app/tests/built-in-expert-market.spec.ts` asserts the two
-composed rows, the pinned entry location, the linked manifest's `dsh.client` web
-declaration and `dsh.bundle.patch`, all three shipped entry artifacts, and the
-client's `agency-agents` main panel and sidebar row, and proves the check
-rejects each incomplete form. The real web roster keeps the row through
-`packages/test-support/client-runtime/tests/assembly-bundle-roster.client.spec.ts`,
-and `packages/client/ui-sdkwork-markets/tests` cover the Experts tab's two chips
-and the live panel source.
-
-**Turning it off.** Disable the rows from a later patch layer
-(`- id: agency-agents` and `- id: agency-agents-remote` with `disabled: true`)
-or delete them from the web-app patch. The Experts tab's market chip then says
-the market is unavailable, the composer picker and 设置 → 专家 page disappear
-with the rows, and the expert enablement and custom experts already stored under
-`$DSH_HOME` stay there for the rows' return.
 
 ## dsh-ui-usage-billing — the usage and cost dashboard
 

@@ -88,9 +88,9 @@ describe('StateDot ongoing phase', () => {
     proto.getAnimations = () => animations
     try {
       const { container } = render(<StateDot state="ongoing" />)
-      animations[0]!.startTime = 438
+      animations[0].startTime = 438
       container.querySelector('circle')!.dispatchEvent(new Event('animationstart', { bubbles: true }))
-      expect(animations[0]!.startTime).toBe(0)
+      expect(animations[0].startTime).toBe(0)
     } finally {
       delete proto.getAnimations
     }

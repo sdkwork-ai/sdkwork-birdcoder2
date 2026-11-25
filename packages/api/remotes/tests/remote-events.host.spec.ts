@@ -52,7 +52,7 @@ function sourceOf(gateway: GatewayProbe): TypertRemoteEventSource {
 }
 
 function emitRaw(ctx: Context, event: string, args: readonly unknown[]): void {
-  const emit = ctx.emit.bind(ctx) as (name: string, ...values: readonly unknown[]) => void
+  const emit = ctx.emit.bind(ctx)
   emit(event, ...args)
 }
 
@@ -63,11 +63,7 @@ function waterfallRaw(
   args: readonly unknown[],
   next: () => Promise<unknown>,
 ): Promise<unknown> {
-  const waterfall = ctx.waterfall.bind(ctx) as (
-    receiver: object,
-    name: string,
-    ...values: readonly unknown[]
-  ) => Promise<unknown>
+  const waterfall = ctx.waterfall.bind(ctx)
   return waterfall(target, event, ...args, next)
 }
 

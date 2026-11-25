@@ -231,7 +231,7 @@ describe('buffered older pages', () => {
     mock.stream(FOLLOW, followScript(history(all)))
     await session.open()
     session.bufferOlder()
-    const tailStart = eventSeqs(session)[0]!
+    const tailStart = eventSeqs(session)[0]
     await session.loadThrough(SessionSeq(tailStart - 1))
     // A jump page asks for 200 messages, more than the buffered entries carry, so one page returns all of them.
     expect(eventSeqs(session)).toEqual(all.map(event => event.seq))
@@ -260,7 +260,7 @@ describe('buffered older pages', () => {
     mock.remote.session.page.mockImplementation(pageRule(history(older)))
     await session.open()
     session.bufferOlder()
-    const firstTail = eventSeqs(session)[0]!
+    const firstTail = eventSeqs(session)[0]
     for (const event of plainTurn(SessionSeq(366), 61, 'more', 'answer')) await pushEvent(mock, event)
     for (const event of turns(80).slice(372)) await pushEvent(mock, event)
     session.bufferOlder()

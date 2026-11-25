@@ -89,7 +89,7 @@ export class BrowserNavigation {
   back(): BrowserTabState['request'] {
     if (!this.canGoBack) return undefined
     const index = this.value.index - 1
-    const target = this.value.entries[index] as BrowserHistoryEntry
+    const target = this.value.entries[index]
     return this.request(target, { ...this.value, index })
   }
 
@@ -100,7 +100,7 @@ export class BrowserNavigation {
   forward(): BrowserTabState['request'] {
     if (!this.canGoForward) return undefined
     const index = this.value.index + 1
-    const target = this.value.entries[index] as BrowserHistoryEntry
+    const target = this.value.entries[index]
     return this.request(target, { ...this.value, index })
   }
 

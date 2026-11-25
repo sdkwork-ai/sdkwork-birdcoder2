@@ -43,7 +43,7 @@ describe('Trajectory event projection', () => {
     ] as unknown as ContentBlock[]
     expect(toAssistantBlocks(content).map(block => block.kind))
       .toEqual(['text', 'reasoning', 'image', 'tool-call', 'other'])
-    expect(toAssistantBlock(content[0]!)).toEqual({ kind: 'text', text: 'a' })
+    expect(toAssistantBlock(content[0])).toEqual({ kind: 'text', text: 'a' })
     expect(['text', 'reasoning', 'tool-call', 'future'].map(emptyAssistantBlock))
       .toEqual([
         { kind: 'text', text: '' },

@@ -57,7 +57,7 @@ function bench() {
   }
   const setMainView = (id: SessionId, count: number) => {
     list.update((draft) => {
-      draft.byId[id] = { ...draft.byId[id]!, retainedBy: count === 0 ? {} : { mainView: count } }
+      draft.byId[id] = { ...draft.byId[id], retainedBy: count === 0 ? {} : { mainView: count } }
     })
   }
   const emitStatus = (id: SessionId, running: boolean) => {
@@ -84,7 +84,7 @@ describe('Session running status', () => {
     expect(service.getSnapshot().get(id)?.running).toBeUndefined()
 
     b.emitStatus(id, true)
-    b.list.update((draft) => { draft.byId[id]!.displayTitle = 'Renamed child' })
+    b.list.update((draft) => { draft.byId[id].displayTitle = 'Renamed child' })
     expect(service.getSnapshot().get(id)?.running).toBe(true)
 
     b.list.update((draft) => { draft.ids.push(id) })
@@ -103,7 +103,7 @@ describe('Session running status', () => {
     expect(service.getSnapshot().get(id)).toEqual({
       running: false, pendingInteraction: undefined, completionUnread: false, completionFailed: false,
     })
-    b.list.update((draft) => { draft.byId[id]!.running = true })
+    b.list.update((draft) => { draft.byId[id].running = true })
     expect(service.getSnapshot().get(id)?.running).toBe(true)
     b.emitStatus(id, false)
     expect(service.getSnapshot().get(id)?.running).toBe(false)
@@ -138,7 +138,7 @@ describe('Session running status', () => {
     const before = service.getSnapshot()
 
     b.emitStatus(id, false)
-    b.list.update((draft) => { draft.byId[id]!.displayTitle = 'Renamed' })
+    b.list.update((draft) => { draft.byId[id].displayTitle = 'Renamed' })
     expect(service.getSnapshot()).toBe(before)
     expect(changed).not.toHaveBeenCalled()
     b.emitStatus(id, true)
@@ -290,7 +290,7 @@ describe('session-status apply', () => {
     apply(b.ctx)
 
     expect(provideRoot).toHaveBeenCalledOnce()
-    const root = provideRoot.mock.calls[0]![0] as { hooks: { sessionStatus: UiSessionStatus } }
+    const root = provideRoot.mock.calls[0][0] as { hooks: { sessionStatus: UiSessionStatus } }
     expect(Object.keys(root)).toEqual(['hooks'])
     expect(Object.keys(root.hooks)).toEqual(['sessionStatus'])
     const provided: unknown = b.ctx.get('uiSession.sessionStatus')

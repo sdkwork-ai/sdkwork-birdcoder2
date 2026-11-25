@@ -651,7 +651,7 @@ describe('connection lifecycle', () => {
         : []
       warnings.push(['[connection] connection generation was not ready within 100ms; cancelling generation'])
       expect(warnSpy.mock.calls).toEqual(warnings)
-      report[0]!({ home: '/stale' })
+      report[0]({ home: '/stale' })
       await vi.advanceTimersByTimeAsync(1_000)
       expect(signals).toHaveLength(1)
       expect(connected).not.toHaveBeenCalled()
@@ -659,7 +659,7 @@ describe('connection lifecycle', () => {
       cleanup.resolve(undefined)
       await vi.advanceTimersByTimeAsync(5)
       expect(signals).toHaveLength(2)
-      report[1]!({ home: '/fresh' })
+      report[1]({ home: '/fresh' })
       await vi.advanceTimersByTimeAsync(0)
       expect(connected).toHaveBeenCalledExactlyOnceWith({ home: '/fresh' })
       expect(states).toEqual(['connecting', 'connected'])

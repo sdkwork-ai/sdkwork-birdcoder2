@@ -152,8 +152,8 @@ describe('fixed stop routing', () => {
   it('excludes terminal, iframe, approval and inert descendants even inside Conversation', async () => {
     const b = await bench()
     for (const [tag, attribute] of [['div', 'class'], ['iframe', ''], ['div', 'data-approval-key'], ['div', 'inert']]) {
-      const element = document.createElement(tag!)
-      if (attribute !== '') element.setAttribute(attribute!, attribute === 'class' ? 'xterm' : '')
+      const element = document.createElement(tag)
+      if (attribute !== '') element.setAttribute(attribute, attribute === 'class' ? 'xterm' : '')
       b.root.append(element)
       b.press()
       expect(b.press({}, element)).not.toHaveBeenCalled()

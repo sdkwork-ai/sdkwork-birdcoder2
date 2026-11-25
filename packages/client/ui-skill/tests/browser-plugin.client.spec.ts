@@ -569,7 +569,7 @@ describe('reference preview', () => {
     const firstDone = source.candidates(proj('first'), req(''))
     source.openReference!(proj('second'), { ref: '/review' })
     const secondDone = source.candidates(proj('second'), req(''))
-    second.resolve({ ok: true, value: { skills: withPolicy([{ ...rows[0]!, path: '/second/SKILL.md' }]) } })
+    second.resolve({ ok: true, value: { skills: withPolicy([{ ...rows[0], path: '/second/SKILL.md' }]) } })
     await secondDone
     expect(openResource).toHaveBeenLastCalledWith('dsh-resource://file/session/second//second/SKILL.md')
     first.resolve({ ok: true, value: { skills: withPolicy(rows) } })

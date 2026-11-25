@@ -105,7 +105,7 @@ describe('IpcApiClient unary', () => {
     const call = client.sessions.list({})
     const request = fake.requests[0]
     expect(request).toBeDefined()
-    const sent = request as DesktopBridgeRequest
+    const sent = request
     expect(sent.url).toBe('http://dsh.internal/api/session.list')
     expect(sent.method).toBe('POST')
     expect(sent.headers['content-type']).toBe('application/json')
@@ -150,7 +150,7 @@ describe('IpcApiClient unary', () => {
     const client = new IpcApiClient(fake.bridge)
     const controller = new AbortController()
     const call = client.sessions.list({}, controller.signal)
-    const id = fake.requests[0]?.id as string
+    const id = fake.requests[0]?.id
     controller.abort()
     fake.respondNext({ status: 200, headers: JSON_HEADERS, body: serverResponse('late', { ok: true, value: { items: [] } }) })
     await expect(call).rejects.toThrow('aborted')
@@ -167,7 +167,7 @@ describe('IpcApiClient streams', () => {
     // Starting the generator runs the subscription synchronously (up to its
     // first await); the frame push then wakes it.
     const first = iterator.next()
-    const listener = [...fake.subscribers.values()][0] as (frame: ServerRequest) => void
+    const listener = [...fake.subscribers.values()][0]
     expect(listener).toBeDefined()
     const frame = {
       type: 'server-request' as const,
@@ -191,7 +191,7 @@ describe('IpcApiClient streams', () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
     const iterator = client.events.mux({}, new AbortController().signal)[Symbol.asyncIterator]()
     const first = iterator.next()
-    const listener = [...fake.subscribers.values()][0] as (frame: ServerRequest) => void
+    const listener = [...fake.subscribers.values()][0]
     listener({ type: 'server-request', rpcId: 'mux_bad', method: 'session/subscribed', payload: { not: 'a frame' } } as unknown as ServerRequest)
     const valid = {
       type: 'server-request' as const,
@@ -261,7 +261,7 @@ describe('createIpcConnectionRpc', () => {
     const iterator = rpc.open('/api', 'session/control', { args: {} }, new AbortController().signal)[Symbol.asyncIterator]()
     const first = iterator.next()
     expect(fake.openedStreams[0]).toEqual({ endpoint: 'session/control', payload: { args: {} } })
-    const onFrame = [...fake.streamFrames.values()][0] as (frame: DesktopStreamFrame) => void
+    const onFrame = [...fake.streamFrames.values()][0]
     onFrame({ type: 'item', value: { type: 'baseline', sessions: [] } })
     const result = await first
     expect(result.done).toBe(false)
@@ -278,7 +278,7 @@ describe('createIpcConnectionRpc', () => {
     const rpc = createIpcConnectionRpc(fake.bridge)
     const iterator = rpc.open('/api', 'session/control', { args: {} }, new AbortController().signal)[Symbol.asyncIterator]()
     const first = iterator.next()
-    const onFrame = [...fake.streamFrames.values()][0] as (frame: DesktopStreamFrame) => void
+    const onFrame = [...fake.streamFrames.values()][0]
     onFrame({ type: 'error', error: { code: 'service-unavailable', message: 'control refused', details: {} } })
     await expect(first).rejects.toThrow('control refused')
   })

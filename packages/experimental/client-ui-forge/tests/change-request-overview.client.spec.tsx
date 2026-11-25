@@ -178,7 +178,7 @@ describe('reviewers', () => {
     ]
     const reviewerCandidates = vi.fn<NonNullable<ChangeRequestActions['reviewerCandidates']>>()
       .mockResolvedValueOnce(people)
-      .mockResolvedValueOnce([people[1]!])
+      .mockResolvedValueOnce([people[1]])
     const b = card(snapshot(7, { canRequestReviews: true }), { requestReviews, reviewerCandidates })
     fireEvent.click(b.item.querySelector('[data-forge-review]') as HTMLElement)
     fireEvent.click(screen.getByRole('menuitem', { name: en['reviewers.requestMore'] }))
@@ -343,7 +343,7 @@ describe('linked issues', () => {
     expect(links.map(link => [link.getAttribute('aria-label'), link.getAttribute('data-state')])).toEqual([
       ['Open issue #6: Issue 6', 'open'], ['Open issue octo/tracker#2: Issue 2', 'closed'],
     ])
-    fireEvent.click(links[1]!)
+    fireEvent.click(links[1])
     expect(b.openLink).toHaveBeenCalledWith('https://github.com/octo/tracker/issues/2')
     expect(links[0]?.className).toBe(overview.issue)
     expect(row.querySelector(`.${css.visuallyHidden}`)).toBeNull()

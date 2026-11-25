@@ -102,8 +102,8 @@ export class ShareHost {
 
   /** Start observing host changes; publish() on every transition. */
   mount(): void {
-    this.offEnvironment = this.options.env.subscribe(() => this.publish())
-    this.offIam = this.options.iam.controller.subscribe(() => this.publish())
+    this.offEnvironment = this.options.env.subscribe(() =>{  this.publish() })
+    this.offIam = this.options.iam.controller.subscribe(() =>{  this.publish() })
     registerActiveHost(this)
   }
 

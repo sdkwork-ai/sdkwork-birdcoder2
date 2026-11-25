@@ -38,10 +38,10 @@ describe.each([['Node', ExcelJS], ['browser bundle', browserExcel]] as const)('%
     const source = await excelOpcFixture('combined')
     const files = unzipSync(new XlsxPreviewArchive(source).withoutDrawings())
     const comments = 'xl/comments/comment1.xml'
-    files[comments] = strToU8(strFromU8(files[comments]!).replace('<text><t>', '<text><r><rPr><b/></rPr><t>').replace('</t></text>', '</t></r></text>'))
+    files[comments] = strToU8(strFromU8(files[comments]).replace('<text><t>', '<text><r><rPr><b/></rPr><t>').replace('</t></text>', '</t></r></text>'))
     const vml = 'xl/drawings/commentsDrawing1.vml'
-    files[vml] = strToU8(strFromU8(files[vml]!).replace('insetmode="auto"', 'insetmode="custom"'))
-    const xml = strFromU8(files[relsPath]!)
+    files[vml] = strToU8(strFromU8(files[vml]).replace('insetmode="auto"', 'insetmode="custom"'))
+    const xml = strFromU8(files[relsPath])
     const relations = xml.match(/<Relationship\b[^>]*\/>/g)!
     files[relsPath] = strToU8(xml.replace(relations.join(''), [...relations].reverse().join('')))
     const workbook = new parser.Workbook()
@@ -55,7 +55,7 @@ describe.each([['Node', ExcelJS], ['browser bundle', browserExcel]] as const)('%
 it('retains styles, formulas, hidden sheets and notices in the combined workbook', async () => {
   const source = await excelOpcFixture('combined')
   const result = await convertExcel(source, 'xlsx', limits)
-  const sheet = result.sheets[0]!
+  const sheet = result.sheets[0]
   expect(result.sheets.map(sheet => [sheet.name, sheet.hide])).toEqual([['数据', 0], ['隐藏页', 1]])
   expect(sheet.celldata!.find(cell => cell.r === 1 && cell.c === 1)!.v).toMatchObject({ v: 42, bl: 1, fc: '#112233', bg: '#FFFF00' })
   expect(sheet.celldata!.find(cell => cell.r === 4 && cell.c === 0)!.v?.v).toBe(' <s:pic/> & 中文😀\n  tail ')
@@ -86,7 +86,7 @@ it.each(['part', 'relationship', 'escape', 'external'] as const)('rejects a miss
   if (defect === 'part') delete files['xl/worksheets/sheet2.xml']
   else {
     const path = 'xl/_rels/workbook.xml.rels'
-    const xml = strFromU8(files[path]!)
+    const xml = strFromU8(files[path])
     files[path] = strToU8(defect === 'relationship' ? xml.replace(/<Relationship\b[^>]*Target="worksheets\/sheet2.xml"[^>]*\/>/, '')
       : xml.replace('Target="worksheets/sheet2.xml"', defect === 'escape' ? 'Target="../../sheet2.xml"' : 'Target="https://example.com/sheet2.xml" TargetMode="External"'))
   }

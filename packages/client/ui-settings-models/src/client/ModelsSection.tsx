@@ -785,7 +785,7 @@ function Loaded({ injected, renderSlot, focusProvider }: {
               : t('deleteDescriptionWithCredential'),
             deleteTarget,
           )}
-        className={styles['deleteDialog'] as string}
+        className={styles['deleteDialog']}
         footer={(
           <>
             <Button variant="outline" data-modal-autofocus disabled={deleting} onClick={closeDelete}>

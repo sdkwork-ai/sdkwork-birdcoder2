@@ -75,7 +75,7 @@ describe('AssistantMarkdown reasoning blocks', () => {
     expect(view.getByText('Earlier body')).toBe(earlierBody)
     expect(earlierToggle.getAttribute('aria-expanded')).toBe('true')
     expect(earlierRow?.getAttribute('data-state')).toBe('ok')
-    const tailToggle = toggles[1]!
+    const tailToggle = toggles[1]
     const tailRow = tailToggle.closest('[data-variant="think"]')
     expect(tailRow?.getAttribute('data-state')).toBe('running')
     expect(view.queryByText(tail.text)).toBeNull()

@@ -101,7 +101,7 @@ const historyEntrySchema = z.object({
 const historyValueSchema: z.ZodType<HistoryValue> = z.object({
   records: z.array(historyEntrySchema),
   hasMore: z.boolean(),
-}) as z.ZodType<HistoryValue>
+})
 
 function timed<T>(run: () => T): Timed<T> {
   const start = performance.now()
@@ -119,7 +119,7 @@ function reduction(before: number, after: number): number {
 
 function median(values: readonly number[]): number {
   const ordered = [...values].sort((left, right) => left - right)
-  return ordered[Math.floor(ordered.length / 2)]!
+  return ordered[Math.floor(ordered.length / 2)]
 }
 
 async function listen(server: Server): Promise<number> {
@@ -204,7 +204,7 @@ function sampledPeakHeap<T>(run: (sample: () => void) => T): HeapPeaks<T> {
     return { value, peakBytes: peak - baseline }
   })
   return {
-    value: samples[0]!.value,
+    value: samples[0].value,
     medianPeakBytes: median(samples.map(sample => sample.peakBytes)),
     peakBytes: samples.map(sample => sample.peakBytes),
   }

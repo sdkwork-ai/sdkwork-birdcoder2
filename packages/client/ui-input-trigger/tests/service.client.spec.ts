@@ -230,9 +230,9 @@ describe('sessionOf', () => {
     expect(ca.menu.getSnapshot().open).toBe(true)
     expect(cb.menu.getSnapshot().open).toBe(false)
 
-    src.pending[0]!.resolve([{ name: 'goal' }])
+    src.pending[0].resolve([{ name: 'goal' }])
     await tick()
-    expect(ca.menu.getSnapshot().groups[0]!.items).toEqual([{ name: 'goal' }])
+    expect(ca.menu.getSnapshot().groups[0].items).toEqual([{ name: 'goal' }])
     expect(cb.menu.getSnapshot().open).toBe(false)
   })
 
@@ -269,7 +269,7 @@ describe('sessionOf', () => {
       hit: { query: 'c' },
       groups: [{ source: 'command', status: 'ready', items: [{ name: 'compact', description: 'zh' }] }],
     })
-    expect(second.menu.getSnapshot().groups[0]!.items).toEqual([{ name: 'compact', description: 'zh' }])
+    expect(second.menu.getSnapshot().groups[0].items).toEqual([{ name: 'compact', description: 'zh' }])
     expect(closed.menu.getSnapshot().open).toBe(false)
   })
 })
@@ -288,11 +288,11 @@ describe('track', () => {
       { source: 'skill', status: 'pending', items: [] },
     ])
 
-    cmd.pending[0]!.resolve([{ name: 'goal' }])
+    cmd.pending[0].resolve([{ name: 'goal' }])
     await tick()
     state = controller.menu.getSnapshot()
     expect(state.groups[0]).toEqual({ source: 'command', status: 'ready', items: [{ name: 'goal' }] })
-    expect(state.groups[1]!.status).toBe('pending')
+    expect(state.groups[1].status).toBe('pending')
     expect(state.highlight).toEqual({ source: 'command', index: 0 })
   })
 
@@ -301,7 +301,7 @@ describe('track', () => {
     const { controller } = controllerBench([reference.source])
     controller.track('@r', 2, { tier: 'plain' }, 1)
     expect(controller.menu.getSnapshot().groups[0]).toMatchObject({ showGroupTitle: false, status: 'pending' })
-    reference.pending[0]!.resolve([{ name: 'README.md', section: '文件与文件夹' }])
+    reference.pending[0].resolve([{ name: 'README.md', section: '文件与文件夹' }])
     await tick()
     expect(controller.menu.getSnapshot().groups[0]).toMatchObject({ showGroupTitle: false, status: 'ready' })
   })
@@ -317,7 +317,7 @@ describe('track', () => {
     const cmd = deferredSource('/', 'command')
     const { controller } = controllerBench([cmd.source])
     controller.track('/g', 2, { tier: 'plain' }, 1)
-    expect(cmd.pending[0]!.session).toEqual({ sessionId: sid('a') })
+    expect(cmd.pending[0].session).toEqual({ sessionId: sid('a') })
   })
 
   it('query refinement supersedes the old generation and aborts its fetch', async () => {
@@ -328,23 +328,23 @@ describe('track', () => {
     const gen1 = controller.menu.getSnapshot().generation
     controller.track('/go', 3, { tier: 'plain' }, 1)
     expect(controller.menu.getSnapshot().generation).toBe(gen1 + 1)
-    expect(cmd.pending[0]!.signal.aborted).toBe(true)
+    expect(cmd.pending[0].signal.aborted).toBe(true)
 
     // A late settle of the aborted fetch is dropped even before the
     // generation gate: the group stays pending until the live fetch lands.
-    cmd.pending[0]!.resolve([{ name: 'stale' }])
+    cmd.pending[0].resolve([{ name: 'stale' }])
     await tick()
-    expect(controller.menu.getSnapshot().groups[0]!.status).toBe('pending')
-    cmd.pending[1]!.resolve([{ name: 'goal' }])
+    expect(controller.menu.getSnapshot().groups[0].status).toBe('pending')
+    cmd.pending[1].resolve([{ name: 'goal' }])
     await tick()
-    expect(controller.menu.getSnapshot().groups[0]!.items).toEqual([{ name: 'goal' }])
+    expect(controller.menu.getSnapshot().groups[0].items).toEqual([{ name: 'goal' }])
   })
 
   it('refinement keeps the settled items on screen until the new fetch lands', async () => {
     const cmd = deferredSource('/', 'command')
     const { controller } = controllerBench([cmd.source])
     controller.track('/g', 2, { tier: 'plain' }, 1)
-    cmd.pending[0]!.resolve([{ name: 'goal' }])
+    cmd.pending[0].resolve([{ name: 'goal' }])
     await tick()
 
     // Stale-while-revalidate: the pending group still carries the items.
@@ -352,7 +352,7 @@ describe('track', () => {
     expect(controller.menu.getSnapshot().groups[0]).toEqual(
       { source: 'command', status: 'pending', items: [{ name: 'goal' }] },
     )
-    cmd.pending[1]!.resolve([{ name: 'goat' }])
+    cmd.pending[1].resolve([{ name: 'goat' }])
     await tick()
     expect(controller.menu.getSnapshot().groups[0]).toEqual(
       { source: 'command', status: 'ready', items: [{ name: 'goat' }] },
@@ -375,7 +375,7 @@ describe('track', () => {
     controller.track('/g', 2, { tier: 'plain' }, 1)
     controller.track('hello', 5, { tier: 'plain' }, 1)
     expect(controller.menu.getSnapshot().open).toBe(false)
-    expect(cmd.pending[0]!.signal.aborted).toBe(true)
+    expect(cmd.pending[0].signal.aborted).toBe(true)
   })
 
   it('a trigger with no registered sources never opens', () => {
@@ -400,10 +400,10 @@ describe('track', () => {
     const skill = deferredSource('/', 'skill')
     const { controller } = controllerBench([cmd.source, skill.source])
     controller.track('/zzz', 4, { tier: 'plain' }, 1)
-    cmd.pending[0]!.resolve([])
+    cmd.pending[0].resolve([])
     await tick()
     expect(controller.menu.getSnapshot().open).toBe(true)
-    skill.pending[0]!.resolve([])
+    skill.pending[0].resolve([])
     await tick()
     expect(controller.menu.getSnapshot().open).toBe(false)
   })
@@ -415,8 +415,8 @@ describe('track', () => {
       const skill = deferredSource('/', 'skill')
       const { controller } = controllerBench([cmd.source, skill.source])
       controller.track('/g', 2, { tier: 'plain' }, 1)
-      skill.pending[0]!.reject(new Error('boom'))
-      cmd.pending[0]!.resolve([{ name: 'goal' }])
+      skill.pending[0].reject(new Error('boom'))
+      cmd.pending[0].resolve([{ name: 'goal' }])
       await tick()
       const state = controller.menu.getSnapshot()
       expect(state.groups.map(g => g.source)).toEqual(['command'])
@@ -508,7 +508,7 @@ describe('scope-birth warm', () => {
     controller.track('/g', 2, { tier: 'plain' }, 1)
     controller.dispose()
     expect(controller.menu.getSnapshot().open).toBe(false)
-    expect(cmd.pending[0]!.signal.aborted).toBe(true)
+    expect(cmd.pending[0].signal.aborted).toBe(true)
 
     controller.track('/g', 2, { tier: 'plain' }, 1)
     expect(controller.menu.getSnapshot().open).toBe(false)
@@ -926,7 +926,7 @@ describe('arbitrate', () => {
   it('enter picks the highlight through the pipeline', async () => {
     const { controller, cmd } = await menuBench()
     expect(controller.arbitrate('enter', false)).toBe('pick-highlighted')
-    expect(cmd.picks[0]!.candidate.name).toBe('goal')
+    expect(cmd.picks[0].candidate.name).toBe('goal')
     expect(controller.menu.getSnapshot().open).toBe(false)
   })
 
@@ -1017,15 +1017,15 @@ describe('arbitrate', () => {
     controller.track('/s', 2, { tier: 'plain' }, 1)
     await tick()
     expect(controller.arbitrate('tab', false)).toBe('consumed')
-    expect(drillable.picks[0]!.action).toBe('drill')
-    expect(drillable.picks[0]!.candidate.name).toBe('src')
+    expect(drillable.picks[0].action).toBe('drill')
+    expect(drillable.picks[0].candidate.name).toBe('src')
     // Plain row (no drill flag): Tab settles the highlighted completion.
     controller.track('/s', 2, { tier: 'plain' }, 2)
     await tick()
     controller.arbitrate('down', false)
     expect(controller.arbitrate('tab', false)).toBe('pick-highlighted')
-    expect(drillable.picks[1]!.action).toBe('pick')
-    expect(drillable.picks[1]!.candidate.name).toBe('plan')
+    expect(drillable.picks[1].action).toBe('pick')
+    expect(drillable.picks[1].candidate.name).toBe('plan')
     expect(controller.menu.getSnapshot().open).toBe(false)
   })
 
@@ -1036,7 +1036,7 @@ describe('arbitrate', () => {
     })
     const { controller } = controllerBench([cmd.source])
     controller.track('/g', 2, { tier: 'plain' }, 1)
-    cmd.pending[0]!.resolve([{ name: 'goal' }, { name: 'plan' }])
+    cmd.pending[0].resolve([{ name: 'goal' }, { name: 'plan' }])
     await tick()
     expect(controller.menu.getSnapshot().highlight).toEqual({ source: 'command', index: 0 })
     // Refinement: previous rows and highlight stay visible while the fetch pends.
@@ -1046,7 +1046,7 @@ describe('arbitrate', () => {
     expect(picks).toHaveLength(0)
     expect(controller.menu.getSnapshot().open).toBe(true)
     // Settled: the same gesture settles the highlighted completion.
-    cmd.pending[1]!.resolve([{ name: 'goal' }])
+    cmd.pending[1].resolve([{ name: 'goal' }])
     await tick()
     expect(controller.arbitrate('tab', false)).toBe('pick-highlighted')
     expect(picks).toEqual(['goal'])
@@ -1055,7 +1055,7 @@ describe('arbitrate', () => {
   it('a settling pick reports the pick action', async () => {
     const { controller, cmd } = await menuBench()
     controller.arbitrate('enter', false)
-    expect(cmd.picks[0]!.action).toBe('pick')
+    expect(cmd.picks[0].action).toBe('pick')
   })
 
   it('IME composition passes every key untouched', async () => {
@@ -1084,7 +1084,7 @@ describe('arbitrate', () => {
     })
     const { controller } = controllerBench([cmd.source])
     controller.track('/g', 2, { tier: 'plain' }, 1)
-    cmd.pending[0]!.resolve([{ name: 'goal' }, { name: 'plan' }])
+    cmd.pending[0].resolve([{ name: 'goal' }, { name: 'plan' }])
     await tick()
     expect(controller.menu.getSnapshot().highlight).toEqual({ source: 'command', index: 0 })
     // Refinement: previous rows and highlight stay visible while the fetch pends.
@@ -1094,7 +1094,7 @@ describe('arbitrate', () => {
     expect(picks).toHaveLength(0)
     expect(controller.menu.getSnapshot().open).toBe(true)
     // Settled: the same gesture picks again.
-    cmd.pending[1]!.resolve([{ name: 'goal' }])
+    cmd.pending[1].resolve([{ name: 'goal' }])
     await tick()
     expect(controller.arbitrate('enter', false)).toBe('pick-highlighted')
     expect(picks).toEqual(['goal'])

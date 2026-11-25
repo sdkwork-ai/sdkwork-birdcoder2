@@ -182,7 +182,7 @@ describe('FileNavigator beside a preview', () => {
     sidebar.show(SESSION)
     sidebar.controller.openResource(sessionFileAddress(SESSION, 'other.ts'))
     sidebar.controller.openResource(A)
-    const layout = () => store.getSnapshot().bySession[SESSION]!.layout
+    const layout = () => store.getSnapshot().bySession[SESSION].layout
     const from = Object.values(layout().tabs).find(tab => tab.contentId === A)!
     if (floating) sidebar.controller.float(from.id)
     const paneOf = (tabId: string) => Object.values(layout().nodes).find(node => node.kind === 'pane' && node.tabs.includes(tabId as never))

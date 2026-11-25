@@ -152,7 +152,7 @@ it('blocks macOS shortcuts while an update overlay loads and clears held and con
     { id: 'sidebar.left.toggle', defaults: desktopDefaults({ code: 'KeyK', modifiers: ['primary'] }) },
   ])
   const menu = f.keyboard.fileMenu({ fileMenu: 'File', closePage: 'Close' }).submenu as Electron.MenuItemConstructorOptions[]
-  const closeMenu = menu[0]!.click as () => void
+  const closeMenu = menu[0].click as () => void
   const press = (code: string, type = 'keyDown', meta = false) => {
     const event = { defaultPrevented: false, preventDefault() { this.defaultPrevented = true } }
     f.contents.emit('before-input-event', event, { type, code, key: code.slice(3), modifiers: meta ? ['meta'] : [],
@@ -275,7 +275,7 @@ it('rejects other windows, subframes, remote/shell pages, and malformed edits', 
 
 it('routes embedded input once, follows rebindings, and guards native window closure by revision and focus', async () => {
   const f = await fixture()
-  const closeItem = () => (f.keyboard.fileMenu({ fileMenu: 'File', closePage: 'Close' }).submenu as Electron.MenuItemConstructorOptions[])[0]!
+  const closeItem = () => (f.keyboard.fileMenu({ fileMenu: 'File', closePage: 'Close' }).submenu as Electron.MenuItemConstructorOptions[])[0]
   const initial = await f.call<ShortcutConfigSnapshot>(DESKTOP_IPC.shortcutsGet, [
     { id: 'page.close', defaults: desktopDefaults({ code: 'KeyW', modifiers: ['primary'] }) },
     { id: 'page.refresh', defaults: desktopDefaults({ code: 'KeyR', modifiers: ['primary'] }) },
@@ -376,7 +376,7 @@ it('refreshes the native menu only when its accelerator or availability changes'
   expect(edited.status).toBe('saved')
   expect(f.updateMenu).toHaveBeenCalledOnce()
   f.contents.send.mockClear()
-  const click = menu[0]!.click as () => void
+  const click = menu[0].click as () => void
   click()
   expect(f.contents.send).toHaveBeenCalledExactlyOnceWith(DESKTOP_IPC.shortcutsInput,
     { kind: 'menu', commandId: 'page.close', revision: edited.snapshot.revision })
@@ -476,7 +476,7 @@ it.each(['C', 'V', 'Z'])('delivers Windows Edit %s to the editor and physical in
     { type: 'set', id: 'sidebar.left.toggle', binding: { code: `Key${keyCode}`, modifiers: ['control'] } }, initial.revision)
   const registry = new ShortcutRegistry('desktop', 'windows', saved.snapshot)
   const run = vi.fn()
-  registry.register({ ...f.definitions[0]!, label: () => 'Toggle sidebar', aliases: [], regions: ['page', 'editable'], modals: [],
+  registry.register({ ...f.definitions[0], label: () => 'Toggle sidebar', aliases: [], regions: ['page', 'editable'], modals: [],
     resolve: () => ({ status: 'handled', run }) })
   let nativeInput: (input: DesktopShortcutInput) => void = () => {}
   onTestFinished(installNativeKeyboard(window, {
@@ -628,7 +628,7 @@ it.each(['macos', 'windows'] as const)('keeps %s chord presses singular across n
     { type: 'set', id: 'sidebar.left.toggle', binding: { code: 'KeyF', secondCode: 'KeyG', modifiers: [] } }, initial.revision)
   const registry = new ShortcutRegistry('desktop', platform, saved.snapshot)
   const run = vi.fn()
-  registry.register({ ...f.definitions[0]!, label: () => 'Toggle sidebar', aliases: [], regions: ['page'], modals: [],
+  registry.register({ ...f.definitions[0], label: () => 'Toggle sidebar', aliases: [], regions: ['page'], modals: [],
     resolve: () => ({ status: 'handled', run }) })
   let deliver: (input: DesktopShortcutInput) => void = () => {}
   onTestFinished(installNativeKeyboard(window, { closeWindow: vi.fn(), subscribe: (listener) => { deliver = listener; return () => {} } },

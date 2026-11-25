@@ -154,7 +154,7 @@ describe('workflow-run Conversation Definition', () => {
         },
       ],
     })
-    const node = [...(value.snapshot('chat') as ChatSnapshot).nodes.values()][0]!
+    const node = [...(value.snapshot('chat') as ChatSnapshot).nodes.values()][0]
     expect(node.anchorSeq).toBe(3)
     expect(node.kind).toBe('workflow-run')
   })
@@ -882,7 +882,7 @@ describe('WorkflowRunPanel', () => {
     const data: WorkflowRunChatData = { name: 'audit', status: 'running', phases: [phase()] }
     const sessions = listState({
       ids: [PARENT_ID],
-      byId: { ...listState().byId, [CHILD_ID]: { ...listState().byId[CHILD_ID]!, running: false } },
+      byId: { ...listState().byId, [CHILD_ID]: { ...listState().byId[CHILD_ID], running: false } },
     })
     const openSession = vi.fn()
     let statuses = new Map([[CHILD_ID, { running: true, pendingInteraction: undefined, completionUnread: false, completionFailed: false }]])
@@ -908,11 +908,11 @@ describe('WorkflowRunPanel', () => {
   })
 
   it.each([
-    ['external execution', listState({ ids: [PARENT_ID], byId: { [PARENT_ID]: listState().byId[PARENT_ID]! }, projectionsBySession: {} }), 'running'],
+    ['external execution', listState({ ids: [PARENT_ID], byId: { [PARENT_ID]: listState().byId[PARENT_ID] }, projectionsBySession: {} }), 'running'],
     ['identity absent', listState({ projectionsBySession: {} }), 'running'],
     ['identity invalid', listState({ projectionsBySession: { [CHILD_ID]: { state: 'ready', error: null, values: { subagent: null } } } }), 'running'],
-    ['wrong parent', listState({ byId: { ...listState().byId, [CHILD_ID]: { ...listState().byId[CHILD_ID]!, parentId: 'other' as SessionId } } }), 'running'],
-    ['child inactive', listState({ byId: { ...listState().byId, [CHILD_ID]: { ...listState().byId[CHILD_ID]!, running: false } } }), 'running'],
+    ['wrong parent', listState({ byId: { ...listState().byId, [CHILD_ID]: { ...listState().byId[CHILD_ID], parentId: 'other' as SessionId } } }), 'running'],
+    ['child inactive', listState({ byId: { ...listState().byId, [CHILD_ID]: { ...listState().byId[CHILD_ID], running: false } } }), 'running'],
     ['member terminal', listState(), 'completed'],
   ] as const)('does not navigate when %s', (_name, sessions, memberStatus) => {
     const data: WorkflowRunChatData = {
@@ -951,7 +951,7 @@ describe('plugin lifecycle', () => {
     await fiber.await()
     expect(conversationEvents.entries().map(entry => entry.kind)).toEqual(['workflow-run'])
     expect(ctx.slots.entries('conversation.chat.node')).toHaveLength(1)
-    const entry = ctx.slots.entries('conversation.chat.node')[0]!
+    const entry = ctx.slots.entries('conversation.chat.node')[0]
     const face = entry.inject?.() as unknown as WorkflowRunInjected
     face.openSession(CHILD_ID)
     expect(openSession).toHaveBeenCalledExactlyOnceWith(CHILD_ID)

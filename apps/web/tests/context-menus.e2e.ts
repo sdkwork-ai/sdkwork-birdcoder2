@@ -75,10 +75,16 @@ describe.each(['MacIntel', 'Win32', 'Linux x86_64'])('web context menus on %s', 
     const menu = page.getByRole('menu')
     await menu.getByRole('menuitem', { name: /Copy.*[Ii][Dd]/ }).waitFor()
     const names = await menuLabels(menu)
-    expect(names.slice(0, 5)).toEqual([
-      'Pin session', 'Rename', 'Mark as unread', 'Fork session', 'Copy Session ID',
+    // FORK DIVERGENCE: ui-sdkwork-workspace-row-menus owns the session row
+    // menu too (path actions, session-log export and publish rows precede the
+    // pin/fork/archive block); upstream's "Mark as unread" row is not part of
+    // the fork's plugin menu.
+    expect(names).toEqual([
+      'Open folder', 'Copy path', 'Open in terminal',
+      'Copy session ID', 'Export session log',
+      'Publish app', 'Publish as scaffold', 'Install from scaffold',
+      'Pin session', 'Rename', 'Fork session', 'Archive session',
     ])
-    expect(names).not.toContain('Open in')
     expect(names.at(-1)).toBe('Archive session')
     expect(await menu.getByRole('menuitem').evaluateAll(rows => rows.every(row => row.querySelector('svg[data-icon]')))).toBe(true)
     expect(await menu.getByRole('separator').count()).toBe(2)
@@ -112,7 +118,10 @@ describe.each(['MacIntel', 'Win32', 'Linux x86_64'])('web context menus on %s', 
     await menu.getByRole('menuitem', { name: /Copy.*[Ii][Dd]/ }).waitFor()
     expect(await menuLabels(menu)).toEqual(names)
     await alignedSeparators()
-    await background.getByRole('button', { name: /actions/i }).click()
+    // FORK DIVERGENCE: the fork row menu is a portal card large enough to
+    // cover its trigger, so the trigger stays unclickable while the menu is
+    // open; Escape is the row menu's dismiss gesture (outside click also works).
+    await page.keyboard.press('Escape')
     expect(await menu.count()).toBe(0)
     expect(await background.getAttribute('aria-selected')).toBe('false')
   })
@@ -179,10 +188,19 @@ describe.each(['MacIntel', 'Win32', 'Linux x86_64'])('web context menus on %s', 
     const expanded = await workspace.getAttribute('aria-expanded')
     await workspace.click({ button: 'right' })
     const menu = page.getByRole('menu')
-    await menu.getByRole('menuitem', { name: 'Rename', exact: true }).waitFor()
+    await menu.getByRole('menuitem', { name: 'Open folder', exact: true }).waitFor()
     const names = await menuLabels(menu)
-    expect(names).toEqual(['Rename', 'Show in folder', 'Delete workspace'])
-    expect(await menu.locator('svg[data-icon]').count()).toBe(3)
+    // FORK DIVERGENCE: ui-sdkwork-workspace-row-menus owns the whole workspace
+    // and session row menu (path actions + publish rows), so the built-in
+    // upstream rows are not rendered. The publish rows are present because the
+    // shipped composition mounts ui-sdkwork-deploy's deployPublish service; a
+    // composition without it keeps the three path rows and Rename/Delete.
+    expect(names).toEqual([
+      'Open folder', 'Copy path', 'Open in terminal',
+      'Publish app', 'Publish as scaffold', 'Install from scaffold',
+      'Rename', 'Delete workspace',
+    ])
+    expect(await menu.locator('svg[data-icon]').count()).toBe(8)
     expect(await workspace.getAttribute('aria-expanded')).toBe(expanded)
     await page.keyboard.press('Escape')
     await workspace.getByRole('button', { name: /actions/i }).click()

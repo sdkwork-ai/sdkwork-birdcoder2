@@ -89,7 +89,7 @@ async function mountedDesktopApi(): Promise<{
   // cookie (the shipped main process delivers it over the parent IPC channel).
   const authenticationFiber = ctx.plugin({
     inject: desktopAuthenticationInject,
-    apply: (scope: Context) => applyDesktopAuthentication(scope, { readSecret: () => DESKTOP_SECRET }),
+    apply: (scope: Context) =>{  applyDesktopAuthentication(scope, { readSecret: () => DESKTOP_SECRET }) },
   })
   await authenticationFiber.await()
   return {

@@ -42,7 +42,7 @@ function luminance(color: string): number {
     const value = channel / 255
     return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
   })
-  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
 function colorChannels(color: string): number[] {
@@ -56,6 +56,6 @@ function opaqueColor(color: string, background: () => string): string {
   const alpha = channels[3] ?? 1
   if (alpha === 1) return color
   const surface = colorChannels(background())
-  const rgb = channels.slice(0, 3).map((channel, index) => Math.round(channel * alpha + surface[index]! * (1 - alpha)))
+  const rgb = channels.slice(0, 3).map((channel, index) => Math.round(channel * alpha + surface[index] * (1 - alpha)))
   return `rgb(${rgb.join(', ')})`
 }

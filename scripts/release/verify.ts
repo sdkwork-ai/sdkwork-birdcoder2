@@ -87,7 +87,7 @@ function main(): void {
     )
   }
   reportPublishOrder(family, plan)
-  if (values['require-tag'] === true) verifyTag(family, versionMembers, process.env.GITHUB_REF ?? '')
+  if (values['require-tag']) verifyTag(family, versionMembers, process.env.GITHUB_REF ?? '')
 
   const versions = [...new Set(versionMembers.map(member => member.version))]
   const summary = versions.length === 1 ? versions[0] : `${String(versions.length)} versions`
@@ -95,7 +95,7 @@ function main(): void {
     `release verify: family ${family.id}, ${String(versionMembers.length)} version member(s),`
     + ` ${String(publishMembers.length)} pack member(s), ${summary},`
     + ` pack order resolved, ${String(plan.droppedPeerEdges.length)} peer declaration(s) unordered`
-    + (values['require-tag'] === true ? ', tag gate passed' : ''),
+    + (values['require-tag'] ? ', tag gate passed' : ''),
   )
 }
 

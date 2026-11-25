@@ -14,6 +14,7 @@ import { stubConfigForm } from '@deepseek-ai/dsh-client-test-runtime'
 import { apply as applyLocale, inject as localeInject } from '@deepseek-ai/dsh-client-locale/client'
 import { resetSdkworkGlobalTokenManager } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
 import { apply, inject, sessionCwdOf } from '../src/client/index.ts'
+import { DEPLOY_SITE_ID } from '../src/client/deploySite.ts'
 import type { DeployedAppsDialogInjected } from '../src/client/DeployedAppsDialog.tsx'
 import { apply as applyNode } from '../src/index.ts'
 import { DeployHost } from '../src/client/deployHost.ts'
@@ -98,6 +99,8 @@ async function bench(options: {
     children: {
       'conversation.session.header.utilities': { kind: 'list', scope: 'session' },
       'settings.myDeployments': { kind: 'single', scope: 'root' },
+      'tool.call.toolview': { kind: 'keyed', scope: 'session' },
+      'sidebar.right.pane.tab': { kind: 'keyed', scope: 'session' },
     },
   } as never, () => null)
   ctx.provide('sessions', {
@@ -128,10 +131,13 @@ async function bench(options: {
   const stubScaffoldInstall = {
     writeFile: async () => ({ ok: false as const, error: { code: 'unavailable', message: 'test stub' } }),
   }
-  ctx.provide('remote', { $on: () => () => {}, sdkworkAppBuild: stubAppBuild, sdkworkScaffoldInstall: stubScaffoldInstall } as never)
+  const onEvent = vi.fn(() => () => {})
+  ctx.provide('remote', { $on: onEvent, sdkworkAppBuild: stubAppBuild, sdkworkScaffoldInstall: stubScaffoldInstall } as never)
   ctx.provide('remote.sdkworkAppBuild', stubAppBuild as never)
   ctx.provide('remote.sdkworkScaffoldInstall', stubScaffoldInstall as never)
   ctx.provide('configForms', { get: () => stubConfigForm().scope } as never)
+  ctx.provide('sidebarRightTabs', { register: () => () => {} } as never)
+  ctx.provide('sidebarRight', { openContent: () => {} } as never)
   ctx.provide('env', env)
   ctx.provide('iam', iam)
   ctx.provide('theme', { getTheme: () => ({ active: { colorScheme: 'dark' } }) } as never)
@@ -139,12 +145,22 @@ async function bench(options: {
   ctx.locale.setLocale('zh')
   const fiber = ctx.plugin({ inject: [...inject], apply })
   await fiber.await()
-  return { ctx, fiber, env, iam }
+  return { ctx, fiber, env, iam, onEvent }
 }
 
 describe('ui-sdkwork-deploy browser half', () => {
   it('declares the services it binds', () => {
-    expect(inject).toEqual(['slots', 'locale', 'env', 'iam', 'theme', 'sessions', 'uiWorkspace', 'remote', 'remote.sdkworkAppBuild', 'remote.sdkworkScaffoldInstall'])
+    expect(inject).toEqual(['slots', 'locale', 'env', 'iam', 'theme', 'sessions', 'uiWorkspace', 'remote', 'remote.sdkworkAppBuild', 'remote.sdkworkScaffoldInstall', 'sidebarRightTabs', 'sidebarRight'])
+  })
+
+  it('registers the deployed-site card, the site panel body and the Host publish bridge', async () => {
+    const { ctx, fiber, onEvent } = await bench()
+    expect(ctx.slots.entries('tool.call.toolview').map(entry => entry.options.key)).toContain('sdkwork_deploy_app')
+    expect(ctx.slots.entries('sidebar.right.pane.tab').map(entry => entry.options.key)).toContain(DEPLOY_SITE_ID)
+    expect(onEvent.mock.calls.map(call => call[0])).toContain('sdkwork-deploy/request')
+    await fiber.dispose()
+    expect(ctx.slots.entries('tool.call.toolview')).toHaveLength(0)
+    expect(ctx.slots.entries('sidebar.right.pane.tab')).toHaveLength(0)
   })
 
   it('registers the publish header action, and fiber teardown removes it (HMR safety)', async () => {
@@ -164,7 +180,7 @@ describe('ui-sdkwork-deploy browser half', () => {
   it('projects gateway readiness, session presence, and a revision that moves on host transitions', async () => {
     const startSignIn = vi.fn()
     const { ctx, env, iam } = await bench({ iam: stubIam(null, startSignIn) })
-    const entry = ctx.slots.entries('settings.myDeployments')[0]!
+    const entry = ctx.slots.entries('settings.myDeployments')[0]
     const injected = (entry.inject as () => DeployedAppsDialogInjected & Record<string, unknown>)()
     expect(injected.hooks.available.getSnapshot()).toBe(false)
     expect(injected.hooks.signedIn.getSnapshot()).toBe(false)

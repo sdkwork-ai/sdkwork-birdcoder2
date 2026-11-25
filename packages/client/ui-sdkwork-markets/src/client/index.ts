@@ -9,12 +9,10 @@
  * locale services, and the catalog is the category's landing view — the first
  * chip of that category's sub-tab row. Behind that first chip the page draws the
  * third-party panels described at the end of this comment: the expert market on
- * the Experts tab, the SkillHub market on the Skills tab, the Plugin Market on
- * the Plugins tab, and the MCP connector on the Connectors tab. Plugins has no
- * App Store catalog: its market was retired with the template shelf, so that tab
- * is this application's own plugin surface. The add affordances (create
- * plugin / add plugin market) dispatch a composed prompt into a fresh
- * conversation through the sessions/workspaces services.
+ * the Experts tab, the SkillHub market on the Skills tab, and the MCP connector
+ * on the Connectors tab. The Plugins tab hosts the SDKWork Plugins catalog and
+ * this application's own plugin management surface. Create requests dispatch a
+ * composed prompt into a fresh conversation through sessions/workspaces.
  *
  * The Plugins tab is also the product's plugin surface, so this plugin declares
  * the seven seats the upstream Plugins page declares — `plugins.item`,
@@ -39,13 +37,13 @@
  * page. Nothing of that market is copied here, and the package stays
  * unmodified ([skillMarketPanel.ts](./skillMarketPanel.ts)).
  *
- * The Experts tab hosts the expert market, which is the
- * `plugins/sdkwork-dsh-agents` plugin's own roster panel: the same live-ledger
- * read, the same in-place draw, and the same row suppression. The plugin
- * registers its panel only while its own entry is enabled, which is why the
- * web-app row pins `entryLocation: both`; a deployment without the row, or with
- * that entry switched to settings-only, keeps the tab's cloud catalog and shows
- * the market chip's unavailable notice
+ * The Experts tab hosts the expert market, which is the built-in
+ * `@deepseek-ai/dsh-client-ui-sdkwork-experts` package's own roster panel: the
+ * same live-ledger read, the same in-place draw, and the same row suppression.
+ * The plugin registers its panel only while its own entry is enabled, which is
+ * why the web-app row pins `entryLocation: both`; a deployment without the
+ * row, or with that entry switched to settings-only, keeps the tab's cloud
+ * catalog and shows the market chip's unavailable notice
  * ([expertMarketPanel.ts](./expertMarketPanel.ts)).
  *
  * The Connectors tab is the same arrangement for the `dsh-mcp-connector`
@@ -96,15 +94,19 @@ import {
   configureExpertsCreateHost,
   type ExpertsCreateHostIam,
 } from './expertsHost.tsx'
+import { getAgentsAppSdkClient } from '@sdkwork/agents-pc-core/sdk/agentsAppSdkClient'
+import type { ExpertCatalogSyncRemote } from './expertCatalogSync.ts'
+import { startExpertCatalogSync } from './expertCatalogSyncRunner.ts'
 export type { OfficialItem } from './configItems.ts'
 import { MarketsAction, type MarketsActionInjected } from './MarketsAction.tsx'
 import { pluginSettingsPrompt } from './skillPrompts.ts'
 import { MarketsPage, type MarketsPageInjected } from './MarketsPage.tsx'
+export { MarketplaceTabs } from './MarketplaceTabs.tsx'
+export type { MarketplaceTab, MarketplaceTabsProps } from './MarketplaceTabs.tsx'
 import { configLedgerSource } from './configItems.ts'
 import { createConfigForms, isServed, namespaceOfEntry } from './settingsForms.ts'
 import { createPluginStore } from './pluginStore.ts'
 import { createPluginNavigation } from './plugin-navigation.ts'
-import { createMarketPanelSource } from './marketPanel.ts'
 import { createSkillMarketPanelSource, SKILL_MARKET_PANEL_ID } from './skillMarketPanel.ts'
 import { createExpertMarketPanelSource, EXPERT_MARKET_PANEL_ID } from './expertMarketPanel.ts'
 import { createMcpConnectorPanelSource, MCP_CONNECTOR_PANEL_ID } from './mcpConnectorPanel.ts'
@@ -117,9 +119,6 @@ export type {
 export type {
   MarketsPageInjected, MarketsPageProps, ExpertsSubTab, PluginsSubTab, SkillsSubTab,
 } from './MarketsPage.tsx'
-export type {
-  MarketControl, MarketsMarketControl,
-} from './marketPanel.ts'
 export type {
   SkillMarketSurfaceProps,
 } from './SkillMarketSurface.tsx'
@@ -138,9 +137,6 @@ export type {
 } from './connectorBridge.ts'
 export type { McpConnectorSurfaceProps } from './McpConnectorSurface.tsx'
 export type {
-  PluginMarketPanelInjected, PluginMarketPanelProps,
-} from './PluginMarketPanel.tsx'
-export type {
   OfficialPluginsPanelInjected, OfficialPluginsPanelProps, OfficialPluginsScope,
   PluginOrigin, PluginRow,
 } from './OfficialPluginsPanel.tsx'
@@ -154,7 +150,7 @@ export type {
   MarketsHostLocale, MarketsHostSession, MarketsHostSignIn, MarketsHostTheme,
   MarketsHostRenderSnapshot,
 } from './marketsHost.ts'
-export { toMarketsSession } from './marketsHost.ts'
+export { marketplaceInstallSpec, toMarketsSession } from './marketsHost.ts'
 export type { ConfigLedger } from './configItems.ts'
 export type { MarketsConfigForms } from './settingsForms.ts'
 export { isServed, namespaceOfEntry } from './settingsForms.ts'
@@ -255,6 +251,23 @@ export function apply(ctx: ClientContext): void {
   })
   ctx.effect(() => () => { expertsAdapter.dispose() }, 'ui-sdkwork-markets: SDKWork experts create host adapter')
 
+  // Expert catalog data plane: once the gateway and IAM session are ready, read
+  // the 331-expert catalog from the SDKWork Agents App API and push it into the
+  // built-in expert market's Host overlay. The plugin's bundled roster remains
+  // the offline fallback when this never succeeds.
+  const expertCatalogSync = startExpertCatalogSync({
+    adapter: expertsAdapter,
+    resolveRemote: () => {
+      try {
+        return ctx.get('remote.agencyAgents') as ExpertCatalogSyncRemote | undefined
+      } catch {
+        return undefined
+      }
+    },
+    readClient: () => getAgentsAppSdkClient(),
+  })
+  ctx.effect(() => () => { expertCatalogSync.dispose() }, 'ui-sdkwork-markets: expert catalog sync')
+
   // The plugin store: the one place the market reads the running tree and
   // writes to the profile. It owns the `RemoteResult` unwrapping (so an
   // absent outcome can never read as success), the one-read-at-a-time
@@ -299,20 +312,6 @@ export function apply(ctx: ClientContext): void {
   // upstream's Plugins page provided (see the registration below).
   const pluginNavigation = createPluginNavigation()
 
-  // The installed dshmarket plugin publishes a `market` control so a host
-  // shell can render its panel inside its own container. It is an optional
-  // profile plugin, so the service is awaited rather than injected as a hard
-  // dependency: a deployment without it never attaches, the page keeps its
-  // install affordance, and installing the market later publishes the control
-  // without reloading this plugin.
-  const marketControl = createMarketPanelSource()
-  ctx.inject(['market'], (scope: ClientContext) => {
-    scope.effect(() => {
-      marketControl.attach(scope.get('market'))
-      return () => { marketControl.detach() }
-    }, 'ui-sdkwork-markets: plugin market control')
-  })
-
   // The SkillHub market is the independent `@montersy123/dsh-skill-market`
   // plugin's own keyed `main` panel plus its sidebar row; it publishes no
   // client service, so the live `main` ledger is the only source this page can
@@ -324,12 +323,12 @@ export function apply(ctx: ClientContext): void {
   const skillMarketPanel = createSkillMarketPanelSource(ctx.slots)
   ctx.effect(() => () => { skillMarketPanel.dispose() }, 'ui-sdkwork-markets: skill market panel')
 
-  // The expert market is the `plugins/sdkwork-dsh-agents` plugin's own roster
-  // panel, registered under the `agency-agents` `main` key while its entry is
-  // enabled (the web-app row pins `entryLocation: both`). The Experts tab
-  // renders that component in place, so the same live ledger read applies: the
-  // plugin may activate after this page, and a deployment without its row — or
-  // one whose plugin entry is switched to settings-only — swaps the tab to the
+  // The expert market is the built-in experts package's own roster panel,
+  // registered under the `agency-agents` `main` key while its entry is enabled
+  // (the web-app row pins `entryLocation: both`). The Experts tab renders that
+  // component in place, so the same live ledger read applies: the plugin may
+  // activate after this page, and a deployment without its row — or one whose
+  // plugin entry is switched to settings-only — swaps the tab to the
   // unavailable notice without a reload.
   const expertMarketPanel = createExpertMarketPanelSource(ctx.slots)
   ctx.effect(() => () => { expertMarketPanel.dispose() }, 'ui-sdkwork-markets: expert market panel')
@@ -491,15 +490,10 @@ export function apply(ctx: ClientContext): void {
         onConfigure,
         bundleRequest: pluginNavigation.hooks.bundleRequest,
         onBundleRequestHandled: () => { pluginNavigation.handled() },
-        marketControl,
         skillMarketPanel,
         expertMarketPanel,
         mcpConnectorPanel,
         connectorBridge,
-        // The Plugin Market's client half arrives with a page load; the gate's
-        // reload action is the only navigation this page performs on its own,
-        // and only after the person pressed it.
-        reload: () => { globalThis.location.reload() },
       }),
     }, MarketsPage)
     // The other half of the contract this page took over: `pluginNavigation` is

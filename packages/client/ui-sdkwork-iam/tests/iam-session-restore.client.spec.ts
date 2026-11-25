@@ -141,7 +141,7 @@ describe('durable IAM session recovery', () => {
       clear: () => { storage.clear() },
       key: () => null,
       length: 0,
-    } as Storage
+    }
     installDesktopBridge()
   })
 

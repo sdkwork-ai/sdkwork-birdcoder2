@@ -98,7 +98,7 @@ function ownValue<T>(record: Readonly<Record<string, T>> | null, key: string): T
 
 /** In-bounds typed-array read: the surrounding loops own the index bound. */
 function cell(values: Uint16Array, index: number): number {
-  return values[index] as number
+  return values[index]
 }
 
 /** Longest common subsequence length, one rolling row; fine below 400 lines a side. */
@@ -604,7 +604,7 @@ export function toolSpanUnion(calls: readonly StatsCall[]): number | null {
     .sort((left, right) => left[0] - right[0])
   if (intervals.length === 0) return null
   let total = 0
-  let [start, end] = intervals[0] as readonly [number, number]
+  let [start, end] = intervals[0]
   for (const [nextStart, nextEnd] of intervals.slice(1)) {
     if (nextStart > end) {
       total += end - start

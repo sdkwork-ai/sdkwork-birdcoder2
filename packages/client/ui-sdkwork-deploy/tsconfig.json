@@ -43,5 +43,14 @@
     },
     {
       "path": "../ui-sdkwork-iam"
+    },
+    {
+      "path": "../ui-tool"
+    },
+    {
+      "path": "../ui-sidebar-right"
+    },
+    {
+      "path": "../../interaction/tool-sdkwork-deploy"
     }]
 }

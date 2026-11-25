@@ -72,14 +72,14 @@ describe('apply', () => {
     await ctx.plugin({ inject: [...inject], apply }).await()
     expect(slots.entries('conversation.input.overlay')).toHaveLength(1)
     const entries = slots.entries('conversation.input.overlay')
-    expect(entries[0]!.options.id).toBe('slash-menu')
+    expect(entries[0].options.id).toBe('slash-menu')
     // Copy rides the standard locale seat, not the business face.
-    expect(entries[0]!.locale).toBe('slash.menu')
+    expect(entries[0].locale).toBe('slash.menu')
 
     const inputTriggers = ctx.get('inputTriggers') as InputTriggerService
     // StoredEntry.inject is declaration-typed ((...args: never[]) shape);
     // the erased registration widens it past a direct cast, so hop unknown.
-    const injectEntry = entries[0]!.inject as unknown as (sessionId: SessionId) => MenuViewInjected
+    const injectEntry = entries[0].inject as unknown as (sessionId: SessionId) => MenuViewInjected
     const injected = injectEntry(sid('a'))
     const controller = inputTriggers.sessionOf(
       ctx.sessions.scope(sid('a'))!,

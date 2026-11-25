@@ -107,7 +107,7 @@ describe('Tool preparation and durable replay', () => {
     const h = harness(opening, false, toolDefinition, { ...assistantDefinition, update })
     h.assembler.append(delta(2.1, first, '{"file_path":"hello.txt","content":"he'))
     const before: unknown = update.mock.results.at(-1)!.value
-    const view = h.tools()[0]!.data.root.args
+    const view = h.tools()[0].data.root.args
     expect(view.text('content')).toBe('he')
     h.assembler.append(delta(2.2, first, 'llo"}', null))
     expect(update.mock.results.at(-1)!.value).toBe(before)
@@ -122,50 +122,50 @@ describe('Tool preparation and durable replay', () => {
     h.assembler.append(blockEnd(2.1, args))
     expect(() => h.assembler.append(call(6))).not.toThrow()
     expect(h.phases()).toEqual([[first, 'start']])
-    expect(h.tools()[0]!.data.root.args.text('content')).toBe('hello')
+    expect(h.tools()[0].data.root.args.text('content')).toBe('hello')
   })
 
   it('retains the argument reader across matching block-end, call, and result', () => {
     const h = harness()
     h.assembler.append(delta(2.1, first, '{"file_path":"hello.txt","content":"he'))
-    const before = h.tools()[0]!
+    const before = h.tools()[0]
     const view = before.data.root.args
     expect(view.text('content')).toBe('he')
     expect(view.complete('content')).toBe(false)
     h.assembler.append(delta(2.2, first, 'llo"}', null))
     h.assembler.append(blockEnd(2.3, args))
-    const ended = h.tools()[0]!
+    const ended = h.tools()[0]
     expect(ended).not.toBe(before)
     expect(ended.data.root.args).toBe(view)
     expect(view.text('content')).toBe('hello')
     expect(view.complete('content')).toBe(true)
     h.assembler.append(call(6))
-    expect(h.tools()[0]!.data.root.args).toBe(view)
+    expect(h.tools()[0].data.root.args).toBe(view)
     h.assembler.append(result(7))
-    expect(h.tools()[0]!.data.root.args).toBe(view)
+    expect(h.tools()[0].data.root.args).toBe(view)
   })
 
   it.each([null, 'write'])('ignores late tool deltas after block-end (name=%s)', (name) => {
     const h = harness()
     h.assembler.append(delta(2.1, first, args))
-    const view = h.tools()[0]!.data.root.args
+    const view = h.tools()[0].data.root.args
     h.assembler.append(blockEnd(2.2, args))
-    const ended = h.tools()[0]!
+    const ended = h.tools()[0]
     expect(() => h.assembler.append(delta(2.3, first, ' ignored', name))).not.toThrow()
     expect(h.tools()[0]).toBe(ended)
     expect(view.text('content')).toBe('hello')
     h.assembler.append(call(6))
     expect(h.phases()).toEqual([[first, 'start']])
-    expect(h.tools()[0]!.data.root.args).toBe(view)
+    expect(h.tools()[0].data.root.args).toBe(view)
     h.assembler.append(result(7))
     expect(h.phases()).toEqual([[first, 'result']])
-    expect(h.tools()[0]!.data.root.args).toBe(view)
+    expect(h.tools()[0].data.root.args).toBe(view)
   })
 
   it('accepts deltas after a closing brace until block-end without checking closed()', () => {
     const h = harness()
     h.assembler.append(delta(2.1, first, args))
-    const view = h.tools()[0]!.data.root.args
+    const view = h.tools()[0].data.root.args
     expect(view.closed()).toBe(true)
     const closed = vi.spyOn(view, 'closed')
     try {
@@ -175,7 +175,7 @@ describe('Tool preparation and durable replay', () => {
       closed.mockRestore()
     }
     h.assembler.append(blockEnd(2.3, args + ' '))
-    expect(h.tools()[0]!.data.root.args).toBe(view)
+    expect(h.tools()[0].data.root.args).toBe(view)
   })
 
   it.each([
@@ -185,24 +185,24 @@ describe('Tool preparation and durable replay', () => {
   ])('uses authoritative block-end text after conflicting deltas: %s', (streamed) => {
     const h = harness()
     h.assembler.append(delta(2.1, first, streamed))
-    const before = h.tools()[0]!.data.root.args
+    const before = h.tools()[0].data.root.args
     before.text('file_path')
     h.assembler.append(blockEnd(2.2, args))
-    const ended = h.tools()[0]!.data.root.args
+    const ended = h.tools()[0].data.root.args
     expect(ended).not.toBe(before)
     expect(ended.text('file_path')).toBe('hello.txt')
     expect(ended.text('content')).toBe('hello')
     const dispatched = '{"file_path":"final.txt","content":"done"}'
     h.assembler.append(call(6, first, 'write', dispatched))
-    expect(h.tools()[0]!.data.root.args.text('file_path')).toBe('final.txt')
-    expect(h.tools()[0]!.data.root).toMatchObject({ argsRaw: dispatched })
+    expect(h.tools()[0].data.root.args.text('file_path')).toBe('final.txt')
+    expect(h.tools()[0].data.root).toMatchObject({ argsRaw: dispatched })
   })
 
   it('batches repeated named deltas and retains the unchanged Tool node', () => {
     const start = vi.fn<typeof toolDefinition.start>((...args) => toolDefinition.start(...args))
     const h = harness(opening, false, { ...toolDefinition, start })
     expect(h.assembler.append(delta(2.1, first, '{"file_path":"file.txt","content":"'))).toBe('animation-frame')
-    const original = h.tools()[0]!
+    const original = h.tools()[0]
     for (let index = 0; index < 100; index++) {
       expect(h.assembler.append(delta(2.2 + index / 1000, first, 'x'.repeat(128)))).toBe('animation-frame')
       expect(h.tools()[0]).toBe(original)
@@ -218,7 +218,7 @@ describe('Tool preparation and durable replay', () => {
   it('publishes a reread argument change and retains the new node through unchanged details', () => {
     const h = harness()
     h.assembler.append(delta(2.1, first, '{"command":"a', 'bash'))
-    const original = h.tools()[0]!
+    const original = h.tools()[0]
     const groups = h.assembler.grouped('chat')!
     const group = groups.entries.find(entry => entry.kind === 'group')!
     if (group.kind !== 'group') throw new Error('expected a process group')
@@ -231,7 +231,7 @@ describe('Tool preparation and durable replay', () => {
     h.assembler.append(delta(2.2, first, 'b', null))
     expect(argumentsView.textPrefix('command', 512)).toBe('ab')
     expect(source.getSnapshot()).toBe(before)
-    const updated = h.tools()[0]!
+    const updated = h.tools()[0]
     expect(updated).not.toBe(original)
     expect(updated.data.root).not.toBe(original.data.root)
     expect(updated.data.root.args).toBe(argumentsView)
@@ -251,7 +251,7 @@ describe('Tool preparation and durable replay', () => {
     h.assembler.append(delta(2.1, first, '', null))
     expect(h.phases()).toEqual([])
     h.assembler.append(delta(2.2))
-    const original = h.tools()[0]!
+    const original = h.tools()[0]
     expect(h.phases()).toEqual([[first, 'preparing']])
     expect(original.data.root).not.toHaveProperty('argsRaw')
     h.assembler.append(delta(2.3, first, '{"content":"hello', null))
@@ -352,7 +352,7 @@ describe('Tool preparation and durable replay', () => {
   it('retains a dispatched call when its earlier transient start is withdrawn', () => {
     const h = harness()
     h.assembler.append(delta(2.1))
-    const key = h.tools()[0]!.key
+    const key = h.tools()[0].key
     h.assembler.append(call(6))
     expect(h.tools()[0]).toMatchObject({ key, anchorSeq: 2.1, data: { root: { phase: 'start', argsRaw: args } } })
     const message = settlement()

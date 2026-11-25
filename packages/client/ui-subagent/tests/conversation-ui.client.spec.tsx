@@ -820,7 +820,7 @@ describe('SubagentsSection', () => {
     expect(screen.queryByRole('tree')).toBeNull()
 
     projections = {
-      [PARENT]: { ...initial.projectionsBySession[PARENT]!, state: 'idle' },
+      [PARENT]: { ...initial.projectionsBySession[PARENT], state: 'idle' },
     }
     view.rerender(<HeaderCatalog {...current} />)
     expect(screen.getByRole('treeitem', { name: /worker/ })).toBeTruthy()
@@ -1016,7 +1016,7 @@ describe('SubagentsSection', () => {
       parentSessionId: PARENT, childSessionId: CHILD, mode: 'continuable',
     })
 
-    state = { ...state, byId: { ...state.byId, [CHILD]: { ...state.byId[CHILD]!, formatStatus: 'current' } } }
+    state = { ...state, byId: { ...state.byId, [CHILD]: { ...state.byId[CHILD], formatStatus: 'current' } } }
     view.rerender(<HeaderCatalog {...current} />)
     expect(screen.queryByText(/需要迁移/)).toBeNull()
     if (cached) {
@@ -1198,7 +1198,7 @@ describe('SubagentsSection', () => {
       ...catalog().entries,
       { id: 'child-3' as SessionId, mode: 'one-shot', label: 'critic', activity: 'running' },
     ] }))
-    const addedParent = added.useSessions(value => value.projectionsBySession[PARENT])!
+    const addedParent = added.useSessions(value => value.projectionsBySession[PARENT])
     state = { ...state, projectionsBySession: { ...state.projectionsBySession, [PARENT]: addedParent } }
     view.rerender(<HeaderCatalog {...current} />)
     expect(screen.getByRole('treeitem', { name: /critic/ })).toBeTruthy()

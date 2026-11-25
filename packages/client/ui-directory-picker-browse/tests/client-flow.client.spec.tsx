@@ -187,7 +187,7 @@ describe('directory-picker-browse client half', () => {
     const b = await bench()
     b.declare()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const entry = b.slots.entries(HOLES[0])[0]!
+    const entry = b.slots.entries(HOLES[0])[0]
     const injected = (entry.inject as () => { t: (key: string) => string })()
     // zh is the shipped default locale.
     expect(injected.t('browser.title')).toBe('选择工作区目录')
@@ -199,7 +199,7 @@ describe('directory-picker-browse client half', () => {
     const b = await bench()
     b.declare()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const entry = b.slots.entries(HOLES[1])[0]!
+    const entry = b.slots.entries(HOLES[1])[0]
     const injected = (entry.inject as () => {
       listDirectory: (path?: string) => Promise<DirectoryListing>
       createDirectory: (path: string, name: string) => Promise<string>

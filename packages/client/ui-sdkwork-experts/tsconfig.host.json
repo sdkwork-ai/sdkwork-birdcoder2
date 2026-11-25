@@ -1,0 +1,63 @@
+{
+  // Host face of the split experts package: the persona library, the summon and
+  // creation tools, the agency-agents settings namespace and the team engine.
+  // The browser face is its sibling tsconfig.client.json; the two programs
+  // merge cordis Context under the same keys, so they meet only through the
+  // pure shared modules under src/ (contracts, names, locale tables) and never
+  // in one program.
+  //
+  // The four style-level strictness flags are relaxed here for the same reason
+  // tsconfig.base.client.json relaxes them: the roster, team and creation
+  // engines are ported from the upstream MichengAI/dsh-agency-agents plugin,
+  // which was written against `strict` alone. Core soundness (`strict` and
+  // friends) stays on.
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.host.tsbuildinfo",
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "src/*.ts",
+    "src/locales"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../core/agent"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../../core/system-prompt"
+    },
+    {
+      "path": "../../core/tools"
+    },
+    {
+      "path": "../../llm/llm"
+    },
+    {
+      "path": "../../settings/settings"
+    },
+    {
+      "path": "../../subagent/subagent"
+    },
+    {
+      "path": "../../typert/protocol"
+    },
+    {
+      "path": "../../typert/registry"
+    }
+  ]
+}

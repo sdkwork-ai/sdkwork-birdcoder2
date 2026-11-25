@@ -48,7 +48,7 @@ const ID = '@deepseek-ai/dsh-experimental-session-inspector'
 const KIND = 'session-inspector-log'
 
 function inspectorInjector(ctx: Context) {
-  const entry = ctx.slots.entries('sidebar.right.pane.tab')[0]!
+  const entry = ctx.slots.entries('sidebar.right.pane.tab')[0]
   // Stored entries erase positional injectors; this registration owns the Session Inspector source type.
   return entry.inject as NonNullable<typeof entry.inject> & ((key: SessionId) => SessionInspectorInjected)
 }

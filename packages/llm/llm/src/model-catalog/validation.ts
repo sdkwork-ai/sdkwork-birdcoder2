@@ -218,7 +218,7 @@ function parseParameterDescriptor(value: unknown, path: string, issues: Issues):
 
 function parseExtensions(value: unknown, path: string, issues: Issues): NonNullable<ModelCatalogVendor['extensions']> {
   const record = requireRecord(value, path, issues)
-  return record as NonNullable<ModelCatalogVendor['extensions']>
+  return record
 }
 
 function parseVendor(value: unknown, path: string, issues: Issues): ModelCatalogVendor {
@@ -242,10 +242,10 @@ function parseModel(value: unknown, path: string, issues: Issues): ModelCatalogM
   const catalogKey = requireString(record.catalogKey, `${path}/catalogKey`, issues)
   if (catalogKey.length > 0 && !catalogKey.includes('/')) issues.report(false, `${path}/catalogKey`, 'must be <vendorCode>/<modelId>')
   const contextTokens = record.contextTokens === null || record.contextTokens === undefined
-    ? record.contextTokens as null | undefined
+    ? record.contextTokens
     : requireInteger(record.contextTokens, `${path}/contextTokens`, issues, 1)
   const maxOutputTokens = record.maxOutputTokens === null || record.maxOutputTokens === undefined
-    ? record.maxOutputTokens as null | undefined
+    ? record.maxOutputTokens
     : requireInteger(record.maxOutputTokens, `${path}/maxOutputTokens`, issues, 1)
   const defaultParameters = record.defaultParameters === undefined
     ? undefined

@@ -94,14 +94,12 @@ export class InspectorTableLayout {
   private anchorOffset(previous: InspectorTableLayout, offset: number): number {
     const first = Math.max(0, Math.min(previous.items.length - 1, Math.floor(offset / INSPECTOR_ROW_HEIGHT)))
     const index = Math.min(previous.items.length - 1, first + previous.stickyIndexesAtOffset(offset).length)
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- A preserved collapse has a nonempty predecessor; index is clamped above.
-    const row = previous.items[index]!.row
+    const row = previous.items[index].row
     const retained = this.rowIndexes.get(row.key)
     if (retained !== undefined) return Math.max(0, offset + (retained - index) * INSPECTOR_ROW_HEIGHT)
     const ancestors = previous.stickyIndexes(index)
     for (let level = ancestors.length - 1; level >= 0; level--) {
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- The hierarchy returns indexes into this predecessor's items.
-      const parent = previous.items[ancestors[level]!]!.row
+      const parent = previous.items[ancestors[level]].row
       const next = this.rowIndexes.get(parent.key)
       if (next !== undefined) return Math.max(0, (next - level) * INSPECTOR_ROW_HEIGHT)
     }

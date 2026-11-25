@@ -80,9 +80,9 @@ export const NOTHING_HIDDEN: ReadonlySet<string> = Object.freeze(new Set<string>
 
 /** The view every consumer reads before the Host answers with a section. */
 const NOTHING_PREFERRED: SkillPreferencesSnapshot = Object.freeze({
-  disabled: Object.freeze([]) as readonly string[],
-  hiddenTags: Object.freeze([]) as readonly string[],
-  pinnedTags: Object.freeze([]) as readonly string[],
+  disabled: Object.freeze([]),
+  hiddenTags: Object.freeze([]),
+  pinnedTags: Object.freeze([]),
   hidden: NOTHING_HIDDEN,
   showSceneTags: true,
   writable: false,

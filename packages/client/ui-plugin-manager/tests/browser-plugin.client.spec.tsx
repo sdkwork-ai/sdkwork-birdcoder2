@@ -118,7 +118,7 @@ describe('ui-plugin-manager browser plugin', () => {
     const b = await bench()
     const removeRoot = declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const entry = b.slots.entries('main')[0]!
+    const entry = b.slots.entries('main')[0]
     assert(entry.store && 'create' in entry.store)
     const navigation = entry.store.create()
     expect(navigation.getSnapshot()).toEqual({ tab: 'installed', view: { kind: 'list' } })
@@ -143,7 +143,7 @@ describe('ui-plugin-manager browser plugin', () => {
     const b = await bench()
     declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const entry = b.slots.entries('main')[0]!
+    const entry = b.slots.entries('main')[0]
     assert(entry.store && 'create' in entry.store)
     const navigation = entry.store.create() as ReturnType<ReturnType<typeof createNavigationStore>['create']>
     const injected: object = entry.inject!()
@@ -177,17 +177,17 @@ describe('ui-plugin-manager browser plugin', () => {
       },
     } as never, () => null)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const link = b.slots.entries('settings.section')[0]!
+    const link = b.slots.entries('settings.section')[0]
     expect(link.options).toMatchObject({ id: PANEL_ID, order: 15 })
     expect(resolveSlotLabel(link.options.label)).toBe('插件管理')
-    const navigation = (b.slots.entries('main')[0]!.store as ReturnType<typeof createNavigationStore>).create()
+    const navigation = (b.slots.entries('main')[0].store as ReturnType<typeof createNavigationStore>).create()
     navigation.actions.setView({ kind: 'more' })
     const linkInjected: object = link.inject!()
     ;(linkInjected as PluginsSettingsLinkInjected).openPlugins()
     expect(b.panelInfo.getSnapshot().activePanelId).toBe(PANEL_ID)
     expect(navigation.getSnapshot()).toEqual({ tab: 'installed', view: { kind: 'list' } })
     // The page reads this page's client synchronization from the module system and retries through it.
-    const pageInjected: object = b.slots.entries('main')[0]!.inject!()
+    const pageInjected: object = b.slots.entries('main')[0].inject!()
     const sync = pageInjected as ClientSyncFace
     expect(sync.hooks.clientSync).toBe(b.clientSync)
     sync.retryClient()
@@ -207,10 +207,10 @@ describe('ui-plugin-manager browser plugin', () => {
     await fiber.await()
     expect(b.slots.entries('shell.overlay')).toHaveLength(0)
     const removeRoot = declare(b.slots)
-    const mainInjected: object = b.slots.entries('main')[0]!.inject!()
+    const mainInjected: object = b.slots.entries('main')[0].inject!()
     const face = mainInjected as PluginManagerFace
     expect(b.ctx.pluginChanges.bundle('unlisted').getSnapshot()).toBe(false)
-    const overlayInjected: object = b.slots.entries('shell.overlay')[0]!.inject!()
+    const overlayInjected: object = b.slots.entries('shell.overlay')[0].inject!()
     const overlay = overlayInjected as PluginRefreshToastFace
     expect(overlay.hooks.pluginManager).toBe(face.hooks.pluginManager)
     face.ensure()
@@ -226,13 +226,13 @@ describe('ui-plugin-manager browser plugin', () => {
     expect(b.slots.entries('shell.overlay')).toHaveLength(0)
     expect(b.slots.entries('main')).toHaveLength(0)
     declare(b.slots)
-    const remountedInjected: object = b.slots.entries('shell.overlay')[0]!.inject!()
+    const remountedInjected: object = b.slots.entries('shell.overlay')[0].inject!()
     expect((remountedInjected as PluginRefreshToastFace).hooks.pluginManager).toBe(face.hooks.pluginManager)
     await fiber.dispose()
     expect(b.slots.entries('shell.overlay')).toHaveLength(0)
     expect(b.slots.entries('main')).toHaveLength(0)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const reloadedInjected: object = b.slots.entries('shell.overlay')[0]!.inject!()
+    const reloadedInjected: object = b.slots.entries('shell.overlay')[0].inject!()
     expect((reloadedInjected as PluginRefreshToastFace).hooks.pluginManager).not.toBe(face.hooks.pluginManager)
     expect((reloadedInjected as PluginRefreshToastFace).hooks.pluginManager.getSnapshot().notice).toBeNull()
   })
@@ -245,7 +245,7 @@ describe('ui-plugin-manager browser plugin', () => {
     const b = await bench('switchable')
     declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const injected: object = b.slots.entries('main')[0]!.inject!()
+    const injected: object = b.slots.entries('main')[0].inject!()
     const face = injected as PluginManagerFace
     face.ensure()
     await vi.waitFor(() => { expect(face.hooks.pluginManager.getSnapshot().status).toBe('ready') })
@@ -283,14 +283,14 @@ describe('ui-plugin-manager browser plugin', () => {
 
     b.ctx.pluginNavigation.openBundle('dsh-navigation-test')
     expect(b.selectPanel).toHaveBeenCalledWith(PANEL_ID)
-    const entry = b.slots.entries('main')[0]!
+    const entry = b.slots.entries('main')[0]
     assert(entry.store && 'create' in entry.store)
     expect(entry.store.create().getSnapshot()).toEqual({ tab: 'installed', view: { kind: 'package', name: 'dsh-navigation-test' } })
     expect(entry.component).toBe(PluginManagerPage)
     expect(entry.options).toMatchObject({ key: PANEL_ID })
     expect(entry.locale).toBe(NS)
     // The sidebar entry addresses the page by the same id and speaks the dictionary.
-    const icon = b.slots.entries('sidebar.panellist')[0]!
+    const icon = b.slots.entries('sidebar.panellist')[0]
     expect(icon.component).toBe(PluginsPanelIcon)
     const unread = () => { throw new Error('The sidebar icon must not read application state') }
     const glyph = render(<PluginsPanelIcon size={18} active={false}
@@ -310,7 +310,7 @@ describe('ui-plugin-manager browser plugin', () => {
     }
     const injected: object = entry.inject!()
     const face = injected as PluginManagerFace
-    const overlay = b.slots.entries('shell.overlay')[0]!
+    const overlay = b.slots.entries('shell.overlay')[0]
     expect(overlay.component).toBe(PluginRefreshToast)
     expect(overlay.options).toMatchObject({ id: 'plugin-manager.refresh-toast' })
     expect(overlay.locale).toBe(NS)

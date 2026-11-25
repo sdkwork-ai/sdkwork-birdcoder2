@@ -193,7 +193,7 @@ describe('review references', () => {
 describe('pending reviews', () => {
   it('edits only the chosen occurrence and refuses edits after publication or during dispatch', () => {
     const queue = drafted(selection, { ...selection, comment: { ...selection.comment, body: 'Second' } })
-    const first = queue.fileComments('a.ts', selection.source).threads[0]!
+    const first = queue.fileComments('a.ts', selection.source).threads[0]
     queue.editThread(first.key, null)
     expect(queue.getSnapshot().comments.map(item => item.comment.body)).toEqual(['Second'])
     expect(queue.editThread(first.key, 'Missing')).toBe(false)
@@ -249,7 +249,7 @@ describe('pending reviews', () => {
     expect(queue.fileComments('unrelated.ts', selection.source).threads).toHaveLength(0)
     queue.summarize('Summary', 'comment')
     expect(queue.fileComments('a.ts', selection.source)).toBe(first)
-    const key = first.threads[0]!.key
+    const key = first.threads[0].key
     expect(queue.editThread(key, 'Updated')).toBe(true)
     const edited = queue.fileComments('a.ts', selection.source)
     expect(edited.threads[0]).toMatchObject({ key, kind: 'pending', selection: { comment: { body: 'Updated' } } })
@@ -317,26 +317,26 @@ describe('pending reviews', () => {
     queue.recordAgent(selection)
     queue.published(second, 'https://github.com/octo/demo/pull/7#comment-1')
     const [reference, receipt, draft] = queue.fileComments('a.ts', selection.source).threads
-    const removed = queue.removeRecord(reference!.key)
+    const removed = queue.removeRecord(reference.key)
     expect(removed).toEqual({ record: { kind: 'agent', selection }, index: 0 })
     expect(queue.fileComments('a.ts', selection.source).threads.map(item => item.kind)).toEqual(['published', 'pending'])
     expect(new ReviewQueue('review-test').getSnapshot().records.map(item => item.kind)).toEqual(['published'])
-    expect(queue.removeRecord(reference!.key)).toBeNull()
-    expect(queue.removeRecord(draft!.key)).toBeNull()
+    expect(queue.removeRecord(reference.key)).toBeNull()
+    expect(queue.removeRecord(draft.key)).toBeNull()
     expect(queue.getSnapshot().comments).toHaveLength(1)
     expect(queue.restoreRecord(removed!)).toBe(true)
     expect(queue.fileComments('a.ts', selection.source).threads.map(item => [item.kind, item.key]))
-      .toEqual([['agent', reference!.key], ['published', receipt!.key], ['pending', draft!.key]])
-    const last = queue.removeRecord(receipt!.key)
+      .toEqual([['agent', reference.key], ['published', receipt.key], ['pending', draft.key]])
+    const last = queue.removeRecord(receipt.key)
     expect(last?.index).toBe(1)
-    queue.removeRecord(reference!.key)
+    queue.removeRecord(reference.key)
     expect(queue.restoreRecord(last!)).toBe(true)
     expect(new ReviewQueue('review-test').getSnapshot().records.map(item => item.kind)).toEqual(['published'])
   })
   it('keeps a record whose removal the browser did not save and refuses a restoration after the tab closed', () => {
     const queue = new ReviewQueue('review-test')
     queue.recordAgent(selection)
-    const key = queue.fileComments('a.ts', selection.source).threads[0]!.key
+    const key = queue.fileComments('a.ts', selection.source).threads[0].key
     const setter = vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => { throw new DOMException('quota', 'QuotaExceededError') })
     expect(queue.removeRecord(key)).toBeNull()
     expect(queue.getSnapshot()).toMatchObject({ error: 'save', records: [{ kind: 'agent' }] })
@@ -408,7 +408,7 @@ describe('quotes elsewhere than the input', () => {
   it('tags a quoted comment with its destination and reports a refused quote of it once the quote settles', async () => {
     const records = new ReviewQueue('review-test')
     expect(records.recordAgent(selection)).toBe(true)
-    const thread = records.fileComments('a.ts', selection.source).threads[0]!
+    const thread = records.fileComments('a.ts', selection.source).threads[0]
     const addToInput = vi.fn(async (_selection: ReviewSelection) => false)
     const view = render(<ReviewThread thread={thread} actions={{ records, source: selection.source, addToInput, quoteCopy: CHAT }}
       locked={false} outdated={false} t={t} />)
@@ -428,7 +428,7 @@ describe('quotes elsewhere than the input', () => {
 describe('inline records', () => {
   it('keeps pending edits at their code location and quotes the edited text', () => {
     const records = drafted(selection)
-    const thread = records.fileComments('a.ts', selection.source).threads[0]!
+    const thread = records.fileComments('a.ts', selection.source).threads[0]
     const addToInput = vi.fn().mockReturnValue(false)
     const actions = { records, source: selection.source, addToInput }
     const view = render(<ReviewThread thread={thread} actions={actions} locked={false} outdated={false} t={t} />)
@@ -445,7 +445,7 @@ describe('inline records', () => {
   })
   it('asks before deleting a browser draft and keeps it when the reader cancels', () => {
     const records = drafted(selection)
-    const thread = records.fileComments('a.ts', selection.source).threads[0]!
+    const thread = records.fileComments('a.ts', selection.source).threads[0]
     const view = render(<ReviewThread thread={thread} actions={{ source: selection.source, addToInput: () => true, records }}
       locked={false} outdated={false} t={t} />)
     expect(openMenu(view)).toEqual(['Edit', 'Delete'])
@@ -461,7 +461,7 @@ describe('inline records', () => {
   })
   it('deletes a draft whose text the reader emptied while editing it, after the same confirmation', () => {
     const records = drafted(selection)
-    const thread = records.fileComments('a.ts', selection.source).threads[0]!
+    const thread = records.fileComments('a.ts', selection.source).threads[0]
     const view = render(<ReviewThread thread={thread} actions={{ source: selection.source, addToInput: () => true, records }}
       locked={false} outdated={false} t={t} />)
     choose(view, 'Edit')
@@ -476,7 +476,7 @@ describe('inline records', () => {
   })
   it('preserves unsaved edits and reports failed editing, finishing, and deletion', () => {
     const records = drafted(selection)
-    const thread = records.fileComments('a.ts', selection.source).threads[0]!
+    const thread = records.fileComments('a.ts', selection.source).threads[0]
     const actions = { source: selection.source, addToInput: () => true, records }
     const view = render(<ReviewThread thread={thread} actions={actions} locked={false} outdated t={t} />)
     choose(view, 'Edit')
@@ -496,7 +496,7 @@ describe('inline records', () => {
   })
   it('keeps a browser draft as it is while a write is unsettled', () => {
     const records = drafted(selection)
-    const thread = records.fileComments('a.ts', selection.source).threads[0]!
+    const thread = records.fileComments('a.ts', selection.source).threads[0]
     const queue = vi.fn<NonNullable<ReviewActions['queue']>>()
     const actions = { source: selection.source, addToInput: () => true, records, queue }
     const view = render(<ReviewThread thread={thread} actions={actions} locked={false} outdated={false} t={t} />)
@@ -513,7 +513,7 @@ describe('inline records', () => {
   })
   it('labels a browser draft and moves it into the pending review, deleting it from the browser only once the host took it', async () => {
     const records = drafted(selection)
-    const thread = records.fileComments('a.ts', selection.source).threads[0]!
+    const thread = records.fileComments('a.ts', selection.source).threads[0]
     const queue = vi.fn<NonNullable<ReviewActions['queue']>>().mockResolvedValueOnce('GitHub refused')
     const view = render(<ReviewThread thread={thread} actions={{ source: selection.source, addToInput: () => true, records, queue }}
       locked={false} outdated={false} t={t} />)
@@ -537,7 +537,7 @@ describe('inline records', () => {
   })
   it('names the move after whether the user already has a pending review, as the comment form does', () => {
     const records = drafted(selection)
-    const thread = records.fileComments('a.ts', selection.source).threads[0]!
+    const thread = records.fileComments('a.ts', selection.source).threads[0]
     const queue = vi.fn<NonNullable<ReviewActions['queue']>>()
     const actions = { source: selection.source, addToInput: () => true, records, queue, reviewStarted: true }
     const view = render(<ReviewThread thread={thread} actions={actions} locked={false} outdated={false} t={t} />)
@@ -546,7 +546,7 @@ describe('inline records', () => {
   })
   it('offers no move for an outdated browser draft, one being edited or deleted, or without a pending review destination', () => {
     const records = drafted(selection)
-    const thread = records.fileComments('a.ts', selection.source).threads[0]!
+    const thread = records.fileComments('a.ts', selection.source).threads[0]
     const queue = vi.fn<NonNullable<ReviewActions['queue']>>()
     const outdated = render(<ReviewThread thread={thread} actions={{ source: selection.source, addToInput: () => true, records, queue }}
       locked={false} outdated t={t} />)
@@ -569,7 +569,7 @@ describe('inline records', () => {
   it('removes a reference from the view without asking and reports it so the removal can be undone', () => {
     const records = new ReviewQueue('review-test')
     records.recordAgent(selection)
-    const thread = records.fileComments('a.ts', selection.source).threads[0]!
+    const thread = records.fileComments('a.ts', selection.source).threads[0]
     const onRemoved = vi.fn<NonNullable<ReviewActions['onRemoved']>>()
     const view = render(<ReviewThread thread={thread} actions={{ source: selection.source, addToInput: () => true, records, onRemoved }}
       locked outdated={false} t={t} />)
@@ -585,7 +585,7 @@ describe('inline records', () => {
   it('keeps a record and says so when its removal was not saved', () => {
     const records = new ReviewQueue('review-test')
     records.recordAgent(selection)
-    const thread = records.fileComments('a.ts', selection.source).threads[0]!
+    const thread = records.fileComments('a.ts', selection.source).threads[0]
     const onRemoved = vi.fn<NonNullable<ReviewActions['onRemoved']>>()
     const view = render(<ReviewThread thread={thread} actions={{ source: selection.source, addToInput: () => true, records, onRemoved }}
       locked={false} outdated t={t} />)
@@ -599,7 +599,7 @@ describe('inline records', () => {
     const openLink = vi.fn()
     const records = new ReviewQueue('review-test')
     records.published(selection, 'https://github.com/review')
-    const thread = records.fileComments('a.ts', selection.source).threads[0]!
+    const thread = records.fileComments('a.ts', selection.source).threads[0]
     const view = render(<ReviewThread thread={thread} actions={{ source: selection.source, addToInput: () => true, openLink, records }}
       locked={false} outdated={false} t={t} />)
     fireEvent.click(view.getByRole('button', { name: hostCopy('review.recheck') }))
@@ -618,10 +618,10 @@ describe('inline records', () => {
     const records = drafted(selection)
     const drafts = (): ReturnType<ReviewQueue['fileComments']>['threads'] => records.fileComments('a.ts', selection.source).threads
     const actions = { source: selection.source, addToInput: () => true, records }
-    const view = render(<ReviewThread thread={drafts()[0]!} actions={actions} locked={false} outdated={false} t={t} />)
+    const view = render(<ReviewThread thread={drafts()[0]} actions={actions} locked={false} outdated={false} t={t} />)
     choose(view, 'Edit')
     records.finish(true, 'https://github.com/octo/demo/pull/7#review-1')
-    view.rerender(<ReviewThread thread={drafts()[0]!} actions={actions} locked={false} outdated={false} t={t} />)
+    view.rerender(<ReviewThread thread={drafts()[0]} actions={actions} locked={false} outdated={false} t={t} />)
     expect(view.queryByRole('textbox')).toBeNull()
     expect(view.queryByRole('button', { name: 'Done' })).toBeNull()
     expect(openMenu(view)).toEqual(['Remove'])

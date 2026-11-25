@@ -124,19 +124,19 @@ describe('tabInfoFactory committed-record relation', () => {
     const h = harness()
     const tabId = h.open()
     const view = renderHook(h.bind(tabId))
-    const docked = findTabPane(h.layout()!, tabId).id
+    const docked = findTabPane(h.layout(), tabId).id
     expect(view.result.current.tab.id).toBe(tabId)
     expect(view.result.current.panel).toEqual({ id: docked, isFloating: false })
 
     act(() => { h.instance.actions.floatTab(SESSION, tabId) })
-    const floating = findTabPane(h.layout()!, tabId)
+    const floating = findTabPane(h.layout(), tabId)
     expect(floating.host).toBe('float')
     expect(floating.id).not.toBe(docked)
     expect(view.result.current.tab.id).toBe(tabId)
     expect(view.result.current.panel).toEqual({ id: floating.id, isFloating: true })
 
     act(() => { h.instance.actions.unfloatPane(SESSION, floating.id) })
-    expect(findTabPane(h.layout()!, tabId).host).toBe('dock')
+    expect(findTabPane(h.layout(), tabId).host).toBe('dock')
     expect(view.result.current.tab.id).toBe(tabId)
     expect(view.result.current.panel).toEqual({ id: docked, isFloating: false })
   })
@@ -151,12 +151,12 @@ describe('tabInfoFactory committed-record relation', () => {
     expect(second.result.current.panel).toEqual({ id: docked, isFloating: false })
 
     act(() => { h.instance.actions.floatTab(SESSION, firstId) })
-    const firstPane = findTabPane(h.layout()!, firstId).id
+    const firstPane = findTabPane(h.layout(), firstId).id
     expect(first.result.current.panel).toEqual({ id: firstPane, isFloating: true })
     expect(second.result.current.panel).toEqual({ id: docked, isFloating: false })
 
     act(() => { h.instance.actions.floatTab(SESSION, secondId) })
-    const secondPane = findTabPane(h.layout()!, secondId).id
+    const secondPane = findTabPane(h.layout(), secondId).id
     expect(new Set([docked, firstPane, secondPane]).size).toBe(3)
     expect(first.result.current.panel).toEqual({ id: firstPane, isFloating: true })
     expect(second.result.current.panel).toEqual({ id: secondPane, isFloating: true })

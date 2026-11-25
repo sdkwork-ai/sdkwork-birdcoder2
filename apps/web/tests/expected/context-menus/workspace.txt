@@ -1,3 +1,8 @@
+Open folder
+Copy path
+Open in terminal
+Publish app
+Publish as scaffold
+Install from scaffold
 Rename
-Show in folder
 Delete workspace

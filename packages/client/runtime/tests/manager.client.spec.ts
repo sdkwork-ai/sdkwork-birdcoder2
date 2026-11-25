@@ -768,7 +768,7 @@ describe('remaining branches', () => {
       code: 'workspace-attach-failed',
       message: 'published but unattached',
       details: { sessionId: S1, workspaceId: 'w1' },
-    } as never))
+    }))
     const manager = new SessionManager(api, fakeRemote())
     const result = await manager.create({ workspaceId: 'w1' as never, sessionId: S1 })
     expect(result).toMatchObject({ ok: false, error: { code: 'workspace-attach-failed' } })
@@ -782,7 +782,7 @@ describe('remaining branches', () => {
       code: 'workspace-attach-failed',
       message: 'forked but unattached',
       details: { sessionId: S2, workspaceId: 'w1' },
-    } as never))
+    }))
     const manager = new SessionManager(api, fakeRemote())
     const result = await manager.fork({ sessionId: S1 })
     expect(result).toMatchObject({ ok: false, error: { code: 'workspace-attach-failed' } })

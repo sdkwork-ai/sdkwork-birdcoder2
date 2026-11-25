@@ -54,7 +54,7 @@ export function history(events: readonly SessionEvent[], hasMore = false): Remot
  * @returns the frame.
  */
 export function frame(event: SessionEvent): SessionFollowFrame {
-  return entries([event])[0]!
+  return entries([event])[0]
 }
 
 /**

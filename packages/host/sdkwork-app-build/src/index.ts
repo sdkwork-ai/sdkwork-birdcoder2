@@ -407,9 +407,9 @@ export class SdkworkAppBuildRunner extends Service {
       }
     }
     child.stdout?.setEncoding('utf8')
-    child.stdout?.on('data', chunk => consume('stdout', chunk as string))
+    child.stdout?.on('data', (chunk) =>{  consume('stdout', chunk as string) })
     child.stderr?.setEncoding('utf8')
-    child.stderr?.on('data', chunk => consume('stderr', chunk as string))
+    child.stderr?.on('data', (chunk) =>{  consume('stderr', chunk as string) })
     child.on('error', () => {
       // Spawn-level failure (command not found, cwd rejected): one exit frame
       // still terminates every follower. The error itself rides stderr paths

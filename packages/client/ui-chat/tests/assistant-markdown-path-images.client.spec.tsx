@@ -33,7 +33,7 @@ describe('localPathMediaUrl', () => {
       ['dsh-app://app/index.html', 'dsh-app://app/'],
       ['http://127.0.0.1:3080/tools/dsh/index.html', MOUNTED_BASE],
     ]) {
-      expect(localPathMediaUrl(base!, '/tmp/graph.png')).toBe(`${root!}api/file?path=${path}`)
+      expect(localPathMediaUrl(base, '/tmp/graph.png')).toBe(`${root}api/file?path=${path}`)
     }
   })
 
@@ -97,6 +97,6 @@ it('decodes Markdown URL escapes once before encoding the file query', () => {
     ['/work/test%20workspace/图.png', '/work/test workspace/图.png'],
     ['/work/100%25%23.png', '/work/100%#.png'],
     ['/work/literal%2520.png', '/work/literal%20.png'],
-  ]) expect(new URL(localPathMediaUrl(BASE, authored!)!).searchParams.get('path')).toBe(path)
+  ]) expect(new URL(localPathMediaUrl(BASE, authored)!).searchParams.get('path')).toBe(path)
   expect(localPathMediaUrl(BASE, '/work/bad%escape.png')).toBeUndefined()
 })

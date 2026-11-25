@@ -60,7 +60,7 @@ describe('ui-settings-subagent apply', () => {
     await ctx.plugin({ inject: [...inject], apply }).await()
 
     await vi.waitFor(() => { expect(slots.entries('plugins.item')).toHaveLength(1) })
-    const entry = slots.entries('plugins.item')[0]!
+    const entry = slots.entries('plugins.item')[0]
     expect(entry.options).toMatchObject({ id: 'subagent', order: 10 })
     expect(resolveSlotLabel(entry.options.label)).toBe('子智能体')
     expect(entry.locale).toBe(NS)

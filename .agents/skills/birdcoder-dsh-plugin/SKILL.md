@@ -9,7 +9,7 @@ Build a dsh (DeepSeek Harness) plugin as a cordis plugin package with the reposi
 
 ## Workflow
 
-1. Read the host repository's `AGENTS.md` and `docs/architecture.md` first: registrations are effects (`ctx.effect`/`ctx.on`, a registry's `register()` returns the disposer), and new behavior goes on documented extension points — never into the agent loop.
+1. When a host checkout is available, read its `AGENTS.md` and `docs/architecture.md` first; without one, follow this skill. In both cases: registrations are effects (`ctx.effect`/`ctx.on`, a registry's `register()` returns the disposer), and new behavior goes on documented extension points — never into the agent loop.
 2. Model the plugin as an npm package under the host's workspace layout (pure ESM, package name per the naming contract, `@deepseek-ai/cordis` as a peer dependency).
 3. Export `name`/`inject`/`apply(ctx)`: `inject` names the services used; `apply` registers through `ctx.effect` so teardown cascades; type-only imports pull cross-package contracts.
 4. Typed events via declaration merging on the host's event maps; every model-visible input it contributes gets a durable session event.

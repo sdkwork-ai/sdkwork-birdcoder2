@@ -258,7 +258,7 @@ describe('ThemeRuntime', () => {
       '--first': { light: 'first-only-light', dark: 'first-only-dark' },
     }
     const disposeFirst = theme.overrideTokens('first', firstTokens)
-    firstTokens['--shared']!.light = 'mutated-after-call'
+    firstTokens['--shared'].light = 'mutated-after-call'
     const disposeSecond = theme.overrideTokens('second', {
       '--shared': { light: 'second-light', dark: 'second-dark' },
     })
@@ -321,8 +321,8 @@ describe('ThemeRuntime', () => {
     expect(semantic).not.toHaveProperty('cssVariable')
     expect(tokens.filter(token => token.name === '--dsw-alias-bg-base')).toHaveLength(1)
 
-    tokens[0]!.description = 'caller mutation'
-    expect(theme.exportInspectTokens()[0]!.description).not.toBe('caller mutation')
+    tokens[0].description = 'caller mutation'
+    expect(theme.exportInspectTokens()[0].description).not.toBe('caller mutation')
   })
 
   it('rejects every malformed token override value with a teaching error', () => {

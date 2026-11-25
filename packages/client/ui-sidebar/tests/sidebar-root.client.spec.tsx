@@ -231,7 +231,7 @@ describe('SidebarRoot shell', () => {
       [{ menu_name: 'new_session', position: 'sidebar' }],
       [{ menu_name: 'new_session', position: 'sidebar' }],
     ])
-    expect(b.trackEntryClick.mock.invocationCallOrder[0]).toBeLessThan(b.startSession.mock.invocationCallOrder[0]!)
+    expect(b.trackEntryClick.mock.invocationCallOrder[0]).toBeLessThan(b.startSession.mock.invocationCallOrder[0])
     fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
     expect(b.toggleSidebar).toHaveBeenCalledOnce()
     expect(b.trackEntryClick).toHaveBeenCalledTimes(2)
@@ -381,7 +381,7 @@ describe('SidebarRoot shell', () => {
 
     // The rest of the brand button still starts and reports a session.
     if (!darwin) {
-      fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0]!)
+      fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0])
       expect(startSession).toHaveBeenCalledOnce()
       expect(trackEntryClick).toHaveBeenCalledExactlyOnceWith({ menu_name: 'new_session', position: 'sidebar' })
     }
@@ -522,7 +522,7 @@ it('wires the shell.leading controls to the shared sidebar actions', () => {
   expect(startSession).toHaveBeenCalledOnce()
   // The window-chrome New Session control reports a titlebar click before starting the Session.
   expect(trackEntryClick).toHaveBeenCalledExactlyOnceWith({ menu_name: 'new_session', position: 'titlebar' })
-  expect(trackEntryClick.mock.invocationCallOrder[0]).toBeLessThan(startSession.mock.invocationCallOrder[0]!)
+  expect(trackEntryClick.mock.invocationCallOrder[0]).toBeLessThan(startSession.mock.invocationCallOrder[0])
   cleanup()
 
   // A page whose access snapshot excludes starting a Session keeps only the sidebar toggle.

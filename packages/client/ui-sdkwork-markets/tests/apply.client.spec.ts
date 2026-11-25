@@ -187,7 +187,7 @@ describe('ui-sdkwork-markets apply', () => {
     for (const seat of ['plugins.bundle.config', 'plugins.row.config', 'plugins.bundle.activation'] as const) {
       expect(b.slots.spec(seat)).toMatchObject({ kind: 'keyed', scope: 'root' })
     }
-    const injected = (page!.inject as unknown as () => MarketsPageInjected)()
+    const injected = (page.inject as unknown as () => MarketsPageInjected)()
     expect(injected.mode).toBe('markets')
     expect(typeof injected.dispatchPrompt).toBe('function')
     // The upstream navigation contract this page took over: `pluginNavigation`
@@ -201,13 +201,6 @@ describe('ui-sdkwork-markets apply', () => {
     expect(injected.bundleRequest.getSnapshot()).toBe('@deepseek-ai/dsh-experimental-voice-input-bundle')
     injected.onBundleRequestHandled()
     expect(injected.bundleRequest.getSnapshot()).toBeUndefined()
-    // The Plugin Market's control is optional: the market is a profile plugin,
-    // so a deployment without it never attaches and the page keeps its install
-    // affordance. Publishing the service later reaches the live page.
-    expect(injected.marketControl.getSnapshot()).toBeUndefined()
-    const marketControl = { version: 1 as const, render: () => null }
-    b.ctx.provide('market', marketControl)
-    await vi.waitFor(() => { expect(injected.marketControl.getSnapshot()).toBe(marketControl) })
     // The SkillHub market publishes no client service: this page reads the live
     // `main` ledger for its panel key instead, and draws the registered
     // component inside the Skills tab. Nothing is mounted in this composition,
@@ -230,8 +223,8 @@ describe('ui-sdkwork-markets apply', () => {
     // owned effect: unloading this plugin restores the row.
     expect(b.sdkworkSidebar.suppressPanel).toHaveBeenCalledWith('skill-market')
     // The expert market's row is suppressed the same way: the Experts tab
-    // embeds the `plugins/sdkwork-dsh-agents` roster panel, so that plugin's
-    // own sidebar row would be a second entry to the same page.
+    // embeds the built-in experts package's roster panel, so its own sidebar
+    // row would be a second entry to the same page.
     expect(injected.expertMarketPanel.getSnapshot()).toBeUndefined()
     const expertPanel = () => null
     const disposeExpertMarket = b.slots.register(
@@ -244,16 +237,6 @@ describe('ui-sdkwork-markets apply', () => {
     disposeExpertMarket()
     await vi.waitFor(() => { expect(injected.expertMarketPanel.getSnapshot()).toBeUndefined() })
     expect(b.sdkworkSidebar.suppressPanel).toHaveBeenCalledWith('agency-agents')
-    // The gate's reload is the one navigation this page performs, and only
-    // when the person pressed it.
-    const reload = vi.fn()
-    vi.stubGlobal('location', { reload })
-    try {
-      injected.reload()
-      expect(reload).toHaveBeenCalledOnce()
-    } finally {
-      vi.unstubAllGlobals()
-    }
     // The official group's second source rides the same injection as one live
     // ledger over the three seats the page renders from. With no registrant the
     // projection is empty, not absent. (The registrants' own views are drawn
@@ -318,7 +301,7 @@ describe('ui-sdkwork-markets apply', () => {
     } as never, () => null)
 
     const [page] = b.slots.entries(PAGE)
-    const injected = (page!.inject as unknown as () => MarketsPageInjected)()
+    const injected = (page.inject as unknown as () => MarketsPageInjected)()
     // The injected ledger is the ledger's own order, not the registration order.
     const items = injected.ledger.getSnapshot().items
     expect(items.map(item => item.id)).toEqual(['bash', 'web-search'])
@@ -334,7 +317,7 @@ describe('ui-sdkwork-markets apply', () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const [page] = b.slots.entries(PAGE)
-    const injected = (page!.inject as unknown as () => MarketsPageInjected)()
+    const injected = (page.inject as unknown as () => MarketsPageInjected)()
     b.manager.setPluginEnabled.mockResolvedValueOnce({
       ok: false,
       error: { code: 'unavailable', message: 'no profile' },
@@ -346,7 +329,7 @@ describe('ui-sdkwork-markets apply', () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const [page] = b.slots.entries(PAGE)
-    const store = (page!.inject as unknown as () => MarketsPageInjected)().store
+    const store = (page.inject as unknown as () => MarketsPageInjected)().store
 
     // Bundle-layer write, bundle uninstall, and the install pair all reach
     // their own manager method and unwrap its envelope the same way.
@@ -371,7 +354,7 @@ describe('ui-sdkwork-markets apply', () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const [page] = b.slots.entries(PAGE)
-    const store = (page!.inject as unknown as () => MarketsPageInjected)().store
+    const store = (page.inject as unknown as () => MarketsPageInjected)().store
     b.manager.inspect.mockResolvedValueOnce({
       ok: true,
       value: { status: 'refused', problem: 'already-installed', reason: 'already there' },
@@ -390,7 +373,7 @@ describe('ui-sdkwork-markets apply', () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const [page] = b.slots.entries(PAGE)
-    const store = (page!.inject as unknown as () => MarketsPageInjected)().store
+    const store = (page.inject as unknown as () => MarketsPageInjected)().store
     b.manager.installBundle.mockResolvedValueOnce({
       ok: false,
       error: { code: 'timeout', message: 'pnpm took too long' },
@@ -410,7 +393,7 @@ describe('ui-sdkwork-markets apply', () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const [page] = b.slots.entries(PAGE)
-    const injected = (page!.inject as unknown as () => MarketsPageInjected)()
+    const injected = (page.inject as unknown as () => MarketsPageInjected)()
 
     // A fresh session's face accepts the prompt.
     const sessionId = 'session-1' as SessionId

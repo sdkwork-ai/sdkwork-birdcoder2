@@ -61,7 +61,7 @@ it('offers image actions on file targets, copies absolute paths, and keeps save 
     await vi.waitFor(() => { expect(notify).toHaveBeenCalledWith('menu.downloaded', true, expect.objectContaining({ failureLabel: 'path.revealError' })) })
     const source = save.mock.calls[0]?.[0]
     expect(source).toMatchObject({ name: 'original.svg', mediaType: 'image/svg+xml' })
-    expect(await (await source!.read!(new AbortController().signal)).text()).toBe('<svg/>')
+    expect(await (await source.read!(new AbortController().signal)).text()).toBe('<svg/>')
     const image = registry.resolve({ kind: 'image', value: { url: 'https://example.com/image.png' } })
     await image.ready
     expect(image.source.getSnapshot().find(action => action.id.endsWith('/reveal'))?.disabled).toBe(true)

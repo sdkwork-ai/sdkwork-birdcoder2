@@ -44,15 +44,15 @@ describe('LensControl', () => {
     expect(radios.map(radio => radio.tabIndex)).toEqual([-1, 0, -1, -1])
     expect(view.getByRole('radiogroup', { name: en['lens.aria'] })).toBeDefined()
 
-    fireEvent.click(radios[2]!)
+    fireEvent.click(radios[2])
     expect(props.choose).toHaveBeenLastCalledWith('implementation')
     for (const [key, lens] of [['ArrowRight', 'implementation'], ['ArrowDown', 'implementation'], ['ArrowLeft', 'all'], ['ArrowUp', 'all'],
       ['Home', 'all'], ['End', 'test']] as const) {
-      fireEvent.keyDown(radios[1]!, { key })
+      fireEvent.keyDown(radios[1], { key })
       expect(props.choose).toHaveBeenLastCalledWith(lens)
     }
     const calls = props.choose.mock.calls.length
-    fireEvent.keyDown(radios[1]!, { key: 'Enter' })
+    fireEvent.keyDown(radios[1], { key: 'Enter' })
     expect(props.choose).toHaveBeenCalledTimes(calls)
   })
 
@@ -211,8 +211,8 @@ describe('HideTestsSwitch and ViewedProgress', () => {
     const bar = view.getByRole('progressbar', { name: en['viewed.progressAria'] })
     expect([bar.getAttribute('aria-valuenow'), bar.getAttribute('aria-valuemax'), bar.getAttribute('aria-valuetext')]).toEqual(['2', '4', '2 / 4 viewed'])
     // One ring filled to the viewed share, then the label, or the bare count a narrow toolbar shows instead.
-    const [length, gap] = bar.querySelectorAll('circle')[1]!.getAttribute('stroke-dasharray')!.split(' ').map(Number)
-    expect(length! / gap!).toBeCloseTo(0.5)
+    const [length, gap] = bar.querySelectorAll('circle')[1].getAttribute('stroke-dasharray')!.split(' ').map(Number)
+    expect(length / gap).toBeCloseTo(0.5)
     expect(bar.querySelectorAll('svg')).toHaveLength(1)
     expect([...bar.querySelectorAll('[data-forge-progress]')].map(form => [form.getAttribute('data-forge-progress'), form.textContent]))
       .toEqual([['full', '2 / 4 viewed'], ['compact', '2/4']])

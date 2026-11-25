@@ -65,26 +65,26 @@ describe('viewport-activated syntax highlighting', () => {
     const blocks = [...view.container.querySelectorAll('.md-code-block')]
     expect(blocks).toHaveLength(3)
     expect(IntersectionObserverStub.instances).toHaveLength(1)
-    const observer = IntersectionObserverStub.instances[0]!
+    const observer = IntersectionObserverStub.instances[0]
     expect(observer.observed.size).toBe(3)
     expect(view.container.querySelectorAll('pre.shiki')).toHaveLength(0)
 
-    act(() => { observer.intersect(blocks[0]!, false) })
+    act(() => { observer.intersect(blocks[0], false) })
     expect(view.container.querySelectorAll('pre.shiki')).toHaveLength(0)
 
     act(() => {
-      observer.intersect(blocks[0]!, true)
-      observer.intersect(blocks[1]!, true)
+      observer.intersect(blocks[0], true)
+      observer.intersect(blocks[1], true)
     })
     await waitFor(() => {
-      expect(blocks[0]!.querySelector('pre.shiki')).not.toBeNull()
-      expect(blocks[1]!.querySelector('pre.shiki')).not.toBeNull()
+      expect(blocks[0].querySelector('pre.shiki')).not.toBeNull()
+      expect(blocks[1].querySelector('pre.shiki')).not.toBeNull()
     })
-    expect(blocks[2]!.querySelector('pre.shiki')).toBeNull()
-    expect(observer.unobserved.has(blocks[0]!)).toBe(true)
+    expect(blocks[2].querySelector('pre.shiki')).toBeNull()
+    expect(observer.unobserved.has(blocks[0])).toBe(true)
 
-    act(() => { observer.intersect(blocks[0]!, false) })
-    expect(blocks[0]!.querySelector('pre.shiki')).not.toBeNull()
+    act(() => { observer.intersect(blocks[0], false) })
+    expect(blocks[0].querySelector('pre.shiki')).not.toBeNull()
 
     view.rerender(
       <>
@@ -93,10 +93,10 @@ describe('viewport-activated syntax highlighting', () => {
         <CodeBlock code="const third = 3" lang="ts" {...markdownLabels.code} />
       </>,
     )
-    expect(blocks[0]!.querySelector('pre.shiki')?.textContent).toBe('const first = 10')
+    expect(blocks[0].querySelector('pre.shiki')?.textContent).toBe('const first = 10')
 
-    act(() => { observer.intersect(blocks[2]!, true) })
-    await waitFor(() => { expect(blocks[2]!.querySelector('pre.shiki')).not.toBeNull() })
+    act(() => { observer.intersect(blocks[2], true) })
+    await waitFor(() => { expect(blocks[2].querySelector('pre.shiki')).not.toBeNull() })
     expect(observer.disconnected).toBe(true)
   })
 
@@ -111,7 +111,7 @@ describe('viewport-activated syntax highlighting', () => {
   it('releases the shared observer when the last pending block unmounts', () => {
     const view = render(<CodeBlock code="const pending = true" lang="ts" {...markdownLabels.code} />)
     const block = view.container.querySelector('.md-code-block')!
-    const observer = IntersectionObserverStub.instances[0]!
+    const observer = IntersectionObserverStub.instances[0]
 
     view.unmount()
 
@@ -130,7 +130,7 @@ describe('viewport-activated syntax highlighting', () => {
       <CodeBlock code="print(1)" lang="python" streaming {...markdownLabels.code} />,
     )
     const block = view.container.querySelector('.md-code-block')!
-    const observer = IntersectionObserverStub.instances[0]!
+    const observer = IntersectionObserverStub.instances[0]
 
     act(() => { observer.intersect(block, true) })
     expect(block.querySelector('pre.shiki')).toBeNull()
@@ -150,7 +150,7 @@ describe('viewport-activated syntax highlighting', () => {
     )
     const block = view.container.querySelector('[data-read]')!
     expect(block.querySelectorAll('[class^="_content_"] span')).toHaveLength(0)
-    const observer = IntersectionObserverStub.instances[0]!
+    const observer = IntersectionObserverStub.instances[0]
 
     act(() => { observer.intersect(block, true) })
     await waitFor(() => {

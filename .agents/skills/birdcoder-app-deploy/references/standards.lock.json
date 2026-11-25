@@ -1,0 +1,26 @@
+{
+  "sdkworkSpecs": {
+    "source": "checkout",
+    "revision": "a5a7da6dfcb6ae4ae82afa91ab203013d13fdfac"
+  },
+  "reviewedAt": "2026-11-24",
+  "specs": {
+    "APP_MANIFEST_SPEC.md": "ce0a97c6761d1773d7189c15234e308ead75b358df0b3d8f5820062f2c5bcb44",
+    "APP_CLIENT_ARCHITECTURE_ALIGNMENT_SPEC.md": "1ed1d6d02376f154520080e3d0b0d906f346f8abf9d8a0f8e4d4d09708bbe9bc",
+    "APPLICATION_DEPLOY_LAYOUT_SPEC.md": "b3146fcadd46b9a33c9bc4fd2c07fa33a17b21f9a052644be8638331e4c5f767",
+    "PACKAGING_SPEC.md": "fc6eb0a2a7a9855e60421d3eda1e7ecf41e132088c6bbea5da5efa95a6fba794",
+    "SDKWORK_DEPLOY_SPEC.md": "c39d8c5b2f340cdcc39d688b5c2d04d0a091c03e2395062d259d2e39f2cf7152",
+    "ENVIRONMENT_SPEC.md": "bb328bd012cf3231be8a6e16842f7eea7520c1ab328411b31da7bd7062fee1aa",
+    "APPLICATION_FACTORY_DEPLOYMENT_SPEC.md": "57fd8458c4f3255da727719205ddb0b8f8037d2a6a489149fb5b406f501e0b9a",
+    "DEPLOYMENT_SPEC.md": "28eaddb9f76fc884ae9167ae374868886190cb2bc45e8d7fde4f5e0b717deadb",
+    "RELEASE_SPEC.md": "42b7dd33fdae49eb79a230a0d8851ac28bb5eb3274ee8c372ad5dc53ae929bc2"
+  },
+  "bundled": {
+    "references/standards/APPLICATION_DEPLOY_LAYOUT_SPEC.md": "e608695bdd48ca68560d644ebfef31e122b6186f837d628efb82fb0779233507",
+    "references/standards/APP_CLIENT_ARCHITECTURE_ALIGNMENT_SPEC.md": "b7b5ce7879ee4d696bb2d99413e23ad254c6b6bf4de2f960c01edaccad26c632",
+    "references/standards/APP_MANIFEST_SPEC.md": "ad5ad7afffe5eb009562f7cf05594288c4c0bea4d8828832de561371635e7f59",
+    "references/standards/ENVIRONMENT_SPEC.md": "a9f662d4577e506ce17d87363721d5d960403d1bae81ea397bda5a0fb66ee616",
+    "references/standards/PACKAGING_SPEC.md": "74f3d1bd8663f300b411bc0fda47ae85c24fb63213b3eeb7f59f2c219ccd44f7",
+    "references/standards/SDKWORK_DEPLOY_SPEC.md": "1ff20666564936c7d9a51c232e8e195a4c771e6db982eee051b686227ba99760"
+  }
+}

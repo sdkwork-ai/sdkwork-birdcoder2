@@ -39,7 +39,7 @@ it.each(['allow', 'reject', 'always'] as const)('returns the exact %s option fro
   const factory = vi.fn((_name: string, _input: ApprovalCardInput) => null)
   render(<ApplicationApproval {...{ matched: selectApplicationApproval(pending)!, renderFactorySlot: factory,
     t: makeTranslate(zh), resolveText: text => text.zh ?? text.en } as ApplicationApprovalProps} />)
-  const [name, card] = factory.mock.calls[0]!
+  const [name, card] = factory.mock.calls[0]
   expect(name).toBe('conversation.approval.card')
   expect(card).toMatchObject({ title: '允许吗？', description: '本次任务', allowLabel: '本次任务允许', subject: { name: 'Calculator' } })
   expect(card.canAnswer()).toBe(true)
@@ -77,7 +77,7 @@ it('uses the original question cancellation and refuses late approval', async ()
   const factory = vi.fn((_name: string, _input: ApprovalCardInput) => null)
   render(<ApplicationApproval {...{ matched: selectApplicationApproval(pending)!, renderFactorySlot: factory,
     t: makeTranslate(en), resolveText: text => text.en } as ApplicationApprovalProps} />)
-  const card = factory.mock.calls[0]![1]
+  const card = factory.mock.calls[0][1]
   const rejected = expect(request.result).rejects.toMatchObject({ code: 'ASK_ABORTED' })
   controller.abort()
   await rejected
@@ -96,7 +96,7 @@ it('shows the mouse interruption and expiry with only session approval and refus
   const factory = vi.fn((_name: string, _input: ApprovalCardInput) => null)
   render(<ApplicationApproval {...{ matched: selectApplicationApproval(pending)!, renderFactorySlot: factory,
     t: makeTranslate(zh), resolveText: text => text.zh } as ApplicationApprovalProps} />)
-  const card = factory.mock.calls[0]![1]
+  const card = factory.mock.calls[0][1]
   expect(card).toMatchObject({ title: display.question.zh, description: display.detail.zh, allowLabel: display.approve.zh })
   expect(card.onAlways).toBeUndefined()
   expect(card.warning).toBeUndefined()

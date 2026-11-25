@@ -377,7 +377,7 @@ function clockColumn(key: 'timing.hour' | 'timing.minute' | 'timing.second', dic
 
 /** The open calendar's cell for one day of the shown month. */
 function dayCell(day: number): HTMLElement {
-  return screen.getAllByRole('gridcell', { name: String(day) })[0]!
+  return screen.getAllByRole('gridcell', { name: String(day) })[0]
 }
 
 /** Click the edit bar's Save action. */
@@ -516,41 +516,41 @@ describe('Task manager catalog', () => {
     mount()
     const page = screen.getByTestId('task-manager-page')
     // The mock's `.page-scroll` > `.automation-content` scroll as one column.
-    const scroll = page.querySelector<HTMLElement>(`.${css.pageScroll!}`)!
-    const content = page.querySelector<HTMLElement>(`.${css.pageContent!}`)!
+    const scroll = page.querySelector<HTMLElement>(`.${css.pageScroll}`)!
+    const content = page.querySelector<HTMLElement>(`.${css.pageContent}`)!
     expect(scroll.contains(content)).toBe(true)
     // The mock's heading row: one h1 beside the creation actions, no subtitle.
-    const heading = page.querySelector<HTMLElement>(`.${css.pageHeading!}`)!
+    const heading = page.querySelector<HTMLElement>(`.${css.pageHeading}`)!
     expect(heading.querySelector('h1')?.textContent).toBe(en['title'])
     expect(heading.querySelector('p')).toBeNull()
-    expect(heading.querySelector(`.${css.creationActions!}`)?.textContent).toBe(en['new.action'])
+    expect(heading.querySelector(`.${css.creationActions}`)?.textContent).toBe(en['new.action'])
     // The filter row carries the status group alone: the type chips are gone.
-    const filters = page.querySelector<HTMLElement>(`.${css.filters!}`)!
+    const filters = page.querySelector<HTMLElement>(`.${css.filters}`)!
     expect(within(filters).getAllByRole('group')).toHaveLength(1)
     const statuses = within(filters).getByRole('group', { name: en['statusFilter.label'] })
     expect(statuses.parentElement).toBe(filters)
     expect(within(statuses).getAllByRole('button')[0]?.textContent).toBe(en['status.active'])
     // The mock's `.searchbox`: the same field carries the leading glyph, the
     // placeholder, and — once a value exists — the inline clear control.
-    const searchTools = page.querySelector<HTMLElement>(`.${css.searchTools!}`)!
-    expect(searchTools.contains(page.querySelector(`.${css.searchField!}`))).toBe(true)
-    const field = page.querySelector<HTMLElement>(`.${css.searchField!}`)!
+    const searchTools = page.querySelector<HTMLElement>(`.${css.searchTools}`)!
+    expect(searchTools.contains(page.querySelector(`.${css.searchField}`))).toBe(true)
+    const field = page.querySelector<HTMLElement>(`.${css.searchField}`)!
     const input = screen.getByRole('searchbox', { name: en['search.label'] })
     expect(field.contains(input)).toBe(true)
     expect(input.getAttribute('placeholder')).toBe(en['search.placeholder'])
     expect(field.querySelector('svg')).not.toBeNull()
-    expect(field.querySelector(`.${css.searchClear!}`)).toBeNull()
+    expect(field.querySelector(`.${css.searchClear}`)).toBeNull()
     fireEvent.change(input, { target: { value: 'metrics' } })
-    expect(field.querySelector(`.${css.searchClear!}`)).not.toBeNull()
+    expect(field.querySelector(`.${css.searchClear}`)).not.toBeNull()
     fireEvent.click(screen.getByRole('button', { name: en['search.clear'] }))
-    expect(field.querySelector(`.${css.searchClear!}`)).toBeNull()
+    expect(field.querySelector(`.${css.searchClear}`)).toBeNull()
     // The Plugins page's card column: plain list items with no separator; the
     // column's own 2px gap breaks the rows apart.
     const list = screen.getByRole('list', { name: en['list.label'] })
     const wraps = list.querySelectorAll(':scope > li')
     expect(wraps).toHaveLength(3)
-    for (const wrap of wraps) expect(wrap.querySelector(`.${css.row!}`)).not.toBeNull()
-    expect(list.querySelector(`.${css.row!}`)?.querySelector(`.${css.rowTitle!}`)?.textContent).toBe('Send summary')
+    for (const wrap of wraps) expect(wrap.querySelector(`.${css.row}`)).not.toBeNull()
+    expect(list.querySelector(`.${css.row}`)?.querySelector(`.${css.rowTitle}`)?.textContent).toBe('Send summary')
   })
 
   it('lists cross-session active records by target time without unsupported actions', () => {
@@ -662,7 +662,7 @@ describe('Task manager catalog', () => {
       const h = mount({ records: [soon] }, dictionary)
       const expected = dictionary === en ? 'in 2 hours' : '2小时后'
       const row = screen.getByRole('button', { name: 'Two hours out' })
-      const summary = row.querySelector<HTMLElement>(`.${css.rowSummary!}`)?.textContent ?? ''
+      const summary = row.querySelector<HTMLElement>(`.${css.rowSummary}`)?.textContent ?? ''
       expect(summary).toContain(expected)
       // The distance itself renders no clock; the absolute stamp beside it does.
       expect(relativeText(row)).toBe(`(${expected})`)
@@ -764,7 +764,7 @@ describe('Task manager catalog', () => {
     expect(names()).toEqual(['Send summary', 'Review release', 'Check metrics', 'Paused digest'])
     expect(within(statuses).getByRole('button', { name: dictionary['statusFilter.all'] }).getAttribute('aria-pressed')).toBe('true')
     // A paused row names its state in place of the next scheduled time.
-    const pausedSummary = within(list).getByRole('button', { name: 'Paused digest' }).querySelector(`.${css.rowSummary!}`)!
+    const pausedSummary = within(list).getByRole('button', { name: 'Paused digest' }).querySelector(`.${css.rowSummary}`)!
     expect(pausedSummary.textContent).toContain(dictionary['status.paused'])
     expect(pausedSummary.textContent).not.toContain(dictionary['list.nextPrefix'])
     chooseStatus(dictionary['status.active'])
@@ -853,7 +853,7 @@ describe('Task manager catalog', () => {
     expect(buttons.map(button => button.getAttribute('aria-label')))
       .toEqual(RECOMMENDATION_IDS.map(id => en[`recommend.${id}.title`]))
     for (const [index, id] of RECOMMENDATION_IDS.entries()) {
-      const button = buttons[index]!
+      const button = buttons[index]
       // The description and the run time are separate references, so a screen reader pauses between them.
       expect(button.getAttribute('aria-describedby')!.split(' ').map(ref => document.getElementById(ref)?.textContent))
         .toEqual([en[`recommend.${id}.description`], en[`recommend.${id}.schedule`]])
@@ -948,7 +948,7 @@ describe('clearing inactive tasks', () => {
 
   /** The heading's actions; only the primary New control remains there. */
   function creationActions(): HTMLElement {
-    return document.querySelector<HTMLElement>(`.${css.creationActions!}`)!
+    return document.querySelector<HTMLElement>(`.${css.creationActions}`)!
   }
 
   /** The search row's 36px More trigger. */
@@ -976,7 +976,7 @@ describe('clearing inactive tasks', () => {
     expect(screen.queryByRole('button', { name: en['list.more'] })).toBeNull()
     h.update({ records: [...records, endedTask] })
     // The cleanup is the search row's More menu, not a second heading action.
-    expect(document.querySelector(`.${css.searchTools!}`)?.contains(moreTrigger())).toBe(true)
+    expect(document.querySelector(`.${css.searchTools}`)?.contains(moreTrigger())).toBe(true)
     expect(within(creationActions()).getAllByRole('button')).toHaveLength(2)
     // The Active view hides the cleanup even though the catalog holds ended rows.
     fireEvent.click(screen.getByRole('button', { name: en['status.active'] }))
@@ -2044,11 +2044,11 @@ describe('Mock detail metrics shared with the task list', () => {
     sheet.textContent = `${ourSheet}\n${pluginsSheet}`
     document.head.append(sheet)
     const oursWrapper = document.createElement('div')
-    oursWrapper.className = css.pageHeading as string
+    oursWrapper.className = css.pageHeading
     const ours = document.createElement('h1')
     oursWrapper.append(ours)
     const theirs = document.createElement('h1')
-    theirs.className = pluginsCss.pageTitle as string
+    theirs.className = pluginsCss.pageTitle
     document.body.append(oursWrapper, theirs)
     try {
       const oursStyle = getComputedStyle(ours)
@@ -2128,7 +2128,7 @@ describe('Task manager deletion', () => {
     const cancel = within(dialog).getByRole('button', { name: en['delete.cancel'] })
     const confirm = within(dialog).getByRole('button', { name: en['delete.confirm'] })
     const content = dialog.querySelector<HTMLElement>(`.${css.confirmContent}`)!
-    expect(dialog.classList.contains(css.confirmDialog!)).toBe(true)
+    expect(dialog.classList.contains(css.confirmDialog)).toBe(true)
     expect(content.textContent).toContain(at.prompt)
     expect(content.contains(cancel)).toBe(false)
     expect(content.contains(confirm)).toBe(false)
@@ -2239,7 +2239,7 @@ describe('Task manager deletion', () => {
     expect(screen.getByRole('list').getAttribute('aria-busy')).toBe('true')
     expect(screen.getByRole('complementary')).toBeDefined()
     expect(taskNames()).toEqual(['Review release'])
-    await act(async () => { refresh.resolve({ ok: true, value: [] }); await expect(h.onDelete.mock.results[0]!.value).resolves.toBe('deleted') })
+    await act(async () => { refresh.resolve({ ok: true, value: [] }); await expect(h.onDelete.mock.results[0].value).resolves.toBe('deleted') })
     // The deletion reaches the detail only once the refreshed list reports it:
     // the detail then closes and the page falls back to its empty state.
     expect(screen.queryByRole('complementary')).toBeNull()
@@ -2255,7 +2255,7 @@ describe('Task manager deletion', () => {
     h.remove.mockResolvedValueOnce({ ok: false, error: new RemoteError('gateway/internal', 'Unavailable', {}) })
     openDelete()
     fireEvent.click(screen.getByRole('button', { name: en['delete.confirm'] }))
-    await act(async () => { await expect(h.onDelete.mock.results[0]!.value).resolves.toBe('failed') })
+    await act(async () => { await expect(h.onDelete.mock.results[0].value).resolves.toBe('failed') })
     // The failure raises no in-place alert: the app-wide toast announces it,
     // and the detail stays open for another attempt.
     expect(screen.queryByRole('alert')).toBeNull()
@@ -2267,7 +2267,7 @@ describe('Task manager deletion', () => {
     h.list.mockResolvedValueOnce({ ok: true, value: [] })
     chooseDelete()
     fireEvent.click(screen.getByRole('button', { name: en['delete.confirm'] }))
-    await act(async () => { await expect(h.onDelete.mock.results[1]!.value).resolves.toBe('deleted') })
+    await act(async () => { await expect(h.onDelete.mock.results[1].value).resolves.toBe('deleted') })
     expect(h.remove).toHaveBeenCalledTimes(2)
     // The second attempt is applied, so the detail closes with the removed row.
     expect(screen.queryByRole('complementary')).toBeNull()
@@ -2280,7 +2280,7 @@ describe('Task manager deletion', () => {
     h.list.mockResolvedValueOnce({ ok: false, error: new RemoteError('gateway/internal', 'Unavailable', {}) })
     openDelete()
     fireEvent.click(screen.getByRole('button', { name: en['delete.confirm'] }))
-    await act(async () => { await expect(h.onDelete.mock.results[0]!.value).resolves.toBe('deleted') })
+    await act(async () => { await expect(h.onDelete.mock.results[0].value).resolves.toBe('deleted') })
     // The Host applied the deletion, so the detail closes although the list read
     // after it failed; the list keeps its last known row until a read succeeds.
     expect(screen.queryByRole('complementary')).toBeNull()

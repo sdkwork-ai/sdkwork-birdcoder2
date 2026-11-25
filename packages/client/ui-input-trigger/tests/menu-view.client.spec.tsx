@@ -186,7 +186,7 @@ describe('MenuView', () => {
       'File · README.md',
       'Session · Research',
     ])
-    fireEvent.mouseDown(options[2]!)
+    fireEvent.mouseDown(options[2])
     expect(onPick).toHaveBeenCalledWith('reference', 2)
   })
 
@@ -205,9 +205,9 @@ describe('MenuView', () => {
     const chevrons = screen.getAllByRole('button', { name: '进入目录' })
     expect(chevrons).toHaveLength(1)
     // The chevron drills; the row body still settles the pick untouched.
-    fireEvent.mouseDown(chevrons[0]!)
+    fireEvent.mouseDown(chevrons[0])
     expect(onPick).toHaveBeenCalledWith('reference', 0, 'drill')
-    fireEvent.mouseDown(screen.getAllByRole('option')[0]!)
+    fireEvent.mouseDown(screen.getAllByRole('option')[0])
     expect(onPick).toHaveBeenCalledWith('reference', 0)
   })
 
@@ -215,10 +215,10 @@ describe('MenuView', () => {
     mount(openState({ highlight: { source: 'command', index: 1 } }))
     const listbox = screen.getByRole('listbox')
     const options = screen.getAllByRole('option')
-    expect(options[1]!.id).toBeTruthy()
-    expect(listbox.getAttribute('aria-activedescendant')).toBe(options[1]!.id)
-    expect(options[1]!.getAttribute('aria-selected')).toBe('true')
-    expect(options[0]!.getAttribute('aria-selected')).toBe('false')
+    expect(options[1].id).toBeTruthy()
+    expect(listbox.getAttribute('aria-activedescendant')).toBe(options[1].id)
+    expect(options[1].getAttribute('aria-selected')).toBe('true')
+    expect(options[0].getAttribute('aria-selected')).toBe('false')
   })
 
   it('omits aria-activedescendant without a highlight', () => {
@@ -280,7 +280,7 @@ describe('MenuView', () => {
 
   it('pointerdown inside the list does not dismiss', () => {
     const { onDismiss } = mount(openState())
-    fireEvent.pointerDown(screen.getAllByRole('option')[0]!)
+    fireEvent.pointerDown(screen.getAllByRole('option')[0])
     expect(onDismiss).not.toHaveBeenCalled()
   })
 
@@ -325,7 +325,7 @@ describe('MenuView', () => {
   it('mousedown on a row picks (source, index) and prevents the focus steal', () => {
     const { onPick } = mount(openState())
     const options = screen.getAllByRole('option')
-    const notPrevented = fireEvent.mouseDown(options[1]!)
+    const notPrevented = fireEvent.mouseDown(options[1])
     // fireEvent returns false when preventDefault was called.
     expect(notPrevented).toBe(false)
     expect(onPick).toHaveBeenCalledWith('command', 1)
@@ -334,11 +334,11 @@ describe('MenuView', () => {
   it('pointer motion over a row routes hover; the highlighted row stays silent', () => {
     const { onHover } = mount(openState())
     const options = screen.getAllByRole('option')
-    fireEvent.mouseMove(options[1]!)
+    fireEvent.mouseMove(options[1])
     expect(onHover).toHaveBeenCalledWith('command', 1)
     onHover.mockClear()
     // Index 0 already holds the highlight: no hover round-trip.
-    fireEvent.mouseMove(options[0]!)
+    fireEvent.mouseMove(options[0])
     expect(onHover).not.toHaveBeenCalled()
   })
 
@@ -361,11 +361,11 @@ describe('MenuView', () => {
       { label: 'src', value: 'src', current: true },
     ]]]))
     const crumbs = screen.getByRole('navigation', { name: '目录导航' }).querySelectorAll('button')
-    expect(fireEvent.mouseDown(crumbs[0]!)).toBe(false)
+    expect(fireEvent.mouseDown(crumbs[0])).toBe(false)
     expect(onCrumb).toHaveBeenCalledWith('command', 0)
     onCrumb.mockClear()
-    expect(crumbs[1]!.disabled).toBe(true)
-    fireEvent.mouseDown(crumbs[1]!)
+    expect(crumbs[1].disabled).toBe(true)
+    fireEvent.mouseDown(crumbs[1])
     expect(onCrumb).not.toHaveBeenCalled()
   })
 

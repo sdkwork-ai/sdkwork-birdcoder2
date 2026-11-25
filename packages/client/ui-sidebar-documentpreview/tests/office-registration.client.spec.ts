@@ -94,9 +94,9 @@ it.each(['remote', 'render', 'files'] as const)('keeps Word and PowerPoint regis
   try {
     expect(h.locale.register).toHaveBeenCalledWith('sidebarOffice', { zh, en, ja, es, fr, de, ru, pt })
     for (const path of ['a.DOC', 'b.DOCX', 'c.PPT', 'd.pptx']) {
-      expect(h.registry.candidates(path)[0]!.binaryExtensions).toEqual(['doc', 'docx', 'ppt', 'pptx'])
-      expect(h.registry.candidates(path)[0]!.title()).toBe(en.title)
-      expect(h.registry.candidates(path)[0]!.loading).toBe('renderer')
+      expect(h.registry.candidates(path)[0].binaryExtensions).toEqual(['doc', 'docx', 'ppt', 'pptx'])
+      expect(h.registry.candidates(path)[0].title()).toBe(en.title)
+      expect(h.registry.candidates(path)[0].loading).toBe('renderer')
       expect(h.registry.candidates(path)[0]).not.toHaveProperty('read')
       await expect(h.read(undefined, path)).rejects.toThrow(en.unavailable)
     }

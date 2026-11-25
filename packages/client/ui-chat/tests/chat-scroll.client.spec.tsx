@@ -402,7 +402,7 @@ describe.each([false, true])('visible input-fold matrix (reduced=%s)', (reduced)
     expect(h.scroller.scrollTop).toBeCloseTo(test.target, 5)
     expect(h.room()).toBeCloseTo(test.room, 5)
     if (test.steps > 0) expect(h.scrollTo.mock.calls.some(([options]) => options.behavior === 'smooth')).toBe(false)
-    for (let i = 1; i < positions.length; i++) expect(positions[i]!).toBeLessThanOrEqual(positions[i - 1]! + 0.01)
+    for (let i = 1; i < positions.length; i++) expect(positions[i]).toBeLessThanOrEqual(positions[i - 1] + 0.01)
     const end = h.bodyTop()
     act(() => { vi.advanceTimersByTime(500) })
     expect(h.bodyTop()).toBe(end)
@@ -469,7 +469,7 @@ it.each([false, true])('absorbs new height before the active fold finishes (new 
   }
   expect(h.scroller.scrollTop).toBe(test.target + 320)
   expect(h.room()).toBe(0)
-  for (let i = 1; i < positions.length; i++) expect(positions[i]!).toBeLessThanOrEqual(positions[i - 1]! + 0.01)
+  for (let i = 1; i < positions.length; i++) expect(positions[i]).toBeLessThanOrEqual(positions[i - 1] + 0.01)
   const settled = h.scroller.scrollTop
   act(() => { vi.advanceTimersByTime(500) })
   expect(h.scroller.scrollTop).toBe(settled)

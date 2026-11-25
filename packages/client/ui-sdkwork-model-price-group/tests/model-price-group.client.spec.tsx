@@ -89,7 +89,7 @@ it('lists the inherited default and every group, checked on the pinned one', () 
   expect(options.map(option => option.textContent)).toEqual(['跟随默认分组', '经济池', '高级池'])
   expect(options.map(option => option.getAttribute('aria-checked'))).toEqual(['false', 'false', 'true'])
   expect(screen.getByText('跟随默认分组').closest('button')).toBe(options[0])
-  expect(options[2]!.getAttribute('title')).toBe('premium')
+  expect(options[2].getAttribute('title')).toBe('premium')
 })
 
 it('saves the chosen group and dismisses the menu', async () => {

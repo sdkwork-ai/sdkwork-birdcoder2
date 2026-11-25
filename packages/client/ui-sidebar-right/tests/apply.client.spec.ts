@@ -360,8 +360,8 @@ it('closes captured pane tabs and rechecks tabs moved or closed while their menu
   instance.clearPersisted()
   instance.actions.open(SESSION)
   instance.actions.setExpanded(SESSION, true)
-  const surface = instance.getSnapshot().bySession[SESSION]!
-  const guide = Object.values(surface.layout.tabs)[0]!
+  const surface = instance.getSnapshot().bySession[SESSION]
+  const guide = Object.values(surface.layout.tabs)[0]
   const guideTarget = { kind: 'tab', value: { sessionId: SESSION, paneId: surface.layout.activePaneId, tab: guide } } as const
   const empty = h.menus.resolve(guideTarget)
   expect(empty.source.getSnapshot()).toEqual([])
@@ -377,10 +377,10 @@ it('closes captured pane tabs and rechecks tabs moved or closed while their menu
   remove()
   const add = (name: string) => {
     instance.actions.openContent(SESSION, { kind: 'text', contentId: `dsh-resource://file/session/s/${name}`, title: name }, () => {})
-    return Object.values(instance.getSnapshot().bySession[SESSION]!.layout.tabs).find(tab => tab.title === name)!
+    return Object.values(instance.getSnapshot().bySession[SESSION].layout.tabs).find(tab => tab.title === name)!
   }
   const first = add('first'), second = add('second'), third = add('third')
-  const paneId = instance.getSnapshot().bySession[SESSION]!.layout.activePaneId
+  const paneId = instance.getSnapshot().bySession[SESSION].layout.activePaneId
   const target = (tab: typeof first) => ({ kind: 'tab', value: { sessionId: SESSION, paneId, tab } }) as const
   const right = h.menus.resolve(target(first))
   expect(right.source.getSnapshot().map(action => [action.id, action.icon !== undefined])).toEqual([
@@ -388,18 +388,18 @@ it('closes captured pane tabs and rechecks tabs moved or closed while their menu
   ])
   h.ctx.sidebarRight.closeIn(SESSION, second.id)
   right.select('sidebar.close/right')
-  expect(instance.getSnapshot().bySession[SESSION]!.layout.tabs[third.id]).toBeUndefined()
-  expect(instance.getSnapshot().bySession[SESSION]!.layout.tabs[first.id]).toBeDefined()
+  expect(instance.getSnapshot().bySession[SESSION].layout.tabs[third.id]).toBeUndefined()
+  expect(instance.getSnapshot().bySession[SESSION].layout.tabs[first.id]).toBeDefined()
   const others = h.menus.resolve(target(first))
   others.select('sidebar.close/others')
-  expect(Object.keys(instance.getSnapshot().bySession[SESSION]!.layout.tabs)).toEqual([first.id])
+  expect(Object.keys(instance.getSnapshot().bySession[SESSION].layout.tabs)).toEqual([first.id])
   const close = h.menus.resolve(target(first))
   close.select('sidebar.close/close')
-  expect(instance.getSnapshot().bySession[SESSION]!.layout.tabs[first.id]).toBeUndefined()
+  expect(instance.getSnapshot().bySession[SESSION].layout.tabs[first.id]).toBeUndefined()
   const fresh = add('fresh')
   const stale = h.menus.resolve(target(fresh))
   h.ctx.sidebarRight.closeIn(SESSION, fresh.id)
   stale.select('sidebar.close/close')
-  expect(instance.getSnapshot().bySession[SESSION]!.layout.tabs[fresh.id]).toBeUndefined()
+  expect(instance.getSnapshot().bySession[SESSION].layout.tabs[fresh.id]).toBeUndefined()
   instance.clearPersisted()
 })

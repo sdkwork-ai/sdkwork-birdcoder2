@@ -117,7 +117,7 @@ describe('Remote connection section', () => {
     const deployment = { ...ready.deployment!, url, availability, loginUrlAllowed: false }
     const { copyLink } = panel({ deployment }, language, { copied: true }, true)
     const section = screen.getByRole('region', { name: copy.title })
-    const message = copy[availability].split('\n')[0]!
+    const message = copy[availability].split('\n')[0]
     const notice = within(section).getByText(message)
     expect(notice.closest('[role="status"]')).not.toBeNull()
     for (const card of within(section).getAllByRole('region')) {

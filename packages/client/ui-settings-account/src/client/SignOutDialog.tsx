@@ -21,7 +21,7 @@ export function SignOutDialog({ running, signOut, close, t }: {
     catch { setFailed(true) }
     finally { setBusy(false) }
   }
-  return <Modal open headless title={t('signOut')} onClose={dismiss} className={css.dialog as string}>
+  return <Modal open headless title={t('signOut')} onClose={dismiss} className={css.dialog}>
     <div className={css.content}>
       <div className={css.header}>
         <h2 className={css.title}>{t('signOut')}</h2>

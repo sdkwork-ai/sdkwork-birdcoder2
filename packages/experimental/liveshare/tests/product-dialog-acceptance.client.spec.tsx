@@ -657,7 +657,7 @@ describe('Liveshare dialog product acceptance', () => {
     expect(screen.queryByRole('button', { name: 'Create share' })).toBeNull()
     const primaryCopy = screen.getAllByRole('button', { name: 'Copy link' }).filter(button => button.closest('details') === null)
     expect(primaryCopy).toHaveLength(1)
-    await act(async () => { fireEvent.click(primaryCopy[0]!) })
+    await act(async () => { fireEvent.click(primaryCopy[0]) })
     expect(screen.getByRole('alert').textContent).toContain('copy it manually')
     expect(screen.getByRole('textbox', { name: 'Share link' })).toHaveProperty('value', existing.link)
     expect(screen.getByText('Selected people confirmed: 1.')).toBeDefined()
@@ -696,7 +696,7 @@ describe('Liveshare dialog product acceptance', () => {
     expect(dialog.className).toContain(css.modal)
 
     const focusable = enabledFocusables()
-    const first = focusable[0]!
+    const first = focusable[0]
     const last = focusable.at(-1)!
     expect(document.activeElement).toBe(first)
 

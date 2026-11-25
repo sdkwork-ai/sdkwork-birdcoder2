@@ -116,6 +116,10 @@
             name: '@deepseek-ai/dsh-tool-todo'
             config:
               allowParallelInProgress: true
+          - id: tool-sdkwork-deploy
+            name: '@deepseek-ai/dsh-tool-sdkwork-deploy'
+          - id: tool-sdkwork-knowledge
+            name: '@deepseek-ai/dsh-tool-sdkwork-knowledge'
           - id: tool-web
             name: '@deepseek-ai/dsh-tool-web'
             config:

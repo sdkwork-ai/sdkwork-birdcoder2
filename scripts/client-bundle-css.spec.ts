@@ -79,7 +79,7 @@ function stylesheetText(output: string | null, resolve: (reference: string) => s
     if (stylesheets === undefined) throw new Error('compiled stylesheet metadata missing')
     const descriptors = Object.values(stylesheets)
     if (descriptors.length !== 1) throw new Error('expected exactly one compiled stylesheet')
-    return descriptors[0]!.text({ asset: resolve })
+    return descriptors[0].text({ asset: resolve })
   }
   const call = RESOLVER_CALL.exec(output)?.[0]
   const resolverScope = { ...call === undefined ? {} : { [call]: resolve }, document: undefined }

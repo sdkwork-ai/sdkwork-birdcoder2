@@ -360,7 +360,7 @@ describe('SessionMarkdownCopyController', () => {
     await controller.copy(SID)
 
     expect(fetcher).toHaveBeenCalledOnce()
-    const [route, init] = fetcher.mock.calls[0]!
+    const [route, init] = fetcher.mock.calls[0]
     expect(route).toBe(`api/session.markdown?sessionId=${SID}`)
     expect(init?.signal).toBeInstanceOf(AbortSignal)
     expect(writeText).toHaveBeenCalledWith('default markdown')

@@ -111,7 +111,7 @@ it('finishes the office path without asking for process detail', async () => {
 it('supports radio arrow keys and requires a process choice before finishing', async () => {
   const operations = mount('process')
   expect(screen.queryByRole('button', { name: zh.onboardingEnter })).toBeNull()
-  await act(async () => { fireEvent.keyDown(screen.getAllByRole('radio')[0]!, { key: 'ArrowRight' }) })
+  await act(async () => { fireEvent.keyDown(screen.getAllByRole('radio')[0], { key: 'ArrowRight' }) })
   expect(operations.update).toHaveBeenCalledWith({ process: 'standard' })
   await act(async () => { fireEvent.click(screen.getByRole('button', { name: zh.onboardingEnter })) })
   expect(operations.complete).toHaveBeenCalledWith('completed')
@@ -120,11 +120,11 @@ it('supports radio arrow keys and requires a process choice before finishing', a
 it.each(['purpose', 'process'] as const)('keeps the %s action mounted without native disabled dimming while a choice saves', async (step) => {
   const operations = mount(step)
   const choices = screen.getAllByRole(step === 'purpose' ? 'checkbox' : 'radio')
-  await act(async () => { fireEvent.click(choices[0]!) })
+  await act(async () => { fireEvent.click(choices[0]) })
   const button = screen.getByRole('button', { name: step === 'purpose' ? zh.onboardingContinue : zh.onboardingEnter })
   let finish!: (saved: boolean) => void
   operations.update.mockImplementationOnce(() => new Promise<boolean>((resolve) => { finish = resolve }))
-  fireEvent.click(choices[1]!)
+  fireEvent.click(choices[1])
   expect(button.getAttribute('aria-disabled')).toBe('true')
   expect(button.hasAttribute('disabled')).toBe(false)
   const writes = operations.update.mock.calls.length
@@ -240,17 +240,17 @@ it('supports both radio arrow directions, wraps around, and ignores other keys o
   const h = mount('process')
   const radios = screen.getAllByRole('radio')
   for (const key of ['ArrowLeft', 'ArrowUp', 'ArrowDown', 'ArrowRight']) {
-    await act(async () => { fireEvent.keyDown(radios[0]!, { key }) })
+    await act(async () => { fireEvent.keyDown(radios[0], { key }) })
     expect(h.update).toHaveBeenLastCalledWith({ process: key === 'ArrowLeft' || key === 'ArrowUp' ? 'detailed' : 'standard' })
   }
   const count = h.update.mock.calls.length
-  fireEvent.keyDown(radios[0]!, { key: 'a' })
+  fireEvent.keyDown(radios[0], { key: 'a' })
   expect(h.update).toHaveBeenCalledTimes(count)
   const pending = Promise.withResolvers<boolean>()
   h.update.mockReturnValueOnce(pending.promise)
-  fireEvent.click(radios[0]!)
-  fireEvent.keyDown(radios[1]!, { key: 'ArrowRight' })
-  fireEvent.click(radios[1]!)
+  fireEvent.click(radios[0])
+  fireEvent.keyDown(radios[1], { key: 'ArrowRight' })
+  fireEvent.click(radios[1])
   expect(h.update).toHaveBeenCalledTimes(count + 1)
   await act(async () => { pending.resolve(true) })
 })
@@ -262,8 +262,8 @@ it('traps Tab in confirmation, closes it, and keeps the selected page', async ()
   fireEvent.click(trigger)
   const dialog = screen.getByRole('dialog')
   const buttons = dialog.querySelectorAll('button')
-  const first = buttons[0]!
-  const last = buttons[buttons.length - 1]!
+  const first = buttons[0]
+  const last = buttons[buttons.length - 1]
   expect(document.activeElement).toBe(first)
   fireEvent.keyDown(first, { key: 'Tab', shiftKey: true })
   expect(document.activeElement).toBe(last)

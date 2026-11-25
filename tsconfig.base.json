@@ -405,6 +405,8 @@
       "@deepseek-ai/dsh-client-ui-sdkwork-course/client": ["./packages/client/ui-sdkwork-course/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-drive": ["./packages/client/ui-sdkwork-drive/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-drive/client": ["./packages/client/ui-sdkwork-drive/src/client"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-experts": ["./packages/client/ui-sdkwork-experts/src"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-experts/client": ["./packages/client/ui-sdkwork-experts/src/client/index.ts"],
       "@deepseek-ai/dsh-client-ui-sdkwork-markets": ["./packages/client/ui-sdkwork-markets/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-markets/client": ["./packages/client/ui-sdkwork-markets/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-demand-hall": ["./packages/client/ui-sdkwork-demand-hall/src"],
@@ -475,6 +477,8 @@
       "@deepseek-ai/dsh-client-ui-conversation/client": ["./packages/client/ui-conversation/src/client/index.ts"],
       "@deepseek-ai/dsh-client-ui-tool": ["./packages/client/ui-tool/src"],
       "@deepseek-ai/dsh-tool-present/types": ["./packages/deliverables/tool-present/src/types.ts"],
+      "@deepseek-ai/dsh-tool-sdkwork-deploy/types": ["./packages/interaction/tool-sdkwork-deploy/src/types.ts"],
+      "@deepseek-ai/dsh-tool-sdkwork-knowledge/types": ["./packages/interaction/tool-sdkwork-knowledge/src/types.ts"],
       "@deepseek-ai/dsh-workspace-changes/types": ["./packages/deliverables/workspace-changes/src/types.ts"],
       "@deepseek-ai/dsh-client-ui-deliverables": ["./packages/client/ui-deliverables/src"],
       "@deepseek-ai/dsh-client-ui-workflow-run": ["./packages/client/ui-workflow-run/src"],
@@ -484,6 +488,7 @@
       "@deepseek-ai/dsh-client-ui-connector-account": ["./packages/client/ui-connector-account/src"],
       "@deepseek-ai/dsh-client-ui-connector-account/types": ["./packages/client/ui-connector-account/src/types.ts"],
       "@deepseek-ai/dsh-client-ui-model-selection": ["./packages/client/ui-model-selection/src"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-model-price-group": ["./packages/client/ui-sdkwork-model-price-group/src"],
       "@deepseek-ai/dsh-client-ui-goal": ["./packages/client/ui-goal/src"],
       "@deepseek-ai/dsh-client-ui-message-feedback": ["./packages/client/ui-message-feedback/src"],
       "@deepseek-ai/dsh-client-ui-agent-preset": ["./packages/client/ui-agent-preset/src"],
@@ -515,6 +520,8 @@
       "@deepseek-ai/dsh-client-ui-workspace": ["./packages/client/ui-workspace/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-workspace-row-menus": ["./packages/client/ui-sdkwork-workspace-row-menus/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-workspace-row-menus/client": ["./packages/client/ui-sdkwork-workspace-row-menus/src/client"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-import-to": ["./packages/client/ui-sdkwork-import-to/src"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-import-to/client": ["./packages/client/ui-sdkwork-import-to/src/client"],
       "@deepseek-ai/dsh-client-ui-theme": ["./packages/client/ui-theme/src"],
       "@deepseek-ai/dsh-client-ui-theme/brand-font.css": ["./packages/client/ui-theme/src/styles/brand-font.css"],
       "@deepseek-ai/dsh-client-ui-settings": ["./packages/client/ui-settings/src"],
@@ -555,13 +562,11 @@
       "@sdkwork/agents-backend-sdk": ["../sdkwork-agents/sdks/sdkwork-agents-backend-sdk/sdkwork-agents-backend-sdk-typescript/src/index.ts"],
       "@sdkwork/agents-pc-agents/*": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-agents/src/*"],
       "@sdkwork/agents-pc-agents/components/CreateAgentModal": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-agents/src/components/CreateAgentModal.tsx"],
-      // FORK DIVERGENCE: the sibling checkout the release lane clones carries
-      // no `src/create.ts` — the curated entry exists only as an untracked
-      // file in a local workspace, so the alias must land on the fork's own
-      // restatement of that surface (see agentsCreateSurface.ts). The exact
-      // key wins over `@sdkwork/agents-pc-agents/*` in TypeScript, and
-      // tsdown.client.ts skips wildcard keys, so the divergence stays in force.
-      "@sdkwork/agents-pc-agents/create": ["./packages/client/ui-sdkwork-markets/src/client/agentsCreateSurface.ts"],
+      // The sibling capability package now ships its curated creation entry
+      // (`src/create.ts`, exported as `./create`), so the fork no longer
+      // restates that surface; this alias keeps the bundler's exact match
+      // pointed at the same module the tests resolve through package exports.
+      "@sdkwork/agents-pc-agents/create": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-agents/src/create.ts"],
       "@sdkwork/agents-pc-agents/pages/CreateAgentView": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-agents/src/pages/CreateAgentView.tsx"],
       "@sdkwork/agents-pc-agents/services/createKnowledgebaseSelectionAdapter": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-agents/src/services/createKnowledgebaseSelectionAdapter.ts"],
       "@sdkwork/agents-pc-agents/services/knowledgeSelectionAdapter": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-agents/src/services/knowledgeSelectionAdapter.ts"],
@@ -720,6 +725,8 @@
       "@sdkwork/payment-sdk-ports": ["../sdkwork-payment/apps/sdkwork-payment-common/packages/sdkwork-payment-sdk-ports/src/index.ts"],
       "@sdkwork/payment-service": ["../sdkwork-payment/apps/sdkwork-payment-common/packages/sdkwork-payment-service/src/index.ts"],
       "@sdkwork/plugins-backend-sdk": ["../sdkwork-plugins/sdks/sdkwork-plugins-backend-sdk/sdkwork-plugins-backend-sdk-typescript/src/index.ts"],
+      "@sdkwork/plugins-app-sdk": ["../sdkwork-plugins/sdks/sdkwork-plugins-app-sdk/sdkwork-plugins-app-sdk-typescript/src/index.ts"],
+      "@sdkwork/plugins-pc-marketplace": ["../sdkwork-plugins/apps/sdkwork-plugins-pc/packages/sdkwork-plugins-pc-marketplace/src/index.tsx"],
       "@sdkwork/promotion-app-sdk": ["../sdkwork-promotion/sdks/sdkwork-promotion-app-sdk/sdkwork-promotion-app-sdk-typescript/src/index.ts"],
       "@sdkwork/promotion-backend-sdk": ["../sdkwork-promotion/sdks/sdkwork-promotion-backend-sdk/sdkwork-promotion-backend-sdk-typescript/src/index.ts"],
       "@sdkwork/promotion-contracts": ["../sdkwork-promotion/apps/sdkwork-promotion-common/packages/sdkwork-promotion-contracts/src/index.ts"],
@@ -831,6 +838,7 @@
       "@deepseek-ai/dsh-ptc-runtime-node/configuration": ["./packages/ptc-runtime/ptc-runtime-node/src/configuration.ts"],
       "@deepseek-ai/dsh-message-feedback/types": ["./packages/feedback/message-feedback/src/types.ts"],
       "@deepseek-ai/dsh-webhook/types": ["./packages/experimental/webhook/src/types.ts"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-model-price-group": ["./packages/client/ui-sdkwork-model-price-group/src"],
       // BEGIN generated package aliases — pnpm run gen-tsconfig-paths
       "@deepseek-ai/dsh-acp": ["./packages/acp/acp/src"],
       "@deepseek-ai/dsh-acp-app": ["./packages/bundle/acp-app/src"],
@@ -1026,6 +1034,8 @@
       "@deepseek-ai/dsh-tool-pwsh-persistent": ["./packages/shell/tool-pwsh-persistent/src"],
       "@deepseek-ai/dsh-tool-ralph": ["./packages/experimental/tool-ralph/src"],
       "@deepseek-ai/dsh-tool-schedule": ["./packages/schedule/tool-schedule/src"],
+      "@deepseek-ai/dsh-tool-sdkwork-deploy": ["./packages/interaction/tool-sdkwork-deploy/src"],
+      "@deepseek-ai/dsh-tool-sdkwork-knowledge": ["./packages/interaction/tool-sdkwork-knowledge/src"],
       "@deepseek-ai/dsh-tool-session-control": ["./packages/session/tool-session-control/src"],
       "@deepseek-ai/dsh-tool-session-list": ["./packages/session-query/tool-session-list/src"],
       "@deepseek-ai/dsh-tool-session-query": ["./packages/experimental/tool-session-query/src"],

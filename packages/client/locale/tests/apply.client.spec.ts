@@ -35,7 +35,7 @@ async function bench(preference?: string) {
     value: { writable: true, hasDocument: true, namespaces: [namespace()] },
   }))
   const mutate = vi.fn(async (_ns: string, ops: { value: string }[]) => {
-    preference = ops[0]!.value
+    preference = ops[0].value
     revision += 1
     return { ok: true as const, value: namespace() }
   })

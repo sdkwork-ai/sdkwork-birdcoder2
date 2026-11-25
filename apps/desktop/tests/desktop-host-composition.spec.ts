@@ -52,7 +52,7 @@ interface PatchRow {
 function parsePatch(path: string): readonly PatchRow[] {
   // The boot's own loader: the bundle patches carry `!!js` expressions that a
   // plain YAML parse rejects.
-  return loadOverlayPatches('desktop-host-composition.spec', path) as readonly PatchRow[]
+  return loadOverlayPatches('desktop-host-composition.spec', path)
 }
 
 const overlayRows = (): readonly PatchRow[] => parsePatch(DESKTOP_OVERLAY)

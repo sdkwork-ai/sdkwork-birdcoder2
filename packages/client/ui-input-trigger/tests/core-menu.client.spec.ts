@@ -73,7 +73,7 @@ describe('menuReduce source-settled', () => {
     let s = open(['command', 'skill'])
     s = menuReduce(s, { type: 'source-settled', generation: 1, source: 'skill', items: [item('commit')] })
     expect(s.groups[1]).toEqual({ source: 'skill', status: 'ready', items: [item('commit')] })
-    expect(s.groups[0]!.status).toBe('pending')
+    expect(s.groups[0].status).toBe('pending')
     expect(s.highlight).toEqual({ source: 'skill', index: 0 })
   })
 

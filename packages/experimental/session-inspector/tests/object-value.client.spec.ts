@@ -88,7 +88,7 @@ it('uses intrinsic TypedArray length even when an own getter shadows it', () => 
   Object.defineProperty(value, 'length', { get: read })
   const entries = [...new InspectorObjectValue(value).entries()]
   expect(entries.slice(1).map(entry => entry.value)).toEqual([3, 4])
-  expect([...new InspectorObjectValue(entries[0]!.value).entries()]).toEqual([
+  expect([...new InspectorObjectValue(entries[0].value).entries()]).toEqual([
     { key: 'length', name: 'length', value: undefined, accessor: true },
   ])
   expect(read).not.toHaveBeenCalled()

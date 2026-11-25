@@ -51,15 +51,15 @@ describe('JsonTree', () => {
     writeText.mockImplementation(() => new Promise<void>((resolve) => { pending.push(resolve) }))
     const view = render(<JsonTree data={{ first: 1, second: 2 }} />)
     const rows = screen.getAllByRole('treeitem')
-    fireEvent.mouseOver(rows[0] as HTMLElement)
+    fireEvent.mouseOver(rows[0])
     fireEvent.click(screen.getByRole('button', { name: 'Copy value' }))
-    fireEvent.mouseOver(rows[1] as HTMLElement)
-    await act(async () => { pending[0]!() })
+    fireEvent.mouseOver(rows[1])
+    await act(async () => { pending[0]() })
     expect(screen.queryByRole('button', { name: 'Copied' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Copy value' }))
     view.unmount()
     const timerCount = vi.getTimerCount()
-    await act(async () => { pending[1]!() })
+    await act(async () => { pending[1]() })
     expect(vi.getTimerCount()).toBe(timerCount)
   })
 
@@ -73,11 +73,11 @@ describe('JsonTree', () => {
     const rows = within(screen.getByRole('tree')).getAllByRole('treeitem')
     readValue.mockClear()
 
-    fireEvent.mouseOver(rows[0] as HTMLElement)
-    expect(within(rows[0] as HTMLElement).getByRole('button', { name: 'Copy pretty JSON' })).toBeTruthy()
-    fireEvent.mouseOver(rows[1] as HTMLElement)
-    expect(within(rows[0] as HTMLElement).queryByRole('button', { name: 'Copy pretty JSON' })).toBeNull()
-    expect(within(rows[1] as HTMLElement).getByRole('button', { name: 'Copy pretty JSON' })).toBeTruthy()
+    fireEvent.mouseOver(rows[0])
+    expect(within(rows[0]).getByRole('button', { name: 'Copy pretty JSON' })).toBeTruthy()
+    fireEvent.mouseOver(rows[1])
+    expect(within(rows[0]).queryByRole('button', { name: 'Copy pretty JSON' })).toBeNull()
+    expect(within(rows[1]).getByRole('button', { name: 'Copy pretty JSON' })).toBeTruthy()
     expect(readValue).not.toHaveBeenCalled()
   })
 
@@ -97,7 +97,7 @@ describe('JsonTree', () => {
       return new DOMRect(0, this === clip ? 100 : rawTop, 200, 140)
     })
     const rows = within(screen.getByRole('tree')).getAllByRole('treeitem')
-    fireEvent.click(within(rows[0] as HTMLElement).getByRole('button', { name: 'Expand JSON node' }))
+    fireEvent.click(within(rows[0]).getByRole('button', { name: 'Expand JSON node' }))
     const raw = rows[0]?.querySelector('pre') as HTMLPreElement
     expect(raw.textContent).toBe('raw\ntext')
     expect(raw.style.maxHeight).toBe('78px')
@@ -109,13 +109,13 @@ describe('JsonTree', () => {
     rawTop = 300
     fireEvent.resize(window)
     expect(raw.style.maxHeight).toBe('16px')
-    fireEvent.click(within(rows[0] as HTMLElement).getByRole('button', { name: 'Collapse JSON node' }))
+    fireEvent.click(within(rows[0]).getByRole('button', { name: 'Collapse JSON node' }))
     expect(raw.isConnected).toBe(false)
     rawTop = 100
     fireEvent.scroll(clip)
     expect(raw.style.maxHeight).toBe('16px')
 
-    fireEvent.click(within(rows[1] as HTMLElement).getByRole('button', { name: 'Expand JSON node' }))
+    fireEvent.click(within(rows[1]).getByRole('button', { name: 'Expand JSON node' }))
     expect(rows[1]?.querySelector('pre')?.nextElementSibling?.textContent).not.toBe(',')
   })
 
@@ -155,8 +155,8 @@ describe('JsonTree', () => {
     const original = `  leading spaces\n\t"quoted" \\${'long'.repeat(100)}\nlast line\n`
     render(<JsonTree data={{ first: original, second: original }} stringWrapping={stringWrapping} />)
     const [first, second] = within(screen.getByRole('tree')).getAllByRole('treeitem')
-    const a = within(first as HTMLElement)
-    const b = within(second as HTMLElement)
+    const a = within(first)
+    const b = within(second)
     fireEvent.click(a.getByRole('button', { name: 'Expand JSON node' }))
     fireEvent.click(b.getByRole('button', { name: 'Expand JSON node' }))
     expect(a.getByRole('button', { name: 'Wrap lines' }).getAttribute('aria-pressed')).toBe('false')
@@ -204,7 +204,7 @@ describe('JsonTree', () => {
     expect(expanders[0]?.tabIndex).toBe(0)
     expect(expanders[1]?.tabIndex).toBe(-1)
 
-    fireEvent.click(expanders[0] as HTMLElement)
+    fireEvent.click(expanders[0])
     expect(within(tree).getAllByRole('treeitem')).toHaveLength(3)
     expect(screen.getByText('answer:')).toBeDefined()
     expect(within(tree).getByRole('button', { name: 'Collapse JSON node' })).toBeDefined()
@@ -231,13 +231,13 @@ describe('JsonTree', () => {
     expect(root.tabIndex).toBe(-1)
     expect(children[0]?.tabIndex).toBe(0)
 
-    fireEvent.keyDown(children[0] as HTMLElement, { key: 'ArrowRight' })
+    fireEvent.keyDown(children[0], { key: 'ArrowRight' })
     expect(children[0]?.getAttribute('aria-expanded')).toBe('true')
-    fireEvent.keyDown(children[0] as HTMLElement, { key: 'ArrowLeft' })
+    fireEvent.keyDown(children[0], { key: 'ArrowLeft' })
     expect(children[0]?.getAttribute('aria-expanded')).toBe('false')
-    fireEvent.keyDown(children[0] as HTMLElement, { key: 'Enter' })
+    fireEvent.keyDown(children[0], { key: 'Enter' })
 
-    fireEvent.keyDown(children[0] as HTMLElement, { key: 'ArrowUp' })
+    fireEvent.keyDown(children[0], { key: 'ArrowUp' })
     expect(document.activeElement).toBe(root)
     fireEvent.keyDown(root, { key: 'ArrowUp' })
     expect(document.activeElement).toBe(children[1])
@@ -429,8 +429,8 @@ describe('JsonTree', () => {
     const view = render(<JsonTree data={{ first: { a: 1 }, second: 2 }} />)
     const root = view.container.firstElementChild as HTMLElement
     const tree = screen.getByRole('tree')
-    const firstRow = within(tree).getAllByRole('treeitem')[0] as HTMLElement
-    const secondRow = within(tree).getAllByRole('treeitem')[1] as HTMLElement
+    const firstRow = within(tree).getAllByRole('treeitem')[0]
+    const secondRow = within(tree).getAllByRole('treeitem')[1]
 
     fireEvent.mouseOver(firstRow)
     const copyButton = screen.getByRole('button', { name: 'Copy pretty JSON' })

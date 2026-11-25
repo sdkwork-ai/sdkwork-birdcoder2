@@ -33,7 +33,7 @@ function file(overrides: Partial<ForgeDiffFile> = {}): ForgeDiffFile {
 
 describe('hunkRows', () => {
   it('numbers context lines on both sides, deletions on the old side, and additions on the new side', () => {
-    expect(hunkRows(HUNKS[0]!)).toEqual([
+    expect(hunkRows(HUNKS[0])).toEqual([
       { kind: 'context', old: 3, new: 3, text: 'a3' },
       { kind: 'del', old: 4, new: null, text: 'x' },
       { kind: 'add', old: null, new: 4, text: 'y' },

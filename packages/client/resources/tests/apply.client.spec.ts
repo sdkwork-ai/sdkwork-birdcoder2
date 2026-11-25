@@ -154,8 +154,8 @@ describe('client-resources apply', () => {
     expect(seen.second).toBe(snapshot)
     expect([seen.firstSession, seen.secondSession]).toEqual([firstId, secondId])
     expect(open).toHaveBeenCalledTimes(1)
-    expect(open.mock.calls[0]![0]).toBe(A)
-    expect(open.mock.calls[0]![1]).toStrictEqual({ signal: expect.any(AbortSignal) as AbortSignal })
+    expect(open.mock.calls[0][0]).toBe(A)
+    expect(open.mock.calls[0][1]).toStrictEqual({ signal: expect.any(AbortSignal) as AbortSignal })
 
     const replacement = rt.sessions.retain(secondId)
     await replacement.ready
@@ -168,6 +168,6 @@ describe('client-resources apply', () => {
     expect(seen.first).toBe(snapshot)
     expect(seen.second).toBe(snapshot)
     expect(open).toHaveBeenCalledTimes(1)
-    expect(open.mock.calls[0]![1].signal.aborted).toBe(false)
+    expect(open.mock.calls[0][1].signal.aborted).toBe(false)
   })
 })

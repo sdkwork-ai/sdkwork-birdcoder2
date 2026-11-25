@@ -3,23 +3,20 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-02-plugin-market-ships-by-default.md
 /agent-note-the-plugin-market-ships-by-default:
-  en: 622a4027be173782
-  zh: 26d4d655de91d091
+  en: 65f029b6fca6a5c2
+  zh: e2b99f2bd1adc914
 /agent-note-the-plugin-market-ships-by-default/problem:
-  en: 41fc27682ef9e9f9
-  zh: 70d340afe3911699
+  en: cde148a81830174f
+  zh: cccd7573e2ef4932
 /agent-note-the-plugin-market-ships-by-default/decision:
-  en: 9661117d60687d27
-  zh: 6749c2622d50c9d1
-/agent-note-the-plugin-market-ships-by-default/what-the-mount-is:
-  en: 1ab7f2e2f3e8c450
-  zh: 34a42db28fffd35e
+  en: 1585be654197c858
+  zh: 7d0c5eb8c76770ea
 /agent-note-the-plugin-market-ships-by-default/consequences:
-  en: bdef598dc5318957
-  zh: bf73306ef4bdbd76
+  en: 015944674fb2ba1d
+  zh: be009c6cd2df022a
 /agent-note-the-plugin-market-ships-by-default/verification:
-  en: e70475ccb92f8ff9
-  zh: 2dc14e062cd861cf
+  en: 3563a7847b6a487c
+  zh: 08846f126ccafcce
 /agent-note-the-plugin-market-ships-by-default/alternatives-considered:
-  en: 2e309a54d7937d66
-  zh: fbdaf727945d9968
+  en: 1527d7b80635ee2c
+  zh: 2331bc2d60aa9005

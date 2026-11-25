@@ -76,13 +76,13 @@ it.each(['session', 'sessionHeader'] as const)('launches the captured %s directo
   const b = bench()
   await b.fiber.await()
   const menu = b.resolve(kind), observing = b.resolve(kind === 'session' ? 'sessionHeader' : 'session')
-  const action = menu.source.getSnapshot()[0]!.children![1]!
+  const action = menu.source.getSnapshot()[0].children![1]
   menu.select(action.id)
   expect(b.fetcher).toHaveBeenCalledExactlyOnceWith('open-in-app/open', expect.objectContaining({ body: JSON.stringify({ app: 'cursor', path: '/captured' }) }))
   expect(b.choose).not.toHaveBeenCalled()
   expect(observing.source.getSnapshot()[0]).toMatchObject({ disabled: true })
   expect(observing.source.getSnapshot()[0]?.children?.every(row => row.disabled)).toBe(true)
-  observing.select(observing.source.getSnapshot()[0]!.children![0]!.id)
+  observing.select(observing.source.getSnapshot()[0].children![0].id)
   expect(b.fetcher).toHaveBeenCalledOnce()
   b.list.set({ ...b.list.getSnapshot(), byId: { [b.sessionId]: { ...b.row, cwd: '/changed' } } })
   menu.dispose()
@@ -99,7 +99,7 @@ it.each([{ kind: 'failed', failure: 'openError' }, { kind: 'skipped' }] as const
   await b.fiber.await()
   vi.spyOn(b.controller, 'launch').mockResolvedValue(outcome)
   const menu = b.resolve()
-  menu.select(menu.source.getSnapshot()[0]!.children![1]!.id)
+  menu.select(menu.source.getSnapshot()[0].children![1].id)
   await vi.waitFor(() => { expect(b.report).toHaveBeenCalledExactlyOnceWith(outcome) })
   expect(b.choose).not.toHaveBeenCalled()
   expect(b.controller.choice.getSnapshot()).toBe('')
@@ -110,7 +110,7 @@ it('withdraws both registrations and their observers on unload and reinstalls wi
   const b = bench()
   await b.fiber.await()
   const menu = b.resolve(), header = b.resolve('sessionHeader')
-  const id = menu.source.getSnapshot()[0]!.children![0]!.id
+  const id = menu.source.getSnapshot()[0].children![0].id
   await b.fiber.dispose()
   expect(menu.source.getSnapshot()).toEqual([])
   expect(header.source.getSnapshot()).toEqual([])

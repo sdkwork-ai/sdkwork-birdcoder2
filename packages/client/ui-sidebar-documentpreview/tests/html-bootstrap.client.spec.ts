@@ -16,7 +16,7 @@ function run(html: string) {
   runInNewContext(script, {
     document: { open, write, close }, URL: { createObjectURL }, Blob, DOMParser, atob, TextDecoder,
   })
-  return { open, write, close, createObjectURL, document: new DOMParser().parseFromString(write.mock.calls[0]![0], 'text/html') }
+  return { open, write, close, createObjectURL, document: new DOMParser().parseFromString(write.mock.calls[0][0], 'text/html') }
 }
 
 const utf8 = (text: string): Uint8Array<ArrayBuffer> => new TextEncoder().encode(text)

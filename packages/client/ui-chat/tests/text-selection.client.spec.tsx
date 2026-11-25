@@ -55,8 +55,8 @@ describe('quote selection', () => {
     const root = view.container.querySelector<HTMLElement>('[data-chat-flow]')!
     const sources = view.container.querySelectorAll('[data-text-interaction-source]')
     const range = document.createRange()
-    range.setStart(sources[0]!.firstChild!, 0)
-    range.setEnd(sources[1]!.firstChild!, 3)
+    range.setStart(sources[0].firstChild!, 0)
+    range.setEnd(sources[1].firstChild!, 3)
     const selection = window.getSelection()!
     selection.removeAllRanges()
     selection.addRange(range)
@@ -182,10 +182,10 @@ describe('quote selection', () => {
     const root = view.container.querySelector<HTMLElement>('[data-chat-flow]')!
     const sourceRoot = view.container.querySelector<HTMLElement>('[data-text-interaction-source]')!
     const paragraphs = sourceRoot.querySelectorAll('p')
-    expect(paragraphs[0]!.nextSibling?.textContent).toBe('\n')
+    expect(paragraphs[0].nextSibling?.textContent).toBe('\n')
     const range = document.createRange()
-    range.setStart(paragraphs[0]!.firstChild!, 0)
-    range.setEnd(paragraphs[1]!.firstChild!, 'second'.length)
+    range.setStart(paragraphs[0].firstChild!, 0)
+    range.setEnd(paragraphs[1].firstChild!, 'second'.length)
     range.getBoundingClientRect = () => (
       { left: 50, top: 60, width: 20, height: 10 } as DOMRect
     )

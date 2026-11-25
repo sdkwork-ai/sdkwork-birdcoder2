@@ -59,7 +59,7 @@ describe('SegmentedControl', () => {
 
   it('refuses a disabled option and carries its lock reason as the hover title', () => {
     const { onChange } = mount('catalog', {
-      options: [OPTIONS[0]!, { value: 'custom', label: 'Custom', disabled: true, title: 'No protocol is mounted' }],
+      options: [OPTIONS[0], { value: 'custom', label: 'Custom', disabled: true, title: 'No protocol is mounted' }],
     })
     const locked = tab('Custom')
     expect(locked.disabled).toBe(true)
@@ -87,7 +87,7 @@ describe('SegmentedControl', () => {
     const { onChange } = mount('custom', {
       options: [
         { value: 'catalog', label: 'Catalog', disabled: true },
-        OPTIONS[1]!,
+        OPTIONS[1],
         { value: 'import', label: 'Import', disabled: true },
       ],
     })
@@ -100,7 +100,7 @@ describe('SegmentedControl', () => {
 
   it('lands Home and End on the first and last enabled options, not the first and last options', () => {
     const { onChange } = mount('import', {
-      options: [{ value: 'catalog', label: 'Catalog', disabled: true }, OPTIONS[1]!, OPTIONS[2]!],
+      options: [{ value: 'catalog', label: 'Catalog', disabled: true }, OPTIONS[1], OPTIONS[2]],
     })
     fireEvent.keyDown(tab('Import'), { key: 'Home' })
     expect(onChange).toHaveBeenLastCalledWith('custom')
@@ -111,7 +111,7 @@ describe('SegmentedControl', () => {
 
   it('skips disabled options while walking with the arrow keys', () => {
     const { onChange } = mount('catalog', {
-      options: [OPTIONS[0]!, { value: 'custom', label: 'Custom', disabled: true }, OPTIONS[2]!],
+      options: [OPTIONS[0], { value: 'custom', label: 'Custom', disabled: true }, OPTIONS[2]],
     })
     fireEvent.keyDown(tab('Catalog'), { key: 'ArrowRight' })
     expect(onChange).toHaveBeenLastCalledWith('import')

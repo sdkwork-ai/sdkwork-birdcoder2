@@ -100,7 +100,7 @@ describe('createTokenPlanCommerceComponents', () => {
     const second = createTokenPlanCommerceComponents({
       commerce: ports,
       onCompleted: () => undefined,
-      t: ((key: string) => `next:${key}`) as TokenPlanCopy,
+      t: ((key: string) => `next:${key}`),
     })
     expect(second.checkoutModal).toBe(first.checkoutModal)
     expect(second.pointsPurchaseModal).toBe(first.pointsPurchaseModal)
@@ -139,7 +139,7 @@ describe('createTokenPlanCommerceComponents', () => {
     createTokenPlanCommerceComponents({
       commerce: commerce(),
       onCompleted: () => undefined,
-      t: ((key: string) => `zh:${key}`) as TokenPlanCopy,
+      t: ((key: string) => `zh:${key}`),
     })
     rerender(
       <CheckoutModal
@@ -447,7 +447,7 @@ describe('createTokenPlanCommerceComponents', () => {
     const Details = createTokenPlanCommerceComponents({
       commerce: commerce(),
       onCompleted: () => undefined,
-      t: ((key: string) => `custom:${key}`) as TokenPlanCopy,
+      t: ((key: string) => `custom:${key}`),
     }).pointsDetailsModal
     resetTokenPlanCommerceRuntime()
     const error = vi.spyOn(console, 'error').mockImplementation(() => undefined)

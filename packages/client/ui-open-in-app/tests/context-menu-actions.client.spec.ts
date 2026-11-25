@@ -114,7 +114,7 @@ it('routes file actions through an explicit host, the line, native association a
   await vi.waitFor(() => { expect(h.report).toHaveBeenLastCalledWith({ kind: 'revealed' }) })
   await h.choose(file, 'file-actions.file/copyImage')
   await vi.waitFor(() => { expect(h.notify).toHaveBeenCalledWith('menu.copied', true) })
-  const source = h.fileActions.copyImage.mock.calls[0]![0]
+  const source = h.fileActions.copyImage.mock.calls[0][0]
   expect(await (await source.read!(new AbortController().signal)).text()).toBe('<svg/>')
   h.remote.workspaceFiles.readBytes.mockResolvedValueOnce({ ok: false } as never)
   await expect(source.read!(new AbortController().signal)).rejects.toThrow('Original file unavailable')
@@ -190,7 +190,7 @@ it('opens file menus after the first-answer wait and changes only the applicatio
   expect(application()?.icon).toEqual({ key: 'open-in-app.application' })
   const published: number[] = []
   const stop = menu.source.subscribe(() => { published.push(rows().length) })
-  answers[0]!({ ok: true, value: [
+  answers[0]({ ok: true, value: [
     { id: '/Applications/TextEdit.app', name: 'TextEdit', default: false, icon: null },
     { id: '/Applications/Sublime Text.app', name: 'Sublime Text', default: true, icon: 'data:image/png;base64,c3Vi' },
   ] })
@@ -207,7 +207,7 @@ it('opens file menus after the first-answer wait and changes only the applicatio
   const otherApplication = () => other.source.getSnapshot().find(item => item.id === 'open-in-app.file/open')
   expect(otherApplication()?.label).toBe('open.title')
   expect(answers).toHaveLength(2)
-  answers[1]!({ ok: true, value: [] })
+  answers[1]({ ok: true, value: [] })
   await vi.waitFor(() => { expect(otherApplication()).toMatchObject({ label: 'menu.defaultApp', disabled: true }) })
   other.dispose()
   expect(h.failure).not.toHaveBeenCalled()
@@ -348,7 +348,7 @@ it('uses original image reads and keeps menu reveal on the original after saving
   const h = await boot()
   const local = { kind: 'image', value: { sessionId, path: 'file.svg', url: 'https://example.com/file', mediaType: 'image/svg+xml' } } as const
   await h.choose(local, 'file-actions.image/copy')
-  const source = h.fileActions.copyImage.mock.calls[0]![0]
+  const source = h.fileActions.copyImage.mock.calls[0][0]
   expect(source.name).toBe('file.svg')
   expect((await source.read!(new AbortController().signal)).type).toBe('image/svg+xml')
   h.remote.workspaceFiles.readBytes.mockResolvedValueOnce({ ok: false } as never)
@@ -388,16 +388,16 @@ it.each(['darwin', 'win32'])('captures each completed destination in its %s toas
     expect(action.label).toBe(platform === 'darwin' ? 'menu.finder' : 'menu.reveal')
     actions.push(action)
   }
-  await actions[0]!.run()
+  await actions[0].run()
   expect(h.remote.session.openWorkspacePath).toHaveBeenLastCalledWith({ path: '/downloads/original.png', action: 'reveal' }, expect.any(AbortSignal))
-  await actions[1]!.run()
+  await actions[1].run()
   expect(h.remote.session.openWorkspacePath).toHaveBeenLastCalledWith({ path: '/elsewhere/renamed.png', action: 'reveal' }, expect.any(AbortSignal))
   expect((await h.resolve(image)).source.getSnapshot().filter(item => item.id.endsWith('/reveal'))).toMatchObject([
     { id: 'open-in-app.image/reveal', disabled: true },
   ])
   h.remote.session.openWorkspacePath.mockResolvedValueOnce({ ok: false } as never)
-  await expect(actions[1]!.run()).rejects.toThrow('File location unavailable')
-  expect(actions[1]!.failureLabel).toBe('path.revealError')
+  await expect(actions[1].run()).rejects.toThrow('File location unavailable')
+  expect(actions[1].failureLabel).toBe('path.revealError')
 })
 
 it('offers only folder reveal and path copy, retaining the captured directory', async () => {

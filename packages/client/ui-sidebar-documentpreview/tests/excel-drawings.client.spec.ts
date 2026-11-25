@@ -51,13 +51,13 @@ it.each([false, true])('reports images with background=%s without hiding cell co
   else sheet.addImage(id, 'B2:D5')
   const result = await convertExcel(new Uint8Array(await workbook.xlsx.writeBuffer()), 'xlsx', limits)
   expect(result.unsupportedFeatures).toEqual(['images'])
-  expect(result.sheets[0]!.celldata![0]!.v).toMatchObject({ v: 'Image data' })
+  expect(result.sheets[0].celldata![0].v).toMatchObject({ v: 'Image data' })
 })
 
 it.each(['sp', 'grpSp', 'cxnSp'])('reports %s shapes once alongside charts and conditional formatting', async (tag) => {
   const files = unzipSync(await excelDrawingFixture())
   const path = 'xl/drawings/drawing1.xml'
-  files[path] = strToU8(strFromU8(files[path]!).replace('</wsDr>', `<absoluteAnchor><pos x="0" y="0"/><ext cx="100" cy="100"/><${tag}><nvSpPr><cNvPr id="2" name="Rectangle"/><cNvSpPr/></nvSpPr><spPr/></${tag}><clientData/></absoluteAnchor></wsDr>`))
+  files[path] = strToU8(strFromU8(files[path]).replace('</wsDr>', `<absoluteAnchor><pos x="0" y="0"/><ext cx="100" cy="100"/><${tag}><nvSpPr><cNvPr id="2" name="Rectangle"/><cNvSpPr/></nvSpPr><spPr/></${tag}><clientData/></absoluteAnchor></wsDr>`))
   const result = await convertExcel(new Uint8Array(zipSync(files)), 'xlsx', limits)
   expect(result.unsupportedFeatures).toEqual(['charts', 'shapes', 'conditionalFormatting'])
 })

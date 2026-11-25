@@ -45,7 +45,7 @@ async function harness(options: {
     if (ns === refusal) return { ok: false, error: { code: 'settings/conflict', message: 'changed elsewhere' } }
     const next = { ...data[ns] as Record<string, unknown> }
     for (const op of ops) {
-      if (op.op === 'set') next[op.path[0]!] = op.value
+      if (op.op === 'set') next[op.path[0]] = op.value
     }
     data[ns] = options.omitNulls ? Object.fromEntries(Object.entries(next).filter(([, value]) => value !== null)) : next
     revision++

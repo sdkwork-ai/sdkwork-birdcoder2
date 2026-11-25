@@ -59,14 +59,14 @@ describe('ui-sdkwork-im-conversations apply', () => {
     expect(entry?.options.key).toBe('chat')
     expect(entry?.component).toBe(ChatRailEntry)
     expect(entry?.locale).toBe('imConversations')
-    const entryFace = (entry!.inject as unknown as () => ChatRailEntryInjected & { hooks: { im: ImService } })()
+    const entryFace = (entry.inject as unknown as () => ChatRailEntryInjected & { hooks: { im: ImService } })()
     expect(entryFace.mode).toBe('chat')
     expect(entryFace.hooks.im).toBe(b.im)
 
     const [page] = b.slots.entries(PAGE)
     expect(page?.options.key).toBe('chat')
     expect(page?.component).toBe(ChatModePage)
-    const pageFace = (page!.inject as unknown as () => ChatModePageInjected & { hooks: { im: ImService } })()
+    const pageFace = (page.inject as unknown as () => ChatModePageInjected & { hooks: { im: ImService } })()
     expect(pageFace.mode).toBe('chat')
     expect(pageFace.authGate.isSignedIn()).toBe(true)
     pageFace.selectConversation('conversation-2')
@@ -83,14 +83,14 @@ describe('ui-sdkwork-im-conversations apply', () => {
     await b.ctx.plugin({ inject: ['slots', 'locale', 'iam'], apply }).await()
 
     const [entry] = b.slots.entries(RAIL)
-    const face = (entry!.inject as unknown as () => {
+    const face = (entry.inject as unknown as () => {
       hooks: { im: { getSnapshot(): unknown; subscribe(listener: () => void): () => void } }
     })()
     expect(face.hooks.im.getSnapshot()).toEqual({ selectedConversationId: null, totalUnread: 0, error: 'unconfigured', notice: null })
     expect(typeof face.hooks.im.subscribe(() => {})).toBe('function')
 
     const [page] = b.slots.entries(PAGE)
-    const pageFace = (page!.inject as unknown as () => {
+    const pageFace = (page.inject as unknown as () => {
       mountSurface(container: HTMLElement, request: { kind: string }): { update(): void; dispose(): void }
       selectConversation(id: string): void
     })()

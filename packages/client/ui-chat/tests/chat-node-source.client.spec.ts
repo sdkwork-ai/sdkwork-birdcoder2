@@ -35,8 +35,8 @@ describe('Chat Node keyed sources', () => {
     const initial = builder.groupInput()
     expect(initial.kind).toBe('replace')
     expect(initial.order).toBe(snapshot.order)
-    expect(initial.readNode(initial.order[0]!)).toBe(user)
-    expect(initial.readPosition(initial.order[0]!)).toEqual({ turn: undefined, previous: undefined, next: undefined })
+    expect(initial.readNode(initial.order[0])).toBe(user)
+    expect(initial.readPosition(initial.order[0])).toEqual({ turn: undefined, previous: undefined, next: undefined })
     expect(initial.readTurn(7)).toEqual([])
     const context: ChatConversationViewNode = {
       key: 'context:2', kind: 'context', id: '2', target: 'chat', anchorSeq: 2,
@@ -71,7 +71,7 @@ describe('Chat Node keyed sources', () => {
     const listeners = nodes.map(() => vi.fn())
     const sources: ChatNodeSource[] = nodes.map((node, index) => {
       const source = initial.nodes.source(node.key)
-      source.subscribe(listeners[index]!)
+      source.subscribe(listeners[index])
       return source
     })
 

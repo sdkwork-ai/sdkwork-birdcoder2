@@ -75,9 +75,9 @@ describe('FeedbackDialog', () => {
     expect(chips[0]?.getAttribute('aria-pressed')).toBe('true')
     expect(chips[1]?.getAttribute('aria-pressed')).toBe('false')
 
-    fireEvent.click(chips[1]!)
+    fireEvent.click(chips[1])
     expect(ui.edit).toHaveBeenLastCalledWith({ category: 'instruction-following' })
-    fireEvent.click(chips[0]!)
+    fireEvent.click(chips[0])
     expect(ui.edit).toHaveBeenLastCalledWith({ category: null })
   })
 

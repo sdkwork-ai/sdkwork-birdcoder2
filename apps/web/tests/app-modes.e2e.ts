@@ -130,7 +130,7 @@ it('enables Search from the customize dialog, then searches the catalog and open
   expect(within(rail).getByRole('button', { name: 'App Store mode' })).toBeTruthy()
   fireEvent.click(within(rail).getByRole('button', { name: 'Customize icons' }))
   const dialog = await screen.findByRole('dialog', { name: 'Customize the mode rail' })
-  expect((within(dialog).getByRole('checkbox', { name: 'Show App Store' }) as HTMLInputElement).checked).toBe(true)
+  expect(within(dialog).getByRole<HTMLInputElement>('checkbox', { name: 'Show App Store' }).checked).toBe(true)
   const searchCheck = within(dialog).getByRole('checkbox', { name: 'Show Search' }) as HTMLInputElement
   expect(searchCheck.disabled).toBe(false)
   expect(searchCheck.checked).toBe(false)
@@ -304,7 +304,7 @@ it('customizes the rail through the plus dialog and resets to the shipped layout
   expect(within(dialog).getAllByRole('checkbox')).toHaveLength(11)
 
   // A fixed mode's checkbox renders disabled: the rail keeps the seat.
-  expect((within(dialog).getByRole('checkbox', { name: 'Show Video generation' }) as HTMLInputElement).disabled).toBe(true)
+  expect(within(dialog).getByRole<HTMLInputElement>('checkbox', { name: 'Show Video generation' }).disabled).toBe(true)
 
   // Checking a hidden, hideable row adds its seat live, behind the open dialog.
   const contactsCheck = within(dialog).getByRole('checkbox', { name: 'Show Contacts' })

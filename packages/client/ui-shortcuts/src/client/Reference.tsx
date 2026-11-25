@@ -153,7 +153,7 @@ export function ShortcutReference({
     }
   }, [open, resetRevision, modifiedCount])
   return <><Modal open={open} onClose={closeReference} title={t('title')} headless
-    shortcutModal="shortcuts" className={css.dialog as string}>
+    shortcutModal="shortcuts" className={css.dialog}>
     <div className={css.contents} onPointerDownCapture={(event) => {
       if (target === null || busy || !(event.target instanceof Element) || event.target.closest('button, input, a, [contenteditable="true"], [role="group"]') !== null) return
       event.preventDefault()

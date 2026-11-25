@@ -191,7 +191,7 @@ export function createUpdateConfigSource(options: UpdateConfigSourceOptions): Up
   const fetchDocument = async (): Promise<UpdateConfigDocument | undefined> => {
     if (options.configUrl === undefined) return undefined
     const controller = new AbortController()
-    const deadline = setTimeout(() => controller.abort(), timeoutMs)
+    const deadline = setTimeout(() =>{  controller.abort() }, timeoutMs)
     try {
       const separator = options.configUrl.includes('?') ? '&' : '?'
       const url = `${options.configUrl}${separator}product_key=${encodeURIComponent(options.productKey)}`

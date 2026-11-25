@@ -44,7 +44,7 @@ function harness() {
     return () => { if (controller.mounted.getSnapshot() === sessionId) showSession(undefined) }
   }
   releases.push(show())
-  const layout = () => store.getSnapshot().bySession[SESSION]!.layout
+  const layout = () => store.getSnapshot().bySession[SESSION].layout
   const owner = document.createElement('section')
   owner.dataset.sidebarRightSession = SESSION
   document.body.append(owner)
@@ -167,12 +167,12 @@ describe('sidebar focus targets', () => {
     h.controller.openTabFromTarget('terminal', h.controller.commandTarget(null)!)
     const terminals = Object.values(h.layout().tabs).filter(tab => tab.kind === 'terminal')
     expect(terminals).toHaveLength(2)
-    expect(terminals[0]!.contentId).not.toBe(terminals[1]!.contentId)
-    h.controller.float(terminals[0]!.id)
-    const floating = h.controller.focusedTarget(h.tabElement(terminals[0]!.id))!
+    expect(terminals[0].contentId).not.toBe(terminals[1].contentId)
+    h.controller.float(terminals[0].id)
+    const floating = h.controller.focusedTarget(h.tabElement(terminals[0].id))!
     h.controller.openTabFromTarget('terminal', floating)
     expect(Object.values(h.layout().tabs).filter(tab => tab.kind === 'terminal')).toHaveLength(3)
-    expect(h.layout().tabs[terminals[0]!.id]).toBeDefined()
+    expect(h.layout().tabs[terminals[0].id]).toBeDefined()
     expect(getPane(h.layout(), floating.paneId).tabs).toHaveLength(1)
   })
 
@@ -251,7 +251,7 @@ describe('sidebar focus targets', () => {
     expect(empty.tabId).toBeUndefined()
     expect(h.controller.isTargetCurrent(empty)).toBe(true)
     expect(h.controller.closeTarget(empty)).toBe('unavailable')
-    const surface = h.store.getSnapshot().bySession[SESSION]!
+    const surface = h.store.getSnapshot().bySession[SESSION]
     h.store.store.set({ bySession: { [SESSION]: { ...surface, layout: { ...surface.layout, expanded: true } } } })
     expect(sidebarTargetFromElement(pane, SESSION, h.layout(), vi.fn())?.tabId).toBeUndefined()
     expect(h.controller.splitBlock(empty)).toBe('empty')
@@ -420,7 +420,7 @@ describe('sidebar keyboard commands', () => {
     } }, h.controller, makeTranslate(en), closeWindow))
     h.controller.openTabFromTarget('files', h.controller.commandTarget(null)!)
     h.controller.close(h.controller.active()!.id)
-    const surface = h.store.getSnapshot().bySession[SESSION]!
+    const surface = h.store.getSnapshot().bySession[SESSION]
     h.store.store.set({ bySession: { [SESSION]: { ...surface, layout: { ...surface.layout, expanded: true } } } })
     const target = h.paneElement()
     const context = { target, region: 'page', modal: null } as const
@@ -542,12 +542,12 @@ describe('page close and refresh', () => {
     releases.push(registerSidebarShortcuts({ register: command => registry.register(command), runtime: 'desktop' }, h.controller, makeTranslate(en), closeWindow))
     const gesture = { code: 'KeyW', meta: platform === 'macos', control: platform === 'windows', alt: false,
       shift: false, repeat: false, composing: false, defaultPrevented: false }
-    const first = Object.values(h.layout().tabs)[0]!
+    const first = Object.values(h.layout().tabs)[0]
     const element = h.tabElement(first.id)
     registry.dispatch(gesture, { target: element, region: 'page', modal: null }, vi.fn())
     element.remove()
     expect(Object.values(h.layout().tabs)).toHaveLength(1)
-    const remaining = Object.values(h.layout().tabs)[0]!
+    const remaining = Object.values(h.layout().tabs)[0]
     expect(remaining.kind).toBe('guide')
     registry.dispatch(gesture, { target: h.tabElement(remaining.id), region: 'page', modal: null }, vi.fn())
     expect(closeWindow).not.toHaveBeenCalled()

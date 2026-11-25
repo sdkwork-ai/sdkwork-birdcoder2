@@ -189,7 +189,7 @@ describe('DockSurface', () => {
     controller.splitPane()
     const [first] = dockPaneIds(controller.getSnapshot().state)
     if (first === undefined) throw new Error('expected a docked pane')
-    controller.floatTab(getPane(controller.getSnapshot().state, first).tabs[0]!)
+    controller.floatTab(getPane(controller.getSnapshot().state, first).tabs[0])
 
     renderSurface(controller, spyIntents())
     // A float can sort before this row in the document, where the row's drag box would
@@ -330,7 +330,7 @@ describe('DockSurface', () => {
     const buttons = screen.getAllByRole('button', { name: TEST_LABELS.splitPane })
     expect(buttons).toHaveLength(2)
     expect(buttons.every(button => !button.hasAttribute('disabled'))).toBe(true)
-    fireEvent.click(buttons[0]!)
+    fireEvent.click(buttons[0])
     expect(intents.splitPane).toHaveBeenCalledExactlyOnceWith(dockPaneIds(state)[0])
   })
 

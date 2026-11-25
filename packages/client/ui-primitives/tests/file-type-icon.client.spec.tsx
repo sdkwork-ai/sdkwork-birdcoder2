@@ -81,7 +81,7 @@ describe('Object.prototype key names', () => {
 
   it.each(keys.flatMap(key => [key, `notes.${key}`]))('%s renders the generic file glyph', (path) => {
     const { container } = render(<FileTypeIcon path={path} />)
-    expect(container.querySelector('svg')!.classList.contains(css.other!)).toBe(true)
+    expect(container.querySelector('svg')!.classList.contains(css.other)).toBe(true)
   })
 })
 
@@ -95,8 +95,8 @@ describe('FileTypeIcon', () => {
     const svg = container.querySelector('svg')!
     expect(svg).not.toBeNull()
     expect(svg.getAttribute('aria-hidden')).toBe('true')
-    expect(svg.classList.contains(css.icon!)).toBe(true)
-    expect(svg.classList.contains(css[type]!)).toBe(true)
+    expect(svg.classList.contains(css.icon)).toBe(true)
+    expect(svg.classList.contains(css[type])).toBe(true)
     const markup = container.innerHTML
     expect(markup).not.toMatch(/#[0-9a-fA-F]{3,8}/)
     const paints = [...container.querySelectorAll('[fill], [stroke]')].flatMap(node =>

@@ -144,7 +144,7 @@ describe('Workspace and Session hover handoff', () => {
         fireEvent(to, new MouseEvent('pointerover', { bubbles: true, relatedTarget: from }))
       }
       const order = first === 'workspace' ? [a, s, b, a] : [s, a, b, s]
-      const initial = order[0]!
+      const initial = order[0]
       move(document.body, initial.anchor)
       act(() => { vi.advanceTimersByTime(799) })
       expect(screen.queryAllByRole('button', { name: /^复制:/ })).toHaveLength(0)
@@ -248,7 +248,7 @@ describe('native row drag previews', () => {
     const image = start()
     expect(drag.start).toHaveBeenCalledOnce()
     expect(vi.mocked(drag.start).mock.invocationCallOrder[0])
-      .toBeLessThan(transfer.setDragImage.mock.invocationCallOrder[0]!)
+      .toBeLessThan(transfer.setDragImage.mock.invocationCallOrder[0])
     expect(image.isConnected).toBe(false)
     dragEnd(screen.getByRole('treeitem'))
     expect(drag.end).toHaveBeenCalledOnce()
@@ -1093,7 +1093,7 @@ describe('workspace browser rows', () => {
       expect(row.textContent).toContain(label)
       expect(title.nextElementSibling?.textContent).toBe(compactLabel)
       expect(rowCss.timestamp).toBeTypeOf('string')
-      expect(title.nextElementSibling?.firstElementChild?.classList.contains(rowCss.timestamp!)).toBe(false)
+      expect(title.nextElementSibling?.firstElementChild?.classList.contains(rowCss.timestamp)).toBe(false)
       expect(row.querySelector('[class*="time"]')?.getAttribute('aria-hidden')).toBe('true')
       expect(row.textContent).not.toContain('刚刚')
 

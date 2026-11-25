@@ -20,7 +20,7 @@ import type { HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
-import type { ImService, ImSnapshot, ImSurfaceHandle } from '@deepseek-ai/dsh-client-ui-sdkwork-im/client'
+import type { ImSnapshot, ImSurfaceHandle } from '@deepseek-ai/dsh-client-ui-sdkwork-im/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-im/client'
 import { injectAuthenticatedModePage } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import { ChatModePage, type ChatModePageInjected } from './ChatModePage.tsx'
@@ -63,7 +63,7 @@ export const inject = ['slots', 'locale', 'iam', 'im']
  */
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-sdkwork-im-conversations: dictionaries')
-  const im = ctx.get('im') as ImService | undefined
+  const im = ctx.get('im')
   const imHook: HostObservable<ImSnapshot> = im ?? ABSENT_IM_SOURCE
 
   ctx.slots.inject('mode.rail.entry', () => ctx.slots.register({

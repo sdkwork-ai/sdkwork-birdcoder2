@@ -47,7 +47,7 @@ function sourceFiles(): string[] {
 function materialOverrides(css: string, selectors: ReadonlySet<string>): string[] {
   return parseRules(css).flatMap((rule) => {
     const targetsMenu = rule.selectors.some(selector => !selector.includes('::') && [...selector.matchAll(/\.([\w-]+)/g)]
-      .some(match => selectors.has(match[1]!)))
+      .some(match => selectors.has(match[1])))
     return targetsMenu ? rule.declarations
       .filter(([name]) => ['background', 'background-color', 'backdrop-filter', 'anchor-name'].includes(name))
       .map(([name]) => `${rule.selectors.join(', ')}: ${name}`) : []
@@ -94,7 +94,7 @@ describe('shared menu material', () => {
       const visit = (node: ts.Node): void => {
         if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && node.tagName.getText(ast) === 'MenuSurface') {
           const attribute = node.attributes.properties.find(prop => ts.isJsxAttribute(prop) && prop.name.getText(ast) === 'className')
-          for (const match of attribute?.getText(ast).matchAll(/css\.([\w]+)/g) ?? []) classes.add(match[1]!)
+          for (const match of attribute?.getText(ast).matchAll(/css\.([\w]+)/g) ?? []) classes.add(match[1])
         }
         ts.forEachChild(node, visit)
       }

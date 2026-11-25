@@ -106,7 +106,7 @@ function mergeMatches(
       throw new Error(`conversation Context ${key} received duplicate Match ${left.event.seq}`)
     }
     if (right === undefined || (left !== undefined && left.event.seq < right.event.seq)) {
-      merged.push(left as ConversationMatch)
+      merged.push(left)
       added++
     } else {
       merged.push(right)
@@ -646,7 +646,7 @@ export class ConversationNodeAssembler implements ConversationViewSnapshotStore 
       const left = existing[before]
       const right = sorted[added]
       if (right === undefined || (left !== undefined && (left.startSeq as number) < (right.startSeq as number))) {
-        merged.push(left as InternalContext)
+        merged.push(left)
         before++
       } else {
         merged.push(right)

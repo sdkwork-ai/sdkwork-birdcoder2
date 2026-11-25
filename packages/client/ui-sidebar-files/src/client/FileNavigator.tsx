@@ -188,7 +188,7 @@ export function FileNavigator({
   const preferences: WorkspaceSearchPreferences = useSearchPreferences(cwd ?? '') ?? defaultSearchPreferences()
   const { showHidden } = preferences
   const query = state?.query ?? ''
-  const searchBarOpen = !page || state?.searchBarOpen === true
+  const searchBarOpen = !page ||  state?.searchBarOpen
   const search = state?.search
   const pending = search?.pending === true
   const result = search?.result

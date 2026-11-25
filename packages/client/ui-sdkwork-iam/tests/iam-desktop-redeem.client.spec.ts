@@ -90,7 +90,7 @@ describe('desktop redeem transport', () => {
     vi.stubGlobal('fetch', fetchStub)
 
     await login.begin()
-    const state = new URL(opened[0]!).searchParams.get('state')
+    const state = new URL(opened[0]).searchParams.get('state')
     emitDeepLink(`${REDIRECT}?code=sdkwork-oauth_code-once&state=${state}`)
     await settle()
 
@@ -122,7 +122,7 @@ describe('desktop redeem transport', () => {
     vi.stubGlobal('fetch', fetchStub)
 
     await login.begin()
-    const state = new URL(opened[0]!).searchParams.get('state')
+    const state = new URL(opened[0]).searchParams.get('state')
     emitDeepLink(`${REDIRECT}?code=sdkwork-oauth_code-ok&state=${state}`)
     await settle()
 
@@ -162,7 +162,7 @@ describe('desktop redeem transport', () => {
     vi.stubGlobal('fetch', fetchStub)
 
     await login.begin()
-    const state = new URL(opened[0]!).searchParams.get('state')
+    const state = new URL(opened[0]).searchParams.get('state')
     emitDeepLink(`${REDIRECT}?code=sdkwork-oauth_code-rejected&state=${state}`)
     await settle()
 

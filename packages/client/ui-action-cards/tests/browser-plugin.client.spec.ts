@@ -42,7 +42,7 @@ it('binds actions to the displayed session, serves registered bodies and removes
   const locale = new LocaleRuntime(ctx)
   ctx.provide('locale', locale)
   const fiber = await ctx.plugin({ inject, apply })
-  const entry = slots.entries('conversation.chat.turnTail')[0]!
+  const entry = slots.entries('conversation.chat.turnTail')[0]
   expect(slots.entries('conversation.chat.markdown.fence').map(item => [item.options.key, item.component]))
     .toEqual([['action-card', HiddenCardBlock]])
   expect(HiddenCardBlock()).toBeNull()
@@ -105,7 +105,7 @@ it('adds the card switch to General settings while the Host serves action-cards,
   const fiber = await ctx.plugin({ inject, apply })
   expect(configForms.get).toHaveBeenCalledWith('action-cards')
   expect(configForms.whileServed).toHaveBeenCalledWith(['action-cards'], expect.any(Function))
-  const entry = slots.entries('settings.general.item')[0]!
+  const entry = slots.entries('settings.general.item')[0]
   expect(entry.options).toMatchObject({ id: 'action-cards', order: 40 })
   const resolve = entry.inject as (() => SettingsRowInjected) & NonNullable<typeof entry.inject>
   const injected = resolve()

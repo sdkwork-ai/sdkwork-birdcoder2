@@ -160,7 +160,7 @@ it.each([TOKEN, ` https://elsewhere.example/path?token=${TOKEN} `])('uses only t
   enterAuthenticationPage(loginLocales)
   fixture.input.value = value
   fixture.form.dispatchEvent(new Event('submit', { cancelable: true }))
-  const [target, init] = fixture.exchange.mock.calls[0]!
+  const [target, init] = fixture.exchange.mock.calls[0]
   expect(target).toBe(new URL(`/mount/?token=${TOKEN}`, fixture.actualLocation.href).href)
   expect(init).toMatchObject({ method: 'GET', credentials: 'same-origin', cache: 'no-store', redirect: 'follow' })
   expect(init?.signal).toBeInstanceOf(AbortSignal)
@@ -229,7 +229,7 @@ it('does not navigate when a completed Token request settles after the page leav
   enterAuthenticationPage(loginLocales)
   fixture.input.value = TOKEN
   fixture.form.dispatchEvent(new Event('submit', { cancelable: true }))
-  const signal = fixture.exchange.mock.calls[0]![1]?.signal
+  const signal = fixture.exchange.mock.calls[0][1]?.signal
   expect(signal?.aborted).toBe(false)
   pending.resolve(new Response(null, { status: 200 }))
   window.dispatchEvent(new Event('pagehide'))
@@ -273,7 +273,7 @@ it('clears the credential before POST and keeps the mount prefix when opening th
   expect(fixture.replace).not.toHaveBeenCalled()
   pending.resolve(new Response(null, { status: 204 }))
   await expect.poll(() => fixture.replace.mock.calls).toEqual([['./']])
-  expect(new URL(fixture.replace.mock.calls[0]![0], fixture.actualLocation.href).pathname).toBe('/mount/')
+  expect(new URL(fixture.replace.mock.calls[0][0], fixture.actualLocation.href).pathname).toBe('/mount/')
 })
 
 it.each([410, 403, 503, 500])('reports HTTP %i without claiming login or redirecting', async (status) => {
@@ -326,7 +326,7 @@ it('does not navigate when a completed QR request settles after the page leaves'
   const pending = Promise.withResolvers<Response>()
   fixture.exchange.mockReturnValue(pending.promise)
   enterAuthenticationPage(loginLocales)
-  const signal = fixture.exchange.mock.calls[0]![1]?.signal
+  const signal = fixture.exchange.mock.calls[0][1]?.signal
   expect(signal?.aborted).toBe(false)
   pending.resolve(new Response(null, { status: 204 }))
   window.dispatchEvent(new Event('pagehide'))

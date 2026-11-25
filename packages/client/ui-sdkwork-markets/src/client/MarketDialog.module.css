@@ -1,6 +1,4 @@
-/* The market dialogs (add market, plugin source): a centered modal card over a
-   dimming overlay. Paints the host appearance aliases so the card follows the
-   running theme in both schemes. */
+/* The source-install dialog uses the host appearance aliases in both themes. */
 
 .overlay {
   position: fixed;
@@ -22,8 +20,6 @@
   display: flex;
   flex-direction: column;
   padding: 24px;
-  /* Elevated-surface scrollbar rebind (ui-theme scrollbar.css contract): the
-     card scrolls while sitting on its own layer, so the l2 pair is bound. */
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
   border: 0.5px solid var(--dsw-alias-border-l2);
@@ -103,14 +99,8 @@
   resize: vertical;
 }
 
-.input::placeholder {
-  color: var(--dsw-alias-label-tertiary);
-}
-
-.input:focus {
-  outline: none;
-  border-color: var(--dsw-alias-border-l3);
-}
+.input::placeholder { color: var(--dsw-alias-label-tertiary); }
+.input:focus { outline: none; border-color: var(--dsw-alias-border-l3); }
 
 .footer {
   display: flex;
@@ -138,9 +128,7 @@
   color: var(--dsw-alias-label-primary);
 }
 
-.cancel:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
-}
+.cancel:hover { background: var(--dsw-alias-interactive-bg-hover); }
 
 .submit {
   border: 1px solid transparent;
@@ -148,23 +136,10 @@
   color: var(--dsw-alias-label-primary);
 }
 
-.submit:hover {
-  border-color: var(--dsw-alias-border-l3);
-}
+.submit:hover { border-color: var(--dsw-alias-border-l3); }
+.submit:disabled { opacity: 0.45; cursor: default; border-color: transparent; }
 
-/* The gated submit: a non-blank source is required, so an empty field
-   keeps the button visually and functionally off. */
-.submit:disabled {
-  opacity: 0.45;
-  cursor: default;
-  border-color: transparent;
-}
-
-/* The source-form chips: one row of mutually exclusive forms. */
-.chips {
-  display: flex;
-  gap: 6px;
-}
+.chips { display: flex; gap: 6px; }
 
 .chip {
   flex: 1;
@@ -180,9 +155,7 @@
   cursor: pointer;
 }
 
-.chip:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
-}
+.chip:hover { background: var(--dsw-alias-interactive-bg-hover); }
 
 .chipActive {
   border-color: var(--dsw-alias-border-l3);
@@ -190,7 +163,6 @@
   color: var(--dsw-alias-label-primary);
 }
 
-/* A validation refusal: one line under the form, before the footer. */
 .error {
   margin: 0;
   font-size: 12px;
@@ -198,7 +170,6 @@
   color: var(--dsw-alias-state-error-primary);
 }
 
-/* The guided-creation escape hatch: a quiet text action on the left. */
 .guided {
   margin-right: auto;
   border: none;
@@ -210,6 +181,4 @@
   cursor: pointer;
 }
 
-.guided:hover {
-  color: var(--dsw-alias-label-primary);
-}
+.guided:hover { color: var(--dsw-alias-label-primary); }

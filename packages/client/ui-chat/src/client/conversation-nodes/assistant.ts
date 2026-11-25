@@ -102,14 +102,14 @@ function updateChunk(
   switch (chunk.type) {
     case 'block-start':
       changedIndex = chunk.index
-      previousVisible = state.visibleByIndex[chunk.index] === true
+      previousVisible =  state.visibleByIndex[chunk.index]
       blocks[chunk.index] = emptyAssistantBlock(chunk.blockType)
       nextVisible = blockIsVisible(blocks[chunk.index])
       break
     case 'text-delta': {
       const previous = blocks[chunk.index]
       changedIndex = chunk.index
-      previousVisible = state.visibleByIndex[chunk.index] === true
+      previousVisible =  state.visibleByIndex[chunk.index]
       blocks[chunk.index] = { kind: 'text', text: (previous?.kind === 'text' ? previous.text : '') + chunk.text }
       nextVisible = (previous?.kind === 'text' && previousVisible) || chunk.text.trim() !== ''
       break
@@ -117,7 +117,7 @@ function updateChunk(
     case 'reasoning-delta': {
       const previous = blocks[chunk.index]
       changedIndex = chunk.index
-      previousVisible = state.visibleByIndex[chunk.index] === true
+      previousVisible =  state.visibleByIndex[chunk.index]
       blocks[chunk.index] = { kind: 'reasoning', text: (previous?.kind === 'reasoning' ? previous.text : '') + chunk.text }
       nextVisible = (previous?.kind === 'reasoning' && previousVisible) || chunk.text.trim() !== ''
       break
@@ -125,7 +125,7 @@ function updateChunk(
     case 'tool-call-delta': {
       const previous = blocks[chunk.index]
       changedIndex = chunk.index
-      previousVisible = state.visibleByIndex[chunk.index] === true
+      previousVisible =  state.visibleByIndex[chunk.index]
       // Tool Nodes own streamed arguments; Assistant protocol blocks retain identity until full settlement.
       blocks[chunk.index] = {
         kind: 'tool-call',
@@ -137,7 +137,7 @@ function updateChunk(
     }
     case 'block-end':
       changedIndex = chunk.index
-      previousVisible = state.visibleByIndex[chunk.index] === true
+      previousVisible =  state.visibleByIndex[chunk.index]
       blocks[chunk.index] = toAssistantBlock(chunk.block)
       nextVisible = blockIsVisible(blocks[chunk.index])
       break

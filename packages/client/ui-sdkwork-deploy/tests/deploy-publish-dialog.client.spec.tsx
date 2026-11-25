@@ -104,14 +104,14 @@ async function mount(host: HostFixture & object, overrides: Partial<DeployPublis
 
 describe('DeployPublishDialog', () => {
   it('hands the resolved app to the console dialog so it skips app selection', async () => {
-    const element = await mount(fakeHost(), { app: APP as AppResponse })
+    const element = await mount(fakeHost(), { app: APP })
     expect(element.textContent).toContain('CONSOLE:app-uuid-1')
   }, 30000)
 
   it('reports the published app and the close action to its owner', async () => {
     const onPublished = vi.fn()
     const onClose = vi.fn()
-    const element = await mount(fakeHost(), { app: APP as AppResponse, onPublished, onClose })
+    const element = await mount(fakeHost(), { app: APP, onPublished, onClose })
     const publish = [...element.querySelectorAll('button')].find(button => button.textContent === 'publish')
     await act(async () => { publish?.click() })
     expect(onPublished).toHaveBeenCalledWith(APP)
@@ -127,7 +127,7 @@ describe('DeployPublishDialog', () => {
 
   it('renders nothing without an SDKWork origin and recovers when the host reports one', async () => {
     const host = fakeHost({ clients: false })
-    const element = await mount(host, { app: APP as AppResponse })
+    const element = await mount(host, { app: APP })
     expect(element.textContent).toBe('')
     host.setAvailable(true)
     await act(async () => { host.notify() })

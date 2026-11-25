@@ -142,7 +142,7 @@ describe('GuideBody', () => {
     b.actionsOwner().onOpen('terminal:terminal-20')
     expect(b.openTab).toHaveBeenCalledExactlyOnceWith('terminal', { replaceTab: true })
     expect(b.close).toHaveBeenCalledOnce()
-    expect(b.close.mock.invocationCallOrder[0]).toBeGreaterThan(b.openTab.mock.invocationCallOrder[0]!)
+    expect(b.close.mock.invocationCallOrder[0]).toBeGreaterThan(b.openTab.mock.invocationCallOrder[0])
     fireEvent.click(b.view.getByRole('menuitem', { name: 'Guide action' }))
     expect(b.view.queryByRole('menu')).toBeNull()
     expect(more.getAttribute('aria-expanded')).toBe('false')
@@ -195,7 +195,7 @@ describe('GuideBody', () => {
     fireEvent.click(entry)
     expect(openTab).toHaveBeenCalledWith('files', { replaceTab: true })
     expect(close).toHaveBeenCalledOnce()
-    expect(close.mock.invocationCallOrder[0]).toBeGreaterThan(openTab.mock.invocationCallOrder[0]!)
+    expect(close.mock.invocationCallOrder[0]).toBeGreaterThan(openTab.mock.invocationCallOrder[0])
     cleanup()
   })
 

@@ -90,12 +90,12 @@ describe('ui-sdkwork-appstore apply', () => {
     expect(entry?.options.key).toBe('appstore')
     expect(entry?.component).toBe(AppStoreRailEntry)
     expect(entry?.locale).toBe('appstore')
-    expect((entry!.inject as unknown as () => AppStoreRailEntryInjected)().mode).toBe('appstore')
+    expect((entry.inject as unknown as () => AppStoreRailEntryInjected)().mode).toBe('appstore')
 
     const [page] = b.slots.entries(PAGE)
     expect(page?.options.key).toBe('appstore')
     expect(page?.component).toBe(AppStorePage)
-    expect((page!.inject as unknown as () => AppStorePageInjected)().mode).toBe('appstore')
+    expect((page.inject as unknown as () => AppStorePageInjected)().mode).toBe('appstore')
   })
 
   it('teardown removes the entries and the dictionaries', async () => {

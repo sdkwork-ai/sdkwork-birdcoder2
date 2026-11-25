@@ -373,7 +373,7 @@ export function createViewState(): ViewState {
 
 /** Read an array element whose index the surrounding bounds already prove. */
 function at(lines: readonly string[], index: number): string {
-  return lines[index] as string
+  return lines[index]
 }
 
 /** Split a text block into lines; an empty string has no lines. */
@@ -1398,8 +1398,8 @@ function stepDetailRow(
                   call={call}
                   t={t}
                   wrap={wrap}
-                  raw={raw[call.callId] === true}
-                  onToggleRaw={() => { onControl({ raw: { ...raw, [call.callId]: raw[call.callId] !== true } }) }}
+                  raw={raw[call.callId]}
+                  onToggleRaw={() => { onControl({ raw: { ...raw, [call.callId]: ! raw[call.callId] } }) }}
                 />
               ))}
               {hidden > 0
@@ -1736,7 +1736,7 @@ function stepRows(options: StepRowsOptions): ReactNode[] {
     const cells = metricsCells(step, t)
     const gap = gaps.get(step.step)
     const visibleGap = gap !== undefined && gap >= STEP_GAP_MIN_MS ? gap : undefined
-    const expanded = open[step.step] === true
+    const expanded =  open[step.step]
     const hasAnswer = step.answerBody !== null
     const hasDetail = step.calls.length > 0 || hasAnswer
     const rowClass: (string | undefined)[] = []

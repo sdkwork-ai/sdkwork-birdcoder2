@@ -30,7 +30,7 @@ describe('product icon set', () => {
   it('exports regular and medium variants for every public glyph', () => {
     const publicGlyphs = glyphs.filter(glyph => glyph !== 'apps-add-compact-outline')
     const expectedNames = publicGlyphs.flatMap((glyph) => {
-      const name = glyph.split('-').map(part => part[0]!.toUpperCase() + part.slice(1)).join('')
+      const name = glyph.split('-').map(part => part[0].toUpperCase() + part.slice(1)).join('')
       return [`Icon${name}Regular`, `Icon${name}Medium`]
     })
     expect([...iconNames].sort()).toEqual(expectedNames.sort())
@@ -53,9 +53,9 @@ describe('product icon set', () => {
     for (const weight of ['regular', 'medium'] as const) {
       const paths = artwork('close-circle-fill', weight).querySelectorAll('path')
       expect(paths).toHaveLength(1)
-      expect(paths[0]!.getAttribute('fill')).toBe('currentColor')
-      expect(paths[0]!.getAttribute('fill-rule')).toBe('evenodd')
-      expect(paths[0]!.getAttribute('stroke')).toBeNull()
+      expect(paths[0].getAttribute('fill')).toBe('currentColor')
+      expect(paths[0].getAttribute('fill-rule')).toBe('evenodd')
+      expect(paths[0].getAttribute('stroke')).toBeNull()
     }
     expect(render(<primitives.IconCloseCircleFillRegular />).container.querySelector('svg')!.getAttribute('width')).toBe('16')
   })
@@ -150,7 +150,7 @@ describe('product icon set', () => {
   })
 
   it.each(iconNames)('%s references its sprite symbol', (name) => {
-    const Icon = icons[name]!
+    const Icon = icons[name]
     const { container } = render(<Icon />)
     const svg = container.querySelector('svg')!
     expect(svg.getAttribute('aria-hidden')).toBe('true')
@@ -182,7 +182,7 @@ describe('product icon set', () => {
   it.each(iconNames)('%s references the glyph and weight its name spells', (name) => {
     const weight = name.endsWith('Regular') ? 'regular' : 'medium'
     const glyph = name.slice('Icon'.length, -weight.length).replace(/(?<!^)(?=[A-Z])/g, '-').toLowerCase()
-    const Icon = icons[name]!
+    const Icon = icons[name]
     expect(render(<Icon />).container.querySelector('svg')!.getAttribute('data-icon')).toBe(`dsw-icon-${glyph}-${weight}`)
   })
 
@@ -199,7 +199,7 @@ describe('product icon set', () => {
       const product = artwork(glyph, weight).documentElement
       expect(inline.getAttribute('viewBox')).toBe(product.getAttribute('viewBox'))
       expect(inline.children.length).toBe(product.children.length)
-      expect([...inline.children].every((child, index) => child.isEqualNode(product.children[index]!))).toBe(true)
+      expect([...inline.children].every((child, index) => child.isEqualNode(product.children[index]))).toBe(true)
       cleanup()
     }
   })

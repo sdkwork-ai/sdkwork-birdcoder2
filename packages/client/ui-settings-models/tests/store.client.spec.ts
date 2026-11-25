@@ -172,7 +172,7 @@ describe('ModelsSettingsStore', () => {
     await store.load()
     expect(seenRefs.map(refs => refs.length)).toEqual([64, 64, 2])
     expect(seenRefs.flat()).toContain('NATIVE_64')
-    expect(store.store.getSnapshot().rows[64]!.credentialChecks)
+    expect(store.store.getSnapshot().rows[64].credentialChecks)
       .toEqual({ NATIVE_64: { configured: false, writable: true } })
   })
 
@@ -549,7 +549,7 @@ it.each([false, true])('uses account availability without asking for an API key:
   expect(rows).toHaveLength(accountAvailable ? 1 : 0)
   if (accountAvailable) {
     expect(rows[0]).toMatchObject({ accountAvailable: true, apiKeyEnv: undefined, credential: undefined })
-    expect(providerUsable(rows[0]!)).toBe(true)
+    expect(providerUsable(rows[0])).toBe(true)
   }
   expect(store.store.getSnapshot().namespaces.get('llm-deepseek-account')?.ns).toBe('llm-deepseek-account')
   expect(seenRefs).toEqual([])

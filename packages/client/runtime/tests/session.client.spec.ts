@@ -618,7 +618,7 @@ describe('pending interactions', () => {
   it('mints waits whose respond() backfills the requested rpcId into the client-response envelope', async () => {
     const { api, session } = makeSession()
     session.handleMuxEnvelope('rq-answer' as never, { type: 'question/requested', sessionId: SID, questions: [] })
-    const wait = session.getSnapshot().pending[0]!
+    const wait = session.getSnapshot().pending[0]
     expect(wait).toMatchObject({ kind: 'question', key: 'q:rq-answer', sessionId: SID, payload: { questions: [] } })
     const receipt = await wait.respond({
       ok: true,
@@ -637,7 +637,7 @@ describe('pending interactions', () => {
   it('settles the wait on the authoritative resolved frame: respond() then throws synchronously', async () => {
     const { api, session } = makeSession()
     session.handleMuxEnvelope('rq1' as never, { type: 'question/requested', sessionId: SID, questions: [] })
-    const wait = session.getSnapshot().pending[0]!
+    const wait = session.getSnapshot().pending[0]
     session.handleMuxEnvelope('ry' as never, { type: 'question/resolved', sessionId: SID, questionRpcId: 'rq1' as never, outcome: 'answered' })
     expect(session.getSnapshot().pending).toEqual([])
     expect(() => wait.respond({ ok: false, error: { code: 'internal', message: 'x', details: {} } }))
@@ -939,10 +939,10 @@ describe('resync', () => {
     api.onHistory = () => histResponse(plainTurn(0, 0, 'a', 'b'))
     await session.open()
     session.handleMuxEnvelope('rq-replay' as never, { type: 'question/requested', sessionId: SID, questions: [] })
-    const before = session.getSnapshot().pending[0]!
+    const before = session.getSnapshot().pending[0]
     await session.resync()
     session.handleMuxEnvelope('rq-replay' as never, { type: 'question/requested', sessionId: SID, questions: [] })
-    const after = session.getSnapshot().pending[0]!
+    const after = session.getSnapshot().pending[0]
     expect(after).not.toBe(before)
     expect(after.key).toBe(before.key)
     // Superseded ≠ settled: an in-flight respond on the stale reference still reaches the host.
@@ -973,8 +973,8 @@ describe('reference stability (the memo contract)', () => {
     api.onHistory = () => histResponse(plainTurn(0, 0, '稳', '定'))
     await session.open()
     const before = session.getSnapshot()
-    const firstKey = before.chat.order[0]!
-    const secondKey = before.chat.order[1]!
+    const firstKey = before.chat.order[0]
+    const secondKey = before.chat.order[1]
     const first = before.chat.nodes.get(firstKey)
     const second = before.chat.nodes.get(secondKey)
     session.handleMuxEnvelope('r' as never, { type: 'session/event', sessionId: SID, event: ev.user(6, '追加') })
@@ -997,7 +997,7 @@ describe('reference stability (the memo contract)', () => {
     feed(ev.toolCall(8, 1, 'c1', 'echo', '{}'))
     session.handleMuxEnvelope('ra' as never, { type: 'approval/requested', sessionId: SID, approvalId: 'ap1' as never, toolName: 'rm' })
     const before = session.getSnapshot()
-    const settledKey = before.chat.order[0]!
+    const settledKey = before.chat.order[0]
     const settledNode = before.chat.nodes.get(settledKey)
     feed(ev.chunkStart(9, 1))
     feed(ev.chunkText(10, 1, '与工具无关的流式'))

@@ -265,7 +265,7 @@ export function RetryPolicyEditor(props: RetryPolicyEditorProps): ReactNode {
     const storedValue = fieldAt(current, path)
     return (
       <label key={id} className={className}>
-        <span className={styles['modelFieldLabel']}>{label(path[path.length - 1] as string)}</span>
+        <span className={styles['modelFieldLabel']}>{label(path[path.length - 1])}</span>
         <input
           className={styles['input']}
           type="text"
@@ -313,7 +313,7 @@ export function RetryPolicyEditor(props: RetryPolicyEditorProps): ReactNode {
         aria-invalid={invalid}
         aria-describedby={invalid ? props.failureId : undefined}
       >
-        <legend className={styles['modelFieldLabel']}>{label(path[path.length - 1] as string)}</legend>
+        <legend className={styles['modelFieldLabel']}>{label(path[path.length - 1])}</legend>
         <div className={styles['retryCodeChoices']}>
           {choices.map((code) => {
             const labelKey = CODE_LABELS.get(code)

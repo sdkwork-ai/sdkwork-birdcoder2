@@ -451,15 +451,15 @@ describe('ScaffoldPublishDialog publish run', () => {
       Object.defineProperty(input, 'files', { configurable: true, value: files })
       await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })) })
     }
-    await choose(fileInputs[0] as HTMLInputElement, [new File(['text'], 'notes.txt', { type: 'text/plain' })])
+    await choose(fileInputs[0], [new File(['text'], 'notes.txt', { type: 'text/plain' })])
     expect(container?.textContent).toContain('仅支持 PNG、JPEG 或 WebP 图片')
 
-    await choose(fileInputs[1] as HTMLInputElement, [
+    await choose(fileInputs[1], [
       new File([new Uint8Array(13 * 1024 * 1024)], 'huge.png', { type: 'image/png' }),
     ])
     expect(container?.textContent).toContain('超过 12 MB 限制')
 
-    await choose(fileInputs[2] as HTMLInputElement, Array.from({ length: 11 }, (_, index) =>
+    await choose(fileInputs[2], Array.from({ length: 11 }, (_, index) =>
       new File(['png'], `page-${index}.png`, { type: 'image/png' })))
     expect(container?.textContent).toContain('示例页面最多 10 张')
   }, 30000)

@@ -46,21 +46,11 @@ type RegisteredTurnData = {
   }
 }[keyof ConversationTurnDataMap & string]
 
-type RegisteredStepData = {
-  [Key in keyof ConversationStepDataMap & string]: {
-    readonly kind: 'step'
-    readonly turn: number
-    readonly step: number
-    readonly key: Key
-    readonly value: ConversationStepDataMap[Key]
-  }
-}[keyof ConversationStepDataMap & string]
-
 /** One Definition-owned value attached to an Engine-owned Turn or Step. */
 export type ConversationLocationData =
-  [keyof ConversationTurnDataMap | keyof ConversationStepDataMap] extends [never]
+  [keyof ConversationTurnDataMap  ] extends [never]
     ? ConversationLocationDataValue
-    : RegisteredTurnData | RegisteredStepData
+    : RegisteredTurnData
 
 /** Immutable resolved boundary for one Agent step. */
 export interface StepLocation {

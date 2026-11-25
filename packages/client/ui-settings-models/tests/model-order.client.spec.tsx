@@ -163,7 +163,7 @@ describe.each(['deepseek', 'pi-ai'] as const)('%s model ordering', (family) => {
     fireEvent.click(screen.getByRole('button', { name: `${en.modelAdvanced} 1` }))
     const dataTransfer = transfer()
     fireEvent.dragStart(source, { dataTransfer })
-    const preview = dataTransfer.setDragImage.mock.calls[0]![0]
+    const preview = dataTransfer.setDragImage.mock.calls[0][0]
     expect(preview.inert).toBe(true)
     expect(preview.getAttribute('aria-hidden')).toBe('true')
     expect(preview.querySelector('[data-row-key]')).toBeNull()
@@ -174,7 +174,7 @@ describe.each(['deepseek', 'pi-ai'] as const)('%s model ordering', (family) => {
     expect(preview.isConnected).toBe(false)
     fireEvent.dragEnd(source)
     fireEvent.dragStart(source, { dataTransfer })
-    const nextPreview = dataTransfer.setDragImage.mock.calls[1]![0]
+    const nextPreview = dataTransfer.setDragImage.mock.calls[1][0]
     view.unmount()
     expect(nextPreview.isConnected).toBe(false)
   })

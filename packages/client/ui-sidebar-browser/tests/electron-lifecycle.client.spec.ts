@@ -55,7 +55,7 @@ it('waits for a mounted container and observes native history, titles and new-ta
   guest.emit('page-title-updated')
   guest.emit('did-stop-loading')
   expect(h.frame.getSnapshot()).toMatchObject({ loading: false, target: { url: guest.state.url, title: 'example.test' } })
-  const open = h.bridge.onOpenRequested.mock.calls[0]![1]
+  const open = h.bridge.onOpenRequested.mock.calls[0][1]
   open('https://new.example/')
   expect(h.openRequested).toHaveBeenCalledOnce()
   await h.frame.dispose()

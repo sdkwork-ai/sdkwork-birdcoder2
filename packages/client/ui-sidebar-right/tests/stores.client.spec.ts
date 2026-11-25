@@ -89,7 +89,7 @@ describe('createSidebarRightStore — the sequence', () => {
     const backfill = getPane(layout(), home).tabs
     expect(backfill).toHaveLength(1)
     expect(backfill[0]).not.toBe(dragged)
-    expect(layout().tabs[backfill[0]!]?.kind).toBe('guide')
+    expect(layout().tabs[backfill[0]]?.kind).toBe('guide')
     // The dragged tab keeps focus, as any other drop leaves it.
     expect(layout().activePaneId).toBe(destination.id)
     expect(destination.activeTabId).toBe(dragged)
@@ -104,7 +104,7 @@ describe('createSidebarRightStore — the sequence', () => {
     const { actions, layout, surface } = harness()
     if (afterClose) {
       actions.openContent(SESSION, { kind: 'text', contentId: 'file:a', title: 'a' }, () => {})
-      actions.closeTab(SESSION, Object.values(layout().tabs)[0]!.id)
+      actions.closeTab(SESSION, Object.values(layout().tabs)[0].id)
     }
     const before = surface()
     const settled = vi.fn()
@@ -119,15 +119,15 @@ describe('createSidebarRightStore — the sequence', () => {
     const { actions, layout } = harness()
     const address = pageAddress(kind)
     actions.openContent(SESSION, { kind, contentId: address, title: kind }, () => {})
-    const first = Object.values(layout().tabs)[0]!
+    const first = Object.values(layout().tabs)[0]
     const firstPane = layout().activePaneId
     actions.splitPane(SESSION)
     const secondPane = layout().activePaneId
-    const seed = getPane(layout(), secondPane).tabs[0]!
+    const seed = getPane(layout(), secondPane).tabs[0]
     actions.openContent(SESSION, { kind: 'text', contentId: 'file:b', title: 'b', replaceTab: seed }, () => {})
     const opened = vi.fn<(tabId: TabId) => void>()
     actions.openContent(SESSION, { kind, contentId: address, title: kind, paneId: secondPane }, opened)
-    const second = opened.mock.calls[0]![0]
+    const second = opened.mock.calls[0][0]
     expect(second).not.toBe(first.id)
     expect(getPane(layout(), firstPane).tabs).toEqual([first.id])
     expect(getPane(layout(), secondPane).activeTabId).toBe(second)
@@ -303,7 +303,7 @@ describe('createSidebarRightStore — floating panels and dividers', () => {
     expect(getPane(layout(), layout().rootId).tabs).toHaveLength(1)
     expect(entries()).toBe(recorded + 1)
 
-    const docked = getPane(layout(), layout().rootId).tabs[0]!
+    const docked = getPane(layout(), layout().rootId).tabs[0]
     const retained = layout()
     actions.closeTab(SESSION, docked)
     expect(layout()).toBe(retained)
@@ -362,7 +362,7 @@ describe('createSidebarRightStore — floating panels and dividers', () => {
     expect(created).toHaveLength(1)
     expect(settled).toHaveBeenCalledExactlyOnceWith(created[0])
     // A floating pane cannot be split: nothing changes and nothing is reported.
-    const [tab] = getPane(layout(), created[0] as PaneId).tabs
+    const [tab] = getPane(layout(), created[0]).tabs
     if (tab === undefined) throw new Error('expected the seeded guide')
     actions.floatTab(SESSION, tab)
     const [float] = layout().floats

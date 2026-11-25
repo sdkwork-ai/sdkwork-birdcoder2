@@ -501,7 +501,7 @@ describe('filesFace pane records follow the tabs that drew them', () => {
     const unplace = h.face.placeBeside(TAB)
     expect(h.placed.map(entry => [entry.tabId, entry.face])).toEqual([[TAB, h.face]])
     unplace()
-    expect(h.placed[0]!.release).toHaveBeenCalledTimes(1)
+    expect(h.placed[0].release).toHaveBeenCalledTimes(1)
     await Promise.resolve()
     expect(h.snapshot()).toBeDefined()
     release()

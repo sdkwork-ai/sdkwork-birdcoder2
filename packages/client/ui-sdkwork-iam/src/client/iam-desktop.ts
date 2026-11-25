@@ -541,7 +541,7 @@ export function createIamDesktopLogin(options: CreateIamDesktopLoginOptions): Ia
       appSdkClient: createAtMostOnceRedeemClient(client, response => options.onServerFailure?.(response)),
       host,
       onSession: session => deliverSession(session),
-      onError: error => releaseSettledAttempt(error),
+      onError: (error) =>{  releaseSettledAttempt(error) },
       ...(options.deviceId === undefined ? {} : { deviceId: options.deviceId }),
       ...(options.flowTtlMs === undefined ? {} : { flowTtlMs: options.flowTtlMs }),
     })

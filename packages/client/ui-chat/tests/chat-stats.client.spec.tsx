@@ -180,7 +180,7 @@ describe('composer stats pills', () => {
     expect(view.queryByRole('dialog')).toBeNull()
     view.rerender(<StatsPills {...props(source)} />)
     expect(view.getAllByRole('button')).toHaveLength(2)
-    fireEvent.click(view.getAllByRole('button')[0]!)
+    fireEvent.click(view.getAllByRole('button')[0])
     expect(view.getByRole('dialog')).toBeTruthy()
     view.rerender(<StatsPills {...props(source)} usePerformanceUsage={selector => selector('compact')} />)
     expect(view.queryByRole('dialog')).toBeNull()
@@ -203,7 +203,7 @@ describe('composer stats pills', () => {
     // name separates the segments the visual sep glyph joins.
     const usagePill = view.getAllByRole('button')
     expect(usagePill.map(pill => pill.textContent)).toEqual(['105 tok·Cache hit 90%'])
-    expect(usagePill[0]!.getAttribute('aria-label')).toBe('105 tok · Cache hit 90%')
+    expect(usagePill[0].getAttribute('aria-label')).toBe('105 tok · Cache hit 90%')
     const empty = makeSource()
     const emptyView = render(<StatsPills {...props(empty.source, {
       tokenUsage: { uncachedInputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
@@ -232,13 +232,13 @@ describe('composer stats pills', () => {
   ])('formats an actual $actual cache-hit ratio as $expected', ({ tokenUsageValue, expected }) => {
     const { source } = makeSource({ nodes: [assistant(1, 1)] })
     const view = render(<StatsPills {...props(source, { tokenUsage: tokenUsageValue })} />)
-    expect(view.getAllByRole('button')[0]!.textContent).toContain(expected)
+    expect(view.getAllByRole('button')[0].textContent).toContain(expected)
   })
 
   it('exposes output speed on the counts pill when decode timing exists', () => {
     const { source } = makeSource({ nodes: [timedStep()] })
     const view = render(<StatsPills {...props(source)} />)
-    const timePill = view.getAllByRole('button')[0]!
+    const timePill = view.getAllByRole('button')[0]
     expect(timePill.textContent).toBe('1 turns 1 steps·20 tok/s')
     expect(timePill.getAttribute('aria-label')).toBe('1 turns 1 steps · 20 tok/s')
   })
@@ -257,7 +257,7 @@ describe('composer stats pills', () => {
     const { source } = makeSource({ nodes: [timedStep()] })
     const view = render(<StatsPills {...props(source)} />)
 
-    const timePill = view.getAllByRole('button')[0]!
+    const timePill = view.getAllByRole('button')[0]
     expect(timePill.getAttribute('aria-haspopup')).toBe('dialog')
     expect(timePill.getAttribute('aria-expanded')).toBe('false')
     expect(view.queryByRole('dialog')).toBeNull()
@@ -284,7 +284,7 @@ describe('composer stats pills', () => {
     const { source } = makeSource({ nodes: [timedStep()] })
     const view = render(<StatsPills {...props(source)} />)
 
-    const usagePill = view.getAllByRole('button')[1]!
+    const usagePill = view.getAllByRole('button')[1]
     fireEvent.click(usagePill)
     expect(usagePill.getAttribute('aria-expanded')).toBe('true')
     const dialog = view.getByRole('dialog')
@@ -307,7 +307,7 @@ describe('composer stats pills', () => {
   it('closes the dialog on Escape or an outside pointerdown', () => {
     const { source } = makeSource({ nodes: [timedStep()] })
     const view = render(<StatsPills {...props(source)} />)
-    const timePill = view.getAllByRole('button')[0]!
+    const timePill = view.getAllByRole('button')[0]
 
     fireEvent.click(timePill)
     expect(view.queryByRole('dialog')).toBeTruthy()
@@ -335,7 +335,7 @@ describe('composer stats pills', () => {
     fireEvent.click(usagePill)
     const dialogs = view.getAllByRole('dialog')
     expect(dialogs).toHaveLength(1)
-    expect(dialogs[0]!.getAttribute('aria-label')).toBe('Token usage')
+    expect(dialogs[0].getAttribute('aria-label')).toBe('Token usage')
     expect(timePill.getAttribute('aria-expanded')).toBe('false')
     expect(usagePill.getAttribute('aria-expanded')).toBe('true')
   })
@@ -352,7 +352,7 @@ describe('composer stats pills', () => {
     fireEvent.click(usagePill)
     const dialogs = view.getAllByRole('dialog')
     expect(dialogs).toHaveLength(1)
-    expect(dialogs[0]!.getAttribute('aria-label')).toBe('Token usage')
+    expect(dialogs[0].getAttribute('aria-label')).toBe('Token usage')
   })
 
   it('takes every pill and dialog label from the active locale', () => {
@@ -390,7 +390,7 @@ describe('composer stats pills', () => {
 
     it.each([false, true])('shows on hover after the dock delay only while the label is cut off: %s', (overflow) => {
       const view = renderCut(overflow)
-      fireEvent.pointerEnter(view.getAllByRole('button')[1]!)
+      fireEvent.pointerEnter(view.getAllByRole('button')[1])
       expect(tooltipText(view)).toBeNull()
       act(() => { vi.advanceTimersByTime(200) })
       expect(tooltipText(view)).toBe(overflow ? FULL : null)
@@ -399,7 +399,7 @@ describe('composer stats pills', () => {
     it('shows on keyboard focus of a dialog pill', () => {
       const view = renderCut(true)
       fireEvent.keyDown(document.body, { key: 'Tab' })
-      fireEvent.focus(view.getAllByRole('button')[1]!)
+      fireEvent.focus(view.getAllByRole('button')[1])
       expect(tooltipText(view)).toBe(FULL)
     })
 
@@ -431,7 +431,7 @@ describe('composer stats pills', () => {
     // Context occupancy lives on the composer's ContextMeter ring, not here.
     const pills = view.getAllByRole('button')
     expect(pills).toHaveLength(1)
-    expect(pills[0]!.textContent).toBe('105 tok·Cache hit 90%')
+    expect(pills[0].textContent).toBe('105 tok·Cache hit 90%')
   })
 
   it('drops the usage pill when no projection is composed', () => {
@@ -499,7 +499,7 @@ describe('composer stats pills', () => {
         ttftMs: 1_600, ttftSteps: 2, decodeMs: 3_000, decodeTokens: 60,
       }),
     })} />)
-    const timePill = view.getAllByRole('button')[0]!
+    const timePill = view.getAllByRole('button')[0]
     expect(timePill.textContent).toBe('200 turns 200 steps·20 tok/s')
     fireEvent.click(timePill)
     const dialog = view.getByRole('dialog')
@@ -514,7 +514,7 @@ describe('composer stats pills', () => {
     const view = render(<StatsPills {...props(source, {
       tokenUsage: { uncachedInputTokens: 0, outputTokens: 7, cacheReadTokens: 0, cacheWriteTokens: 0 },
     })} />)
-    const usagePill = view.getAllByRole('button')[0]!
+    const usagePill = view.getAllByRole('button')[0]
     expect(usagePill.textContent).toBe('7 tok')
     expect(usagePill.getAttribute('aria-label')).toBe('7 tok')
     // Output-only activity still fills the dialog's token rows.
@@ -532,9 +532,9 @@ describe('composer stats pills', () => {
         cacheWriteTokens: 100,
       },
     })} />)
-    expect(view.getAllByRole('button')[0]!.textContent).toBe('207 tok·Cache hit 45%')
+    expect(view.getAllByRole('button')[0].textContent).toBe('207 tok·Cache hit 45%')
     // A session that did write cache keeps the row, exact.
-    fireEvent.click(view.getAllByRole('button')[0]!)
+    fireEvent.click(view.getAllByRole('button')[0])
     expect(view.getByRole('dialog').textContent).toContain('Cache write100 tok')
   })
 

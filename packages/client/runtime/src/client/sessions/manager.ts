@@ -96,7 +96,7 @@ function questionInteractionStatus(
   questions: Extract<MuxFrame, { type: 'question/requested' }>['questions'],
 ): PendingInteractionStatus {
   if (questions.length !== 1) return 'question'
-  const question = questions[0] as typeof questions[number]
+  const question = questions[0]
   const intent = question.intent
   if (intent?.kind !== 'plan-review' || question.detail === undefined) return 'question'
   if (question.multiSelect === true) return 'question'

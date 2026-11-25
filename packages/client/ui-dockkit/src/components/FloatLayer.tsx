@@ -104,7 +104,7 @@ interface DrawnSample {
 /** Append a drawn position and drop the samples more than `VELOCITY_WINDOW_MS` older than it. */
 function sampleDrawn(samples: DrawnSample[], t: number, rect: FloatRect): void {
   samples.push({ t, x: rect.x, y: rect.y })
-  while (t - (samples[0] as DrawnSample).t > VELOCITY_WINDOW_MS) samples.shift()
+  while (t - (samples[0]).t > VELOCITY_WINDOW_MS) samples.shift()
 }
 
 /**
@@ -113,8 +113,8 @@ function sampleDrawn(samples: DrawnSample[], t: number, rect: FloatRect): void {
  * continuous across a release where the resistance slows the panel.
  */
 function releaseVelocity(samples: readonly DrawnSample[]): { readonly x: number; readonly y: number } {
-  const first = samples[0] as DrawnSample
-  const last = samples[samples.length - 1] as DrawnSample
+  const first = samples[0]
+  const last = samples[samples.length - 1]
   if (last.t === first.t) return { x: 0, y: 0 }
   const rate = (travel: number): number =>
     Math.max(-SPRING_MAX_VELOCITY, Math.min(SPRING_MAX_VELOCITY, travel / (last.t - first.t) * 1000))

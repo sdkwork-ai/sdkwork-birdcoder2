@@ -19,7 +19,7 @@ const css = readFileSync(resolve(import.meta.dirname, '../src/components/dockkit
 
 /** The sheet's app-region rules, as `[selector, value]` in source order. */
 const regionRules = [...css.matchAll(/(?<sel>[^{}]+)\{(?<body>[^{}]*)\}/g)]
-  .map(match => [match.groups!['sel']!.trim(), match.groups!['body']!] as const)
+  .map(match => [match.groups!['sel'].trim(), match.groups!['body']] as const)
   .filter(([, body]) => body.includes('-webkit-app-region'))
   .map(([selector, body]) => [
     selector,
@@ -48,7 +48,7 @@ describe('macOS app-region ownership', () => {
     // here would drag the same box twice and hide the row from the ownership gate.
     expect(regionRules).toHaveLength(1)
 
-    const [selector, value] = regionRules[0]!
+    const [selector, value] = regionRules[0]
     expect(value).toBe('no-drag')
     for (const part of ['.pane', '.stripChrome', '.float', '.divider']) {
       expect(selector, part).toContain(`:global(:where(html[data-platform='darwin'])) ${part}`)

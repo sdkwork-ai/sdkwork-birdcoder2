@@ -439,7 +439,7 @@ it('keeps the active system device name and the communications choice', async ()
 
 it('uses the acquired device group to show its physical name without the browser default prefix', async () => {
   const b = fixture()
-  b.stream.getAudioTracks()[0]!.label = 'Default - Active microphone'
+  b.stream.getAudioTracks()[0].label = 'Default - Active microphone'
   const devices = [
     { kind: 'audioinput', deviceId: 'default', groupId: 'other-input', label: 'Default - Other microphone' },
     { kind: 'audioinput', deviceId: 'other', groupId: 'other-input', label: 'Other microphone' },

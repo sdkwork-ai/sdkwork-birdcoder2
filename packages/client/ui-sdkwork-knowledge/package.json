@@ -28,6 +28,7 @@
   "dsh": {
     "client": {
       "inject": [
+        "@deepseek-ai/dsh-api-remotes",
         "@deepseek-ai/dsh-client-locale",
         "@deepseek-ai/dsh-client-ui-sdkwork-app-modes",
         "@deepseek-ai/dsh-client-ui-sdkwork-env",
@@ -47,6 +48,7 @@
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~",
+    "@deepseek-ai/dsh-api-remotes": "workspace:*",
     "@deepseek-ai/dsh-api-workspace-controller": "workspace:*",
     "@deepseek-ai/dsh-client-locale": "workspace:*",
     "@deepseek-ai/dsh-client-runtime": "workspace:*",
@@ -58,6 +60,7 @@
     "@deepseek-ai/dsh-client-ui-sdkwork-iam": "workspace:*",
     "@deepseek-ai/dsh-client-ui-slots": "workspace:*",
     "@deepseek-ai/dsh-client-ui-theme": "workspace:*",
+    "@deepseek-ai/dsh-tool-sdkwork-knowledge": "workspace:*",
     "@sdkwork/drive-app-sdk": "workspace:^",
     "@sdkwork/knowledgebase-app-sdk": "workspace:^",
     "@sdkwork/knowledgebase-pc-knowledge": "workspace:^",

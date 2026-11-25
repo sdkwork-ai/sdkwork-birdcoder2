@@ -1,0 +1,79 @@
+{
+  "name": "birdcoder-app-deploy",
+  "version": "0.1.0",
+  "scope": "product",
+  "standardsLock": "references/standards.lock.json",
+  "requires": [
+    "references/app-standards.md",
+    "references/deployment-targets.md",
+    "references/lifecycle.md",
+    "references/standards/APPLICATION_DEPLOY_LAYOUT_SPEC.md",
+    "references/standards/APP_CLIENT_ARCHITECTURE_ALIGNMENT_SPEC.md",
+    "references/standards/APP_MANIFEST_SPEC.md",
+    "references/standards/ENVIRONMENT_SPEC.md",
+    "references/standards/PACKAGING_SPEC.md",
+    "references/standards/SDKWORK_DEPLOY_SPEC.md",
+    "references/troubleshooting.md",
+    "scripts/preflight.mjs",
+    "scripts/selfcheck.mjs",
+    "scripts/standards.mjs"
+  ],
+  "files": [
+    {
+      "path": "SKILL.md",
+      "sha256": "212e72b884353341253060b457cdb4201633e78d6e7747badacb67bbe47d7620"
+    },
+    {
+      "path": "references/app-standards.md",
+      "sha256": "3fc9e42055c6e4e0bf2bd72d69a89ed0e60a9c73baf3b140d4bcf36d75b06a85"
+    },
+    {
+      "path": "references/deployment-targets.md",
+      "sha256": "e0b70369f9bea60b300d050116e53026cc4f53dc43eb3abb3b249b3dbf59faf3"
+    },
+    {
+      "path": "references/lifecycle.md",
+      "sha256": "347d2b79342ed4ae3249cf2b0d7ec37e44ac2a5c75ee313b98b7e18795215e6c"
+    },
+    {
+      "path": "references/standards/APPLICATION_DEPLOY_LAYOUT_SPEC.md",
+      "sha256": "e608695bdd48ca68560d644ebfef31e122b6186f837d628efb82fb0779233507"
+    },
+    {
+      "path": "references/standards/APP_CLIENT_ARCHITECTURE_ALIGNMENT_SPEC.md",
+      "sha256": "b7b5ce7879ee4d696bb2d99413e23ad254c6b6bf4de2f960c01edaccad26c632"
+    },
+    {
+      "path": "references/standards/APP_MANIFEST_SPEC.md",
+      "sha256": "ad5ad7afffe5eb009562f7cf05594288c4c0bea4d8828832de561371635e7f59"
+    },
+    {
+      "path": "references/standards/ENVIRONMENT_SPEC.md",
+      "sha256": "a9f662d4577e506ce17d87363721d5d960403d1bae81ea397bda5a0fb66ee616"
+    },
+    {
+      "path": "references/standards/PACKAGING_SPEC.md",
+      "sha256": "74f3d1bd8663f300b411bc0fda47ae85c24fb63213b3eeb7f59f2c219ccd44f7"
+    },
+    {
+      "path": "references/standards/SDKWORK_DEPLOY_SPEC.md",
+      "sha256": "1ff20666564936c7d9a51c232e8e195a4c771e6db982eee051b686227ba99760"
+    },
+    {
+      "path": "references/troubleshooting.md",
+      "sha256": "072097ee019782bed4f50479fc641aaa4482d48ec95014a677d1963e700c6c5c"
+    },
+    {
+      "path": "scripts/preflight.mjs",
+      "sha256": "36936c2722b3e890b440a5a9759816fda03198992d56c155e493cd9b5a0f5124"
+    },
+    {
+      "path": "scripts/selfcheck.mjs",
+      "sha256": "8c1bfd11882c968449d001c2d4968c4f6cd7fd080c935bf949a3a176062dde8c"
+    },
+    {
+      "path": "scripts/standards.mjs",
+      "sha256": "dff9377b61e663293eefa8d3da6e50c714d5a73544f3e2f0d73cbd9a0a6d6477"
+    }
+  ]
+}

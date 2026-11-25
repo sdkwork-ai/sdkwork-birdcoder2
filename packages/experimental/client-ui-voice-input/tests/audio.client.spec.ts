@@ -50,7 +50,7 @@ it('flushes final recording bytes, bounds timer overshoot and closes audio resou
   await b.recording.start()
   expect(b.recording.amplitude()).toBe(0.25)
   const result = await b.recording.stop(1)
-  expect(new TextDecoder().decode(b.decoding.mock.calls[0]![0])).toBe('final audio')
+  expect(new TextDecoder().decode(b.decoding.mock.calls[0][0])).toBe('final audio')
   expect(b.offline).toHaveBeenCalledWith(1, 16000, 16000)
   expect(result).toEqual(encodeWave(new Float32Array([0.5, -0.5])))
   expect(b.trackStop).toHaveBeenCalled()
@@ -143,7 +143,7 @@ it('previews an exact microphone without creating a recorder and releases it whe
   try {
     await preview.preview(failure)
     expect(preview.deviceInfo()).toEqual({ label: 'Fixture microphone', groupId: 'fixture-input' })
-    vi.spyOn(b.stream.getAudioTracks()[0]!, 'getSettings').mockReturnValue({})
+    vi.spyOn(b.stream.getAudioTracks()[0], 'getSettings').mockReturnValue({})
     expect(preview.deviceInfo()).toEqual({ label: 'Fixture microphone', groupId: '' })
     expect(b.getUserMedia).toHaveBeenCalledWith({ audio: { deviceId: { exact: 'usb-microphone' },
       echoCancellation: true, noiseSuppression: true }, video: false })

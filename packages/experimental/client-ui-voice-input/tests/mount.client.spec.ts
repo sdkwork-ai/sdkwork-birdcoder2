@@ -109,7 +109,7 @@ it('withdraws its Remote, localized slot and microphone captures on disposal', a
     expect(b.prepare).toHaveBeenLastCalledWith('local', { downloadSource: 'https://hf-mirror.com' })
     await actions.cancelPreparation('local' as SpeechProviderId)
     for (const slot of ['plugins.bundle.config', 'plugins.bundle.activation'] as const) {
-      const item = b.ctx.slots.entries(slot)[0]!
+      const item = b.ctx.slots.entries(slot)[0]
       expect(item.locale).toBe('voice-input')
       const injected = item.inject!()
       expect(injected.hooks).toBe(actions.hooks)

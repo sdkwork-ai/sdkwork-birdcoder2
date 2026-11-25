@@ -101,14 +101,14 @@ describe('review store', () => {
 
 describe('hunk rows', () => {
   it('numbers unified rows on the side they belong to and pairs deletions with additions for the split view', () => {
-    expect(hunkRows(text.hunks[0]!)).toEqual([
+    expect(hunkRows(text.hunks[0])).toEqual([
       { kind: 'context', old: 1, new: 1, text: 'a' },
       { kind: 'del', old: 2, new: undefined, text: 'b' },
       { kind: 'add', old: undefined, new: 2, text: 'B' },
       { kind: 'add', old: undefined, new: 3, text: 'c' },
       { kind: 'context', old: 3, new: 4, text: 'd' },
     ])
-    expect(splitRows(text.hunks[0]!)).toEqual([
+    expect(splitRows(text.hunks[0])).toEqual([
       { left: { no: 1, text: 'a', kind: 'context' }, right: { no: 1, text: 'a', kind: 'context' } },
       { left: { no: 2, text: 'b', kind: 'del' }, right: { no: 2, text: 'B', kind: 'add' } },
       { right: { no: 3, text: 'c', kind: 'add' } },
@@ -127,7 +127,7 @@ describe('hunk rows', () => {
     }
     const cut = renderedHunks([whole])
     expect(cut.truncated).toBe(true)
-    expect(cut.hunks[0]!.lines).toHaveLength(MAX_RENDERED_LINES)
+    expect(cut.hunks[0].lines).toHaveLength(MAX_RENDERED_LINES)
     const small: WorkspaceDiffHunk = { oldStart: 1, oldLines: 1, newStart: 1, newLines: 1, lines: ['-a', '+b'] }
     expect(renderedHunks([small, small])).toEqual({ hunks: [small, small], truncated: false })
     const two = renderedHunks([{ ...whole, lines: long(MAX_RENDERED_LINES) }, small])
@@ -218,7 +218,7 @@ describe('ReviewTab', () => {
     expect(items.map(item => item.textContent)).toEqual([
       'src/app/main.ts+3-1', '~/out/big.bin' + en['changes.oversized'], 'notes.txt+1-1', 'logo.png' + en['changes.binary'],
     ])
-    fireEvent.click(items[0]!)
+    fireEvent.click(items[0])
     expect(store.getSnapshot().byTab[TAB]?.index).toBe(0)
     expect(view.getByRole('button', { name: en['review.selectFile'] }).getAttribute('data-review-file')).toBe('src/app/main.ts')
     expect(injected.loadChangesDiff).toHaveBeenLastCalledWith('viewed', 5, 0)
@@ -250,22 +250,22 @@ describe('ReviewTab', () => {
     expect(side('right').map(line => line.textContent)).toEqual(['1a', '2B', '3c', '4d', '11y', ''])
     // The two sides scroll together on both axes, whichever side the reader drags.
     const [left, right] = ['left', 'right'].map(name => view.container.querySelector(`[data-diff-side="${name}"]`) as HTMLDivElement)
-    fireEvent.scroll(left!, { target: { scrollLeft: 40, scrollTop: 66 } })
-    expect([right!.scrollLeft, right!.scrollTop]).toEqual([40, 66])
-    fireEvent.scroll(right!, { target: { scrollLeft: 15 } })
-    expect([left!.scrollLeft, left!.scrollTop]).toEqual([15, 66])
-    fireEvent.scroll(right!, { target: { scrollTop: 22 } })
-    expect([left!.scrollLeft, left!.scrollTop]).toEqual([15, 22])
-    fireEvent.scroll(right!, { target: { scrollLeft: 15, scrollTop: 22 } })
-    expect([left!.scrollLeft, left!.scrollTop]).toEqual([15, 22])
+    fireEvent.scroll(left, { target: { scrollLeft: 40, scrollTop: 66 } })
+    expect([right.scrollLeft, right.scrollTop]).toEqual([40, 66])
+    fireEvent.scroll(right, { target: { scrollLeft: 15 } })
+    expect([left.scrollLeft, left.scrollTop]).toEqual([15, 66])
+    fireEvent.scroll(right, { target: { scrollTop: 22 } })
+    expect([left.scrollLeft, left.scrollTop]).toEqual([15, 22])
+    fireEvent.scroll(right, { target: { scrollLeft: 15, scrollTop: 22 } })
+    expect([left.scrollLeft, left.scrollTop]).toEqual([15, 22])
     // A short peer clamps horizontal writes to zero, including the resulting scroll event.
     Object.defineProperty(right, 'scrollLeft', { configurable: true, get: () => 0, set: () => {} })
-    fireEvent.scroll(left!, { target: { scrollLeft: 100 } })
-    fireEvent.scroll(right!)
-    expect(left!.scrollLeft).toBe(100)
-    fireEvent.scroll(left!, { target: { scrollTop: 44 } })
-    fireEvent.scroll(right!)
-    expect([left!.scrollLeft, right!.scrollTop]).toEqual([100, 44])
+    fireEvent.scroll(left, { target: { scrollLeft: 100 } })
+    fireEvent.scroll(right)
+    expect(left.scrollLeft).toBe(100)
+    fireEvent.scroll(left, { target: { scrollTop: 44 } })
+    fireEvent.scroll(right)
+    expect([left.scrollLeft, right.scrollTop]).toEqual([100, 44])
     expect(view.getByRole('button', { name: en['review.splitAria'] }).getAttribute('aria-pressed')).toBe('true')
     // Wrapped lines vary in height, so both sides share one row per pair.
     fireEvent.click(view.getByRole('button', { name: en['review.wrapAria'] }))
@@ -316,7 +316,7 @@ describe('ReviewTab', () => {
 
   it('keeps unknown source files as plain text', () => {
     const summaries = new ChangesSummaryStore()
-    summaries.state.set({ [SUMMARY_URL]: { ...summary, files: [{ ...summary.files[0]!, path: 'notes.unknown' }] } })
+    summaries.state.set({ [SUMMARY_URL]: { ...summary, files: [{ ...summary.files[0], path: 'notes.unknown' }] } })
     const diffs = new ChangesDiffStore()
     diffs.state.set({
       [changesDiffUrl(SESSION, 5, 0)]: {

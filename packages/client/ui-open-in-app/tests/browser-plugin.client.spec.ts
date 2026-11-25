@@ -151,9 +151,9 @@ describe('open-in-app browser half', () => {
       ])
       expect(ctx.slots.entries('sidebar.workspaces.session.menu.item')).toHaveLength(0)
       await vi.waitFor(() => { expect(menu.source.getSnapshot()[0]).toMatchObject({ label: 'Open in', disabled: false }) })
-      menu.select(menu.source.getSnapshot()[0]!.children![0]!.id)
+      menu.select(menu.source.getSnapshot()[0].children![0].id)
       menu.dispose()
-      const face: Partial<OpenInAppActionInjected> = ctx.slots.entries('sidebar.right.tab.files.actions')[0]!.inject!()
+      const face: Partial<OpenInAppActionInjected> = ctx.slots.entries('sidebar.right.tab.files.actions')[0].inject!()
       await vi.waitFor(() => { expect(face.hooks?.openInAppLaunch.getSnapshot().phase).toBe(success ? 'idle' : 'error') })
       expect(toast.hooks.toast.getSnapshot()).toEqual(success
         ? mobile ? { kind: 'opened', seq: 1 } : null
@@ -244,7 +244,7 @@ describe('open-in-app browser half', () => {
     const { ctx, fiber } = await bench()
     const pending = Promise.withResolvers<OpenInAppOutcome>()
     try {
-      const entry = ctx.slots.entries('deliverables.file.actions')[0]!
+      const entry = ctx.slots.entries('deliverables.file.actions')[0]
       const report = entry.inject!().report as OpenTargetReporter['report']
       const toast = toastSource(ctx)
       render(createElement(OpenInAppToast, {

@@ -35,16 +35,16 @@ it('adds the last General row only while served and removes all contributions on
     }] } })
     remote.emit('settings/document-updated', ['session-log-deepseek', 1])
     await vi.waitFor(() => { expect(slots.entries('settings.general.item')).toHaveLength(1) })
-    expect(slots.entries('settings.general.item')[0]!.options).toMatchObject({ id: 'session-log-deepseek', order: 90 })
+    expect(slots.entries('settings.general.item')[0].options).toMatchObject({ id: 'session-log-deepseek', order: 90 })
     expect(slots.entries('shell.overlay')).toHaveLength(1)
-    const row = slots.entries('settings.general.item')[0]!
+    const row = slots.entries('settings.general.item')[0]
     const face = row.inject!() as UploadInjected & Record<string, unknown>
     const form = ctx.configForms.get('session-log-deepseek')
     const set = vi.spyOn(form, 'set').mockResolvedValue(false)
     await face.setEnabled(false)
     expect(set).toHaveBeenCalledWith('enabled', false)
     expect(face.hooks.mutation.getSnapshot().notice).toBe('failed')
-    const toast = slots.entries('shell.overlay')[0]!.inject!() as UploadInjected & Record<string, unknown>
+    const toast = slots.entries('shell.overlay')[0].inject!() as UploadInjected & Record<string, unknown>
     expect(toast.hooks.mutation).toBe(face.hooks.mutation)
     toast.dismiss()
     expect(face.hooks.mutation.getSnapshot().notice).toBeNull()

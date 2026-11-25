@@ -42,7 +42,7 @@ function stubRect(element: Element, rect: { left: number; top: number; right: nu
     x: rect.left,
     y: rect.top,
     toJSON: () => ({}),
-  } as DOMRect)
+  })
 }
 
 /** Stub an element's laid-out box, which jsdom reports as zero offsets. */
@@ -103,7 +103,7 @@ function mount(options?: {
 function openFlyout(handles: Handles): HTMLElement {
   fireEvent.mouseEnter(handles.parentRow)
   // The list renders in place, the card is portaled to the body after it.
-  return screen.getAllByRole('menu')[1] as HTMLElement
+  return screen.getAllByRole('menu')[1]
 }
 
 /** Give the card a real measured box and replay the placement, as a scroll would. */
@@ -326,7 +326,7 @@ it('portals the card to the body, outside the list card', () => {
   const handles = mount()
   stubRect(handles.parentRow, { left: 24, top: 216, right: 234, bottom: 256 })
   const flyout = openFlyout(handles)
-  const list = screen.getAllByRole('menu')[0] as HTMLElement
+  const list = screen.getAllByRole('menu')[0]
   expect(flyout.parentElement).toBe(document.body)
   expect(list.contains(flyout)).toBe(false)
 })

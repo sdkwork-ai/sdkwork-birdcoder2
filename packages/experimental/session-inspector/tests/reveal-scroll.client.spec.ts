@@ -66,7 +66,7 @@ it('uses native smooth scrolling and flashes only after both main and group scro
   scroller.addEventListener('scrollend', endNotice)
   reveal()
   expect(navigation).toHaveBeenCalledOnce()
-  expect(navigation.mock.invocationCallOrder[0]).toBeLessThan(scroll.mock.invocationCallOrder[0]!)
+  expect(navigation.mock.invocationCallOrder[0]).toBeLessThan(scroll.mock.invocationCallOrder[0])
   expect(scroll).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center', inline: 'nearest' })
   expect(scrollNotice).not.toHaveBeenCalled()
   expect(endNotice).not.toHaveBeenCalled()
@@ -315,7 +315,7 @@ it('contains late quiet and interruption callbacks after cancelling a pending se
   const listeners = vi.spyOn(window, 'addEventListener')
   onTestFinished(() => { timers.mockRestore(); listeners.mockRestore() })
   reveal()
-  const quiet = timers.mock.calls[0]![0]
+  const quiet = timers.mock.calls[0][0]
   const interrupt = listeners.mock.calls.find(([type]) => type === 'wheel')![1] as EventListener
   scroller.dispatchEvent(new Event('scroll'))
   scroller.dispatchEvent(new Event('scrollend'))
@@ -333,7 +333,7 @@ it('does not let a replaced animation remove the new highlight', () => {
   const { reveal, tick, animate, animations, setTop } = fixture()
   setTop(100)
   reveal(); tick()
-  const oldFinish = animations[0]!.onfinish!
+  const oldFinish = animations[0].onfinish!
   reveal(); tick()
   expect(animate).toHaveBeenCalledTimes(2)
   oldFinish()

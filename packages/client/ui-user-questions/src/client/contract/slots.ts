@@ -81,7 +81,7 @@ export interface PlanReview {
 export function planReviewOf(questions: readonly QuestionItem[]): PlanReview | undefined {
   if (questions.length !== 1) return undefined
   // Length-checked above; the index read is the narrowing tax, not a guess.
-  const question = questions[0] as QuestionItem
+  const question = questions[0]
   const intent = question.intent
   if (intent?.kind !== 'plan-review' || question.detail === undefined) return undefined
   if (question.multiSelect === true) return undefined

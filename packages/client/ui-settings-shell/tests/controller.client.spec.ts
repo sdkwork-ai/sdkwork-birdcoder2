@@ -14,7 +14,7 @@ function acceptWrites<T>(host: StubConfigForm<T>): void {
     const value = { ...section() }
     const user = { ...layer() }
     for (const op of ops) {
-      const field = op.path[0]!
+      const field = op.path[0]
       if (op.op === 'set') {
         value[field] = op.value
         user[field] = op.value

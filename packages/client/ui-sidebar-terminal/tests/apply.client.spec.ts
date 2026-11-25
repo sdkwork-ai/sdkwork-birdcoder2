@@ -123,13 +123,13 @@ it('registers terminal views and the agent terminal opener without recovery or c
       ['conversation.session.header.actions', AgentTerminalOpener, 'sidebarTerminal'],
     ])
     const sessionId = 'session' as SessionId
-    const launcher = h.entries[0]!.inject(sessionId) as TerminalGuideInjected
+    const launcher = h.entries[0].inject(sessionId) as TerminalGuideInjected
     const signal = new AbortController().signal
     await launcher.loadShells(signal)
     expect(h.terminals.launchShells).toHaveBeenCalledWith(sessionId, signal)
     launcher.selectShell('/bin/bash')
     expect(h.terminals.selectShell).toHaveBeenCalledWith('/bin/bash')
-    const face = h.entries[1]!.inject(sessionId) as TerminalBodyInjected
+    const face = h.entries[1].inject(sessionId) as TerminalBodyInjected
     expect(face.hooks.theme.getSnapshot()).toBe(h.theme)
     const changed = vi.fn()
     const unsubscribe = face.hooks.theme.subscribe(changed)
@@ -170,7 +170,7 @@ it('registers terminal views and the agent terminal opener without recovery or c
 it('opens a terminal for the command target and refuses without a selected Session', async () => {
   const h = await mountPlugin()
   try {
-    const command = h.commands[0]!
+    const command = h.commands[0]
     expect(command.label()).toBe('new')
     const input = { region: 'page', modal: null, target: null } as const
     expect(command.resolve(input)).toEqual({ status: 'blocked', reason: 'shortcut.noSession' })

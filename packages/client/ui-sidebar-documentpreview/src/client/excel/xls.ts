@@ -90,7 +90,7 @@ export function mapXlsWorkbook(workbook: WorkBook, limits: ExcelLimits): ExcelPr
         cells.set(key, cell)
       }
     }
-    const visible = visibleSheets[order] === true
+    const visible =  visibleSheets[order]
     const status = order === activeOrder ? 1 : 0
     return { id: String(order + 1), name, order, status, hide: visible ? 0 : 1, row, column,
       config, celldata: [...cells.values()], luckysheet_select_save: initialSelection(config) }

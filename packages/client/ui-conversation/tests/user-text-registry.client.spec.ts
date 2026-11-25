@@ -240,7 +240,7 @@ describe('UserTextRegistry candidate rules', () => {
     expect(evaluate(input)[0]?.id).toBe('test.a')
     dispose()
     expect(evaluate(input)).toEqual([plain('abc')])
-    expect(seen[1]).toBeGreaterThan(seen[0]!)
+    expect(seen[1]).toBeGreaterThan(seen[0])
     dispose()
     expect(seen).toHaveLength(2)
     unsubscribe()

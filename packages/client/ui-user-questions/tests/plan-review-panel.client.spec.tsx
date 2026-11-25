@@ -188,7 +188,7 @@ describe('planReviewOf', () => {
   })
 
   it('retains the logged invocation so the review can reopen its exact plan', () => {
-    const question = questions()[0]!
+    const question = questions()[0]
     const callId = 'plan-call' as ToolCallId
     const review = planReviewOf([{
       ...question,
@@ -269,7 +269,7 @@ describe('PlanReviewPanel', () => {
   })
 
   it('extracts a plain summary and keeps a heading-only plan compact', () => {
-    const question = questions()[0]!
+    const question = questions()[0]
     const detail = '# **Release** plan\n\nReview the [changes](https://example.com) before **shipping**.\n\n## Steps\n- Build'
     const { carrier } = wait([{ ...question, detail }])
     const view = render(<QuestionComposer matched={carrier} {...kit} />)

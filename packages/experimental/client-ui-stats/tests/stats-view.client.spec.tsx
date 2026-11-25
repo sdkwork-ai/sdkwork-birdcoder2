@@ -642,7 +642,7 @@ describe('turn rows', () => {
     expect(interrupted[2]?.textContent).toBe(say('did.aborted'))
 
     const unsettled = cellsOf(rowWithPrefix(say('turn.label', { turn: 3 })))
-    const abortedMarker = within(unsettled[0] as HTMLTableCellElement).getByText(say('state.aborted'))
+    const abortedMarker = within(unsettled[0]).getByText(say('state.aborted'))
     expect(abortedMarker.getAttribute('title')).toBe(say('state.aborted.title'))
     expect(unsettled[2]?.textContent).toBe(say('did.aborted'))
 
@@ -663,7 +663,7 @@ describe('turn rows', () => {
       })],
       stepCount: 0,
     })
-    const cell = cellsOf(rowWithPrefix(say('turn.label', { turn: 1 })))[1] as HTMLTableCellElement
+    const cell = cellsOf(rowWithPrefix(say('turn.label', { turn: 1 })))[1]
     expect(cell.textContent).toContain(`${say('trigger.team-message')} · hfai-deploy`)
     expect(cell.textContent).toContain('P1 已 rebase 完成')
     expect(cell.textContent).not.toContain('Team message from')
@@ -687,15 +687,15 @@ describe('turn rows', () => {
       ],
       stepCount: 3,
     })
-    const first = cellsOf(rowWithPrefix(say('turn.label', { turn: 1 })))[1] as HTMLTableCellElement
+    const first = cellsOf(rowWithPrefix(say('turn.label', { turn: 1 })))[1]
     expect(first.textContent).toContain(say('trigger.agent-message'))
     expect(first.textContent).not.toContain('52224ac7')
     expect(first.textContent).toContain('请检查构建')
-    const second = cellsOf(rowWithPrefix(say('turn.label', { turn: 2 })))[1] as HTMLTableCellElement
+    const second = cellsOf(rowWithPrefix(say('turn.label', { turn: 2 })))[1]
     expect(second.textContent).toContain(say('trigger.subagent-settled'))
     expect(second.textContent).not.toContain('10a0dbaa')
     expect(second.textContent).toContain('and will do no further work.')
-    const third = cellsOf(rowWithPrefix(say('turn.label', { turn: 3 })))[1] as HTMLTableCellElement
+    const third = cellsOf(rowWithPrefix(say('turn.label', { turn: 3 })))[1]
     expect(third.textContent).toContain(`${say('trigger.team-message')} · stack-rebase`)
     expect(third.textContent).toContain('P2 已合并')
     expect(third.textContent).not.toContain('Team message from')
@@ -711,7 +711,7 @@ describe('turn rows', () => {
       stepCount: 0,
     })
     const row = rowWithPrefix(say('turn.label', { turn: 1 }))
-    const did = cellsOf(row)[2] as HTMLTableCellElement
+    const did = cellsOf(row)[2]
     expect(within(did).getByText('read ×2').getAttribute('title'))
       .toBe(say('did.title', { calls: 2, tools: 'read' }))
     expect(within(did).getByText('edit ×1')).toBeTruthy()
@@ -733,7 +733,7 @@ describe('turn rows', () => {
       turns: [turn({ tools: [tool('read', 1), tool('edit', 1), tool('write', 1)], toolOutput: 0 })],
       stepCount: 0,
     })
-    const did = cellsOf(rowWithPrefix(say('turn.label', { turn: 1 })))[2] as HTMLTableCellElement
+    const did = cellsOf(rowWithPrefix(say('turn.label', { turn: 1 })))[2]
     expect(within(did).queryByText(say('did.more', { count: 1 }))).toBeNull()
     expect(within(did).queryByText(say('tool.failed', { count: 1 }))).toBeNull()
     expect(within(did).queryByText(/字符/)).toBeNull()
@@ -750,7 +750,7 @@ describe('turn rows', () => {
       stepCount: 3,
     })
     expect(cellsOf(rowWithPrefix(say('turn.label', { turn: 1 })))[1]?.textContent).toBe('plain question')
-    const only = cellsOf(rowWithPrefix(say('turn.label', { turn: 2 })))[1] as HTMLTableCellElement
+    const only = cellsOf(rowWithPrefix(say('turn.label', { turn: 2 })))[1]
     expect(within(only).getByRole('button', { name: say('turn.images', { count: 1 }) })).toBeTruthy()
     expect(only.textContent).toBe(say('turn.images', { count: 1 }))
     expect(only.getAttribute('title')).toBe(say('turn.images', { count: 1 }))
@@ -781,7 +781,7 @@ describe('turn rows', () => {
       'mystery': say('trigger.other'),
     }
     sources.forEach((source, index) => {
-      const cell = cellsOf(rowWithPrefix(say('turn.label', { turn: index + 1 })))[1] as HTMLTableCellElement
+      const cell = cellsOf(rowWithPrefix(say('turn.label', { turn: index + 1 })))[1]
       expect(cell.textContent).toContain(labels[source])
       expect(cell.textContent).toContain(`trigger text ${index}`)
       expect(cell.getAttribute('title')).toBe(`trigger text ${index}`)
@@ -790,7 +790,7 @@ describe('turn rows', () => {
     // A context-only trigger with no readable text still shows its badge alone.
     cleanup()
     mount({ turns: [turn({ prompt: null, promptSource: 'time-context' })], stepCount: 0 })
-    const bare = cellsOf(rowWithPrefix(say('turn.label', { turn: 1 })))[1] as HTMLTableCellElement
+    const bare = cellsOf(rowWithPrefix(say('turn.label', { turn: 1 })))[1]
     expect(bare.textContent).toContain(say('trigger.context'))
     expect(bare.getAttribute('title')).toBe(say('trigger.context'))
   })
@@ -955,7 +955,7 @@ describe('turn rows', () => {
     expect(first).toBeGreaterThanOrEqual(0)
     expect(marker).toBeGreaterThan(first)
     expect(marker).toBeLessThan(second)
-    const completed = cellsOf(rows[marker]!)
+    const completed = cellsOf(rows[marker])
     expect(completed[1]?.textContent).toBe('deepseek-official / deepseek-flash')
     expect(rows[marker]?.textContent).toContain(say('compaction.shadowed', { tokens: formatTokens(4_000) }))
     expect(completed[3]?.textContent).toBe(formatTokensShort(1_100))
@@ -1179,17 +1179,17 @@ describe('step rows', () => {
     expect(first.getAttribute('title')).toBe(say('detail.title'))
     // No recorded breakdown on this step: the cache cell keeps the formula explanation.
     expect(firstCells[5]?.getAttribute('title')).toBe(say('column.cache.title'))
-    const failed = within(firstCells[2] as HTMLTableCellElement).getByText(say('tool.failed', { count: 1 }))
+    const failed = within(firstCells[2]).getByText(say('tool.failed', { count: 1 }))
     expect(failed.getAttribute('title')).toBe(say('tool.failed.title', { count: 1 }))
-    expect(within(firstCells[2] as HTMLTableCellElement).getByText('read')).toBeTruthy()
-    expect(within(firstCells[2] as HTMLTableCellElement).getByText(say('did.lines', { lines: '3' }))).toBeTruthy()
+    expect(within(firstCells[2]).getByText('read')).toBeTruthy()
+    expect(within(firstCells[2]).getByText(say('did.lines', { lines: '3' }))).toBeTruthy()
 
     const partial = cellsOf(stepRow(2))
     expect(partial[0]?.textContent).toContain(say('step.partial'))
-    const partialHint = within(partial[0] as HTMLTableCellElement).getByText(`· ${say('step.partial')}`)
+    const partialHint = within(partial[0]).getByText(`· ${say('step.partial')}`)
     expect(partialHint.getAttribute('title')).toBe(say('step.partial.title'))
     expect(partial[0]?.textContent).toContain(say('state.aborted'))
-    expect(within(partial[0] as HTMLTableCellElement).getByText(say('state.aborted')).getAttribute('title'))
+    expect(within(partial[0]).getByText(say('state.aborted')).getAttribute('title'))
       .toBe(say('state.aborted.title'))
     expect(partial[2]?.textContent).toBe(say('did.aborted'))
 
@@ -1218,7 +1218,7 @@ describe('step rows', () => {
 
   it('previews the answered text in the did cell and skips blank answers', () => {
     mount(turnSnapshot([step({ answer: 'first line\nsecond line' })]))
-    const stepDid = cellsOf(stepRow(1))[2] as HTMLTableCellElement
+    const stepDid = cellsOf(stepRow(1))[2]
     expect(stepDid.textContent).toContain('first line')
     expect(within(stepDid).getByTitle(/first line/).getAttribute('title')).toBe('first line\nsecond line')
 
@@ -1228,7 +1228,7 @@ describe('step rows', () => {
 
     cleanup()
     mount({ turns: [turn({ answer: 'turn answer text' })], stepCount: 0 })
-    const turnDid = cellsOf(rowWithPrefix(say('turn.label', { turn: 1 })))[2] as HTMLTableCellElement
+    const turnDid = cellsOf(rowWithPrefix(say('turn.label', { turn: 1 })))[2]
     expect(turnDid.textContent).toContain('turn answer text')
     expect(within(turnDid).getByTitle('turn answer text')).toBeTruthy()
 
@@ -1320,7 +1320,7 @@ describe('step rows', () => {
     ]
     mount(turnSnapshot(steps))
 
-    const firstDid = cellsOf(stepRow(1))[2] as HTMLTableCellElement
+    const firstDid = cellsOf(stepRow(1))[2]
     expect(within(firstDid).getByText('×2')).toBeTruthy()
     expect(within(firstDid).getByText(say('did.lines', { lines: '3' }))).toBeTruthy()
     expect(within(firstDid).getByText('+2 行')).toBeTruthy()
@@ -1329,25 +1329,25 @@ describe('step rows', () => {
     expect(within(firstDid).getAllByText('·')).toHaveLength(2)
     expect(within(firstDid).getByText(say('did.rest', { count: 1 }))).toBeTruthy()
 
-    const mixed = cellsOf(stepRow(2))[2] as HTMLTableCellElement
+    const mixed = cellsOf(stepRow(2))[2]
     expect(within(mixed).getByText('+1')).toBeTruthy()
     expect(within(mixed).getByText('−2')).toBeTruthy()
-    expect(within(cellsOf(stepRow(3))[2] as HTMLTableCellElement).getByText('+3 行')).toBeTruthy()
-    expect(within(cellsOf(stepRow(4))[2] as HTMLTableCellElement).getByText('−4 行')).toBeTruthy()
+    expect(within(cellsOf(stepRow(3))[2]).getByText('+3 行')).toBeTruthy()
+    expect(within(cellsOf(stepRow(4))[2]).getByText('−4 行')).toBeTruthy()
 
-    const zero = cellsOf(stepRow(5))[2] as HTMLTableCellElement
+    const zero = cellsOf(stepRow(5))[2]
     expect(within(zero).getByText('mystery')).toBeTruthy()
     expect(within(zero).getByText('bash')).toBeTruthy()
     expect(within(zero).queryByText('write')).toBeNull()
     expect(within(zero).queryByText(say('did.lines', { lines: formatTokens(0) }))).toBeNull()
     expect(within(zero).queryByText(/字符/)).toBeNull()
 
-    expect(within(cellsOf(stepRow(6))[2] as HTMLTableCellElement).getByText('?')).toBeTruthy()
+    expect(within(cellsOf(stepRow(6))[2]).getByText('?')).toBeTruthy()
     // An empty tool name hashes to a tone instead of falling back to the marker.
     expect(cellsOf(stepRow(7))[2]?.textContent).toBe('')
 
     fireEvent.click(stepRow(6))
-    expect(within(callBlocks()[0] as HTMLElement).getByText('?')).toBeTruthy()
+    expect(within(callBlocks()[0]).getByText('?')).toBeTruthy()
   })
 
   it('uses the listed call count when a step has calls but no tool tallies', () => {
@@ -1514,7 +1514,7 @@ describe('step detail accordion', () => {
     expect(detail.textContent).toContain(say('detail.chars', { chars: formatTokens(12) }))
     expect(detail.textContent).toContain(say('detail.hidden', { count: 2, limit: 12 }))
 
-    const read = blocks[0] as HTMLElement
+    const read = blocks[0]
     expect(read.textContent).toContain('/a.ts')
     expect(read.textContent).toContain([
       say('detail.chars', { chars: formatTokens(12) }),
@@ -1526,13 +1526,13 @@ describe('step detail accordion', () => {
     expect(within(read).getByText('alpha')).toBeTruthy()
     expect(within(read).getByText('beta')).toBeTruthy()
 
-    const edit = blocks[1] as HTMLElement
+    const edit = blocks[1]
     expect(within(edit).getByText(say('detail.diff'))).toBeTruthy()
     expect(within(edit).getByText('a')).toBeTruthy()
     expect(within(edit).getByText('− b')).toBeTruthy()
     expect(within(edit).getByText('+ c')).toBeTruthy()
 
-    const write = blocks[2] as HTMLElement
+    const write = blocks[2]
     expect(within(write).getByText(say('detail.emptyBody'))).toBeTruthy()
 
     expect(within(detail).queryAllByRole('button', { name: say('detail.copy') })).toHaveLength(0)
@@ -1559,7 +1559,7 @@ describe('step detail accordion', () => {
     openDetail(1)
     expect(within(detailRow()).queryByText(say('detail.args'))).toBeNull()
 
-    const raw = within(callBlocks()[0] as HTMLElement).getByRole('button', { name: '{}' })
+    const raw = within(callBlocks()[0]).getByRole('button', { name: '{}' })
     expect(raw.getAttribute('aria-pressed')).toBe('false')
     expect(raw.getAttribute('title')).toBe(say('detail.raw.title'))
     fireEvent.click(raw)
@@ -1568,16 +1568,16 @@ describe('step detail accordion', () => {
     const rawBody = detailRow().querySelector('pre')
     expect([...(rawBody?.querySelectorAll('span') ?? [])].map(line => line.textContent))
       .toEqual(['{', '  "path": "/a.ts"', '}'])
-    expect(rawBody?.classList.contains(css.codeWrap!)).toBe(true)
-    expect(within(callBlocks()[0] as HTMLElement).getByRole('button', { name: '{}' }).getAttribute('aria-pressed'))
+    expect(rawBody?.classList.contains(css.codeWrap)).toBe(true)
+    expect(within(callBlocks()[0]).getByRole('button', { name: '{}' }).getAttribute('aria-pressed'))
       .toBe('true')
 
-    fireEvent.click(within(callBlocks()[0] as HTMLElement).getByRole('button', { name: '{}' }))
+    fireEvent.click(within(callBlocks()[0]).getByRole('button', { name: '{}' }))
     expect(within(detailRow()).queryByText(say('detail.args'))).toBeNull()
 
     // Raw stays on while the arguments turn unrecorded: the chip disappears and
     // the body falls back to the result text.
-    fireEvent.click(within(callBlocks()[0] as HTMLElement).getByRole('button', { name: '{}' }))
+    fireEvent.click(within(callBlocks()[0]).getByRole('button', { name: '{}' }))
     act(() => {
       store.set(callSnapshot(
         [call({ callId: 'read-call', name: 'read', hint: '/a.ts', text: 'alpha\nbeta' })],
@@ -1676,15 +1676,15 @@ describe('step detail accordion', () => {
     const copies = within(detailRow()).getAllByRole('button', { name: say('detail.copy') })
     expect(copies).toHaveLength(3)
     await act(async () => {
-      fireEvent.click(copies[0] as HTMLElement)
+      fireEvent.click(copies[0])
     })
     expect(writeText).toHaveBeenLastCalledWith('old\nnew')
     await act(async () => {
-      fireEvent.click(copies[1] as HTMLElement)
+      fireEvent.click(copies[1])
     })
     expect(writeText).toHaveBeenLastCalledWith('newer')
     await act(async () => {
-      fireEvent.click(copies[2] as HTMLElement)
+      fireEvent.click(copies[2])
     })
     expect(writeText).toHaveBeenLastCalledWith('older')
   })
@@ -1715,12 +1715,12 @@ describe('call bodies', () => {
     const blocks = callBlocks()
     expect(blocks).toHaveLength(12)
 
-    const diff = blocks[0] as HTMLElement
+    const diff = blocks[0]
     expect(within(diff).getByText(say('detail.diff'))).toBeTruthy()
     expect(within(diff).getByText('− x')).toBeTruthy()
     expect(within(diff).getByText('+ y')).toBeTruthy()
 
-    const file = blocks[2] as HTMLElement
+    const file = blocks[2]
     expect(file.textContent).toContain(`/repo/file.ts · ${say('detail.lines', { lines: formatTokens(4) })}`)
     expect(file.textContent).toContain('alpha')
     expect(file.textContent).toContain('beta')
@@ -1728,16 +1728,16 @@ describe('call bodies', () => {
     expect(file.textContent).not.toContain('1: alpha')
     expect(file.textContent).not.toContain('2: beta')
 
-    expect((blocks[3] as HTMLElement).textContent).toContain(say('detail.file'))
-    expect((blocks[3] as HTMLElement).textContent).toContain('body')
-    expect((blocks[4] as HTMLElement).textContent).toContain('</content><content>')
-    expect((blocks[6] as HTMLElement).textContent).toContain('<content>unterminated')
-    expect((blocks[7] as HTMLElement).textContent).toContain('no envelope')
-    expect((blocks[8] as HTMLElement).querySelectorAll('pre span')).toHaveLength(0)
-    expect((blocks[9] as HTMLElement).textContent).toContain(say('detail.truncated', { chars: formatTokens(5) }))
-    expect((blocks[9] as HTMLElement).textContent).toContain('hello')
-    expect((blocks[10] as HTMLElement).textContent).toContain('one')
-    expect((blocks[10] as HTMLElement).textContent).toContain('two')
+    expect((blocks[3]).textContent).toContain(say('detail.file'))
+    expect((blocks[3]).textContent).toContain('body')
+    expect((blocks[4]).textContent).toContain('</content><content>')
+    expect((blocks[6]).textContent).toContain('<content>unterminated')
+    expect((blocks[7]).textContent).toContain('no envelope')
+    expect((blocks[8]).querySelectorAll('pre span')).toHaveLength(0)
+    expect((blocks[9]).textContent).toContain(say('detail.truncated', { chars: formatTokens(5) }))
+    expect((blocks[9]).textContent).toContain('hello')
+    expect((blocks[10]).textContent).toContain('one')
+    expect((blocks[10]).textContent).toContain('two')
 
     expect(within(detailRow()).getAllByText(say('detail.emptyBody'))).toHaveLength(3)
     expect(within(detailRow()).queryAllByRole('button', { name: '{}' })).toHaveLength(0)
@@ -1751,10 +1751,10 @@ describe('call bodies', () => {
     ], { tools: [tool('edit', 3)] }))
     openDetail(1)
     const blocks = callBlocks()
-    expect(within(blocks[0] as HTMLElement).getByText('+ x')).toBeTruthy()
-    expect(within(blocks[1] as HTMLElement).getByText('− x')).toBeTruthy()
-    expect(within(blocks[2] as HTMLElement).getByText('− x')).toBeTruthy()
-    expect(within(blocks[2] as HTMLElement).getByText('+ b')).toBeTruthy()
+    expect(within(blocks[0]).getByText('+ x')).toBeTruthy()
+    expect(within(blocks[1]).getByText('− x')).toBeTruthy()
+    expect(within(blocks[2]).getByText('− x')).toBeTruthy()
+    expect(within(blocks[2]).getByText('+ b')).toBeTruthy()
   })
 
   it('shows unparseable argument text verbatim and wrapped', () => {
@@ -1765,7 +1765,7 @@ describe('call bodies', () => {
     expect(within(detail).getByText(say('detail.args'))).toBeTruthy()
     expect(within(detail).getByText('line one')).toBeTruthy()
     expect(within(detail).getByText('line two')).toBeTruthy()
-    expect(within(detail).getByText('line one').closest('pre')?.classList.contains(css.codeWrap!)).toBe(true)
+    expect(within(detail).getByText('line one').closest('pre')?.classList.contains(css.codeWrap)).toBe(true)
     expect(detail.textContent).not.toContain(say('detail.emptyBody'))
   })
 
@@ -2061,7 +2061,7 @@ describe('prompt images', () => {
       promptSource: 'agent-message',
       promptImages: [imageRef()],
     }))
-    const cell = cellsOf(rowWithPrefix(say('turn.label', { turn: 1 })))[1] as HTMLTableCellElement
+    const cell = cellsOf(rowWithPrefix(say('turn.label', { turn: 1 })))[1]
     expect(within(cell).getByText(say('trigger.agent-message'))).toBeTruthy()
     expect(within(cell).getByRole('button', { name: say('turn.images', { count: 1 }) })).toBeTruthy()
     expect(cell.textContent).toContain('team note')

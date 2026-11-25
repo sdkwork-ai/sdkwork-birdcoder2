@@ -88,7 +88,7 @@ export function FeedbackDialog({
         title={t('dialog.title')}
         closeLabel={t('close')}
         onClose={dismiss}
-        className={css.dialog as string}
+        className={css.dialog}
         footer={(
           <Button
             variant="primary"

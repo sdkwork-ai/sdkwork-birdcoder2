@@ -149,7 +149,7 @@ function motionAfter(motion: PanelMotion, presentation: SessionPanelPresentation
  * @returns the section being dragged, where it would land, and the handlers for a section and its title row.
  */
 function useSectionReorder(moveSection: (id: string, target: string, placement: DropTarget['placement']) => void) {
-  const preview = useRowDragPreview(css.dragPreview as string)
+  const preview = useRowDragPreview(css.dragPreview)
   const [dragged, setDragged] = useState<string>()
   const [target, setTarget] = useState<DropTarget>()
   const end = (): void => {

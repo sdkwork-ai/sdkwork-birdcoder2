@@ -104,12 +104,12 @@ describe('full-color code-file artwork', () => {
     for (const [type, artwork] of Object.entries(CODE_FILE_ARTWORK)) {
       expect(artwork).not.toMatch(/<(?:script|style|foreignObject)\b|\son[a-z]+\s*=/iu)
       expect(artwork).not.toMatch(/(?:href|xlink:href)="(?!#)/iu)
-      const ids = [...artwork.matchAll(/\bid="([^"]+)"/gu)].map(match => match[1]!)
+      const ids = [...artwork.matchAll(/\bid="([^"]+)"/gu)].map(match => match[1])
       expect(new Set(ids).size, `${type} has duplicate SVG ids`).toBe(ids.length)
       for (const id of ids) expect(id).toMatch(new RegExp(`^${CODE_FILE_ICON_ID_TOKEN}`))
       const references = [
-        ...[...artwork.matchAll(/url\(#([^)]+)\)/gu)].map(match => match[1]!),
-        ...[...artwork.matchAll(/(?:href|xlink:href)="#([^"]+)"/gu)].map(match => match[1]!),
+        ...[...artwork.matchAll(/url\(#([^)]+)\)/gu)].map(match => match[1]),
+        ...[...artwork.matchAll(/(?:href|xlink:href)="#([^"]+)"/gu)].map(match => match[1]),
       ]
       for (const reference of references) {
         expect(reference).toMatch(new RegExp(`^${CODE_FILE_ICON_ID_TOKEN}`))

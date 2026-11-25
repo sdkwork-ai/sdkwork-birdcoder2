@@ -149,7 +149,7 @@ function mergeMatches(
       throw new Error(`conversation Context ${key} received duplicate Match ${left.event.seq}`)
     }
     if (right === undefined || (left !== undefined && left.event.seq < right.event.seq)) {
-      merged.push(left as ConversationMatch)
+      merged.push(left)
       added++
     } else {
       merged.push(right)
@@ -588,8 +588,8 @@ export class ConversationNodeAssembler implements ConversationViewSnapshotStore 
     // Claims are resolved before any acceptance, so the outcome does not depend on registration order.
     let claims: Map<string, string> | undefined
     for (let index = 0; index < results.length; index++) {
-      if ((results[index] as ConversationMatchResult).exclusive !== true) continue
-      const definition = definitions[index] as ConversationNodeDefinition
+      if ((results[index]).exclusive !== true) continue
+      const definition = definitions[index]
       const target = definition.target
       if (target === undefined) {
         throw new Error(`conversation Definition "${definition.kind}" claims ${event.type} at seq ${String(event.seq)} without a target`)
@@ -605,8 +605,8 @@ export class ConversationNodeAssembler implements ConversationViewSnapshotStore 
     let otherTargets: Set<string> | undefined
     let publication: ConversationPublication = 'none'
     for (let index = 0; index < results.length; index++) {
-      const definition = definitions[index] as ConversationNodeDefinition
-      const result = results[index] as ConversationMatchResult
+      const definition = definitions[index]
+      const result = results[index]
       const target = definition.target
       if (target !== undefined && result.exclusive !== true && claims?.has(target) === true) continue
       // Inline target tracking avoids an additional closure allocation for each event.
@@ -909,7 +909,7 @@ export class ConversationNodeAssembler implements ConversationViewSnapshotStore 
       const left = existing[before]
       const right = sorted[added]
       if (right === undefined || (left !== undefined && (left.startSeq as number) < (right.startSeq as number))) {
-        merged.push(left as InternalContext)
+        merged.push(left)
         before++
       } else {
         merged.push(right)

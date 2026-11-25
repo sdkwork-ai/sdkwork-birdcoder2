@@ -473,7 +473,7 @@ describe('DiscoverSection', () => {
     fireEvent.click(card('dsh-a').getByRole('button', { name: 'View Alpha' }))
     answer(INITIAL_QUERY, { entries: LISTING.entries.slice(1) })
     expect(document.querySelector('[data-market-detail="dsh-a"]')).toBeTruthy()
-    const installed = { ...LISTING.entries[0] as MarketListingEntry, installation: { status: 'installed', installedVersion: '1.0.0' } } as const
+    const installed = { ...LISTING.entries[0], installation: { status: 'installed', installedVersion: '1.0.0' } } as const
     answer(INITIAL_QUERY, { entries: [installed] })
     expect(screen.getByRole('button', { name: 'View Alpha in Installed' })).toBeTruthy()
   })

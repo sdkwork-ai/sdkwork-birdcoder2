@@ -397,7 +397,7 @@ describe('browser plugin registration', () => {
     expect(clientInject).toEqual(['slots', 'sessions', 'uiConversation', 'locale'])
     expect(bench.views).toEqual([statsViewDefinition])
     expect(bench.entries()).toHaveLength(1)
-    const registered = bench.entries()[0]!
+    const registered = bench.entries()[0]
     expect(registered.component).toBe(StatsView)
     expect(registered.options).toMatchObject({ id: 'stats', order: 40 })
     expect(registered.locale).toBe(NS)
@@ -411,7 +411,7 @@ describe('browser plugin registration', () => {
 
   it('settles when the subscription resolves while it is being set up', async () => {
     const bench = await mountPlugin()
-    const injectEntry = bench.entries()[0]!.inject as ((sessionId: SessionId) => StatsViewInjected) | undefined
+    const injectEntry = bench.entries()[0].inject as ((sessionId: SessionId) => StatsViewInjected) | undefined
     const injected = injectEntry!(SID)
     bench.setOpenState('cold')
     bench.settleOnNextSubscribe()
@@ -425,7 +425,7 @@ describe('browser plugin registration', () => {
 
   it('waits for a cold Session to open before asking for older history', async () => {
     const bench = await mountPlugin()
-    const injectEntry = bench.entries()[0]!.inject as ((sessionId: SessionId) => StatsViewInjected) | undefined
+    const injectEntry = bench.entries()[0].inject as ((sessionId: SessionId) => StatsViewInjected) | undefined
     const injected = injectEntry!(SID)
     bench.setOpenState('cold')
     let settled = false
@@ -448,7 +448,7 @@ describe('browser plugin registration', () => {
 
   it('single-flights older pages and keeps a busy or no-progress page retryable', async () => {
     const bench = await mountPlugin()
-    const injectEntry = bench.entries()[0]!.inject as ((sessionId: SessionId) => StatsViewInjected) | undefined
+    const injectEntry = bench.entries()[0].inject as ((sessionId: SessionId) => StatsViewInjected) | undefined
     const injected = injectEntry!(SID)
     bench.setHasMore(true)
     bench.loadOlder.mockImplementationOnce(() => undefined)
@@ -473,7 +473,7 @@ describe('browser plugin registration', () => {
 
   it('cancels a pending open-window wait without asking for a page', async () => {
     const bench = await mountPlugin()
-    const injectEntry = bench.entries()[0]!.inject as ((sessionId: SessionId) => StatsViewInjected) | undefined
+    const injectEntry = bench.entries()[0].inject as ((sessionId: SessionId) => StatsViewInjected) | undefined
     const injected = injectEntry!(SID)
     bench.setOpenState('cold')
     const page = injected.loadOlder()
@@ -485,7 +485,7 @@ describe('browser plugin registration', () => {
 
   it('resolves prompt images through the shared Conversation image cache', async () => {
     const bench = await mountPlugin()
-    const injectEntry = bench.entries()[0]!.inject as ((sessionId: SessionId) => StatsViewInjected) | undefined
+    const injectEntry = bench.entries()[0].inject as ((sessionId: SessionId) => StatsViewInjected) | undefined
     const injected = injectEntry!(SID)
     await expect(injected.loadImage(IMAGE)).resolves.toBe('blob:image')
     expect(bench.imageUrl).toHaveBeenCalledWith(SID, IMAGE)
@@ -494,7 +494,7 @@ describe('browser plugin registration', () => {
 
   it('serves the empty snapshot until the target publishes turns', async () => {
     const bench = await mountPlugin()
-    const injectEntry = bench.entries()[0]!.inject as ((sessionId: SessionId) => StatsViewInjected) | undefined
+    const injectEntry = bench.entries()[0].inject as ((sessionId: SessionId) => StatsViewInjected) | undefined
     expect(injectEntry).toBeDefined()
     const injected = injectEntry!(SID)
     expect(bench.binding).toHaveBeenCalledWith(SID)
@@ -612,7 +612,7 @@ describe('conversation Definitions', () => {
     ])
     expect(snapshot?.turns).toHaveLength(1)
     expect(snapshot?.stepCount).toBe(1)
-    const turn = snapshot!.turns[0]!
+    const turn = snapshot!.turns[0]
     expect(turn.prompt).toBe('看看这个')
     expect(turn.promptImages).toEqual([IMAGE])
     expect(turn.interrupted).toBe(false)
@@ -629,7 +629,7 @@ describe('conversation Definitions', () => {
       transient(2, 1, delta, 5_100),
       entry(event('turn/end', { turn: 2, reason: { kind: 'interrupted' } }, 5_800)),
     ])
-    const turn = snapshot!.turns[0]!
+    const turn = snapshot!.turns[0]
     expect(turn.interrupted).toBe(true)
     expect(turn.steps[0]?.endTime).toBe(5_800)
     expect(turn.steps[0]?.wall).toBe(800)
@@ -679,11 +679,11 @@ describe('conversation Definitions', () => {
       entry(event('turn/end', { turn: 4, reason: { kind: 'completed' } }, 7_700)),
     ])
     expect(snapshot?.turns).toHaveLength(1)
-    const step = snapshot!.turns[0]!.steps[0]!
+    const step = snapshot!.turns[0].steps[0]
     expect(step.startTime).toBeNull()
     expect(step.context).toBe(600)
     expect(step.tools).toEqual([{ name: 'grep', count: 1 }])
-    expect(snapshot!.turns[0]!.prompt).toBeNull()
+    expect(snapshot!.turns[0].prompt).toBeNull()
   })
 
   it('publishes a compaction row with its summary call facts', async () => {
@@ -830,7 +830,7 @@ describe('conversation Definitions', () => {
       entry(event('turn/end', { turn: 9, reason: { kind: 'completed' } }, 7_800)),
     ])
     expect(snapshot?.turns).toHaveLength(1)
-    const events = snapshot!.turns[0]!.events
+    const events = snapshot!.turns[0].events
     expect(events.map(event => event.kind)).toEqual([
       'request-header', 'request-header', 'system-prompt', 'system-prompt', 'tool-set', 'context-prune',
     ])
@@ -923,7 +923,7 @@ describe('conversation Definitions', () => {
       entry(event('step/end', { turn: 5, step: 1 }, 8_400)),
       entry(event('turn/end', { turn: 5, reason: { kind: 'completed' } }, 8_400)),
     ])
-    const step = snapshot!.turns[0]!.steps[0]!
+    const step = snapshot!.turns[0].steps[0]
     expect(step.calls).toHaveLength(1)
     expect(step.calls[0]?.inner).toBe(true)
     expect(step.calls[0]?.name).toBe('grep')
@@ -949,7 +949,7 @@ describe('conversation Definitions', () => {
       },
     )
     expect(snapshot?.stepCount).toBe(1)
-    expect(snapshot!.turns[0]!.steps[0]!.ttft).toBe(300)
+    expect(snapshot!.turns[0].steps[0].ttft).toBe(300)
   })
 
   it('publishes a prompt node from a human-typed user message location', async () => {
@@ -1081,7 +1081,7 @@ describe('conversation Definitions', () => {
     })).toBeNull()
     expect(codeMode.buildViewNode!({ ...contextOf(codeMode, folded) })).toBeNull()
     // The node still merges even when the dispatch lost its own start.
-    const lostStart = { ...folded, calls: { 'sub-2': { ...folded.calls!['sub-2']!, ms: null, startedAt: null } } }
+    const lostStart = { ...folded, calls: { 'sub-2': { ...folded.calls!['sub-2'], ms: null, startedAt: null } } }
     const node = codeMode.buildViewNode!({
       ...contextOf(codeMode, lostStart, [update]),
     }) as StatsViewNode
@@ -1145,7 +1145,7 @@ describe('conversation Definitions', () => {
     expect(prompt.publication!(startMatch(event('user/message', {
       role: 'user', id: 'u', content: [], source: { kind: 'user' },
     })))).toBe('immediate')
-    expect(Object.hasOwn(definitions[3]!, 'publication')).toBe(false)
+    expect(Object.hasOwn(definitions[3], 'publication')).toBe(false)
   })
 
   it('anchors and locates a step node from its folded state', async () => {

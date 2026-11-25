@@ -98,7 +98,7 @@ export async function writeFrontendModelConfigProjection(
   if (options.endpoint === '') return false
   const controller = new AbortController()
   const timeoutMs = options.timeoutMs ?? 10_000
-  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  const timer = setTimeout(() =>{  controller.abort() }, timeoutMs)
   timer.unref?.()
   try {
     const response = await (options.fetch ?? fetch)(options.endpoint, {

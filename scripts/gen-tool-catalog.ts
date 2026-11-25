@@ -56,6 +56,8 @@ import * as ToolPwshPersistent from '@deepseek-ai/dsh-tool-pwsh-persistent'
 import CordisHostRunner from '@deepseek-ai/dsh-cordis-host-runner'
 import * as ToolCordis from '@deepseek-ai/dsh-tool-cordis'
 import * as ToolPresent from '@deepseek-ai/dsh-tool-present'
+import * as ToolSdkworkDeploy from '@deepseek-ai/dsh-tool-sdkwork-deploy'
+import * as ToolSdkworkKnowledge from '@deepseek-ai/dsh-tool-sdkwork-knowledge'
 import * as ToolOffice from '@deepseek-ai/dsh-tool-office'
 import * as ToolFs from '@deepseek-ai/dsh-tool-fs'
 import * as ToolFsSearch from '@deepseek-ai/dsh-tool-fs-search'
@@ -367,6 +369,28 @@ const TOOL_PACKAGES: ToolPackage[] = [
       await ctx.plugin(ToolPresent)
     },
     note: 'Deliveries belong to the calling Session; Web ui-deliverables supplies source-file opening and cards.',
+  },
+  {
+    pkg: '@deepseek-ai/dsh-tool-sdkwork-deploy',
+    dir: 'tool-sdkwork-deploy',
+    source: 'packages/interaction/tool-sdkwork-deploy/src/index.ts',
+    requires: ['ctx.tools', 'a connected signed-in Browser Client'],
+    writes: ['tool/call', 'sdkwork-deploy/request relayed to the Client', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(ToolSdkworkDeploy)
+    },
+    note: 'Publishing runs in the BirdCoder Client, which owns the IAM session and the deploy clients; the Host relays the request and formats the returned site facts.',
+  },
+  {
+    pkg: '@deepseek-ai/dsh-tool-sdkwork-knowledge',
+    dir: 'tool-sdkwork-knowledge',
+    source: 'packages/interaction/tool-sdkwork-knowledge/src/index.ts',
+    requires: ['ctx.tools', 'ctx.fs', 'ctx.workingDirectory', 'a connected signed-in Browser Client'],
+    writes: ['tool/call', 'sdkwork-knowledge/request relayed to the Client', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(ToolSdkworkKnowledge)
+    },
+    note: 'Article writing and media publishing run in the BirdCoder Client, which owns the IAM session and the generated Knowledge Base app client; the Host reads a local cover image and formats the returned article or platform receipt.',
   },
   {
     pkg: '@deepseek-ai/dsh-tool-pwsh',

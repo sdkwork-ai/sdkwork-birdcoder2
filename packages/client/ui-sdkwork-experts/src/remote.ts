@@ -1,0 +1,181 @@
+import { AGENCY_TEAM_SERVICE, type AgencyTeamLibrary } from './team-library.js'
+import { nativeTeamMemberName } from './team-engine.js'
+import { teamText, type TeamLocale } from './team-i18n.js'
+import type { TeamInput, TeamSnapshot, TeamEngineStatus } from './team-contract.js'
+import type { Context } from '@deepseek-ai/cordis'
+import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import type { TypertContribution } from '@deepseek-ai/dsh-typert-registry'
+import type {} from '@deepseek-ai/dsh-typert-registry'
+import { AGENCY_AGENTS_DESCRIPTORS } from './remote-contract.js'
+import { AGENCY_PERSONA_SERVICE, type AgencyPersonaSource } from './index.js'
+import { formatHost, readAgencyLocale } from './i18n.js'
+import { personaLocale } from './agency-locale.js'
+import { PersonaError } from './persona-error.js'
+import type { ProposalRegistry, StoredProposal, LatestProposal } from './creation-tools.js'
+import { settingsNamespaceCompat } from './settings-compat.js'
+import { AGENCY_LIBRARY_SERVICE, type AgencyExpertLibrary } from './expert-library.js'
+import type { CatalogSnapshot, CustomExpertInput, ExpertSummary } from './expert-contract.js'
+import { SDKWORK_CATALOG_SYNC_SERVICE, type SdkworkCatalogSync, type SdkworkTeamInput } from './sdkwork-catalog-sync.js'
+
+export { readExpertPrompt, readLocalizedExpertPrompt } from './index.js'
+
+const AGENCY_SETTINGS_NAMESPACE = settingsNamespaceCompat('agency-agents')
+
+function personaSource(ctx: Context, locale: TeamLocale): AgencyPersonaSource {
+  try {
+    const source = ctx.get(AGENCY_PERSONA_SERVICE) as AgencyPersonaSource | undefined
+    if (source !== undefined) return source
+  } catch (cause: unknown) {
+    throw new Error(formatHost(locale, 'error.personaSourceUnavailable'), { cause })
+  }
+  throw new Error(formatHost(locale, 'error.personaSourceUnavailable'))
+}
+
+/**
+ * Host 严格描述符。Gateway 优先读取它，避免启动期间的 SRC 扫描缓存遗漏
+ * 后加载的外部插件服务。
+ */
+const TYPERT = {
+  package: '@deepseek-ai/dsh-client-ui-sdkwork-experts',
+  face: 'host',
+  schemas: [],
+  model: { services: [], events: [], objects: [] },
+  invocations: AGENCY_AGENTS_DESCRIPTORS,
+} satisfies TypertContribution
+
+/** 供客户端读取和保存已启用专家的顶层 Host Remote 服务。 */
+export default class AgencyAgentsRemote extends TypertRemoteService {
+  static inject = ['settings', 'typert']
+
+  constructor(ctx: Context) {
+    super(ctx, 'agencyAgents')
+    this.ctx.typert.register(TYPERT)
+  }
+
+  private teams(): AgencyTeamLibrary {
+    const library = this.ctx.get(AGENCY_TEAM_SERVICE) as AgencyTeamLibrary | undefined
+    if (!library) throw new Error(teamText(readAgencyLocale(this.ctx), '专家团服务不可用，请重新加载插件。'))
+    return library
+  }
+  @Remote('getTeams')
+  async getTeams(): Promise<TeamSnapshot> {
+    const snapshot = await this.teams().snapshot()
+    const engine = this.ctx.get('agencyAgentsTeamEngine') as (() => TeamEngineStatus) | undefined
+    const nativeMembers = Object.fromEntries(
+      snapshot.teams.flatMap(team => team.members.map(member => [
+        nativeTeamMemberName(team.id, member.expertSlug), member.expertSlug,
+      ])),
+    )
+    return { ...snapshot, nativeMembers, ...(engine ? { engine: engine() } : {}) }
+  }
+  @Remote('saveTeam')
+  async saveTeam(team: TeamInput, enabled: boolean, expectedRevision: number): Promise<TeamSnapshot> {
+    return this.teams().save(team, enabled, expectedRevision)
+  }
+  @Remote('setTeamEnabled')
+  async setTeamEnabled(id: string, enabled: boolean, expectedRevision: number): Promise<TeamSnapshot> {
+    return this.teams().setEnabled(id, enabled, expectedRevision)
+  }
+  @Remote('deleteTeam')
+  async deleteTeam(id: string, expectedRevision: number): Promise<TeamSnapshot> { return this.teams().remove(id, expectedRevision) }
+
+  /** The catalog overlay ingested from the SDKWork Agents App API. */
+  private catalogSync(): SdkworkCatalogSync {
+    const sync = this.ctx.get(SDKWORK_CATALOG_SYNC_SERVICE) as SdkworkCatalogSync | undefined
+    if (sync === undefined) throw new Error('SDKWork 专家目录同步服务不可用，请重新加载插件。')
+    return sync
+  }
+
+  /** Replace the expert and team overlay with the catalog served by sdkwork-agents. */
+  @Remote('syncSdkworkCatalog')
+  async syncSdkworkCatalog(payload: { experts: ExpertSummary[]; teams: SdkworkTeamInput[] }): Promise<{ experts: number; teams: number }> {
+    const sync = this.catalogSync()
+    return { experts: sync.ingestExperts(payload.experts), teams: sync.ingestTeams(payload.teams) }
+  }
+
+  /** Replace one locale's persona overlay with the bodies served by sdkwork-agents. */
+  @Remote('syncSdkworkPersonas')
+  async syncSdkworkPersonas(payload: { locale: 'zh-CN' | 'en-US'; personas: { slug: string; text: string }[] }): Promise<{ count: number }> {
+    return { count: this.catalogSync().ingestPersonas(payload.locale, payload.personas) }
+  }
+
+  private library(): AgencyExpertLibrary {
+    const library = this.ctx.get(AGENCY_LIBRARY_SERVICE) as AgencyExpertLibrary | undefined
+    if (library === undefined) throw new Error(formatHost(readAgencyLocale(this.ctx), 'error.personaSourceUnavailable'))
+    return library
+  }
+
+  /** 返回动态名册，不预加载任何专家提示词正文。 */
+  @Remote('getCatalog')
+  async getCatalog(): Promise<CatalogSnapshot> { return this.library().catalog() }
+
+  @Remote('getCustomExpert')
+  async getCustomExpert(slug: string): Promise<CustomExpertInput> {
+    const { deleted: _deleted, wasEnabled: _wasEnabled, ...expert } = await this.library().getCustom(slug)
+    return expert
+  }
+
+  /** 新建或更新自定义专家，同时提交启用状态；过期修订号拒绝写入。 */
+  @Remote('saveCustomExpert')
+  async saveCustomExpert(expert: CustomExpertInput, enabled: boolean, expectedRevision: number): Promise<CatalogSnapshot> {
+    return this.library().saveCustom(expert, enabled, expectedRevision)
+  }
+
+  @Remote('deleteCustomExpert')
+  async deleteCustomExpert(slug: string, expectedRevision: number): Promise<CatalogSnapshot> {
+    return this.library().deleteCustom(slug, expectedRevision)
+  }
+
+  /** 返回配置中记录的启用项以兼容旧调用方；实际可召唤项请读取 getCatalog().enabled。 */
+  @Remote('getEnabled')
+  getEnabled(): { enabled: string[]; revision: number } {
+    const settings = this.ctx.settings as {
+      get?: (namespace: typeof AGENCY_SETTINGS_NAMESPACE) => unknown
+      describe: () => ReadonlyArray<{ ns: typeof AGENCY_SETTINGS_NAMESPACE; revision: number; value?: { enabled?: unknown } }>
+    }
+    const descriptor = settings.describe().find(candidate => candidate.ns === AGENCY_SETTINGS_NAMESPACE)
+    if (descriptor === undefined) throw new Error(formatHost('zh', 'error.settingsMissing'))
+    const stored = typeof settings.get === 'function'
+      ? settings.get(AGENCY_SETTINGS_NAMESPACE) as { enabled?: unknown } | undefined
+      : descriptor.value
+    const enabled = stored?.enabled
+    return {
+      enabled: Array.isArray(enabled) ? enabled.filter((slug): slug is string => typeof slug === 'string') : [],
+      revision: descriptor.revision,
+    }
+  }
+
+  /** 整体替换启用的专家 slug 列表。 */
+  @Remote('setEnabled')
+  async setEnabled(enabled: string[], expectedRevision: number): Promise<{ enabled: string[]; revision: number }> {
+    return this.library().setEnabled(enabled, expectedRevision)
+  }
+
+  /** 按需读取一位专家的 persona 正文，避免将完整提示词随客户端名册预加载。 */
+  @Remote('getPrompt')
+  async getPrompt(slug: string, division: string): Promise<{ prompt: string }> {
+    const locale = readAgencyLocale(this.ctx)
+    try {
+      return await personaSource(this.ctx, locale).getPrompt(slug, division, personaLocale(locale))
+    } catch (cause) {
+      if (cause instanceof PersonaError && locale !== personaLocale(locale)) {
+        throw new PersonaError(cause.code, locale, cause)
+      }
+      throw cause
+    }
+  }
+
+  /** 获取暂存的专家或专家团提案，用于前端弹窗回显。 */
+  @Remote('getPendingProposal')
+  async getPendingProposal(id: string): Promise<StoredProposal | null> {
+    const registry = this.ctx.get('agencyProposalRegistry') as ProposalRegistry | undefined
+    return registry?.get(id) ?? null
+  }
+
+  /** 获取自某时间戳之后产生的最新已确认专家或专家团草案，支持前端自动呼出弹窗。草案打磨期不返回。 */
+  @Remote('getLatestProposal')
+  async getLatestProposal(afterTimestamp: number, sessionId?: string): Promise<LatestProposal> {
+    const registry = this.ctx.get('agencyProposalRegistry') as ProposalRegistry | undefined
+    return registry?.getLatestConfirmed(afterTimestamp, sessionId) ?? null
+  }
+}

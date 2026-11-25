@@ -179,12 +179,12 @@ class TurnGroups {
     const previous = key === undefined ? undefined : this.groups.get(key)
     if (previous === undefined || offset + previous.members.length > members.length) return undefined
     for (let index = 0; index < previous.members.length; index++) {
-      const before = previous.members[index] as NodeReference
-      const after = members[offset + index] as NodeReference
+      const before = previous.members[index]
+      const after = members[offset + index]
       if (before.key !== after.key || before.groupPart !== after.groupPart) return undefined
     }
     for (let index = offset + previous.members.length; index < members.length; index++) {
-      if (!added.has((members[index] as NodeReference).key)) return undefined
+      if (!added.has((members[index]).key)) return undefined
     }
     return previous
   }

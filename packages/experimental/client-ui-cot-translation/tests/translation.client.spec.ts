@@ -102,7 +102,7 @@ describe('reasoning translation', () => {
     const b = fixture()
     b.translate.mockImplementationOnce(() => pending.promise)
     b.controller.update('First', false)
-    const request = b.translate.mock.calls[0]!
+    const request = b.translate.mock.calls[0]
     const count = b.states.length
     b.controller.dispose()
     expect(request[1].aborted).toBe(true)

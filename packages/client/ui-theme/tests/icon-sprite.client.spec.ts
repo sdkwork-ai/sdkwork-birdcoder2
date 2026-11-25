@@ -100,7 +100,7 @@ describe('icon sprite', () => {
       expect(actual, id).toEqual(expected)
       const children = [...symbol(id)!.children]
       expect(children.length, id).toBe(root.children.length)
-      expect(children.every((child, index) => child.isEqualNode(root.children[index]!)), id).toBe(true)
+      expect(children.every((child, index) => child.isEqualNode(root.children[index])), id).toBe(true)
     }
     await fiber.dispose()
   })

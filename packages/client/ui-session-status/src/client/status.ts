@@ -1,6 +1,6 @@
 /** Client Session status table: running state, the effective pending interaction, and shared reading reminders. */
 import { Service, type Context } from '@deepseek-ai/cordis'
-import type { ISessions, SessionBinding, SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { ISessions, SessionBinding, SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import { notifySubscribers } from '@deepseek-ai/dsh-client-store'
 import type { HostObservable, SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
@@ -138,7 +138,7 @@ export class UiSessionStatus extends Service implements HostObservable<SessionSt
     const present = new Set(Object.keys(list.byId) as SessionId[])
     // Subagent catalog rows and retained subagent fallback rows do not establish Host running state.
     for (const id of list.ids) {
-      const row = list.byId[id] as SessionSummary
+      const row = list.byId[id]
       const previous = this.running.get(id)
       if (previous === undefined) this.running.set(id, row.running)
       else if (previous !== row.running) this.observeRunning(id, row.running)

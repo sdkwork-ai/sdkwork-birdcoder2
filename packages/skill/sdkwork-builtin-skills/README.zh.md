@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-点击 BirdCoder 标签条会把 `/birdcoder-…` 名称写入输入框，而这些名称只有在技能目录能应答它们时才表现得像技能。启用这个根之后，全部 35 个场景技能在桌面端与浏览器端 profile 中都能解析：每个令牌都会装饰成引用、在右侧边栏打开其指令文件、并在提示以它开头时注入该正文。自带同名技能的工作区仍然优先。若部署需要自己的名称，请改为新增技能目录。
+点击 BirdCoder 标签条会把 `/birdcoder-…` 名称写入输入框，而这些名称只有在技能目录能应答它们时才表现得像技能。启用这个根之后，全部 36 个场景技能在桌面端与浏览器端 profile 中都能解析：每个令牌都会装饰成引用、在右侧边栏打开其指令文件、并在提示以它开头时注入该正文。自带同名技能的工作区仍然优先。若部署需要自己的名称，请改为新增技能目录。
 
 ## 目录
 
@@ -29,7 +29,7 @@ kind: "package-reference"
 
 ### 随包根提供什么
 
-- **35 个场景技能。** `birdcoder-agent-app`、`birdcoder-android-app`、`birdcoder-business-plan`、`birdcoder-cicd`、`birdcoder-codex-plugin`、`birdcoder-courseware`、`birdcoder-daily-dev`、`birdcoder-docs`、`birdcoder-dsh-plugin`、`birdcoder-flutter-app`、`birdcoder-harmonyos`、`birdcoder-html-web`、`birdcoder-image`、`birdcoder-ios-app`、`birdcoder-lesson-plan`、`birdcoder-marketing-poster`、`birdcoder-meeting-notes`、`birdcoder-miniprogram`、`birdcoder-music`、`birdcoder-poster`、`birdcoder-ppt-design`、`birdcoder-product-ppt`、`birdcoder-react-web`、`birdcoder-short-video`、`birdcoder-skill-dev`、`birdcoder-sound-effect`、`birdcoder-tts`、`birdcoder-uniapp`、`birdcoder-unity-app`、`birdcoder-video`、`birdcoder-visual-poster`、`birdcoder-vue-web`、`birdcoder-web-dev`、`birdcoder-workbuddy-app`、`birdcoder-workbuddy-plugin`。每个技能是一个目录，内含带 `name` 与 `description` 前置元数据的 `SKILL.md`。
+- **36 个场景技能。** `birdcoder-agent-app`、`birdcoder-android-app`、`birdcoder-app-deploy`、`birdcoder-business-plan`、`birdcoder-cicd`、`birdcoder-codex-plugin`、`birdcoder-courseware`、`birdcoder-daily-dev`、`birdcoder-docs`、`birdcoder-dsh-plugin`、`birdcoder-flutter-app`、`birdcoder-harmonyos`、`birdcoder-html-web`、`birdcoder-image`、`birdcoder-ios-app`、`birdcoder-lesson-plan`、`birdcoder-marketing-poster`、`birdcoder-meeting-notes`、`birdcoder-miniprogram`、`birdcoder-music`、`birdcoder-poster`、`birdcoder-ppt-design`、`birdcoder-product-ppt`、`birdcoder-react-web`、`birdcoder-short-video`、`birdcoder-skill-dev`、`birdcoder-sound-effect`、`birdcoder-tts`、`birdcoder-uniapp`、`birdcoder-unity-app`、`birdcoder-video`、`birdcoder-visual-poster`、`birdcoder-vue-web`、`birdcoder-web-dev`、`birdcoder-workbuddy-app`、`birdcoder-workbuddy-plugin`。每个技能是一个目录，内含带 `name` 与 `description` 前置元数据的 `SKILL.md`；`birdcoder-app-deploy` 另带 `references/`、`scripts/` 与 `skill.manifest.json`。
 - **每个技能的绝对指令路径。** 目录会把随包的 `SKILL.md` 路径转发给客户端，输入框据此在右侧边栏预览该技能的指令。
 
 ### 可观察的成功与失败
@@ -81,7 +81,7 @@ kind: "package-reference"
 
 #### KV Cache 影响
 
-在随包分发的 Web 与桌面合成中处于启用状态，因此每个会话的请求前缀都带有本根贡献的 35 条目录条目；加载某个技能时会在工具结果渲染处插入该技能的正文。优先级意味着同名的项目、自定义或用户技能会替换目录与前缀中的随包条目，而随包条目本身只在发版时变化。
+在随包分发的 Web 与桌面合成中处于启用状态，因此每个会话的请求前缀都带有本根贡献的 36 条目录条目；加载某个技能时会在工具结果渲染处插入该技能的正文。优先级意味着同名的项目、自定义或用户技能会替换目录与前缀中的随包条目，而随包条目本身只在发版时变化。
 
 ## 已知限制与延期工作
 

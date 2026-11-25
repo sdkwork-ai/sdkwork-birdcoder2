@@ -70,7 +70,7 @@ export function parsePlanAddress(address: string): PlanAddress | undefined {
   const match = /^dsh-resource:\/\/plan\/([^?#]+)$/.exec(address)
   if (match === null) return undefined
   try {
-    const parts = (match[1] as string).split('/').map(decodeURIComponent)
+    const parts = (match[1]).split('/').map(decodeURIComponent)
     if (parts.some(part => part === '')) return undefined
     if (parts.length === 2) return {
       session: { kind: 'session', sessionId: parts[0] as SessionId }, callId: parts[1] as ToolCallId,

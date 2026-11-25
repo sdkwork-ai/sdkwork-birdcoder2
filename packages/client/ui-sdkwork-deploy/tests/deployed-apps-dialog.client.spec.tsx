@@ -245,7 +245,7 @@ describe('DeployedAppsPanel', () => {
     expect(await view.findByText(zh['deployments.filteredEmpty'])).toBeTruthy()
     expect(screen.queryByRole('button', { name: new RegExp(zh['deployments.kind.android']) })).toBeNull()
 
-    fireEvent.click(screen.getAllByRole('button', { name: zh['deployments.clearFilters'] })[0]!)
+    fireEvent.click(screen.getAllByRole('button', { name: zh['deployments.clearFilters'] })[0])
     expect(await view.findByText('Web Store')).toBeTruthy()
   })
 

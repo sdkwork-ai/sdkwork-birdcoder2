@@ -47,9 +47,9 @@ async function bench(initial: WebBootGraph, factories: Record<string, FixtureMod
     boot: initial, staticModules: [],
     loadBundle: async (url) => {
       fetched.push(url)
-      const ids = url === '/batch' ? initial.entries.map(row => row.id).filter(id => id !== 'bootstrap') : [url.split('??')[1]!.split('/client.js')[0]!]
+      const ids = url === '/batch' ? initial.entries.map(row => row.id).filter(id => id !== 'bootstrap') : [url.split('??')[1].split('/client.js')[0]]
       const registrations = ids.map((id) => {
-        const definition = factories[id]!
+        const definition = factories[id]
         return typeof definition === 'function'
           ? { id, factory: definition }
           : { id, ...definition }
@@ -94,7 +94,7 @@ describe('client manifest entries', () => {
     const b = await bench(graph(row('bootstrap'), row('a', 'r0', { config: { size: 1, office: { maxBytes: 8 } } })), {
       a: () => ({ apply(_ctx: Context, config: Synced) { received.push(config) } }),
     })
-    const config = received[0]!
+    const config = received[0]
     expect(b.modules.entries.resolveConfigByPackage('a')).toBe(config)
     expect(b.modules.entries.resolveConfigByPackage('missing')).toBeUndefined()
     expect(Object.keys(config)).toEqual(['size', 'office'])
@@ -144,20 +144,20 @@ describe('client manifest entries', () => {
     // A re-added row's new activation receives a new object with the latest values.
     expect(received).toHaveLength(2)
     expect(received[1]).not.toBe(config)
-    expect(received[1]!.size.get()).toBe(5)
+    expect(received[1].size.get()).toBe(5)
     expect(b.modules.entries.resolveConfigByPackage('a')).toBe(received[1])
 
     // Code replacement: a value arriving before teardown begins updates the still-active activation, as on the Host;
     // the replacement then starts with the latest values, and the released activation receives nothing later.
-    const second = received[1]!
+    const second = received[1]
     const replacing = b.modules.entries.reload('a', 'r1')
     await b.modules.entries.sync(graph(row('bootstrap'), row('a', 'r1', { config: { size: 6 } })))
     await replacing
     expect(received).toHaveLength(3)
     expect(second.size.get()).toBe(6)
-    expect(received[2]!.size.get()).toBe(6)
+    expect(received[2].size.get()).toBe(6)
     await b.modules.entries.sync(graph(row('bootstrap'), row('a', 'r1', { config: { size: 7 } })))
-    expect(received[2]!.size.get()).toBe(7)
+    expect(received[2].size.get()).toBe(7)
     expect(second.size.get()).toBe(6)
   })
 
@@ -169,7 +169,7 @@ describe('client manifest entries', () => {
     })
     const dispose = b.ctx.provide('dependency', {})
     await vi.waitFor(() => { expect(received).toHaveLength(1) })
-    const first = received[0]!
+    const first = received[0]
     expect(b.modules.entries.resolveConfigByPackage('a')).toBe(first)
     dispose()
     await b.ctx.loader.await()
@@ -187,7 +187,7 @@ describe('client manifest entries', () => {
     const fiber = [...b.ctx.loader.entries()].find(entry => entry.options.name === 'a')!.fiber!.ctx.fiber
     expect(fiber.resolveConfig(fiber.rawConfig)).toBe(received[0])
     await b.modules.entries.sync(graph(row('bootstrap'), row('a', 'r0', { config: { size: 2 } })))
-    expect(received[0]!.size.get()).toBe(2)
+    expect(received[0].size.get()).toBe(2)
   })
 
   it('gives a row without values an empty object that later values fill without another apply', async () => {
@@ -592,7 +592,7 @@ it('retains a rejected Loader entry for retry instead of creating an orphan sibl
   let broken = true
   const b = await bench(graph(), { a: () => broken ? { default: 'invalid' } : { apply() {} } })
   await b.modules.entries.sync(graph(row('a')))
-  const entry = [...b.ctx.loader.entries()][0]!
+  const entry = [...b.ctx.loader.entries()][0]
   expect(b.modules.entries.state.getSnapshot().failures[0]?.message).toContain('invalid plugin')
   expect([...b.ctx.loader.entries()]).toHaveLength(1)
   broken = false
@@ -628,7 +628,7 @@ it('reports Loader import failures and recovers the same entry after the importe
   } as never
   await b.modules.entries.sync(graph(row('a')))
   expect(b.modules.entries.state.getSnapshot().failures[0]?.message).toContain('import failed')
-  const entry = [...b.ctx.loader.entries()][0]!
+  const entry = [...b.ctx.loader.entries()][0]
   broken = false
   await b.modules.entries.retry()
   expect(entry.fiber?.state).toBe(2)

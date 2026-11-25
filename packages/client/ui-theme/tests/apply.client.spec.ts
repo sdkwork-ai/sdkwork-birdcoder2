@@ -49,7 +49,7 @@ async function bench(isLoopback = true) {
     value: { writable: true, hasDocument: true, namespaces: [namespace()] },
   }))
   const mutate = vi.fn((_ns: string, ops: { path: string[]; value: unknown }[]) => {
-    for (const op of ops) section[op.path[0]!] = op.value
+    for (const op of ops) section[op.path[0]] = op.value
     return Promise.resolve({ ok: true as const, value: namespace() })
   })
   const events = new TestRemote(ctx, { settings: { describe, mutate } })

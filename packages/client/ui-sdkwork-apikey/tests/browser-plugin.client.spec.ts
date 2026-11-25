@@ -78,7 +78,7 @@ describe('ui-sdkwork-apikey client plugin', () => {
     // whole mode.rail.settings entry — this assertion pins the collaboration.
     expect(() => slots.register({
       name: 'settings.apiKeys',
-    } as never)).toThrow(/not declared|declared/)
+    })).toThrow(/not declared|declared/)
     await fiber.dispose()
     // HMR: a re-apply must not leave the previous adapter registered.
     const second = mount(ctx)

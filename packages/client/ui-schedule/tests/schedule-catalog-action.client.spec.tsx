@@ -416,7 +416,7 @@ describe('ScheduleCatalogAction rows', () => {
     // The line states the local stamp now, and the distance sits in parentheses
     // beside it.
     expect(lines.every(line => /\d{1,2}:\d{2}/.test(line.textContent ?? ''))).toBe(true)
-    for (const [line, task] of [[lines[0]!, overdue], [lines[1]!, every], [lines[2]!, at]] as const) {
+    for (const [line, task] of [[lines[0], overdue], [lines[1], every], [lines[2], at]] as const) {
       const stamp = line.querySelector('time')
       expect(stamp?.dateTime).toBe(task.scheduledAt)
       expect(stamp?.textContent).toBe(formatScheduleAbsolute(task.scheduledAt, en['time.locale']))
@@ -574,9 +574,9 @@ describe('ScheduleCatalogAction rows', () => {
     expect(expected).toBe('in 1 hour')
     const view = render(<ScheduleCatalogAction {...props([item, other])} />)
     fireEvent.click(screen.getByRole('button', { name: '2 automation tasks' }))
-    expect(screen.getAllByRole('listitem')[0]!.textContent).toContain(expected)
+    expect(screen.getAllByRole('listitem')[0].textContent).toContain(expected)
     view.rerender(<ScheduleCatalogAction {...props([item, other], 'open', zh)} />)
-    expect(screen.getAllByRole('listitem')[0]!.textContent).toContain('1小时后')
+    expect(screen.getAllByRole('listitem')[0].textContent).toContain('1小时后')
     expect(document.documentElement.lang).toBe('de-DE')
   })
 
@@ -689,13 +689,13 @@ describe('ScheduleCatalogAction dismissal', () => {
     expect(intervals).toHaveBeenCalledExactlyOnceWith(expect.any(Function), 1000)
     fireEvent.click(trigger)
     expect(trigger.getAttribute('aria-expanded')).toBe('false')
-    expect(clearInterval).toHaveBeenCalledExactlyOnceWith(intervals.mock.results[0]!.value)
+    expect(clearInterval).toHaveBeenCalledExactlyOnceWith(intervals.mock.results[0].value)
     fireEvent.click(trigger)
     expect(trigger.getAttribute('aria-expanded')).toBe('true')
     expect(intervals).toHaveBeenCalledTimes(2)
 
     view.unmount()
     expect(clearInterval).toHaveBeenCalledTimes(2)
-    expect(clearInterval).toHaveBeenLastCalledWith(intervals.mock.results[1]!.value)
+    expect(clearInterval).toHaveBeenLastCalledWith(intervals.mock.results[1].value)
   })
 })

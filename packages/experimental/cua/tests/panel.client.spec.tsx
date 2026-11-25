@@ -130,7 +130,7 @@ it('shows query failures as unknown while retaining previously displayed apps', 
   expect(screen.getAllByText(en.unknown)).toHaveLength(2)
   expect(screen.queryByText(en.granted)).toBeNull()
   expect(screen.getByRole('alert').textContent).toContain('offline')
-  fireEvent.click(screen.getAllByRole('button', { name: en.revoke })[0]!)
+  fireEvent.click(screen.getAllByRole('button', { name: en.revoke })[0])
   expect(f.props.revoke).toHaveBeenCalledWith(app.id)
   fireEvent.click(screen.getByRole('button', { name: en.retry }))
   expect(f.props.refresh).toHaveBeenCalledTimes(2)

@@ -150,6 +150,6 @@ function isEligible(sessionId: SessionId, byId: SessionListState['byId'], worksp
 /** Whether the user is likely to return to a Session: it runs, awaits the user, or has an unread completion. */
 function needsAttention(sessionId: SessionId, byId: SessionListState['byId'], status: SessionStatusSnapshot): boolean {
   const current = status.get(sessionId)
-  return byId[sessionId]?.running === true || current?.running === true
+  return  byId[sessionId]?.running || current?.running === true
     || current?.pendingInteraction !== undefined || current?.completionUnread === true
 }

@@ -39,7 +39,7 @@ const { values, positionals } = parseArgs({
   options: { only: { type: 'string' }, 'timeout-ms': { type: 'string', default: '10000' }, report: { type: 'string', default: 'results.json' }, 'baseline-ref': { type: 'string' } },
 })
 if (positionals.length !== 1) throw new Error('Usage: pnpm exec tsx packages/client/ui-sidebar-documentpreview/tests/fuzz/run.client.ts <corpus> [--only substring]')
-const directory = resolve(positionals[0]!)
+const directory = resolve(positionals[0])
 const deadlineMs = Number(values['timeout-ms'])
 if (!Number.isSafeInteger(deadlineMs) || deadlineMs <= 0) throw new Error('timeout-ms must be a positive integer')
 const manifest = JSON.parse(await readFile(join(directory, 'manifest.json'), 'utf8')) as Manifest
@@ -161,7 +161,7 @@ await mkdir(join(directory, 'repros'), { recursive: true })
 for (const [group, members] of groups) {
   const sorted = [...members].sort((a, b) => a.features.length - b.features.length
     || Number(a.variant.includes('random')) - Number(b.variant.includes('random')) || a.file.localeCompare(b.file))
-  const first = sorted[0]!
+  const first = sorted[0]
   await copyFile(join(directory, first.file), join(directory, 'repros', first.file))
   representatives.push({ group, count: members.length, example: `repros/${first.file}`, detail: first.detail })
 }

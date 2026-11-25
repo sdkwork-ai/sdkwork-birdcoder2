@@ -109,7 +109,7 @@ export function PresetGuideDialog({ guide, initialPage, t, onClose }: {
   }
 
   return (
-    <Modal open headless onClose={onClose} title={t(guide.name)} className={css.guideDialog as string}>
+    <Modal open headless onClose={onClose} title={t(guide.name)} className={css.guideDialog}>
       <div ref={content} className={css.guideLayout} role="presentation" onKeyDownCapture={onKeyDown}>
         <div className={css.guideHeader}>
           <div className={css.guideTitleRow}>

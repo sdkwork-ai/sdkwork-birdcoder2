@@ -93,7 +93,7 @@ function snapshotOf(tasks: readonly AppBuildTrack[], now = 13_000): {
 function onlyRow(): HTMLElement {
   const rows = screen.getAllByRole('menuitem')
   expect(rows).toHaveLength(1)
-  return rows[0] as HTMLElement
+  return rows[0]
 }
 
 describe('BuildIndicator', () => {

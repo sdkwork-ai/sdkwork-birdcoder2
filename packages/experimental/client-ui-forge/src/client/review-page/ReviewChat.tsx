@@ -76,8 +76,8 @@ export function ReviewConversation({
   const conversation = useConversation(value => value)
   const active = conversation.activeTargets.size > 0 || (!session.blank && !session.awaitingFirstTurn) || session.running
   const blankSummary = useSessions(state => state.byId[sessionId]?.blank)
-  const settling = !active && !session.promptAttempted && session.openState === 'loading' && blankSummary !== true
-  const hero = !active && !session.promptAttempted && (session.openState === 'open' || blankSummary === true)
+  const settling = !active && !session.promptAttempted && session.openState === 'loading' && ! blankSummary
+  const hero = !active && !session.promptAttempted && (session.openState === 'open' ||  blankSummary)
   const phase = settling ? 'settling' : hero ? 'hero' : 'active'
   return (
     <div className={css.conversation} data-forge-review-conversation={sessionId}>

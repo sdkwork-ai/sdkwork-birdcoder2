@@ -462,7 +462,7 @@ describe('expanded ChangeRequestCard', () => {
       'skipped|e2e||no link',
     ])
 
-    fireEvent.click(screen.getAllByRole('menuitem')[0]!)
+    fireEvent.click(screen.getAllByRole('menuitem')[0])
     expect(b.openLink).toHaveBeenCalledWith('https://ci.example.test/lint')
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
     expect(checkRows()).toEqual([])
@@ -509,8 +509,8 @@ describe('expanded ChangeRequestCard', () => {
     fireEvent.click(toggle)
     fireEvent.click(toggle)
     expect(readChecks).toHaveBeenCalledTimes(2)
-    expect(readChecks.mock.calls[0]![2].aborted).toBe(true)
-    expect(readChecks.mock.calls[1]![2].aborted).toBe(false)
+    expect(readChecks.mock.calls[0][2].aborted).toBe(true)
+    expect(readChecks.mock.calls[1][2].aborted).toBe(false)
 
     await act(async () => { older.reject(new Error('cancelled request')); await Promise.resolve() })
     expect(screen.getByText(en['change.checks.loading'])).toBeTruthy()
@@ -529,7 +529,7 @@ describe('expanded ChangeRequestCard', () => {
     const readChecks = vi.fn<NonNullable<ChangeRequestActions['readChecks']>>(() => pending.promise)
     const b = card(entry(1, partial), { expanded: true, actions: { readChecks } })
     fireEvent.click(within(b.item).getByText(en['change.row.checks']))
-    const signal = readChecks.mock.calls[0]![2]
+    const signal = readChecks.mock.calls[0][2]
     if (change === 'close') fireEvent.click(within(b.item).getByText(en['change.row.checks']))
     else if (change === 'unmount') b.view.unmount()
     else b.view.rerender(<ul><ChangeRequestCard entry={entry(1, { ...partial, headSha: 'b'.repeat(40) })} expanded onToggle={b.onToggle}

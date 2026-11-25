@@ -61,6 +61,7 @@ export const SKILL_SCENES: Readonly<Partial<Record<string, SkillScene>>> = {
   'birdcoder-harmonyos': { group: 'code', labelKey: 'skill.harmonyos' },
   'birdcoder-ios-app': { group: 'code', labelKey: 'skill.iosApp' },
   'birdcoder-android-app': { group: 'code', labelKey: 'skill.androidApp' },
+  'birdcoder-app-deploy': { group: 'code', labelKey: 'skill.appDeploy' },
   'birdcoder-unity-app': { group: 'code', labelKey: 'skill.unityApp' },
   'birdcoder-dsh-plugin': { group: 'code', labelKey: 'skill.dshPlugin' },
   'birdcoder-workbuddy-plugin': { group: 'code', labelKey: 'skill.workbuddyPlugin' },
@@ -81,6 +82,8 @@ export const SKILL_SCENES: Readonly<Partial<Record<string, SkillScene>>> = {
   'birdcoder-visual-poster': { group: 'document', labelKey: 'skill.visualPoster' },
   'birdcoder-marketing-poster': { group: 'document', labelKey: 'skill.marketingPoster' },
   'birdcoder-meeting-notes': { group: 'document', labelKey: 'skill.meetingNotes' },
+  'birdcoder-knowledge-article': { group: 'document', labelKey: 'skill.knowledgeArticle' },
+  'birdcoder-content-publish': { group: 'document', labelKey: 'skill.contentPublish' },
 }
 
 /** Label key of every group tab, total over the rendered slots. */

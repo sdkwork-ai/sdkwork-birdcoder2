@@ -1,0 +1,163 @@
+import { teamFieldsSchema, teamInputSchema, teamSnapshotSchema } from './team-contract.js'
+import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec } from '@deepseek-ai/dsh-typert-protocol'
+import { z } from 'zod'
+import { CUSTOM_EXPERT_SLUG, catalogSnapshotSchema, customExpertInputSchema, expertEditSchema, expertSummarySchema } from './expert-contract.js'
+import { storedProposalSchema, latestProposalSchema } from './creation-tools.js'
+
+const enabledArraySchema = z.array(z.string())
+const enabledStateSchema = z.object({
+  enabled: enabledArraySchema,
+  revision: z.number().int().min(0),
+})
+const expertPromptSchema = z.object({
+  prompt: z.string(),
+})
+
+type BoundarySchema = { parse(value: unknown): unknown }
+
+/**
+ * alpha.1 及更早宿主读 `codec.schema.parse`；alpha.2 只接受 `codec.create()`。
+ * 两套字段一起带上，才能在同一 peer 范围内挂载 Remote。
+ */
+function strictCodec(typeSymbol: string, schema: BoundarySchema): TypertCodec {
+  return { mode: 'strict', typeSymbol, create: () => schema, schema } as TypertCodec
+}
+
+function jsonParameter(name: string, typeSymbol: string, schema: BoundarySchema, acceptsUndefined?: true): InvocationParameterDescriptor {
+  return {
+    name,
+    wire: name,
+    source: 'json',
+    codec: strictCodec(typeSymbol, schema),
+    ...(acceptsUndefined ? { acceptsUndefined: true } : {}),
+  }
+}
+
+/** 新接口仍沿用宿主 Typert 严格参数校验与既有鉴权入口。 */
+function catalogMethod(method: string, parameters: InvocationDescriptor['parameters']): InvocationDescriptor {
+  return {
+    id: `@deepseek-ai/dsh-client-ui-sdkwork-experts#agencyAgents/${method}`,
+    service: 'agencyAgents', namespace: 'agencyAgents', method,
+    invocation: { kind: 'direct' }, parameters,
+    result: strictCodec('AgencyAgentsCatalog', catalogSnapshotSchema),
+  }
+}
+/** One expert as delivered by the SDKWork Agents App API. */
+const sdkworkCatalogExpertSchema = expertSummarySchema
+/** One built-in team as delivered by the SDKWork Agents App API (id required). */
+const sdkworkCatalogTeamSchema = teamFieldsSchema.extend({
+  id: z.string().min(1).max(128),
+})
+const sdkworkCatalogPayloadSchema = z.object({
+  experts: z.array(sdkworkCatalogExpertSchema).max(2000),
+  teams: z.array(sdkworkCatalogTeamSchema).max(200),
+}).strict()
+const sdkworkCatalogSyncResultSchema = z.object({
+  experts: z.number().int().min(0),
+  teams: z.number().int().min(0),
+})
+const sdkworkPersonaPayloadSchema = z.object({
+  locale: z.enum(['zh-CN', 'en-US']),
+  personas: z.array(z.object({
+    slug: z.string().min(1).max(128),
+    text: z.string().min(1).max(65536),
+  }).strict()).max(2000),
+}).strict()
+const sdkworkPersonaSyncResultSchema = z.object({
+  count: z.number().int().min(0),
+})
+const revisionParameter = jsonParameter('expectedRevision', 'number', z.number().int().min(0))
+const customSlugParameter = jsonParameter('slug', 'string', z.string().regex(CUSTOM_EXPERT_SLUG))
+
+/** Host 与 Client 共用的专家启用状态 Remote 严格契约。 */
+export const AGENCY_AGENTS_DESCRIPTORS = [
+  ...[
+    { method: 'getTeams', parameters: [] },
+    { method: 'saveTeam', parameters: [jsonParameter('team', 'ExpertTeamInput', teamInputSchema), jsonParameter('enabled', 'boolean', z.boolean()), revisionParameter] },
+    { method: 'setTeamEnabled', parameters: [jsonParameter('id', 'string', z.string().min(1).max(128)), jsonParameter('enabled', 'boolean', z.boolean()), revisionParameter] },
+    { method: 'deleteTeam', parameters: [jsonParameter('id', 'string', z.string().min(1).max(128)), revisionParameter] },
+  ].map(({ method, parameters }): InvocationDescriptor => ({
+    id: `@deepseek-ai/dsh-client-ui-sdkwork-experts#agencyAgents/${method}`, service: 'agencyAgents', namespace: 'agencyAgents', method,
+    invocation: { kind: 'direct' }, parameters, result: strictCodec('AgencyTeamsSnapshot', teamSnapshotSchema),
+  })),
+  {
+    id: '@deepseek-ai/dsh-client-ui-sdkwork-experts#agencyAgents/syncSdkworkCatalog',
+    service: 'agencyAgents', namespace: 'agencyAgents', method: 'syncSdkworkCatalog',
+    invocation: { kind: 'direct' },
+    parameters: [jsonParameter('payload', 'SdkworkCatalogPayload', sdkworkCatalogPayloadSchema)],
+    result: strictCodec('SdkworkCatalogSyncResult', sdkworkCatalogSyncResultSchema),
+  },
+  {
+    id: '@deepseek-ai/dsh-client-ui-sdkwork-experts#agencyAgents/syncSdkworkPersonas',
+    service: 'agencyAgents', namespace: 'agencyAgents', method: 'syncSdkworkPersonas',
+    invocation: { kind: 'direct' },
+    parameters: [jsonParameter('payload', 'SdkworkPersonaPayload', sdkworkPersonaPayloadSchema)],
+    result: strictCodec('SdkworkPersonaSyncResult', sdkworkPersonaSyncResultSchema),
+  },  catalogMethod('getCatalog', []),
+  catalogMethod('saveCustomExpert', [
+    jsonParameter('expert', 'CustomExpertInput', customExpertInputSchema),
+    jsonParameter('enabled', 'boolean', z.boolean()),
+    revisionParameter,
+  ]),
+  catalogMethod('deleteCustomExpert', [customSlugParameter, revisionParameter]),
+  {
+    id: '@deepseek-ai/dsh-client-ui-sdkwork-experts#agencyAgents/getCustomExpert',
+    service: 'agencyAgents', namespace: 'agencyAgents', method: 'getCustomExpert',
+    invocation: { kind: 'direct' }, parameters: [customSlugParameter],
+    result: strictCodec('CustomExpertInput', expertEditSchema),
+  },
+  {
+    id: '@deepseek-ai/dsh-client-ui-sdkwork-experts#agencyAgents/getEnabled',
+    service: 'agencyAgents',
+    namespace: 'agencyAgents',
+    method: 'getEnabled',
+    invocation: { kind: 'direct' },
+    parameters: [],
+    result: strictCodec('AgencyAgentsEnabledState', enabledStateSchema),
+  },
+  {
+    id: '@deepseek-ai/dsh-client-ui-sdkwork-experts#agencyAgents/setEnabled',
+    service: 'agencyAgents',
+    namespace: 'agencyAgents',
+    method: 'setEnabled',
+    invocation: { kind: 'direct' },
+    parameters: [
+      jsonParameter('enabled', 'string[]', enabledArraySchema),
+      jsonParameter('expectedRevision', 'number', z.number().int().min(0)),
+    ],
+    result: strictCodec('AgencyAgentsEnabledState', enabledStateSchema),
+  },
+  {
+    id: '@deepseek-ai/dsh-client-ui-sdkwork-experts#agencyAgents/getPrompt',
+    service: 'agencyAgents',
+    namespace: 'agencyAgents',
+    method: 'getPrompt',
+    invocation: { kind: 'direct' },
+    parameters: [
+      jsonParameter('slug', 'string', z.string().min(1).max(128)),
+      jsonParameter('division', 'string', z.string().min(1).max(64)),
+    ],
+    result: strictCodec('AgencyAgentsPrompt', expertPromptSchema),
+  },
+  {
+    id: '@deepseek-ai/dsh-client-ui-sdkwork-experts#agencyAgents/getPendingProposal',
+    service: 'agencyAgents',
+    namespace: 'agencyAgents',
+    method: 'getPendingProposal',
+    invocation: { kind: 'direct' },
+    parameters: [jsonParameter('id', 'string', z.string().min(1).max(128))],
+    result: strictCodec('PendingProposalResult', storedProposalSchema),
+  },
+  {
+    id: '@deepseek-ai/dsh-client-ui-sdkwork-experts#agencyAgents/getLatestProposal',
+    service: 'agencyAgents',
+    namespace: 'agencyAgents',
+    method: 'getLatestProposal',
+    invocation: { kind: 'direct' },
+    parameters: [
+      jsonParameter('afterTimestamp', 'number', z.number()),
+      jsonParameter('sessionId', 'string?', z.string().optional(), true),
+    ],
+    result: strictCodec('LatestProposalResult', latestProposalSchema),
+  },
+] as const satisfies readonly InvocationDescriptor[]

@@ -98,7 +98,7 @@ export class DesktopBridgeService extends Service implements DesktopBridgeHost {
     endpoint: string,
     payload: unknown,
     signal: AbortSignal,
-  ): AsyncGenerator<unknown> {
+  ): AsyncGenerator {
     const gateway = this.ctx.get('typertGateway') as TypertGatewayLike | undefined
     if (gateway === undefined) {
       throw new Error('desktop-connection: typertGateway service missing while opening a Remote stream')

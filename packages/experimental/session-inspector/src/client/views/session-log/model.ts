@@ -202,8 +202,7 @@ export class SessionLogModel implements ObservableSnapshot<readonly InspectorRow
     rows.splice(root.offset + 1 + position, 0, { ...row, depth: row.depth + root.row.depth })
     if (header !== undefined) rows[root.offset + 1 + header.position] = { ...header.row, depth: header.row.depth + root.row.depth }
     for (let ordinal = root.ordinal + 1; ordinal < this.roots.length; ordinal++) {
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- ordinal is bounded by the root ledger.
-      this.roots[ordinal]!.offset++
+      this.roots[ordinal].offset++
     }
     this.put(key, { type: chunk.type, identity: String(index), time, location, value: chunk })
     if (collapsed !== undefined) {

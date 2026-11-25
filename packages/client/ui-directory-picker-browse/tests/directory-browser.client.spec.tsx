@@ -162,10 +162,10 @@ describe('DirectoryBrowser', () => {
     fireEvent.click(rowButton(screen.getByRole('listitem')))
     await waitFor(() => { expect(columns()).toHaveLength(2) })
     const [level, preview] = columns()
-    const selectedRow = within(level!).getByRole('listitem')
+    const selectedRow = within(level).getByRole('listitem')
     expect(selectedRow.textContent).toBe('Documents')
     expect(rowButton(selectedRow).getAttribute('aria-current')).toBe('true')
-    expect(within(preview!).getByRole('listitem').textContent).toBe('harness')
+    expect(within(preview).getByRole('listitem').textContent).toBe('harness')
     expect(b.listDirectory).toHaveBeenLastCalledWith(DOCS, expect.any(AbortSignal))
     expect(within(screen.getByRole('navigation')).getByRole('button', { name: 'Documents' })).toBeTruthy()
   })
@@ -175,10 +175,10 @@ describe('DirectoryBrowser', () => {
     await waitFor(() => { expect(screen.getByRole('listitem')).toBeTruthy() })
     fireEvent.click(rowButton(screen.getByRole('listitem')))
     await waitFor(() => { expect(columns()).toHaveLength(2) })
-    fireEvent.click(rowButton(within(columns()[1]!).getByRole('listitem')))
+    fireEvent.click(rowButton(within(columns()[1]).getByRole('listitem')))
     await waitFor(() => { expect(screen.getByRole('button', { name: 'harness' })).toBeTruthy() })
     const [level] = columns()
-    const selectedRow = within(level!).getByRole('listitem')
+    const selectedRow = within(level).getByRole('listitem')
     expect(selectedRow.textContent).toBe('harness')
     expect(rowButton(selectedRow).getAttribute('aria-current')).toBe('true')
   })
@@ -222,18 +222,18 @@ describe('DirectoryBrowser', () => {
     await waitFor(() => { expect(screen.getByRole('listitem')).toBeTruthy() })
     fireEvent.click(rowButton(screen.getByRole('listitem')))
     await waitFor(() => { expect(columns()).toHaveLength(2) })
-    fireEvent.click(rowButton(within(columns()[1]!).getByRole('listitem')))
+    fireEvent.click(rowButton(within(columns()[1]).getByRole('listitem')))
     await waitFor(() => { expect(screen.getByRole('button', { name: 'harness' })).toBeTruthy() })
     // Jumping to the Documents crumb is a step BACK one pane, not a
     // collapse: Documents stays selected in the home level, its children
     // stay on the right.
     fireEvent.click(screen.getByRole('button', { name: 'Documents' }))
     await waitFor(() => {
-      expect(rowButton(within(columns()[0]!).getByRole('listitem')).getAttribute('aria-current')).toBe('true')
+      expect(rowButton(within(columns()[0]).getByRole('listitem')).getAttribute('aria-current')).toBe('true')
     })
     expect(columns()).toHaveLength(2)
-    expect(within(columns()[0]!).getByText('Documents')).toBeTruthy()
-    expect(within(columns()[1]!).getByText('harness')).toBeTruthy()
+    expect(within(columns()[0]).getByText('Documents')).toBeTruthy()
+    expect(within(columns()[1]).getByText('harness')).toBeTruthy()
   })
 
   it('a navigation to the filesystem root keeps the single wide level', async () => {
@@ -285,7 +285,7 @@ describe('DirectoryBrowser', () => {
       await act(async () => {})
       expect(screen.getByRole('listitem').textContent).toBe('Documents')
       // Its late resolution changes nothing either.
-      await act(async () => { settlers[0]!(listingFor(HOME)) })
+      await act(async () => { settlers[0](listingFor(HOME)) })
       expect(columns()).toHaveLength(1)
       expect(rowButton(screen.getByRole('listitem')).getAttribute('aria-current')).toBeNull()
     } finally {
@@ -326,9 +326,9 @@ describe('DirectoryBrowser', () => {
       // the two-pane landing, editor closed.
       await act(async () => { settlers.get(HOME)!(listingFor(HOME)) })
       expect(columns()).toHaveLength(2)
-      expect(rowButton(within(columns()[0]!).getByRole('listitem')).getAttribute('aria-current')).toBe('true')
-      expect(within(columns()[0]!).getByText('Documents')).toBeTruthy()
-      expect(within(columns()[1]!).getByText('harness')).toBeTruthy()
+      expect(rowButton(within(columns()[0]).getByRole('listitem')).getAttribute('aria-current')).toBe('true')
+      expect(within(columns()[0]).getByText('Documents')).toBeTruthy()
+      expect(within(columns()[1]).getByText('harness')).toBeTruthy()
       expect(screen.queryByLabelText('browser.editPath', { selector: 'input' })).toBeNull()
       // The wait-bound timer firing after the landing is a no-op.
       await act(async () => { vi.advanceTimersByTime(200) })
@@ -366,8 +366,8 @@ describe('DirectoryBrowser', () => {
       // listings — so a late upgrade can never close a resumed draft.)
       await act(async () => { settlers.get(HOME)!(listingFor(HOME)) })
       expect(columns()).toHaveLength(2)
-      expect(rowButton(within(columns()[0]!).getByRole('listitem')).getAttribute('aria-current')).toBe('true')
-      expect(within(columns()[1]!).getByText('harness')).toBeTruthy()
+      expect(rowButton(within(columns()[0]).getByRole('listitem')).getAttribute('aria-current')).toBe('true')
+      expect(within(columns()[1]).getByText('harness')).toBeTruthy()
     } finally {
       vi.useRealTimers()
     }
@@ -389,7 +389,7 @@ describe('DirectoryBrowser', () => {
       await act(async () => { vi.advanceTimersByTime(200) })
       expect(columns()).toHaveLength(1)
       expect(screen.queryByText('harness')).toBeNull()
-      expect(within(columns()[0]!).getByText('Documents')).toBeTruthy()
+      expect(within(columns()[0]).getByText('Documents')).toBeTruthy()
       expect(screen.queryByLabelText('browser.editPath', { selector: 'input' })).toBeNull()
     } finally {
       vi.useRealTimers()
@@ -536,9 +536,9 @@ describe('DirectoryBrowser', () => {
     // The typed case differs from the real entry; the upgrade selects the
     // parent level's ACTUAL entry so aria-current and exemptions hold.
     await waitFor(() => {
-      expect(rowButton(within(columns()[0]!).getByRole('listitem')).getAttribute('aria-current')).toBe('true')
+      expect(rowButton(within(columns()[0]).getByRole('listitem')).getAttribute('aria-current')).toBe('true')
     })
-    expect(within(columns()[0]!).getByText('Users')).toBeTruthy()
+    expect(within(columns()[0]).getByText('Users')).toBeTruthy()
   })
 
   it('re-parks focus on the edit zone when a failed pick unmounts a dot-revealed row', async () => {
@@ -634,8 +634,8 @@ describe('DirectoryBrowser', () => {
     // Away from the root a navigation lands two-pane: the target selected
     // in its parent level, its own children on the right.
     await waitFor(() => { expect(columns()).toHaveLength(2) })
-    expect(rowButton(within(columns()[0]!).getByRole('listitem')).getAttribute('aria-current')).toBe('true')
-    expect(within(columns()[1]!).getByText('harness')).toBeTruthy()
+    expect(rowButton(within(columns()[0]).getByRole('listitem')).getAttribute('aria-current')).toBe('true')
+    expect(within(columns()[1]).getByText('harness')).toBeTruthy()
     // The submitted navigation unmounted the focused input; focus parks on
     // the crumb edit zone that replaced it.
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'browser.editPath' }))
@@ -697,7 +697,7 @@ describe('DirectoryBrowser', () => {
     // RIGHT pane (the selection's children).
     expect(input.value).toBe(`${DOCS}/`)
     fireEvent.change(input, { target: { value: `${DOCS}/h` } })
-    expect(within(columns()[1]!).getByText('harness')).toBeTruthy()
+    expect(within(columns()[1]).getByText('harness')).toBeTruthy()
     // The child pane already lists that directory: no scan follows, and both
     // panes stay.
     const settled = b.listDirectory.mock.calls.length
@@ -706,8 +706,8 @@ describe('DirectoryBrowser', () => {
     expect(columns()).toHaveLength(2)
     // A miss releases the right pane's filter rather than emptying it.
     fireEvent.change(input, { target: { value: `${DOCS}/zzz` } })
-    expect(within(columns()[1]!).getByText('harness')).toBeTruthy()
-    expect(within(columns()[0]!).getByText('Documents')).toBeTruthy()
+    expect(within(columns()[1]).getByText('harness')).toBeTruthy()
+    expect(within(columns()[0]).getByText('Documents')).toBeTruthy()
     // Erasing back into the parent's own path re-lands on it rather than
     // filtering the LEFT pane: the level being typed is always the last pane,
     // never a pane with a deeper level standing to its right. Home is the
@@ -730,8 +730,8 @@ describe('DirectoryBrowser', () => {
     fireEvent.change(input, { target: { value: `${DOCS}/h` } })
     await waitFor(() => { expect(columns()).toHaveLength(2) })
     expect(b.listDirectory).toHaveBeenCalledWith(`${DOCS}/`, expect.anything())
-    expect(within(columns()[0]!).getByText('Documents')).toBeTruthy()
-    expect(within(columns()[1]!).getByText('harness')).toBeTruthy()
+    expect(within(columns()[0]).getByText('Documents')).toBeTruthy()
+    expect(within(columns()[1]).getByText('harness')).toBeTruthy()
     // Still editing: the panes moved under the draft, the editor stayed.
     expect(screen.getByLabelText<HTMLInputElement>('browser.editPath').value).toBe(`${DOCS}/h`)
     // Typing on inside a level the panes already list costs no scan at all:
@@ -750,16 +750,16 @@ describe('DirectoryBrowser', () => {
     const input = screen.getByLabelText<HTMLInputElement>('browser.editPath')
     // Two levels down: the typed level on the right, its parent on the left.
     fireEvent.change(input, { target: { value: `${HARNESS}/` } })
-    await waitFor(() => { expect(within(columns()[0]!).getByText('harness')).toBeTruthy() })
+    await waitFor(() => { expect(within(columns()[0]).getByText('harness')).toBeTruthy() })
     expect(columns()).toHaveLength(2)
-    expect(within(columns()[1]!).queryAllByRole('listitem')).toHaveLength(0)
+    expect(within(columns()[1]).queryAllByRole('listitem')).toHaveLength(0)
     // Erasing back to the parent's own path re-lands on it: the level being
     // typed moves BACK into the last pane instead of staying on the left with
     // its own child pane still to the right.
     fireEvent.change(input, { target: { value: `${DOCS}/ha` } })
-    await waitFor(() => { expect(within(columns()[0]!).getByText('Documents')).toBeTruthy() })
+    await waitFor(() => { expect(within(columns()[0]).getByText('Documents')).toBeTruthy() })
     expect(columns()).toHaveLength(2)
-    expect(within(columns()[1]!).getAllByRole('listitem').map(item => item.textContent)).toEqual(['harness'])
+    expect(within(columns()[1]).getAllByRole('listitem').map(item => item.textContent)).toEqual(['harness'])
     expect(b.listDirectory).toHaveBeenCalledWith(`${DOCS}/`, expect.anything())
   })
 
@@ -806,14 +806,14 @@ describe('DirectoryBrowser', () => {
     const input = screen.getByLabelText<HTMLInputElement>('browser.editPath')
     fireEvent.change(input, { target: { value: `${LEAF}/` } })
     await waitFor(() => { expect(columns()).toHaveLength(2) })
-    expect(within(columns()[0]!).getAllByRole('listitem').map(item => item.textContent)).toEqual(['leaf', 'sibling'])
+    expect(within(columns()[0]).getAllByRole('listitem').map(item => item.textContent)).toEqual(['leaf', 'sibling'])
     // Deleting the separator names the level the LEFT pane lists. That pane
     // is stale — its landing will move it right — so it must not narrow to
     // the tail first: one deletion, one movement.
     fireEvent.change(input, { target: { value: LEAF } })
-    expect(within(columns()[0]!).getAllByRole('listitem').map(item => item.textContent)).toEqual(['leaf', 'sibling'])
-    await waitFor(() => { expect(within(columns()[0]!).getByText('other')).toBeTruthy() })
-    expect(within(columns()[1]!).getAllByRole('listitem').map(item => item.textContent)).toEqual(['leaf'])
+    expect(within(columns()[0]).getAllByRole('listitem').map(item => item.textContent)).toEqual(['leaf', 'sibling'])
+    await waitFor(() => { expect(within(columns()[0]).getByText('other')).toBeTruthy() })
+    expect(within(columns()[1]).getAllByRole('listitem').map(item => item.textContent)).toEqual(['leaf'])
   })
 
   it('keeps the walked-to panes when the editor is cancelled, Open adopting where the walk ended', async () => {
@@ -829,8 +829,8 @@ describe('DirectoryBrowser', () => {
     // stay where the walk ended.
     expect(screen.queryByLabelText('browser.editPath', { selector: 'input' })).toBeNull()
     expect(columns()).toHaveLength(2)
-    expect(within(columns()[0]!).getByText('Documents')).toBeTruthy()
-    expect(within(columns()[1]!).getByText('harness')).toBeTruthy()
+    expect(within(columns()[0]).getByText('Documents')).toBeTruthy()
+    expect(within(columns()[1]).getByText('harness')).toBeTruthy()
     expect(screen.getByRole('navigation').textContent).toContain('Documents')
     const open = screen.getByRole<HTMLButtonElement>('button', { name: 'browser.open' })
     expect(open.disabled).toBe(false)
@@ -859,7 +859,7 @@ describe('DirectoryBrowser', () => {
     expect(screen.getByText('Documents')).toBeTruthy()
     await act(async () => { landParent() })
     await waitFor(() => { expect(columns()).toHaveLength(2) })
-    expect(within(columns()[1]!).getByText('harness')).toBeTruthy()
+    expect(within(columns()[1]).getByText('harness')).toBeTruthy()
   })
 
   it('walks the panes back up when erased segments leave the listed levels', async () => {
@@ -932,7 +932,7 @@ describe('DirectoryBrowser', () => {
     // replaced. Without a re-park it would fall to body, outside a Modal that
     // has no focus trap.
     rowButton(screen.getByRole('listitem')).focus()
-    await waitFor(() => { expect(within(columns()[0]!).getByText('harness')).toBeTruthy() })
+    await waitFor(() => { expect(within(columns()[0]).getByText('harness')).toBeTruthy() })
     expect(document.activeElement).toBe(screen.getByLabelText('browser.editPath'))
   })
 
@@ -1064,7 +1064,7 @@ describe('DirectoryBrowser', () => {
     // selection is exempt from the hidden filter: the anchor row survives.
     expect(screen.queryByLabelText('browser.editPath', { selector: 'input' })).toBeNull()
     await waitFor(() => { expect(columns()).toHaveLength(2) })
-    expect(within(columns()[0]!).getByText('.config')).toBeTruthy()
+    expect(within(columns()[0]).getByText('.config')).toBeTruthy()
   })
 
   it('picking a filtered row adopts it and closes the path editor', async () => {
@@ -1098,7 +1098,7 @@ describe('DirectoryBrowser', () => {
     // The advance replaces BOTH panes (the picked button's own column
     // unmounts), so focus is re-parked on the selection's aria-current row
     // in the freshly rendered left pane rather than the clicked node.
-    const row = rowButton(within(columns()[1]!).getByRole('listitem'))
+    const row = rowButton(within(columns()[1]).getByRole('listitem'))
     fireEvent.mouseDown(row)
     fireEvent.click(row)
     expect(screen.queryByLabelText('browser.editPath', { selector: 'input' })).toBeNull()
@@ -1575,7 +1575,7 @@ describe('DirectoryBrowser', () => {
     // The create target became the level and the new folder its selection.
     await waitFor(() => {
       expect(within(screen.getByRole('navigation')).getByRole('button', { name: 'Documents' })).toBeTruthy()
-      const level = columns()[0]!
+      const level = columns()[0]
       const rows = within(level).getAllByRole('listitem')
       expect(rows.some(row => row.textContent === 'fresh' && rowButton(row).getAttribute('aria-current') === 'true')).toBe(true)
     })
@@ -1606,7 +1606,7 @@ describe('DirectoryBrowser', () => {
     await waitFor(() => { expect(screen.queryByLabelText('browser.folderName')).toBeNull() })
     fireEvent.click(screen.getByRole('button', { name: 'browser.newFolder' }))
     const masks = document.querySelectorAll('[aria-hidden="true"]')
-    fireEvent.click(masks[masks.length - 1]!)
+    fireEvent.click(masks[masks.length - 1])
     await waitFor(() => { expect(screen.queryByLabelText('browser.folderName')).toBeNull() })
     expect(screen.getByRole('dialog', { name: 'browser.title' })).toBeTruthy()
   })
@@ -1682,12 +1682,12 @@ describe('DirectoryBrowser', () => {
     fireEvent.click(screen.getByRole('button', { name: 'browser.home' }))
     fireEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Documents' }))
     // The newer jump lands two-pane: Documents selected at home, children right.
-    await waitFor(() => { expect(within(columns()[1]!).getByText('harness')).toBeTruthy() })
+    await waitFor(() => { expect(within(columns()[1]).getByText('harness')).toBeTruthy() })
     resolveSlow(listingFor(undefined))
     await new Promise(settle => setTimeout(settle, 0))
     // The stale home listing did not replace the newer Documents landing.
     expect(columns()).toHaveLength(2)
-    expect(within(columns()[1]!).getByText('harness')).toBeTruthy()
+    expect(within(columns()[1]).getByText('harness')).toBeTruthy()
   })
 
   it('names the create target by its path when the level reports no crumbs', async () => {
@@ -1713,7 +1713,7 @@ describe('DirectoryBrowser', () => {
     // Escape and the mask are both inert while creating.
     fireEvent.keyDown(screen.getByLabelText('browser.folderName'), { key: 'Escape' })
     const masks = document.querySelectorAll('[aria-hidden="true"]')
-    fireEvent.click(masks[masks.length - 1]!)
+    fireEvent.click(masks[masks.length - 1])
     expect(screen.getByLabelText('browser.folderName')).toBeTruthy()
     settleCreate(`${HOME}/slow`)
     await waitFor(() => { expect(screen.queryByLabelText('browser.folderName')).toBeNull() })

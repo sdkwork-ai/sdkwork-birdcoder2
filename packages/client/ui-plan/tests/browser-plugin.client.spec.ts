@@ -86,7 +86,7 @@ describe('ui-plan browser apply', () => {
     const fiber = b.ctx.plugin({ inject: [...inject], apply })
     try {
       await fiber.await()
-      const entry = b.slots.entries('conversation.chat.turnTail')[0]!
+      const entry = b.slots.entries('conversation.chat.turnTail')[0]
       const resolve = entry.inject as NonNullable<typeof entry.inject> & ((sessionId: SessionId) => PlanCardsInjected)
       const injected = resolve(SID)
       const source = injected.keyedHooks.plans('7')
@@ -123,14 +123,14 @@ describe('ui-plan browser apply', () => {
     const fiber = b.ctx.plugin({ inject: [...inject], apply })
     try {
       await fiber.await()
-      const card = b.slots.entries('conversation.chat.turnTail')[0]!
+      const card = b.slots.entries('conversation.chat.turnTail')[0]
       const opener = (card.inject as unknown as (sessionId: SessionId) => PlanOpenInjected)(child)
       const plan = submittedPlan({ type: 'tool/call', data: { callId: 'child-plan', name: 'exit_plan_mode', arguments: '{"plan":"# Child plan"}' } })!
       opener.openPlan(plan.callId)
-      const resources = () => Object.values(store.getSnapshot().bySession[parent]!.layout.tabs).map(tab => tab.contentId)
+      const resources = () => Object.values(store.getSnapshot().bySession[parent].layout.tabs).map(tab => tab.contentId)
       expect(resources()).toContain('dsh-resource://plan/subagent/visible-parent/embedded-child/continuable/child-plan')
       expect(store.getSnapshot().bySession[child]).toBeUndefined()
-      const review = b.slots.entries('conversation.plan-review.actions')[0]!
+      const review = b.slots.entries('conversation.plan-review.actions')[0]
       const reviewOpener = (review.inject as unknown as (sessionId: SessionId) => PlanReviewOpenInjected)(child)
       reviewOpener.openReview({ id: 'pending', question: 'Approve?', plan: '# Temporary child plan', approve: { label: 'Approve' } }, 'child-question')
       expect(resources().some(address => address.startsWith('dsh-resource://plan-review/embedded-child/'))).toBe(true)
@@ -172,7 +172,7 @@ describe('ui-plan browser apply', () => {
     const b = await bench()
     const fiber = b.ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
-    const entry = b.slots.entries('conversation.input.plan')[0]!
+    const entry = b.slots.entries('conversation.input.plan')[0]
     expect(entry.component).toBe(PlanChip)
     const injected = (entry.inject as unknown as (id: SessionId) => PlanChipInjected)(SID)
 
@@ -207,17 +207,17 @@ describe('ui-plan browser apply', () => {
       expect(b.slots.entries('conversation.chat.turnTail')).toHaveLength(2)
       removeFileEntry()
       const address = 'dsh-resource://plan/s-plan/call'
-      const type = b.registerType.mock.calls[0]![0]
+      const type = b.registerType.mock.calls[0][0]
       expect(type.canOpen!(address)).toBe(true)
       expect(type.canOpen!('file:///plan.md')).toBe(false)
       expect(type.title(address)).toBeTruthy()
       const plan = submittedPlan({ type: 'tool/call', data: { callId: 'call', name: 'exit_plan_mode', arguments: '{"plan":"# Saved plan"}' } })!
-      const card = b.slots.entries('conversation.chat.turnTail')[0]!
+      const card = b.slots.entries('conversation.chat.turnTail')[0]
       expect(card.component).toBe(PlanCards)
       const injected = (card.inject as unknown as (sessionId: SessionId) => PlanOpenInjected)(SID)
       injected.openPlan(plan.callId)
       expect(b.openResource).toHaveBeenLastCalledWith(address)
-      const review = b.slots.entries('conversation.plan-review.actions')[0]!
+      const review = b.slots.entries('conversation.plan-review.actions')[0]
       expect(review.component).toBe(PlanReviewOpen)
       const reviewInjected = (review.inject as unknown as (sessionId: SessionId) => PlanReviewOpenInjected)(SID)
       // The automatic open reads the service's on-screen Session source, not a copy.
@@ -241,8 +241,8 @@ describe('ui-plan browser apply', () => {
       expect(b.openResource).toHaveBeenLastCalledWith(...first)
       reviewInjected.openReview(temporary, 'question:3')
       expect(b.openResource.mock.calls.at(-1)![0]).not.toBe(first[0])
-      expect(b.slots.entries('sidebar.right.pane.tab')[0]!.component).toBe(PlanPreview)
-      expect(b.slots.entries('sidebar.right.pane.tab.title')[0]!.component).toBe(PlanTitle)
+      expect(b.slots.entries('sidebar.right.pane.tab')[0].component).toBe(PlanPreview)
+      expect(b.slots.entries('sidebar.right.pane.tab.title')[0].component).toBe(PlanTitle)
       await fiber.dispose()
       expect(b.slots.entries('conversation.chat.turnTail')).toEqual([])
       expect(b.slots.entries('conversation.plan-review.actions')).toEqual([])

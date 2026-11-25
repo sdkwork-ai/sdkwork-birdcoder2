@@ -30,7 +30,7 @@
  * labels are short, so requested placement is always usable there.
  */
 import { cloneElement, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { FocusEventHandler, MouseEventHandler, MutableRefObject, ReactElement, Ref } from 'react'
+import type { FocusEventHandler, MouseEventHandler, ReactElement, Ref } from 'react'
 import css from './RailTooltip.module.css'
 
 /** Bubble placement relative to the anchor (matches upstream's vocabulary). */
@@ -82,11 +82,11 @@ export function RailTooltip({ label, side = 'right', delayMs = 0, disabled = fal
   // React 18 keeps the element's ref outside props, React 19 moved it into
   // props; read both so wrapping an anchor never severs the owner's ref.
   const childRef = (children as ReactElement<AnchorProps> & { ref?: Ref<HTMLElement> }).ref
-    ?? (children.props as AnchorProps).ref
+    ?? (children.props).ref
   const mergedRef = useCallback((el: HTMLElement | null) => {
     anchor.current = el
     if (typeof childRef === 'function') childRef(el)
-    else if (childRef != null) (childRef as MutableRefObject<HTMLElement | null>).current = el
+    else if (childRef != null) (childRef).current = el
   }, [childRef])
   const [pos, setPos] = useState<{ x: number; top: number; bottom: number } | null>(null)
   const bubble = useRef<HTMLSpanElement | null>(null)
@@ -156,7 +156,7 @@ export function RailTooltip({ label, side = 'right', delayMs = 0, disabled = fal
       // whatever the (possibly swallowed) mouseleave said.
       if (!onAnchor) forceDismiss()
     }
-    const onDown = (): void => forceDismiss()
+    const onDown = (): void =>{  forceDismiss() }
     document.addEventListener('pointermove', onMove)
     document.addEventListener('pointerdown', onDown)
     return () => {

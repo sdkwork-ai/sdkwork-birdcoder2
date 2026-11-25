@@ -76,14 +76,14 @@ describe('ui-sdkwork-official-accounts client plugin', () => {
     // whole mode.rail.settings entry — this assertion pins the collaboration.
     expect(() => slots.register({
       name: 'settings.officialAccounts',
-    } as never)).toThrow(/not declared|declared/)
+    })).toThrow(/not declared|declared/)
     await fiber.dispose()
     // HMR: a re-apply must leave a working plugin behind.
     const second = mount(ctx)
     await second.await()
     expect(() => slots.register({
       name: 'settings.officialAccounts',
-    } as never)).toThrow(/not declared|declared/)
+    })).toThrow(/not declared|declared/)
     await second.dispose()
   })
 })

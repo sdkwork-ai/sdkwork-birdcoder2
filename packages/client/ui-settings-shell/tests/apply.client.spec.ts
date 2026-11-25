@@ -62,7 +62,7 @@ describe('ui-settings-shell apply', () => {
     await ctx.plugin({ inject: [...inject], apply }).await()
 
     await vi.waitFor(() => { expect(slots.entries('plugins.item')).toHaveLength(1) })
-    const entry = slots.entries('plugins.item')[0]!
+    const entry = slots.entries('plugins.item')[0]
     expect(entry.options).toMatchObject({ id: 'shell', order: 40 })
     expect(resolveSlotLabel(entry.options.label)).toBe('终端')
     expect(entry.locale).toBe(NS)
@@ -95,7 +95,7 @@ describe('ui-settings-shell apply', () => {
     declareRoot(slots)
     await ctx.plugin({ inject: [...inject], apply }).await()
     await vi.waitFor(() => { expect(slots.entries('plugins.item')).toHaveLength(1) })
-    const face = (slots.entries('plugins.item')[0]!.inject as () => Pick<ShellCardFace, 'hooks'>)()
+    const face = (slots.entries('plugins.item')[0].inject as () => Pick<ShellCardFace, 'hooks'>)()
     expect(Object.keys(face.hooks)).toEqual(['shellCard'])
   })
 

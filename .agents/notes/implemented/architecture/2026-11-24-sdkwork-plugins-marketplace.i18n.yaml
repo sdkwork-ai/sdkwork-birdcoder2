@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-24-sdkwork-plugins-marketplace.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-24-sdkwork-plugins-marketplace.md
+/agent-note-make-sdkwork-plugins-the-plugin-market-authority:
+  en: e8deacf7710f7bfe
+  zh: 5a802ded71679a9f
+/agent-note-make-sdkwork-plugins-the-plugin-market-authority/problem:
+  en: e96b58d703d6e53a
+  zh: a8f624da271e6e6b
+/agent-note-make-sdkwork-plugins-the-plugin-market-authority/decision:
+  en: c83e771ef012eb2d
+  zh: 14ee53643acf5d1f
+/agent-note-make-sdkwork-plugins-the-plugin-market-authority/alternatives-considered:
+  en: 65cdd2ad2ee42038
+  zh: 627051020b3d17dd
+/agent-note-make-sdkwork-plugins-the-plugin-market-authority/consequences:
+  en: 2331fbe9f9d3e8a6
+  zh: 1591b3ec429efcc2
+/agent-note-make-sdkwork-plugins-the-plugin-market-authority/verification:
+  en: bb6e984fe9f2218d
+  zh: 98773858baaab3be

@@ -125,7 +125,7 @@ async function bench(renderQuote = false) {
   if (renderQuote) await runtime.mount(messageQuotes)
   runtime.renderRoot()
   const entryOf = (key: 'main.conversation' | 'conversation.session' | 'conversation.session.header' | 'conversation.composer.bar') =>
-    runtime.slots.entries(key)[0]!
+    runtime.slots.entries(key)[0]
   const conversationApi = (id: SessionId) => {
     const entry = entryOf('conversation.session')
     const instance = runtime.storeOf('conversation.session', references.get(id)) as ConversationInstance

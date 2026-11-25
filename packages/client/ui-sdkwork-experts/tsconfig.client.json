@@ -1,0 +1,79 @@
+{
+  // Client face of the split experts package: the expert gallery, the settings
+  // management page, the composer picker and the recommend bar. It also lists
+  // the pure shared modules the browser reads (contracts, names, locale tables);
+  // `src/settings-compat.ts` is reached only as a type import through
+  // `src/entry-location.ts`, never compiled into this program.
+  "extends": "../../../tsconfig.base.client.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.client.tsbuildinfo"
+  },
+  "include": [
+    "src/client",
+    "src/locales",
+    "src/agency-locale.ts",
+    "src/api-base.ts",
+    "src/creation-contract.ts",
+    "src/creation-locale.ts",
+    "src/creation-tools.ts",
+    "src/entry-location.ts",
+    "src/expert-contract.ts",
+    "src/host-copy.ts",
+    "src/host-locales.ts",
+    "src/names.ts",
+    "src/remote-contract.ts",
+    "src/tabler-icons.d.ts",
+    "src/team-collaboration.ts",
+    "src/team-collaboration-en.ts",
+    "src/team-collaboration-es.ts",
+    "src/team-collaboration-pt.ts",
+    "src/team-contract.ts",
+    "src/team-content-en.ts",
+    "src/team-content-es.ts",
+    "src/team-content-pt.ts",
+    "src/team-i18n.ts",
+    "src/team-i18n-es.ts",
+    "src/team-i18n-pt.ts",
+    "src/team-prompts.ts",
+    "src/team-prompts-en.ts",
+    "src/team-prompts-es.ts",
+    "src/team-prompts-pt.ts"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../api/remotes/tsconfig.client.json"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../connection/tsconfig.client.json"
+    },
+    {
+      "path": "../locale/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-conversation/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-input-trigger"
+    },
+    {
+      "path": "../ui-primitives"
+    },
+    {
+      "path": "../ui-settings/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-slots"
+    },
+    {
+      "path": "../../typert/protocol"
+    }
+  ]
+}

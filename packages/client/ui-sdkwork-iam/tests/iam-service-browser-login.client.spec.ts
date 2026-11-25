@@ -324,7 +324,7 @@ describe('IamService desktop browser login', () => {
     const off = service.onAuthToken(() => { throw new Error('listener failed') })
     await service.beginBrowserSignIn()
     const options = vi.mocked(createIamDesktopLogin).mock.calls.at(-1)?.[0]
-    await options?.onSession({ accessToken: 'a', authToken: 'b', refreshToken: 'r' } as never)
+    await options?.onSession({ accessToken: 'a', authToken: 'b', refreshToken: 'r' })
     // One broken observer must not stop the credential publication every SDK
     // client depends on.
     expect(reported).toHaveBeenCalledWith('ui-sdkwork-iam: auth-token listener failed', expect.any(Error))
@@ -340,7 +340,7 @@ describe('IamService desktop browser login', () => {
     const options = vi.mocked(createIamDesktopLogin).mock.calls.at(-1)?.[0]
     // The profile moved to no IAM origin while the browser login was out.
     env.useBaseUrl('')
-    await expect(options?.onSession({ accessToken: 'a', authToken: 'b' } as never))
+    await expect(options?.onSession({ accessToken: 'a', authToken: 'b' }))
       .rejects.toThrow('IAM baseUrl is not configured')
     expect(service.isSignedIn()).toBe(false)
   })
@@ -673,7 +673,7 @@ describe('IamService desktop account replacement', () => {
       accessToken: 'b-access',
       authToken: 'b-auth',
       context: { tenantId: 'tenant', userId: 'user-b' },
-    } as never)
+    })
 
     // A's local session was reset before B's record was written, so B's
     // durable copy cannot inherit A's cached identity.
@@ -707,7 +707,7 @@ describe('IamService desktop account replacement', () => {
       authToken: 'a-auth-2',
       context: { tenantId: 'tenant', userId: 'user-a' },
       user: { id: 'user-a', displayName: 'A User' },
-    } as never)
+    })
 
     // Same identity: a token rotation must not sign the page out first.
     expect(reset).not.toHaveBeenCalled()
@@ -736,7 +736,7 @@ describe('IamService desktop account replacement', () => {
       accessToken: 'b-access',
       authToken: 'b-auth',
       context: { tenantId: 'tenant', userId: 'user-b' },
-    } as never)
+    })
 
     // The page is signed out (A's state was reset) and B was never committed.
     expect(service.isSignedIn()).toBe(false)
@@ -764,7 +764,7 @@ describe('IamService desktop account replacement', () => {
       accessToken: 'b-access',
       authToken: 'b-auth',
       context: { tenantId: 'tenant', userId: 'user-b' },
-    } as never)
+    })
 
     expect(reset).toHaveBeenCalledTimes(1)
     expect(service.controller.getState().session?.accessToken).toBe('b-access')

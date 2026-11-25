@@ -25,7 +25,7 @@ it('registers the page body and its copy for the plugin lifetime', async () => {
   const locale = new LocaleRuntime(ctx)
   ctx.provide('locale', locale)
   const fiber = await ctx.plugin({ inject, apply })
-  const descriptor = register.mock.calls[0]![0]
+  const descriptor = register.mock.calls[0][0]
   expect(descriptor).toMatchObject({ action: 'create_personalized_page', locale: 'creationRecommendations' })
   expect(locale.bind('creationRecommendations')('heading')).toBe('Personalized pages')
   const t = locale.bind('creationRecommendations')

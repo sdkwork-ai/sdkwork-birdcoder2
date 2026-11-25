@@ -87,7 +87,7 @@ function endingTables(literals: readonly string[]): Pick<FormatTables, 'ending' 
   const sharedEndings: number[][] = []
   literals.forEach((literal, index) => {
     const key = literal.charCodeAt(literal.length - 2) * 128 + literal.charCodeAt(literal.length - 1)
-    const existing = ending[key] as number
+    const existing = ending[key]
     if (existing === 0) {
       ending[key] = index + 1
       return
@@ -96,7 +96,7 @@ function endingTables(literals: readonly string[]): Pick<FormatTables, 'ending' 
       sharedEndings[key] = [existing - 1]
       ending[key] = -1
     }
-    (sharedEndings[key] as number[]).push(index)
+    (sharedEndings[key]).push(index)
   })
   return { ending, sharedEndings }
 }

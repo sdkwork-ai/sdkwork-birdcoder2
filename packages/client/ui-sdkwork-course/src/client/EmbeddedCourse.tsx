@@ -95,7 +95,7 @@ function EmbeddedTopBar({ t }: { t: (key: CourseKey) => string }): ReactNode {
         <form onSubmit={submit} className="relative mx-auto hidden w-full max-w-[420px] flex-1 md:block">
           <input
             value={searchValue}
-            onChange={event => setSearch(event.target.value)}
+            onChange={(event) =>{  setSearch(event.target.value) }}
             placeholder={t('search.placeholder')}
             aria-label={t('search.aria')}
             className="h-9 w-full rounded-full border border-slate-200 bg-slate-100/80 pl-4 pr-10 text-[13px] text-slate-800 placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/10"

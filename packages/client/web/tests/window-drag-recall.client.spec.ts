@@ -368,15 +368,15 @@ describe('the shell defaults', () => {
     const element = row()
     const stop = installWindowDragRecall({ document })
     expect(frames).toHaveLength(1)
-    frames.splice(0, 1)[0]!(0)
+    frames.splice(0, 1)[0](0)
     expect(observed).toEqual([element])
     expect(marked()).toBe(true)
-    frames.splice(0, 1)[0]!(0)
+    frames.splice(0, 1)[0](0)
     expect(marked()).toBe(false)
     expect(frames).toHaveLength(0)
 
     // A reported resize re-arms, and disposing with that frame pending cancels it.
-    resizers[0]!()
+    resizers[0]()
     expect(frames).toHaveLength(1)
     stop()
     expect(cancelled).toHaveLength(1)
@@ -410,7 +410,7 @@ describe('disposal', () => {
     })
     expect(queue).toHaveLength(1)
     stop()
-    queue.splice(0, 1)[0]!()
+    queue.splice(0, 1)[0]()
     expect(marked()).toBe(false)
     expect(queue).toHaveLength(0)
 

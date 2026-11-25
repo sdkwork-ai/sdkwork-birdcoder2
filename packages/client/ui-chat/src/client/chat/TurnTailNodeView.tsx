@@ -16,7 +16,7 @@ type TurnTailNodeViewProps = ChatNodeViewProps<'turn-tail'>
 function lastContent(snapshot: ChatSnapshot, turn: number, skipWarning: boolean): ChatNode | undefined {
   const keys = snapshot.locations.getTurn(turn)
   for (let index = keys.length - 1; index >= 0; index--) {
-    const node = snapshot.nodes.get(keys[index] as string) as ChatNode | undefined
+    const node = snapshot.nodes.get(keys[index]) as ChatNode | undefined
     if (node === undefined || node.kind === 'turn-tail' || node.kind === 'turn-process'
       || (skipWarning && node.kind === 'turn-max-tokens')) continue
     return node

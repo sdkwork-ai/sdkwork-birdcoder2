@@ -155,7 +155,7 @@ export function createCloudRouterPriceGroupApi(
         code: group.code,
         name: group.name === '' ? group.code : group.name,
         isDefault: false,
-        selected: group.defaultForModel === true,
+        selected:  group.defaultForModel,
       }))
     },
     async listDefaults() {

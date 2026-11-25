@@ -170,7 +170,7 @@ export function AgentPresetSection({
           closeViewer()
         } else trapPresetReaderTab(event)
       }}
-      title={viewed === null ? '' : `${t('view')} · ${viewedTitle}`} className={css.dialog as string}
+      title={viewed === null ? '' : `${t('view')} · ${viewedTitle}`} className={css.dialog}
       footer={<Button variant="outline" autoFocus onClick={closeViewer}>{t('close')}</Button>}>
       {viewed === null ? null : <pre className={css.viewerCode}>{viewed.content}</pre>}
     </Modal>

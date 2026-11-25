@@ -651,7 +651,7 @@ describe('Client Remote transport readiness', () => {
       )
       try {
         expect(FakeWebSocket.sockets).toHaveLength(1)
-        start.mock.calls[0]![0].onReconnectRequested?.()
+        start.mock.calls[0][0].onReconnectRequested?.()
         await vi.waitFor(() => { expect(FakeWebSocket.sockets).toHaveLength(2) })
       } finally {
         await client.dispose()
@@ -683,10 +683,10 @@ describe('Client Remote transport readiness', () => {
         expect(FakeWebSocket.sockets[0]?.readyState).toBe(FakeWebSocket.CLOSED)
         expect(FakeWebSocket.sockets[0]?.closedWith).toHaveLength(1)
         expect(reset).not.toHaveBeenCalled()
-        const replacement = FakeWebSocket.sockets[1]!
+        const replacement = FakeWebSocket.sockets[1]
         replacement.open()
         await vi.advanceTimersByTimeAsync(0)
-        const opening = JSON.parse(replacement.sent[0]!) as { streamId: string }
+        const opening = JSON.parse(replacement.sent[0]) as { streamId: string }
         replacement.receive({
           type: 'item', streamId: opening.streamId,
           value: { type: 'ready', clientId: 'recovered-client', host: { home: '/recovered' } },
@@ -712,7 +712,7 @@ describe('Client Remote transport readiness', () => {
       'in-process',
     )
     try {
-      expect(() => { start.mock.calls[0]![0].onReconnectRequested?.() }).not.toThrow()
+      expect(() => { start.mock.calls[0][0].onReconnectRequested?.() }).not.toThrow()
     } finally {
       await client.dispose()
     }
@@ -736,7 +736,7 @@ describe('Client Remote transport readiness', () => {
       const readiness = deferredReadiness()
       const { client, start } = await loaderReadinessBench(readiness.promise, 'web')
       expect(FakeWebSocket.sockets).toHaveLength(1)
-      FakeWebSocket.sockets[0]!.fail()
+      FakeWebSocket.sockets[0].fail()
       readiness.resolve()
       await vi.waitFor(() => { expect(FakeWebSocket.sockets).toHaveLength(2) })
       expect(start).toHaveBeenCalledOnce()
@@ -2091,8 +2091,8 @@ describe('Client Typert API', () => {
       const run = generation.start()
 
       await vi.waitFor(() => { expect(FakeWebSocket.sockets[0]?.sent).toHaveLength(1) })
-      const socket = FakeWebSocket.sockets[0]!
-      const opened = JSON.parse(socket.sent[0]!) as { streamId: string }
+      const socket = FakeWebSocket.sockets[0]
+      const opened = JSON.parse(socket.sent[0]) as { streamId: string }
       expect(opened).toMatchObject({
         type: 'open', endpoint: '$events', payload: { args: {} },
       })
@@ -2438,9 +2438,9 @@ describe('Client Typert API', () => {
       const first = ctx.remote.probe.watch('alpha')[Symbol.asyncIterator]()
       const firstItem = first.next()
       await vi.waitFor(() => { expect(FakeWebSocket.sockets[0]?.sent).toHaveLength(1) })
-      const socket = FakeWebSocket.sockets[0]!
+      const socket = FakeWebSocket.sockets[0]
       expect(socket.url).toBe('wss://harness.example/api/remote.mux')
-      const opened = JSON.parse(socket.sent[0]!) as { streamId: string }
+      const opened = JSON.parse(socket.sent[0]) as { streamId: string }
       expect(opened).toMatchObject({
         type: 'open',
         endpoint: 'probe/watch',
@@ -2455,7 +2455,7 @@ describe('Client Typert API', () => {
       const failed = ctx.remote.probe.watch('failure')[Symbol.asyncIterator]()
       const failedItem = failed.next()
       await vi.waitFor(() => { expect(socket.sent).toHaveLength(2) })
-      const failedOpen = JSON.parse(socket.sent[1]!) as { streamId: string }
+      const failedOpen = JSON.parse(socket.sent[1]) as { streamId: string }
       socket.receive({
         type: 'error',
         streamId: failedOpen.streamId,
@@ -2476,7 +2476,7 @@ describe('Client Typert API', () => {
       const cancelled = ctx.remote.probe.watch('cancel', abort.signal)[Symbol.asyncIterator]()
       const cancelledItem = cancelled.next()
       await vi.waitFor(() => { expect(socket.sent).toHaveLength(3) })
-      const cancelledOpen = JSON.parse(socket.sent[2]!) as { streamId: string }
+      const cancelledOpen = JSON.parse(socket.sent[2]) as { streamId: string }
       const cancellation = new Error('caller cancelled')
       socket.receive({ type: 'item', streamId: cancelledOpen.streamId, value: 'already queued' })
       abort.abort(cancellation)
@@ -2550,7 +2550,7 @@ describe('Client Typert API', () => {
         handle.end()
         const stream = handle[Symbol.asyncIterator]()
         const first = stream.next()
-        const socket = FakeWebSocket.sockets[0]!
+        const socket = FakeWebSocket.sockets[0]
         await vi.waitFor(() => { expect(socket.sent).toHaveLength(4) })
         const frames = socket.sent.map(text => parseRemoteStreamClientMessage(text))
         const opened = frames[0]
@@ -2587,9 +2587,9 @@ describe('Client Typert API', () => {
         const stream = handle[Symbol.asyncIterator]()
         const pending = stream.next()
         handle.send('first')
-        const socket = FakeWebSocket.sockets[0]!
+        const socket = FakeWebSocket.sockets[0]
         await vi.waitFor(() => { expect(socket.sent).toHaveLength(2) })
-        const opened = JSON.parse(socket.sent[0]!) as { streamId: string }
+        const opened = JSON.parse(socket.sent[0]) as { streamId: string }
         socket.receive({ type: 'end', streamId: opened.streamId })
         await expect(pending).resolves.toEqual({ done: true, value: undefined })
         expect(() => { handle.send('second') }).toThrow('client api: probe/attach stream has terminated')
@@ -2608,7 +2608,7 @@ describe('Client Typert API', () => {
       try {
         const handle = ctx.remote.probe.attach('alpha')
         const pending = handle[Symbol.asyncIterator]().next()
-        const socket = FakeWebSocket.sockets[0]!
+        const socket = FakeWebSocket.sockets[0]
         await vi.waitFor(() => { expect(socket.sent).toHaveLength(1) })
         handle.dispose()
         handle.dispose()
@@ -2621,7 +2621,7 @@ describe('Client Typert API', () => {
         const iterator = second[Symbol.asyncIterator]()
         const opened = iterator.next()
         await vi.waitFor(() => { expect(socket.sent).toHaveLength(3) })
-        const betaId = (JSON.parse(socket.sent[2]!) as { streamId: string }).streamId
+        const betaId = (JSON.parse(socket.sent[2]) as { streamId: string }).streamId
         socket.receive({ type: 'item', streamId: betaId, value: 'beta:1' })
         await expect(opened).resolves.toEqual({ done: false, value: 'beta:1' })
         await expect(iterator.return?.()).resolves.toEqual({ done: true, value: undefined })
@@ -2642,9 +2642,9 @@ describe('Client Typert API', () => {
       try {
         const handle = ctx.remote.probe.attach('alpha')
         const iterator = handle[Symbol.asyncIterator]()
-        const socket = FakeWebSocket.sockets[0]!
+        const socket = FakeWebSocket.sockets[0]
         await vi.waitFor(() => { expect(socket.sent).toHaveLength(1) })
-        const opened = JSON.parse(socket.sent[0]!) as { streamId: string }
+        const opened = JSON.parse(socket.sent[0]) as { streamId: string }
         socket.receive({ type: 'item', streamId: opened.streamId, value: 'alpha:1' })
         await expect(iterator.next()).resolves.toEqual({ done: false, value: 'alpha:1' })
         // No read is pending: the cancel still goes out on dispose, and the buffered item is dropped.
@@ -2669,9 +2669,9 @@ describe('Client Typert API', () => {
       try {
         const handle = ctx.remote.probe.attach('alpha')
         handle.send('a')
-        const socket = FakeWebSocket.sockets[0]!
+        const socket = FakeWebSocket.sockets[0]
         await vi.waitFor(() => { expect(socket.sent).toHaveLength(2) })
-        const opened = JSON.parse(socket.sent[0]!) as { streamId: string }
+        const opened = JSON.parse(socket.sent[0]) as { streamId: string }
         socket.receive({ type: 'end', streamId: opened.streamId })
         expect(() => { handle.send('after end') }).toThrow('client api: probe/attach stream has terminated')
         handle.end()
@@ -2690,12 +2690,12 @@ describe('Client Typert API', () => {
       const dispose = await ctx.remote.$mount({ package: '@fixture/attach', descriptors: [attachDescriptor()] })
       try {
         const alpha = ctx.remote.probe.attach('alpha')
-        const socket = FakeWebSocket.sockets[0]!
+        const socket = FakeWebSocket.sockets[0]
         await vi.waitFor(() => { expect(socket.sent).toHaveLength(1) })
-        const alphaId = (JSON.parse(socket.sent[0]!) as { streamId: string }).streamId
+        const alphaId = (JSON.parse(socket.sent[0]) as { streamId: string }).streamId
         const beta = ctx.remote.probe.attach('beta')
         await vi.waitFor(() => { expect(socket.sent).toHaveLength(2) })
-        const betaId = (JSON.parse(socket.sent[1]!) as { streamId: string }).streamId
+        const betaId = (JSON.parse(socket.sent[1]) as { streamId: string }).streamId
         alpha.dispose()
         await vi.waitFor(() => { expect(socket.sent).toHaveLength(3) })
         // The Host's end for alpha crosses the cancel on the wire, so no stream owns that id any more; a
@@ -2749,10 +2749,10 @@ describe('Client Typert API', () => {
         const handle: RemoteStreamHandle<string, unknown> = ctx.remote.probe.attach('alpha')
         handle.send(undefined)
         expect(() => { handle.send({ nested: undefined }) }).toThrow('is not a lossless JSON value')
-        const socket = FakeWebSocket.sockets[0]!
+        const socket = FakeWebSocket.sockets[0]
         await vi.waitFor(() => { expect(socket.sent).toHaveLength(2) })
-        const opened = JSON.parse(socket.sent[0]!) as { streamId: string }
-        const item = JSON.parse(socket.sent[1]!) as Record<string, unknown>
+        const opened = JSON.parse(socket.sent[0]) as { streamId: string }
+        const item = JSON.parse(socket.sent[1]) as Record<string, unknown>
         expect(item).toEqual({ type: 'item', streamId: opened.streamId })
         expect(Object.keys(item)).toEqual(['type', 'streamId'])
         handle.dispose()
@@ -2769,7 +2769,7 @@ describe('Client Typert API', () => {
       const dispose = await ctx.remote.$mount({ package: '@fixture/attach', descriptors: [attachDescriptor()] })
       try {
         const handle = ctx.remote.probe.attach('alpha')
-        const socket = FakeWebSocket.sockets[0]!
+        const socket = FakeWebSocket.sockets[0]
         await vi.waitFor(() => { expect(socket.sent).toHaveLength(1) })
         await expect(handle[Symbol.asyncIterator]().return?.()).resolves.toEqual({ done: true, value: undefined })
         await vi.waitFor(() => {
@@ -2844,7 +2844,7 @@ describe('Client Typert API', () => {
         const abort = new AbortController()
         const handle = ctx.remote.probe.attach('alpha', abort.signal)
         const pending = handle[Symbol.asyncIterator]().next()
-        const socket = FakeWebSocket.sockets[0]!
+        const socket = FakeWebSocket.sockets[0]
         await vi.waitFor(() => { expect(socket.sent).toHaveLength(1) })
         const reason = new Error('caller left')
         abort.abort(reason)
@@ -2893,15 +2893,15 @@ describe('Remote stream client carrier lifecycle', () => {
       const loop = connection.start({ onReconnectRequested: () => { mux.reconnect() } }, { backoffBaseMs: 1 })
       const iterator = sibling[Symbol.asyncIterator]()
       try {
-        const firstSocket = FakeWebSocket.sockets[0]!
+        const firstSocket = FakeWebSocket.sockets[0]
         await vi.waitFor(() => { expect(firstSocket.sent).toHaveLength(1) })
-        const eventOpen = parseRemoteStreamClientMessage(firstSocket.sent[0]!)
+        const eventOpen = parseRemoteStreamClientMessage(firstSocket.sent[0])
         if (eventOpen.type !== 'open') throw new Error('fixture expected event open')
         firstSocket.receive({ type: 'item', streamId: eventOpen.streamId, value: 'ready' })
         await vi.waitFor(() => { expect(connection.generation.getSnapshot()).toBeDefined() })
         const opening = iterator.next()
         await vi.waitFor(() => { expect(firstSocket.sent).toHaveLength(2) })
-        const firstFollow = parseRemoteStreamClientMessage(firstSocket.sent[1]!)
+        const firstFollow = parseRemoteStreamClientMessage(firstSocket.sent[1])
         if (firstFollow.type !== 'open') throw new Error('fixture expected follow open')
         firstSocket.receive({ type: 'item', streamId: firstFollow.streamId, value: 'initial' })
         const initial = await opening
@@ -2924,7 +2924,7 @@ describe('Remote stream client carrier lifecycle', () => {
 
         cleanup.resolve(undefined)
         await vi.waitFor(() => { expect(FakeWebSocket.sockets).toHaveLength(2) })
-        const replacement = FakeWebSocket.sockets[1]!
+        const replacement = FakeWebSocket.sockets[1]
         await vi.waitFor(() => { expect(replacement.sent).toHaveLength(2) })
         const replacementEvents = replacement.sent.map(parseRemoteStreamClientMessage)
         for (const frame of replacementEvents) {
@@ -2950,7 +2950,7 @@ describe('Remote stream client carrier lifecycle', () => {
     await withFakeWebSocket('https://harness.example', async () => {
       const client = new RemoteStreamMuxClient()
       client.start()
-      const socket = FakeWebSocket.sockets[0]!
+      const socket = FakeWebSocket.sockets[0]
       const send = socket.send.bind(socket)
       const sent = vi.spyOn(socket, 'send').mockImplementation((text) => {
         send(text)
@@ -3003,9 +3003,9 @@ describe('Remote stream client carrier lifecycle', () => {
       void first.catch(() => undefined)
       try {
         await blocked.promise
-        const socket = FakeWebSocket.sockets[0]!
+        const socket = FakeWebSocket.sockets[0]
         expect(socket.sent).toHaveLength(257)
-        const opened = parseRemoteStreamClientMessage(socket.sent[0]!)
+        const opened = parseRemoteStreamClientMessage(socket.sent[0])
         if (opened.type !== 'open') throw new Error('fixture expected an open frame')
         socket.receive({ type: 'item', streamId: opened.streamId, value: 'ready' })
         await expect(first).resolves.toEqual({ done: false, value: 'ready' })
@@ -3027,7 +3027,7 @@ describe('Remote stream client carrier lifecycle', () => {
       const client = new RemoteStreamMuxClient()
       try {
         client.start()
-        expect(FakeWebSocket.sockets[0]!.url).toBe('ws://127.0.0.1:43210/api/remote.mux')
+        expect(FakeWebSocket.sockets[0].url).toBe('ws://127.0.0.1:43210/api/remote.mux')
       } finally {
         await client.close()
         vi.unstubAllGlobals()
@@ -3039,7 +3039,7 @@ describe('Remote stream client carrier lifecycle', () => {
     await withFakeWebSocket('https://harness.example', async () => {
       const client = new RemoteStreamMuxClient()
       client.start()
-      const socket = FakeWebSocket.sockets[0]!
+      const socket = FakeWebSocket.sockets[0]
       const exploding = (async function* (): AsyncGenerator<string> {
         yield 'a'
         throw new Error('uplink exploded')
@@ -3084,14 +3084,14 @@ describe('Remote stream client carrier lifecycle', () => {
       client.start()
       expect(FakeWebSocket.sockets).toHaveLength(1)
 
-      const failed = FakeWebSocket.sockets[0]!
+      const failed = FakeWebSocket.sockets[0]
       failed.fail()
       await Promise.resolve()
       expect(FakeWebSocket.sockets).toHaveLength(1)
 
       client.reconnect()
       await vi.waitFor(() => { expect(FakeWebSocket.sockets).toHaveLength(2) })
-      const connected = FakeWebSocket.sockets[1]!
+      const connected = FakeWebSocket.sockets[1]
       connected.open()
       await Promise.resolve()
       client.start()
@@ -3103,7 +3103,7 @@ describe('Remote stream client carrier lifecycle', () => {
 
       client.reconnect()
       await vi.waitFor(() => { expect(FakeWebSocket.sockets).toHaveLength(3) })
-      const final = FakeWebSocket.sockets[2]!
+      const final = FakeWebSocket.sockets[2]
       final.open()
       await client.close()
       await client.close()
@@ -3116,7 +3116,7 @@ describe('Remote stream client carrier lifecycle', () => {
 
       const stopping = new RemoteStreamMuxClient()
       stopping.start()
-      const racing = FakeWebSocket.sockets[3]!
+      const racing = FakeWebSocket.sockets[3]
       racing.open()
       racing.drop()
       await stopping.close()
@@ -3130,7 +3130,7 @@ describe('Remote stream client carrier lifecycle', () => {
       FakeWebSocket.dispatchClose = false
       const client = new RemoteStreamMuxClient()
       client.start()
-      const socket = FakeWebSocket.sockets[0]!
+      const socket = FakeWebSocket.sockets[0]
       socket.open()
       socket.close()
       expect(socket.readyState).toBe(FakeWebSocket.CLOSING)
@@ -3159,8 +3159,8 @@ describe('Remote stream client carrier lifecycle', () => {
         [Symbol.asyncIterator]()
       const firstPending = first.next()
       await vi.waitFor(() => { expect(FakeWebSocket.sockets[0]?.sent).toHaveLength(1) })
-      const firstSocket = FakeWebSocket.sockets[0]!
-      const firstOpen = JSON.parse(firstSocket.sent[0]!) as { streamId: string }
+      const firstSocket = FakeWebSocket.sockets[0]
+      const firstOpen = JSON.parse(firstSocket.sent[0]) as { streamId: string }
       firstSocket.receive({ type: 'end', streamId: firstOpen.streamId })
       await expect(firstPending).resolves.toEqual({ done: true, value: undefined })
 
@@ -3169,9 +3169,9 @@ describe('Remote stream client carrier lifecycle', () => {
       const second = client.open('feed/follow', { label: 'same' }, new AbortController().signal)
         [Symbol.asyncIterator]()
       const secondPending = second.next()
-      const secondSocket = FakeWebSocket.sockets[1]!
+      const secondSocket = FakeWebSocket.sockets[1]
       await vi.waitFor(() => { expect(secondSocket.sent).toHaveLength(1) })
-      const secondOpen = JSON.parse(secondSocket.sent[0]!) as { streamId: string }
+      const secondOpen = JSON.parse(secondSocket.sent[0]) as { streamId: string }
       expect(secondOpen.streamId).not.toBe(firstOpen.streamId)
       secondSocket.receive({ type: 'end', streamId: secondOpen.streamId })
       await expect(secondPending).resolves.toEqual({ done: true, value: undefined })
@@ -3184,7 +3184,7 @@ describe('Remote stream client carrier lifecycle', () => {
       FakeWebSocket.autoOpen = false
       const client = new RemoteStreamMuxClient()
       client.start()
-      const candidate = FakeWebSocket.sockets[0]!
+      const candidate = FakeWebSocket.sockets[0]
 
       client.reconnect()
       const replacementPending = client.open(
@@ -3194,10 +3194,10 @@ describe('Remote stream client carrier lifecycle', () => {
       )[Symbol.asyncIterator]().next()
       await vi.waitFor(() => { expect(FakeWebSocket.sockets).toHaveLength(2) })
       expect(candidate.closedWith).toContainEqual({})
-      const connected = FakeWebSocket.sockets[1]!
+      const connected = FakeWebSocket.sockets[1]
       connected.open()
       await vi.waitFor(() => { expect(connected.sent).toHaveLength(1) })
-      const opened = JSON.parse(connected.sent[0]!) as { streamId: string }
+      const opened = JSON.parse(connected.sent[0]) as { streamId: string }
       connected.receive({ type: 'end', streamId: opened.streamId })
       await expect(replacementPending).resolves.toEqual({ done: true, value: undefined })
 
@@ -3217,7 +3217,7 @@ describe('Remote stream client carrier lifecycle', () => {
       FakeWebSocket.autoOpen = false
       const client = new RemoteStreamMuxClient()
       client.start()
-      const first = FakeWebSocket.sockets[0]!
+      const first = FakeWebSocket.sockets[0]
 
       client.reconnect()
       client.reconnect()
@@ -3243,7 +3243,7 @@ describe('Remote stream client carrier lifecycle', () => {
       const firstPending = first.next()
       const secondPending = second.next()
       expect(FakeWebSocket.sockets).toHaveLength(1)
-      const socket = FakeWebSocket.sockets[0]!
+      const socket = FakeWebSocket.sockets[0]
       expect(socket.url).toBe('wss://harness.example/mounted/app/api/remote.mux')
 
       socket.open()
@@ -3264,7 +3264,7 @@ describe('Remote stream client carrier lifecycle', () => {
       client.start()
       try {
         const pending = client.open('$events', {}, new AbortController().signal)[Symbol.asyncIterator]().next()
-        FakeWebSocket.sockets[0]!.drop()
+        FakeWebSocket.sockets[0].drop()
         await expect(pending).rejects.toThrow('Remote stream WebSocket closed before opening')
       } finally {
         await client.close()
@@ -3279,17 +3279,17 @@ describe('Remote stream client carrier lifecycle', () => {
       closedClient.start()
       const closed = closedClient.open('feed/follow', {}, new AbortController().signal)
         [Symbol.asyncIterator]().next()
-      FakeWebSocket.sockets[0]!.drop()
+      FakeWebSocket.sockets[0].drop()
       await expect(closed).rejects.toThrow('Remote stream WebSocket closed before opening')
 
       closedClient.reconnect()
       const replacementStream = closedClient.open('feed/follow', {}, new AbortController().signal)
         [Symbol.asyncIterator]().next()
       await vi.waitFor(() => { expect(FakeWebSocket.sockets).toHaveLength(2) })
-      const replacement = FakeWebSocket.sockets[1]!
+      const replacement = FakeWebSocket.sockets[1]
       replacement.open()
       await vi.waitFor(() => { expect(replacement.sent).toHaveLength(1) })
-      const { streamId } = JSON.parse(replacement.sent[0]!) as { streamId: string }
+      const { streamId } = JSON.parse(replacement.sent[0]) as { streamId: string }
       replacement.receive({ type: 'end', streamId })
       await expect(replacementStream).resolves.toEqual({ done: true, value: undefined })
       await closedClient.close()
@@ -3319,8 +3319,8 @@ describe('Remote stream client carrier lifecycle', () => {
       const stream = client.open('feed/follow', {}, new AbortController().signal)[Symbol.asyncIterator]()
       const pending = stream.next()
       await vi.waitFor(() => { expect(FakeWebSocket.sockets[0]?.sent).toHaveLength(1) })
-      const socket = FakeWebSocket.sockets[0]!
-      const { streamId } = JSON.parse(socket.sent[0]!) as { streamId: string }
+      const socket = FakeWebSocket.sockets[0]
+      const { streamId } = JSON.parse(socket.sent[0]) as { streamId: string }
       FakeWebSocket.dispatchClose = false
       socket.receiveRaw(new Uint8Array([1, 2, 3]))
       socket.receive({ type: 'item', streamId, value: 'too late' })
@@ -3342,15 +3342,15 @@ describe('Remote stream client carrier lifecycle', () => {
         [Symbol.asyncIterator]()
       const completedPending = completed.next()
       await vi.waitFor(() => { expect(FakeWebSocket.sockets[0]?.sent).toHaveLength(1) })
-      const socket = FakeWebSocket.sockets[0]!
-      const completedOpen = JSON.parse(socket.sent[0]!) as { streamId: string }
+      const socket = FakeWebSocket.sockets[0]
+      const completedOpen = JSON.parse(socket.sent[0]) as { streamId: string }
       socket.receive({ type: 'end', streamId: completedOpen.streamId })
       await expect(completedPending).resolves.toEqual({ done: true, value: undefined })
 
       const abort = new AbortController()
       const cancelled = client.open('feed/follow', {}, abort.signal)[Symbol.asyncIterator]().next()
       await vi.waitFor(() => { expect(socket.sent).toHaveLength(2) })
-      const cancelledOpen = JSON.parse(socket.sent[1]!) as { streamId: string }
+      const cancelledOpen = JSON.parse(socket.sent[1]) as { streamId: string }
       const reason = new Error('fixture cancellation race')
       abort.abort(reason)
       socket.receive({ type: 'item', streamId: cancelledOpen.streamId, value: 'too late' })
@@ -3376,7 +3376,7 @@ describe('Remote stream client carrier lifecycle', () => {
       const disposed = disposedClient.open('feed/follow', {}, new AbortController().signal)
         [Symbol.asyncIterator]().next()
       await vi.waitFor(() => { expect(FakeWebSocket.sockets[1]?.sent).toHaveLength(1) })
-      const disposedSocket = FakeWebSocket.sockets[1]!
+      const disposedSocket = FakeWebSocket.sockets[1]
       const closing = disposedClient.close()
       const rejected = expect(disposed).rejects.toThrow('Remote stream client disposed')
       disposedSocket.receive({ type: 'end', streamId: 'stale' })

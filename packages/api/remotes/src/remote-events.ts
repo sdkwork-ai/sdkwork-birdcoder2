@@ -13,6 +13,8 @@ import type {} from '@deepseek-ai/dsh-permission-presets/types'
 import type {} from '@deepseek-ai/dsh-plugin-manager/types'
 import type {} from '@deepseek-ai/dsh-plugin-market/types'
 import type {} from '@deepseek-ai/dsh-schedule/client'
+import type {} from '@deepseek-ai/dsh-tool-sdkwork-deploy/types'
+import type {} from '@deepseek-ai/dsh-tool-sdkwork-knowledge/types'
 import type { TypertForwardableEventEntry } from '@deepseek-ai/dsh-typert-protocol'
 import type {} from '@deepseek-ai/dsh-web/types'
 
@@ -54,6 +56,8 @@ export const API_REMOTE_FORWARDED_EVENTS = [
   { event: 'plugin-market/changed', mode: 'emit' },
   { event: 'settings/document-updated', mode: 'emit' },
   { event: 'schedule/changed', mode: 'emit' },
+  { event: 'sdkwork-deploy/request', mode: 'waterfall' },
+  { event: 'sdkwork-knowledge/request', mode: 'waterfall' },
   { event: 'user-questions/request', mode: 'waterfall' },
   { event: 'web/providers-changed', mode: 'emit' },
 ] as const satisfies readonly TypertForwardableEventEntry[]

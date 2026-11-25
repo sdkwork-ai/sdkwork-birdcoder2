@@ -275,7 +275,7 @@ it('refreshes the copy of the notification already on screen when a read offers 
   controller.begin()
   await vi.waitFor(() => { expect(latest()).toMatchObject({ id: 'notice-1', body: 'Server copy 5.00' }) })
   // The same notification arrives with new copy: its card updates in place instead of being replaced.
-  read.mockResolvedValue({ ...batch('notice-1'), notifications: [{ ...batch('notice-1').notifications[0]!, title: 'Updated title', body: 'Updated copy' }] })
+  read.mockResolvedValue({ ...batch('notice-1'), notifications: [{ ...batch('notice-1').notifications[0], title: 'Updated title', body: 'Updated copy' }] })
   await controller.refresh()
   expect(latest()).toMatchObject({ id: 'notice-1', title: 'Updated title', body: 'Updated copy' })
   controller.end()

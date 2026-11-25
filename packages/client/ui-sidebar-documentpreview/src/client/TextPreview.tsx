@@ -188,7 +188,7 @@ export function TextPreview({
   const observedVersion = meta.value?.version
   const changed = (current?.version !== undefined && observedVersion !== undefined
     && observedVersion !== current.version && observedVersion !== current.observedVersion)
-    || state?.resourcesDirty === true
+    ||  state?.resourcesDirty
   const reload = useCallback((): void => {
     if (!canRead) return
     if (mode === 'text-pages') reloadPages(tab.id, file, signal, observedVersion)

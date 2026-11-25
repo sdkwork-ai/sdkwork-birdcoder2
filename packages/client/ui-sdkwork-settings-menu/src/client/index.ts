@@ -255,8 +255,8 @@ export function apply(ctx: ClientContext): void {
       // The desktop-carrier bridge owns `check` directly; the Electron
       // preload's face exposes status/open instead, so opening the update
       // presentation is the equivalent act there.
-      if ('check' in updates && typeof updates.check === 'function') { void updates.check(); return }
-      void (updates as { open?: () => void }).open?.()
+      if ('check' in updates && typeof updates.check === 'function') {  updates.check(); return }
+      (updates as { open?: () => void }).open?.()
     },
     updatesAvailable: updatesOf() !== undefined,
     openDesktopPlugins: () => { appBridgeOf()?.plugins?.open() },

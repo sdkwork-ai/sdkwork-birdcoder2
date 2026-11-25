@@ -44,6 +44,8 @@
     // would instead collide with it.
     "../../../packages/client/resources/lib/types/client/contract.d.ts",
     "../../../packages/client/ui-session/lib/types/client/index.d.ts",
+    // The `useSessionStatus` root hook this package's market specs consume.
+    "../../../packages/client/ui-session-status/lib/types/client/status.d.ts",
     "../../../../scripts/types/sdkwork-ambient.d.ts"],
   "exclude": [
   ],

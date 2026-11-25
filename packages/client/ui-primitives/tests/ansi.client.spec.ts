@@ -14,7 +14,7 @@ function onlySpan(text: string) {
   const lines = parseAnsiLines(text)
   expect(lines).toHaveLength(1)
   expect(lines[0]).toHaveLength(1)
-  return lines[0]![0]!
+  return lines[0][0]
 }
 
 describe('parseAnsiLines: text without SGR state', () => {

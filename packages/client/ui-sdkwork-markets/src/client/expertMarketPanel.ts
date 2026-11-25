@@ -1,15 +1,14 @@
 /**
- * The bridge to the expert-market plugin's own roster panel.
+ * The bridge to the built-in expert market's own roster panel.
  *
- * The expert market is a separate package (`@michengai/dsh-agency-agents`,
- * linked into this repository as the `plugins/sdkwork-dsh-agents` submodule and
- * mounted by the web-app bundle patch), not a page this plugin owns. It
- * publishes no client service — its browser half registers a keyed `main`
- * panel plus its sidebar row — so the only identity the two packages share is
- * that panel key, and the only source this page can read is the live `main`
- * ledger.
+ * The expert market is the first-party package
+ * `@deepseek-ai/dsh-client-ui-sdkwork-experts` (mounted by the web-app bundle
+ * patch), not a page this plugin owns. It publishes no client service — its
+ * browser half registers a keyed `main` panel plus its sidebar row — so the
+ * only identity the two packages share is that panel key, and the only source
+ * this page can read is the live `main` ledger.
  *
- * The registration carries the plugin's whole panel: the 331-expert roster
+ * The registration carries the package's whole panel: the 331-expert roster
  * with its divisions, the built-in expert teams, the create-with-AI entry
  * points, the enable/disable management and the update controls. The Experts
  * tab renders it in place, so the market becomes the tab's own content instead
@@ -24,7 +23,7 @@
  *
  * The panel key is the one place the two packages touch, so it lives here as
  * an explicit contract rather than a string in the render code: the bundle
- * acceptance spec reads the shipped `lib/client.js` and fails if the plugin
+ * acceptance spec reads the built `lib/client.js` and fails if the package
  * ever registers its panel under a different key.
  *
  * @module @deepseek-ai/dsh-client-ui-sdkwork-markets/expertMarketPanel

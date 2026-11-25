@@ -404,7 +404,7 @@ describe('Host task editor on the existing manager', () => {
     const items = screen.getAllByRole('menuitem')
     expect(items.map(item => item.textContent))
       .toEqual(['docs/work/docs', `${dictionary['host.defaultProject']}/work/default-workspace`])
-    expect(within(items[1]!).getByTitle('/work/default-workspace').textContent).toBe('/work/default-workspace')
+    expect(within(items[1]).getByTitle('/work/default-workspace').textContent).toBe('/work/default-workspace')
     fireEvent.click(screen.getByRole('menuitem', { name: new RegExp(`^${dictionary['host.defaultProject']}`) }))
     fireEvent.click(within(modal).getByRole('button', { name: new RegExp('^' + dictionary['host.target'] + ' ') }))
     expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual([
@@ -429,7 +429,7 @@ describe('Host task editor on the existing manager', () => {
     fireEvent.change(within(modal).getByRole('spinbutton', { name: en['host.interval'] }), { target: { value: interval } })
     vi.setSystemTime('2026-10-14T08:07:30.000Z')
     await act(async () => { fireEvent.click(within(modal).getByRole('button', { name: en['host.create'] })) })
-    const request = vi.mocked(h.props.onCreateTask).mock.calls[0]![0]
+    const request = vi.mocked(h.props.onCreateTask).mock.calls[0][0]
     expect(createRRuleScheduleRecord(brandString<createScheduleId>('saved-interval'), request.title, request.prompt, rruleOf(request.timing), Date.now()).scheduledAt).toBe(next)
   })
 
@@ -502,7 +502,7 @@ describe('Host task editor on the existing manager', () => {
     const detail = openEdit()
     fireEvent.change(within(detail).getByRole('spinbutton', { name: en['host.interval'] }), { target: { value: '5' } })
     await act(async () => { fireEvent.click(within(detail).getByRole('button', { name: en['rule.save'] })) })
-    const request = vi.mocked(h.props.hostActions.edit).mock.calls[0]![0]
+    const request = vi.mocked(h.props.hostActions.edit).mock.calls[0][0]
     if (request.action !== 'update') throw new Error('expected a timing update')
     expect(Object.keys(request.patch)).toEqual(['timing'])
     expect(createRRuleScheduleRecord(brandString<createScheduleId>('edited-interval'), task.title, task.prompt, rruleOf(request.patch.timing), Date.now()).scheduledAt)
@@ -553,7 +553,7 @@ describe('Host task editor on the existing manager', () => {
     fireEvent.change(within(modal).getByRole('textbox', { name: en['detail.name'] }), { target: { value: 'Morning news' } })
     fireEvent.change(within(modal).getByRole('textbox', { name: en['detail.instruction'] }), { target: { value: 'Read news' } })
     await act(async () => { fireEvent.click(within(modal).getByRole('button', { name: en['host.create'] })) })
-    expect(vi.mocked(h.props.onCreateTask).mock.calls[0]![0].target).toEqual({ kind: 'new_once', create: { cwd } })
+    expect(vi.mocked(h.props.onCreateTask).mock.calls[0][0].target).toEqual({ kind: 'new_once', create: { cwd } })
   })
 
   it('labels a manual draft ungrouped until the workspace list arrives, then starts in the default workspace', () => {
@@ -565,7 +565,7 @@ describe('Host task editor on the existing manager', () => {
     fireEvent.click(project())
     const items = screen.getAllByRole('menuitem')
     expect(items.map(item => item.textContent)).toEqual([en['host.ungrouped']])
-    expect(items[0]!.hasAttribute('disabled') || items[0]!.getAttribute('aria-disabled') === 'true').toBe(true)
+    expect(items[0].hasAttribute('disabled') || items[0].getAttribute('aria-disabled') === 'true').toBe(true)
     fireEvent.keyDown(project(), { key: 'Escape' })
     current = registered
     h.view.rerender(<TaskManagerPage {...h.props} />)
@@ -659,7 +659,7 @@ describe('Host task editor on the existing manager', () => {
     fireEvent.click(within(modal).getByRole('button', { name: en['host.create'] }))
     await screen.findByText(en['host.notFuture'])
     expect(within(modal).getByRole<HTMLInputElement>('textbox', { name: en['detail.name'] }).value).toBe('Morning news')
-    const request = vi.mocked(h.props.onCreateTask).mock.calls[0]![0]
+    const request = vi.mocked(h.props.onCreateTask).mock.calls[0][0]
     expect(request).toMatchObject({ title: 'Morning news', prompt: 'Find the latest news', target: { kind: 'new_once', create: {} } })
     expect(rruleOf(request.timing)).toContain('RRULE:FREQ=DAILY;COUNT=1')
     expect(h.props.onNewTask).not.toHaveBeenCalled()
@@ -673,7 +673,7 @@ describe('Host task editor on the existing manager', () => {
     const trigger = within(label.parentElement!).getByRole('button')
     fireEvent.click(trigger)
     const clock = screen.getByRole('dialog', { name: en['timing.time'] })
-    fireEvent.keyDown(within(clock).getAllByRole('option')[0]!, { key: 'Escape' })
+    fireEvent.keyDown(within(clock).getAllByRole('option')[0], { key: 'Escape' })
     expect(screen.queryByRole('dialog', { name: en['timing.time'] })).toBeNull()
     expect(screen.getByRole('complementary')).toBe(modal)
     expect(document.activeElement).toBe(trigger)

@@ -250,10 +250,8 @@ function QuestionFlow({ pending, t, useStore, useQuestionCard, actions }: Questi
   const focusedQuestions = useRef(new Set<number>())
   const answerSurface = useRef<HTMLDivElement>(null)
   // Every navigation write stays in bounds and drafts mirrors questions 1:1.
-  // oxlint-disable-next-line typescript/no-non-null-assertion
-  const question = questions[index]!
-  // oxlint-disable-next-line typescript/no-non-null-assertion
-  const draft = drafts[index]!
+  const question = questions[index]
+  const draft = drafts[index]
   const hasOptions = (question.options?.length ?? 0) > 0
   // CSS decides which copy is clipped; only the user's expansions are state,
   // and they apply only while their question is the one shown.
@@ -384,7 +382,7 @@ function QuestionFlow({ pending, t, useStore, useQuestionCard, actions }: Questi
     }
     const answer: QuestionAnswer = {
       answers: questions.map((item, itemIndex) => {
-        const value = values[itemIndex] as QuestionDraftAnswer
+        const value = values[itemIndex]
         if (value.skipped) return { id: item.id, selected: [] }
         const custom = value.custom.trim()
         return {

@@ -141,7 +141,7 @@ describe('TokenPlanService sign-in gate', () => {
     expect(requireSignedInInPlace).toHaveBeenCalledTimes(1)
     expect(inner.createOrder).toHaveBeenCalledWith({ packageId: 'pkg-1' })
     expect(requireSignedInInPlace.mock.invocationCallOrder[0]).toBeLessThan(
-      inner.createOrder.mock.invocationCallOrder[0] as number,
+      inner.createOrder.mock.invocationCallOrder[0],
     )
   })
 

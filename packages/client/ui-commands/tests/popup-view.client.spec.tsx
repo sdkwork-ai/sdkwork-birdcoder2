@@ -199,13 +199,13 @@ describe('PopupSelectView', () => {
   it('ArrowUp/Down move the filtered highlight; ArrowLeft/Right are left to the native caret', async () => {
     const { search } = await mountOpen()
     // Open parks the highlight on the current-value row (Light, index 1).
-    expect(screen.getAllByRole('option')[1]!.getAttribute('aria-selected')).toBe('true')
+    expect(screen.getAllByRole('option')[1].getAttribute('aria-selected')).toBe('true')
     act(() => { fireEvent.keyDown(search, { key: 'ArrowDown' }) })
     let options = screen.getAllByRole('option')
-    expect(options[2]!.getAttribute('aria-selected')).toBe('true')
+    expect(options[2].getAttribute('aria-selected')).toBe('true')
     act(() => { fireEvent.keyDown(search, { key: 'ArrowUp' }) })
     options = screen.getAllByRole('option')
-    expect(options[1]!.getAttribute('aria-selected')).toBe('true')
+    expect(options[1].getAttribute('aria-selected')).toBe('true')
     // fireEvent returns false when preventDefault was called: arrow left/right must NOT be intercepted.
     expect(fireEvent.keyDown(search, { key: 'ArrowLeft' })).toBe(true)
     expect(fireEvent.keyDown(search, { key: 'ArrowRight' })).toBe(true)
@@ -291,9 +291,9 @@ describe('PopupSelectView', () => {
     const seen: SelectOption[] = []
     const { view } = await mountOpen({ onSelect: (option) => { seen.push(option) } })
     const options = screen.getAllByRole('option')
-    act(() => { fireEvent.mouseEnter(options[2]!) })
-    expect(screen.getAllByRole('option')[2]!.getAttribute('aria-selected')).toBe('true')
-    await act(async () => { fireEvent.click(options[2]!) })
+    act(() => { fireEvent.mouseEnter(options[2]) })
+    expect(screen.getAllByRole('option')[2].getAttribute('aria-selected')).toBe('true')
+    await act(async () => { fireEvent.click(options[2]) })
     expect(seen).toEqual([OPTIONS[2]])
     expect(view.container.childElementCount).toBe(0)
   })
@@ -338,7 +338,7 @@ describe('PopupSelectView', () => {
     expect((search as HTMLInputElement).readOnly).toBe(true)
     await act(async () => {
       fireEvent.keyDown(search, { key: 'Enter' })
-      fireEvent.click(screen.getAllByRole('option')[1]!)
+      fireEvent.click(screen.getAllByRole('option')[1])
     })
     expect(onSelect).toHaveBeenCalledTimes(1)
     await act(async () => {
@@ -383,7 +383,7 @@ describe('PopupSelectView', () => {
 
   it('an outside pointerdown dismisses without focusComposer; an inside one does not dismiss', async () => {
     const { view, focusComposer } = await mountOpen()
-    act(() => { fireEvent.pointerDown(screen.getAllByRole('option')[0]!) })
+    act(() => { fireEvent.pointerDown(screen.getAllByRole('option')[0]) })
     expect(view.container.childElementCount).not.toBe(0)
     act(() => { fireEvent.pointerDown(document.body) })
     expect(view.container.childElementCount).toBe(0)

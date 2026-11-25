@@ -68,7 +68,7 @@ it.each(['turn', 'step'] as const)('refreshes expanded %s Data after an in-place
   index.replaceData([{ owner: 'tree-probe', data: { ...target, key: 'tree-probe', value: { status: 'before' } } }])
   index.publishData()
   const turn = index.snapshot().turns.get(1)!
-  const data = kind === 'turn' ? turn.data : turn.steps[0]!.data
+  const data = kind === 'turn' ? turn.data : turn.steps[0].data
   const props = fixture()
   const ui = render(<InspectorObjectTree {...props} value={data} />)
   for (let depth = 0; depth < 7 && ui.queryByText('"before"') === null; depth++) {
@@ -111,7 +111,7 @@ it('keeps collection enumeration bounded and reuses it across UI-only renders', 
   expect(visited).toBe(0)
   act(() => { props.updates.set({}) })
   expect(visited).toBe(0)
-  const branch = [...ui.container.querySelectorAll('details')][1]!
+  const branch = [...ui.container.querySelectorAll('details')][1]
   branch.open = true
   fireEvent(branch, new Event('toggle'))
   expect(visited).toBe(51)
@@ -166,11 +166,11 @@ it('expands Maps, bounds collection pages, and terminates unregistered cycles', 
   expect(ui.getByText('↩ $')).toBeTruthy()
   ui.rerender(<InspectorObjectTree {...props} value={new Map([[{ name: 'object key' }, 'kept value']])} />)
   expect(ui.getByText('Map(1)')).toBeTruthy()
-  const entry = [...ui.container.querySelectorAll('details')][1]!
+  const entry = [...ui.container.querySelectorAll('details')][1]
   entry.open = true
   fireEvent(entry, new Event('toggle'))
   expect(ui.getByText('"kept value"')).toBeTruthy()
-  const key = [...ui.container.querySelectorAll('details')][2]!
+  const key = [...ui.container.querySelectorAll('details')][2]
   key.open = true
   fireEvent(key, new Event('toggle'))
   expect(ui.getByText('"object key"')).toBeTruthy()

@@ -470,7 +470,7 @@ export function deriveCatalogs(
       error: snapshot.error,
       entries: (projected ?? []).map(entry => ({
         ...entry,
-        activity: (statuses.get(entry.id)?.running ?? summaries[entry.id]?.running) === true
+        activity:  (statuses.get(entry.id)?.running ?? summaries[entry.id]?.running)
           ? 'running' as const : 'inactive' as const,
       })),
     } satisfies SubagentCatalogSnapshot]

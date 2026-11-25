@@ -97,13 +97,13 @@ function bench(
       await new Promise<void>((resolve) => { gates.set(url, resolve) })
     }
     if ((transportFailures[url] ?? 0) > 0) {
-      transportFailures[url] = (transportFailures[url] as number) - 1
+      transportFailures[url] = (transportFailures[url]) - 1
       throw new Error(`client-modules: bundle script ${url} failed to load`)
     }
     const sibling = /^plugins\/(.+)\/(client\.[A-Za-z0-9][A-Za-z0-9._-]*\.js)\?rev=[^&]+$/.exec(url)
     if (sibling !== null) {
-      const id = sibling[1] as string
-      const chunk = sibling[2] as string
+      const id = sibling[1]
+      const chunk = sibling[2]
       const factory = opts.chunks?.[`${id}/${chunk}`]
       const meta = opts.metadata?.[`${id}/${chunk}`]
       if (factory != null) win.__ModuleLoader__?.load({ id, chunk, factory, ...(meta === undefined ? {} : { meta }) })

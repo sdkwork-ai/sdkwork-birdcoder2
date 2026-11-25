@@ -45,7 +45,7 @@ export function fakeConnectionHandle(
     reconnect: () => {},
     registerGenerationSource: () => () => {},
     start: (sinks) => {
-      onSinks(sinks as RuntimeConnectionSinks)
+      onSinks(sinks)
       return { stop: onStop }
     },
   }

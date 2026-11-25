@@ -301,7 +301,7 @@ export class DesktopWebServer extends Service {
       // subset the web composition's /api bridge reads (async-iterable body,
       // response close/drain hooks, streamed write/end).
       await target(
-        await shimRequest(request, this.browserSessionCookie()) as unknown as IncomingMessage,
+        await shimRequest(request, this.browserSessionCookie()),
         res as unknown as ServerResponse,
       )
       return res.toResponse()

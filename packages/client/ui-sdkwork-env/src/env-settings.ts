@@ -189,7 +189,7 @@ export const DEFAULT_UI_ENV_SETTINGS: UiEnvSettings = {
  * @returns the resolved settings.
  */
 export function mergeEnvLayers(...layers: readonly SdkworkEnvProjection[]): UiEnvSettings {
-  const resolved = structuredClone(DEFAULT_UI_ENV_SETTINGS) as UiEnvSettings
+  const resolved = structuredClone(DEFAULT_UI_ENV_SETTINGS)
   for (const layer of layers) {
     for (const profile of ENV_PROFILE_KEYS) {
       const declared = layer[profile]
@@ -219,5 +219,5 @@ export function decodeEnvProjection(value: unknown): SdkworkEnvProjection {
   if (typeof value !== 'object' || value === null) return {}
   const environment = (value as Record<string, unknown>)[UI_ENV_ENVIRONMENT_FIELD]
   if (environment !== undefined && !isSdkworkEnvironment(environment)) return {}
-  return value as SdkworkEnvProjection
+  return value
 }

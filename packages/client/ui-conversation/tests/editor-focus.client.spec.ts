@@ -51,7 +51,7 @@ function fixture(start = 1, end = 4) {
   editor.setRootElement(root)
   runtime.setDraft('alpha beta')
   root.focus()
-  editor.update(() => { $getRoot().getAllTextNodes()[0]!.select(start, end) }, { discrete: true })
+  editor.update(() => { $getRoot().getAllTextNodes()[0].select(start, end) }, { discrete: true })
   const selection = () => editor.getEditorState().read(() => {
     const selected = $getSelection()
     if (!$isRangeSelection(selected)) throw new Error('Expected a Composer range selection')
@@ -130,7 +130,7 @@ it('keeps background insertion and undo outside the editor until focus is explic
 it('restores a pending selection when blur and explicit focus share one update batch', () => {
   const f = fixture()
   f.editor.update(() => {
-    const text = $getRoot().getAllTextNodes()[0]!
+    const text = $getRoot().getAllTextNodes()[0]
     text.markDirty()
     text.select(6, 6)
   })
@@ -191,7 +191,7 @@ it('removes focus preservation and update subscriptions when registration is dis
   f.onUpdate.mockClear()
   f.editor.setRootElement(f.root)
   f.root.focus()
-  f.editor.update(() => { $getRoot().getAllTextNodes()[0]!.select(1, 4) }, { discrete: true })
+  f.editor.update(() => { $getRoot().getAllTextNodes()[0].select(1, 4) }, { discrete: true })
   f.outside.focus()
   f.editor.update(() => { $getRoot().getFirstDescendant()!.markDirty() }, { discrete: true })
   expect(document.activeElement).toBe(f.root)

@@ -25,9 +25,9 @@ it.each(['macos', 'windows'] as const)('rejects overlapping %s defaults at regis
       const run = vi.fn()
       const register = (definition: ShortcutDefinition) => registry.register({ ...definition, label: () => definition.id,
         aliases: [], regions: ['page'], modals: [], resolve: () => ({ status: 'handled', run }) })
-      register(catalog[0]!)
+      register(catalog[0])
       const accepted = registry.catalog.getSnapshot()
-      expect(() => register(catalog[1]!)).toThrow('Conflicting')
+      expect(() => register(catalog[1])).toThrow('Conflicting')
       expect(registry.catalog.getSnapshot()).toBe(accepted)
       expect(registry.dispatch({ ...first, meta: platform === 'macos', control: platform === 'windows',
         alt: false, shift: false, repeat: false, composing: false, defaultPrevented: false },

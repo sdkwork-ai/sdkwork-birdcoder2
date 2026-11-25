@@ -3,20 +3,20 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-markets/README.md
 /:
-  en: 83563dfe4216dc2a
-  zh: 0e4206990f44ebe0
+  en: 240562f4f100f22b
+  zh: 36e23cdb5f8c1d1a
 /deepseek-ai-dsh-client-ui-sdkwork-markets:
   en: abadad5cdc4a2501
   zh: 02e746625d985b24
 /deepseek-ai-dsh-client-ui-sdkwork-markets/summary:
-  en: 01d24c29c5ef36cc
-  zh: 0e4b82364601c3be
+  en: 1660fd06d70d5ddc
+  zh: 10ccd03f7c290091
 /deepseek-ai-dsh-client-ui-sdkwork-markets/table-of-contents:
   en: ffd640d553db616a
   zh: ad857ca879b589bb
 /deepseek-ai-dsh-client-ui-sdkwork-markets/runtime-requirements:
-  en: 7c7a502ab230a327
-  zh: 6f3cd631b78efa4c
+  en: 982dda9491aa0e8a
+  zh: 6b61aa4df3be0755
 /deepseek-ai-dsh-client-ui-sdkwork-markets/browser-bundle:
   en: 77edd77d0ef00fd9
   zh: 4825bc4760a66aba
@@ -24,17 +24,17 @@
   en: f548a014e55b82cd
   zh: 144a59b105226e80
 /deepseek-ai-dsh-client-ui-sdkwork-markets/understand-the-implementation:
-  en: 3960f4f4dba487d1
-  zh: e5f6caf9cfdcfc63
+  en: 176f3902341cac0c
+  zh: e7359079c542da95
 /deepseek-ai-dsh-client-ui-sdkwork-markets/model-experience:
-  en: d0e00a503d862f84
-  zh: 3e784f3ece17233c
+  en: 45a1efe49dda99e6
+  zh: c687cf14b723208e
 /deepseek-ai-dsh-client-ui-sdkwork-markets/model-experience/kv-cache-effect:
   en: 22773f28554e56ea
   zh: 15d7403386053700
 /deepseek-ai-dsh-client-ui-sdkwork-markets/known-limitations-and-deferred-work:
-  en: 789671acc63d11e6
-  zh: 2f316cc2180f68fb
+  en: f5ccfd4169ff7ce8
+  zh: 59cd3ad856f56ce8
 /deepseek-ai-dsh-client-ui-sdkwork-markets/known-limitations-and-deferred-work/dev-note:
-  en: 74785a3e4d913870
-  zh: 871490d6dc2950a9
+  en: 113a4c62977d3760
+  zh: 251c5b752e593af8

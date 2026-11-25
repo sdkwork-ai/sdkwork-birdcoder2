@@ -122,8 +122,8 @@ describe('TaskMenu', () => {
       onSelect={() => {}}
       onClose={() => {}}
     />)
-    expect(container.querySelector('[role="menu"]')?.classList.contains(taskMenuCss.alignEnd!)).toBe(true)
-    expect(container.querySelector('[role="menu"]')?.classList.contains(taskMenuCss.portal!)).toBe(false)
+    expect(container.querySelector('[role="menu"]')?.classList.contains(taskMenuCss.alignEnd)).toBe(true)
+    expect(container.querySelector('[role="menu"]')?.classList.contains(taskMenuCss.portal)).toBe(false)
   })
 
   it('keeps text Home and End navigation in a menu header input', () => {

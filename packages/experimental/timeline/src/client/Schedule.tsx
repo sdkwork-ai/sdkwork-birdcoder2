@@ -14,20 +14,16 @@ function scaleAt(zoom: number, scales: readonly number[]): number {
   const position = Math.max(0, Math.min(scales.length - 1, zoom))
   const lower = Math.floor(position)
   // The nonempty zoom ladder clamps both indexes to its bounds.
-  // oxlint-disable-next-line typescript/no-non-null-assertion
-  const start = scales[lower]!
-  // oxlint-disable-next-line typescript/no-non-null-assertion
-  const end = scales[Math.ceil(position)]!
+  const start = scales[lower]
+  const end = scales[Math.ceil(position)]
   return start * (end / start) ** (position - lower)
 }
 function zoomFor(pixels: number, scales: readonly number[]): number {
   const upper = scales.findIndex(value => value >= pixels)
   if (upper <= 0) return upper === 0 ? 0 : scales.length - 1
   // findIndex found an upper bound after the first stop.
-  // oxlint-disable-next-line typescript/no-non-null-assertion
-  const low = scales[upper - 1]!
-  // oxlint-disable-next-line typescript/no-non-null-assertion
-  const high = scales[upper]!
+  const low = scales[upper - 1]
+  const high = scales[upper]
   return upper - 1 + Math.log(pixels / low) / Math.log(high / low)
 }
 interface ScheduleProps extends PropsLocale<'timeline'> {
@@ -100,8 +96,7 @@ export function Schedule({ view, cadence, state, now, update, openReport, t, loc
       .map(report => report.end - report.start)
       .sort((a, b) => a - b)
     // Focus only addresses a rendered column or its report.
-    // oxlint-disable-next-line typescript/no-non-null-assertion
-    const span = spans[index]!
+    const span = spans[index]
     const typical = Math.max(MINUTE_MS, target === undefined
       ? durations[Math.floor(durations.length / 2)] ?? span
       : target.end - target.start)

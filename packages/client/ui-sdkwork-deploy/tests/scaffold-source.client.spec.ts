@@ -7,7 +7,6 @@ import { apply as applyLocale, inject as localeInject } from '@deepseek-ai/dsh-c
 import { resetSdkworkGlobalTokenManager } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
 import { describe, expect, it } from 'vitest'
 import { apply, inject } from '../src/client/index.ts'
-import type { DeployPublishService } from '../src/client/index.ts'
 import { DeployHost } from '../src/client/deployHost.ts'
 import {
   maxBytesForPackageType,
@@ -180,6 +179,8 @@ async function bench(): Promise<{ ctx: Context; fiber: ReturnType<Context['plugi
   ctx.provide('remote.sdkworkAppBuild', stubAppBuild as never)
   ctx.provide('remote.sdkworkScaffoldInstall', stubScaffoldInstall as never)
   ctx.provide('configForms', { get: () => stubConfigForm().scope } as never)
+  ctx.provide('sidebarRightTabs', { register: () => () => {} } as never)
+  ctx.provide('sidebarRight', { openContent: () => {} } as never)
   ctx.provide('env', stubEnv(''))
   ctx.provide('iam', stubIam)
   ctx.provide('theme', { getTheme: () => ({ active: { colorScheme: 'dark' } }) } as never)
@@ -193,7 +194,7 @@ async function bench(): Promise<{ ctx: Context; fiber: ReturnType<Context['plugi
 describe('deployPublish service surface', () => {
   it('exposes open, openPublishScaffold, openInstallScaffold and installScaffold', async () => {
     const { fiber } = await bench()
-    const service = fiber.ctx.get('deployPublish') as DeployPublishService | undefined
+    const service = fiber.ctx.get('deployPublish')
     expect(typeof service?.open).toBe('function')
     expect(typeof service?.openPublishScaffold).toBe('function')
     expect(typeof service?.openInstallScaffold).toBe('function')
@@ -204,7 +205,7 @@ describe('deployPublish service surface', () => {
 
   it('gates installScaffold on a signed-in account instead of a raw 401', async () => {
     const { fiber } = await bench()
-    const service = fiber.ctx.get('deployPublish') as DeployPublishService | undefined
+    const service = fiber.ctx.get('deployPublish')
     await expect(service?.installScaffold({ templateId: 'tpl-1', targetDirectory: '/t' }))
       .rejects.toThrow('请先登录')
     await fiber.dispose()

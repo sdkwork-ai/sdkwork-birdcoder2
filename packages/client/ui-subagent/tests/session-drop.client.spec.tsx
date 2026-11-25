@@ -210,7 +210,7 @@ describe('Session drop zone', () => {
     // With several panes, each target keeps its card hidden until the pointer is over it.
     expect([...panes].every(element => element.hasAttribute('data-quiet'))).toBe(true)
     expect(zone.hasAttribute('data-quiet')).toBe(false)
-    fire(panes[1]!, 'drop')
+    fire(panes[1], 'drop')
     expect(view.openAside).toHaveBeenLastCalledWith(MAIN, 'p2')
 
     view.set(undefined)

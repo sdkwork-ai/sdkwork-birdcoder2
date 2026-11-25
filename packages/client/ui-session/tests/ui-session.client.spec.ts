@@ -208,9 +208,9 @@ describe('UiSession bindings', () => {
 
     bench.setRetainInfo(second.sessionId, 1)
     bench.list.update((draft) => {
-      draft.byId[first.sessionId] = { ...draft.byId[first.sessionId]!, retainedBy: {} }
+      draft.byId[first.sessionId] = { ...draft.byId[first.sessionId], retainedBy: {} }
       draft.byId[second.sessionId] = {
-        ...draft.byId[second.sessionId]!,
+        ...draft.byId[second.sessionId],
         retainedBy: { mainView: 1 },
       }
     })
@@ -221,7 +221,7 @@ describe('UiSession bindings', () => {
     bench.setRetainInfo(first.sessionId, 1)
     expect(bench.retainInfo).not.toHaveBeenCalled()
     bench.list.update((draft) => {
-      draft.byId[second.sessionId] = { ...draft.byId[second.sessionId]!, retainedBy: {} }
+      draft.byId[second.sessionId] = { ...draft.byId[second.sessionId], retainedBy: {} }
     })
     bench.setRetainInfo(second.sessionId, 0)
     expect(current.getSnapshot().key).toBeUndefined()
@@ -656,7 +656,7 @@ describe('ui-session apply', () => {
       keyedHooks: { sessionRetainInfo: retainInfoMatcher, sessionAccess: sessionAccessMatcher },
     })
     expect(slots.installScope).toHaveBeenCalledWith('session', ctx.uiSession.adapter)
-    const root = slots.provideRoot.mock.calls[0]![0] as RootStandardSourceContribution
+    const root = slots.provideRoot.mock.calls[0][0] as RootStandardSourceContribution
     expect(root.keyedHooks?.sessionRetainInfo?.(sessionId('s1')))
       .toBe(bench.retainInfo(sessionId('s1')))
     // `useSessionAccess(sessionId, action)` reads the Session resource's answer; a call without an action names no source.

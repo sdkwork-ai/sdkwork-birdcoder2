@@ -124,8 +124,8 @@ export class CredentialScanner {
     while (prefixes.test(text)) {
       const literalEnd = prefixes.lastIndex
       const literal = this.literalEndingAt(literalEnd)
-      const at = literalEnd - (this.literalLength[literal] as number)
-      prefixes.lastIndex = literalEnd - (this.literalOverlap[literal] as number)
+      const at = literalEnd - (this.literalLength[literal])
+      prefixes.lastIndex = literalEnd - (this.literalOverlap[literal])
       if (deferredStart >= 0 && deferredStart <= at) {
         if (start < 0) {
           start = deferredStart
@@ -138,7 +138,7 @@ export class CredentialScanner {
       }
       // A candidate starts at or after its literal, so none past the range reaches it; nothing extends a range to the end.
       if (start >= 0 && (at >= end || end === length)) break
-      const literalKind = this.literalKind[literal] as number
+      const literalKind = this.literalKind[literal]
       if (literalKind === ADDRESS) {
         deferredEnd = this.addressPassword(at)
         deferredStart = deferredEnd < 0 ? -1 : this.slot(CANDIDATE_START)
@@ -167,33 +167,33 @@ export class CredentialScanner {
 
   /** Memo entry at `index`; the layout keeps every index inside the array. */
   private slot(index: number): number {
-    return this.memo[index] as number
+    return this.memo[index]
   }
 
   /** `\w` at `index`; out of range is not a word character. */
   private isWordAt(index: number): boolean {
     const code = this.text.charCodeAt(index)
-    return code < 128 && ((this.classes[code] as number) & WORD) !== 0
+    return code < 128 && ((this.classes[code]) & WORD) !== 0
   }
 
   /** `[^\s/:@?#]` for one UTF-16 code unit; NaN, read out of range, is not one. */
   private isUserCode(code: number): boolean {
-    return code < 128 ? ((this.classes[code] as number) & USER) !== 0 : code === code && !isWideSpace(code)
+    return code < 128 ? ((this.classes[code]) & USER) !== 0 : code === code && !isWideSpace(code)
   }
 
   /** Index of the literal the prefix scan matched ending at `end`; one literal sharing the ending matches, so the last needs no check. */
   private literalEndingAt(end: number): number {
     const text = this.text
     const key = text.charCodeAt(end - 2) * 128 + text.charCodeAt(end - 1)
-    const literal = this.ending[key] as number
+    const literal = this.ending[key]
     if (literal > 0) return literal - 1
     const shared = this.sharedEndings[key] as readonly number[]
     let index = 0
     for (; index < shared.length - 1; index++) {
-      const candidate = shared[index] as number
-      if (text.startsWith(this.literals[candidate] as string, end - (this.literalLength[candidate] as number))) break
+      const candidate = shared[index]
+      if (text.startsWith(this.literals[candidate], end - (this.literalLength[candidate]))) break
     }
-    return shared[index] as number
+    return shared[index]
   }
 
   /** End of the `[A-Za-z0-9_-]*` run at `start`, through four memo pairs replaced in turn. */
@@ -233,7 +233,7 @@ export class CredentialScanner {
     let index = start
     while (index < limit) {
       const code = text.charCodeAt(index)
-      if (code > 127 || ((this.classes[code] as number) & LABEL) === 0) break
+      if (code > 127 || ((this.classes[code]) & LABEL) === 0) break
       index++
     }
     // "PRIVATE KEY" is label characters and the `-` after it is not, so the run ends right after it.
@@ -268,7 +268,7 @@ export class CredentialScanner {
     const text = this.text
     for (let start = at - 1; start >= 0 && start >= at - 16; start--) {
       const code = text.charCodeAt(start)
-      const bits = code < 128 ? (this.classes[code] as number) : 0
+      const bits = code < 128 ? (this.classes[code]) : 0
       if ((bits & SCHEME) === 0) return false
       if ((bits & LOWER) !== 0 && at - start >= 2 && !this.isWordAt(start - 1)) return true
     }
@@ -330,9 +330,9 @@ export class CredentialScanner {
   private prefixedEnd(literal: number, at: number): number {
     if (this.isWordAt(at - 1)) return -1
     const text = this.text
-    const start = at + (this.literalLength[literal] as number)
-    const shape = this.literalShape[literal] as number
-    const min = this.literalMin[literal] as number
+    const start = at + (this.literalLength[literal])
+    const shape = this.literalShape[literal]
+    const min = this.literalMin[literal]
     if (shape === SK) {
       // `(?=[A-Za-z0-9_-]{0,255}\d)[A-Za-z0-9_-]{20,}`: the memoized next digit rejects a digit-free `sk-` before any run is measured.
       const digit = this.nextDigit(start)
@@ -340,15 +340,15 @@ export class CredentialScanner {
       const end = this.keyRunEnd(start)
       return end - start >= min && digit < end ? end : -1
     }
-    const slot = this.literalSlot[literal] as number
-    const end = slot === 0 ? this.keyRunEnd(start) : this.memoRunEnd(this.literalPattern[literal] as RegExp, start, slot)
+    const slot = this.literalSlot[literal]
+    const end = slot === 0 ? this.keyRunEnd(start) : this.memoRunEnd(this.literalPattern[literal], start, slot)
     const length = end - start
     if (length < min) return -1
     if (shape === RUN) return end
     if (shape === GOOGLE) return start + min
-    if (shape === BOUNDED) return length <= (this.literalMax[literal] as number) && !this.isWordAt(end) ? end : -1
+    if (shape === BOUNDED) return length <= (this.literalMax[literal]) && !this.isWordAt(end) ? end : -1
     // `[A-Za-z0-9_-]{8,2048}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}` after `eyJ`.
-    if (length > (this.literalMax[literal] as number) || !text.startsWith('.eyJ', end)) return -1
+    if (length > (this.literalMax[literal]) || !text.startsWith('.eyJ', end)) return -1
     const payloadStart = end + '.eyJ'.length
     const payloadEnd = this.keyRunEnd(payloadStart)
     if (payloadEnd - payloadStart < min || text.charCodeAt(payloadEnd) !== 46) return -1

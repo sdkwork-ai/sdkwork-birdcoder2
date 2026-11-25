@@ -132,7 +132,7 @@ export function normalizeHostIamSession(value: unknown): IamStoredSession | unde
   if (nonEmptyString(record.refreshToken) !== undefined) session.refreshToken = record.refreshToken as string
   if (nonEmptyString(record.sessionId) !== undefined) session.sessionId = record.sessionId as string
   if (typeof record.expiresAt === 'number' || typeof record.expiresAt === 'string') session.expiresAt = record.expiresAt
-  if (typeof record.user === 'object' && record.user !== null) session.user = record.user as IamStoredSession['user']
+  if (typeof record.user === 'object' && record.user !== null) session.user = record.user
   if (record.context !== undefined && record.context !== null) session.context = record.context
   return session
 }

@@ -104,7 +104,7 @@ it('loads on demand, remembers a selected shell before opening, and cancels on m
   h.open()
   await h.view.findByRole('menuitem', { name: 'zsh' })
   expect(h.openTab).not.toHaveBeenCalled()
-  const signal = h.loadShells.mock.calls[0]![0]
+  const signal = h.loadShells.mock.calls[0][0]
   h.selectShell.mockImplementation(() => { expect(h.openTab).not.toHaveBeenCalled() })
   fireEvent.click(h.view.getByRole('menuitem', { name: 'bash' }))
   expect(h.selectShell).toHaveBeenCalledExactlyOnceWith('/bin/bash')
@@ -114,7 +114,7 @@ it('loads on demand, remembers a selected shell before opening, and cancels on m
   await h.view.findByRole('menuitem', { name: 'bash' })
   fireEvent.keyDown(h.view.getByRole('menu'), { key: 'Escape' })
   expect(h.view.queryByRole('menu')).toBeNull()
-  expect(h.loadShells.mock.calls[1]![0].aborted).toBe(true)
+  expect(h.loadShells.mock.calls[1][0].aborted).toBe(true)
 })
 
 it.each([new Error('offline'), 'offline'])('offers an in-place retry after discovery fails: %s', async (error) => {
@@ -145,7 +145,7 @@ it.each(['resolve', 'reject'] as const)('ignores a late %s after a loading entry
   h.loadShells.mockReturnValue(pending.promise)
   h.open()
   expect(h.view.getByText(en.shellLoading)).toBeDefined()
-  const signal = h.loadShells.mock.calls[0]![0]
+  const signal = h.loadShells.mock.calls[0][0]
   h.view.unmount()
   expect(signal.aborted).toBe(true)
   await act(async () => {

@@ -57,6 +57,13 @@ function fakeIam() {
   }
 }
 
+/** The forwarded-event face the conversation bridge subscribes to. */
+function fakeRemote() {
+  return {
+    $on: () => () => {},
+  }
+}
+
 async function bench(declare = true) {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
@@ -64,6 +71,7 @@ async function bench(declare = true) {
   ctx.provide('env', fakeEnv())
   ctx.provide('iam', fakeIam())
   ctx.provide('theme', fakeTheme(ctx))
+  ctx.provide('remote', fakeRemote() as never)
   const slots = ctx.get('slots') as SlotRegistry
   if (declare) {
     // Stand in for the rail shell and the frame: the root declares the rail
@@ -83,7 +91,7 @@ async function bench(declare = true) {
 
 describe('ui-sdkwork-knowledge apply', () => {
   it('declares the services it uses', () => {
-    expect(inject).toEqual(['slots', 'locale', 'env', 'iam', 'theme'])
+    expect(inject).toEqual(['slots', 'locale', 'env', 'iam', 'theme', 'remote'])
   })
 
   it('registers the rail entry and the page keyed by the knowledge mode id', async () => {
@@ -93,12 +101,12 @@ describe('ui-sdkwork-knowledge apply', () => {
     expect(entry?.options.key).toBe('knowledge')
     expect(entry?.component).toBe(KnowledgeRailEntry)
     expect(entry?.locale).toBe('knowledge')
-    expect((entry!.inject as unknown as () => KnowledgeRailEntryInjected)().mode).toBe('knowledge')
+    expect((entry.inject as unknown as () => KnowledgeRailEntryInjected)().mode).toBe('knowledge')
 
     const [page] = b.slots.entries(PAGE)
     expect(page?.options.key).toBe('knowledge')
     expect(page?.component).toBe(KnowledgePage)
-    expect((page!.inject as unknown as () => KnowledgePageInjected)().mode).toBe('knowledge')
+    expect((page.inject as unknown as () => KnowledgePageInjected)().mode).toBe('knowledge')
   })
 
   it('teardown removes the entries and the dictionaries', async () => {

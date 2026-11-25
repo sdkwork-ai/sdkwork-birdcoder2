@@ -290,7 +290,7 @@ describe('file provider — Host writes', () => {
   ])('re-reads complete metadata after a write with %s', async (_, metadata) => {
     const { remote, it, controller } = await live()
     const next = it.next()
-    await remote.opened[0]!.source.deliver({ kind: 'change', change: { absolutePath: HOST_PATH, version: 'v1' } })
+    await remote.opened[0].source.deliver({ kind: 'change', change: { absolutePath: HOST_PATH, version: 'v1' } })
     const request = await remote.waitForStat(1)
     expect(request).toMatchObject({ sessionId: S1, path: REL_PATH, signal: controller.signal })
     request.resolve({ ok: true, value: metadata })
@@ -300,7 +300,7 @@ describe('file provider — Host writes', () => {
 
   it('ignores a held version and still reads a later different version', async () => {
     const { remote, it } = await live('v0')
-    const source = remote.opened[0]!.source
+    const source = remote.opened[0].source
     const pending = it.next()
     await source.deliver({ kind: 'change', change: { absolutePath: HOST_PATH, version: 'v0' } })
     await source.deliver({ kind: 'change', change: { absolutePath: HOST_PATH, version: 'v1' } })
@@ -312,7 +312,7 @@ describe('file provider — Host writes', () => {
 
   it('does not read or emit metadata for a duplicate version before the stream ends', async () => {
     const { remote, it, changes } = await live('v0')
-    const source = remote.opened[0]!.source
+    const source = remote.opened[0].source
     const pending = it.next()
     await source.deliver({ kind: 'change', change: { absolutePath: HOST_PATH, version: 'v0' } })
     source.end()
@@ -338,7 +338,7 @@ describe('file provider — Host writes', () => {
 
   it('queues a further change while metadata refresh is unresolved', async () => {
     const { remote, it } = await live()
-    const source = remote.opened[0]!.source
+    const source = remote.opened[0].source
     const first = it.next()
     await source.deliver({ kind: 'change', change: { absolutePath: HOST_PATH, version: 'v1' } })
     const initial = await remote.waitForStat(1)
@@ -354,7 +354,7 @@ describe('file provider — Host writes', () => {
 
   it('yields a metadata failure and retries even when the next notice repeats the last successful version', async () => {
     const { remote, it } = await live()
-    const source = remote.opened[0]!.source
+    const source = remote.opened[0].source
     const next = it.next()
     await source.deliver({ kind: 'change', change: { absolutePath: HOST_PATH, version: 'v1' } })
     const update = await remote.waitForStat(1)
@@ -373,7 +373,7 @@ describe('file provider — a reported disappearance', () => {
   it('ends quietly when aborted during the stat', async () => {
     const { remote, it, controller, changes } = await live()
     const next = it.next()
-    await remote.opened[0]!.source.deliver({ kind: 'change', change: { absolutePath: HOST_PATH, absent: true } })
+    await remote.opened[0].source.deliver({ kind: 'change', change: { absolutePath: HOST_PATH, absent: true } })
     const request = await remote.waitForStat(1)
     controller.abort()
     request.resolve({ ok: true, value: stat('late', 9) })
@@ -385,7 +385,7 @@ describe('file provider — a reported disappearance', () => {
   it('stats again and yields fresh metadata when the file is still there', async () => {
     const { remote, it } = await live('v0', 3)
     const next = it.next()
-    await remote.opened[0]!.source.deliver({ kind: 'change', change: { absolutePath: HOST_PATH, absent: true } })
+    await remote.opened[0].source.deliver({ kind: 'change', change: { absolutePath: HOST_PATH, absent: true } })
     const request = await remote.waitForStat(1)
     expect(remote.stats).toHaveLength(2)
     request.resolve({ ok: true, value: stat('v2', 9) })
@@ -394,7 +394,7 @@ describe('file provider — a reported disappearance', () => {
 
   it('yields not-found and keeps following so a later write can bring the file back', async () => {
     const { remote, it } = await live('v0', 3)
-    const source = remote.opened[0]!.source
+    const source = remote.opened[0].source
     const next = it.next()
     await source.deliver({ kind: 'change', change: { absolutePath: HOST_PATH, absent: true } })
     const request = await remote.waitForStat(1)
@@ -412,7 +412,7 @@ describe('file provider — a reported disappearance', () => {
 describe('file provider — the end', () => {
   it('does not start another stat for a change queued before cancellation', async () => {
     const { remote, it, controller, changes } = await live()
-    await remote.opened[0]!.source.deliver({ kind: 'change', change: { absolutePath: HOST_PATH, version: 'v1' } })
+    await remote.opened[0].source.deliver({ kind: 'change', change: { absolutePath: HOST_PATH, version: 'v1' } })
     controller.abort()
     await changes.settle()
     const next = it.next()
@@ -431,7 +431,7 @@ describe('file provider — the end', () => {
 
   it('ends when the Host closes the target stream', async () => {
     const { remote, it, changes } = await live()
-    remote.opened[0]!.source.end()
+    remote.opened[0].source.end()
     await expect(it.next()).resolves.toEqual({ done: true, value: undefined })
     await changes.settle()
     expect(remote.disposed).toEqual(['workspace file changes of s1'])

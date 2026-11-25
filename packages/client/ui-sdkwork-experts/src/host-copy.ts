@@ -1,0 +1,78 @@
+/**
+ * 宿主侧用户可见文案表（zh 为 key 集真相源；en 用 satisfies 校验完整性）。
+ * 独立于宿主服务类型，浏览器半（PT/ES 分区表）只从这里读取 key 联合。
+ */
+/** 简体中文宿主文案（key 集真相源）。 */
+export const zhHost = {
+  'error.rootMissing': '智能体目录 root 不存在或无法访问："{root}"。请设置环境变量 {env} 或提供正确路径。',
+  'error.rootNotDir': '智能体目录 root "{root}" 不是目录',
+  'error.catalogEmpty': '在 root "{root}" 下未发现任何智能体（*.md 文件）。请确认路径正确。',
+  'error.catalogLoad': 'agency-agents 花名册加载失败：{detail}',
+  'error.catalogDuplicateName': '花名册包含重复专家名称："{name}"',
+  'error.expertRequired': '必须提供专家名称',
+  'error.expertAmbiguous': '专家 "{query}" 有歧义；候选：{candidates}。请用 list_experts 选择唯一名称。',
+  'error.expertMissing': '没有匹配 "{query}" 的专家。请调用 list_experts 查看花名册。',
+  'error.expertDisabled': '专家 "{name}" 已停用',
+  'error.summonRequiresAgent': 'summon_expert 需要由智能体调用',
+  'error.summonManyRequiresAgent': 'summon_experts 需要由智能体调用',
+  'error.expertsEmpty': 'experts 必须是非空数组',
+  'error.expertsTooMany': '一次最多召唤 {max} 名专家，当前为 {count}',
+  'error.expertEmpty': '第 {index} 个专家不能为空',
+  'error.taskEmpty': '第 {index} 个专家任务不能为空',
+  'error.taskTooLong': '第 {index} 个专家任务过长（{length} 个字符，上限 {max}）。请压缩为摘要（目标、约束和文件路径）后重试，不要粘贴源码。',
+  'error.taskRequired': '专家任务不能为空',
+  'error.taskLimit': '专家任务过长（{length} 个字符，上限 {max}）。请压缩为摘要（目标、约束和文件路径）后重试，不要粘贴源码。',
+  'error.providerMissing': '子代理 provider "{provider}" 未注册',
+  'error.providerNoMaxDepth': '子代理 provider "{provider}" 不支持 maxDepth',
+  'error.expertRun': '专家运行以 "{reason}" 结束{detail}',
+  'error.partialOutput': '\n部分输出：\n{text}',
+  'error.maxDepth': 'agency-agents 配置 maxDepth 必须是正安全整数',
+  'error.settingsMissing': 'agency-agents 设置区尚未注册',
+  'error.settingsLiveUnsupported': '当前宿主没有可实时更新的 agency-agents 配置字段，插件无法保存启用名单。',
+  'error.subagentsUnavailable': '当前宿主 subagents 服务未提供可用的子代理启动方法 (start / startActivation)。',
+  'error.personaSourceUnavailable': '专家提示词服务尚未就绪，请稍后重试。',
+  'list.empty': '暂无可用专家。',
+  'list.emptyDivision': '没有匹配分区 "{division}" 的专家。',
+  'list.heading': '{total} 位专家，覆盖 {count} 个分区：',
+  'list.group': '## {division}（{count}）',
+  'list.expertFailed': '失败：{error}',
+} satisfies Record<string, string>
+
+/** 宿主文案 key 联合。 */
+export type HostKey = keyof typeof zhHost
+
+/** 英文宿主文案，key 完整性由 satisfies 在编译期保证。 */
+export const enHost = {
+  'error.rootMissing': 'Agent catalog root is missing or inaccessible: "{root}". Set {env} or provide a valid path.',
+  'error.rootNotDir': 'Agent catalog root "{root}" is not a directory',
+  'error.catalogEmpty': 'No agents (*.md files) found under root "{root}". Check the path.',
+  'error.catalogLoad': 'agency-agents catalog failed to load: {detail}',
+  'error.catalogDuplicateName': 'Agent catalog contains a duplicate expert name: "{name}"',
+  'error.expertRequired': 'expert name is required',
+  'error.expertAmbiguous': 'Ambiguous expert "{query}"; candidates: {candidates}. Use list_experts to pick a unique name.',
+  'error.expertMissing': 'No expert matched "{query}". Call list_experts to see the roster.',
+  'error.expertDisabled': 'expert "{name}" is disabled',
+  'error.summonRequiresAgent': 'summon_expert requires a calling agent',
+  'error.summonManyRequiresAgent': 'summon_experts requires a calling agent',
+  'error.expertsEmpty': 'experts must be a non-empty array',
+  'error.expertsTooMany': 'summon at most {max} experts at once, got {count}',
+  'error.expertEmpty': 'expert #{index} must not be empty',
+  'error.taskEmpty': 'expert task #{index} must not be empty',
+  'error.taskTooLong': 'expert task #{index} is too long ({length} characters, limit {max}). Summarize as goal, constraints, and file paths, then retry. Do not paste source code.',
+  'error.taskRequired': 'The expert task must not be empty',
+  'error.taskLimit': 'The expert task is too long ({length} characters, limit {max}). Summarize as goal, constraints, and file paths, then retry. Do not paste source code.',
+  'error.providerMissing': 'subagent provider "{provider}" is not registered',
+  'error.providerNoMaxDepth': 'subagent provider "{provider}" does not support maxDepth',
+  'error.expertRun': 'expert run ended with "{reason}"{detail}',
+  'error.partialOutput': '\nPartial output:\n{text}',
+  'error.maxDepth': 'agency-agents config maxDepth must be a positive safe integer',
+  'error.settingsMissing': 'agency-agents settings section is not registered',
+  'error.settingsLiveUnsupported': 'This host has no live-updating agency-agents config fields, so the plugin cannot save the enabled list.',
+  'error.subagentsUnavailable': 'The host subagents service has no available launch method (start / startActivation).',
+  'error.personaSourceUnavailable': 'The expert prompt service is not ready. Try again shortly.',
+  'list.empty': 'No experts available.',
+  'list.emptyDivision': 'No experts matched division "{division}".',
+  'list.heading': '{total} experts across {count} divisions:',
+  'list.group': '## {division} ({count})',
+  'list.expertFailed': 'Failed: {error}',
+} satisfies Record<HostKey, string>

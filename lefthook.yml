@@ -23,8 +23,10 @@ pre-commit:
 
     - name: whitespace (staged)
       # Minified bundles carried in build output hold template literals whose
-      # trailing blanks are payload, not style.
-      run: git diff --cached --check -- . ':(exclude)apps/web/public/sdkwork-im/*.js'
+      # trailing blanks are payload, not style. The agency-agent prompt assets are
+      # imported third-party markdown: their trailing blanks are authored line
+      # breaks and their `=======` separators are content, not conflict markers.
+      run: git diff --cached --check -- . ':(exclude)apps/web/public/sdkwork-im/*.js' ':(exclude)packages/client/ui-sdkwork-experts/assets/**'
 
     - name: pi-ai provider metadata
       glob: '{pnpm-lock.yaml,packages/llm/llm-pi-ai/package.json,packages/llm/llm-pi-ai/scripts/gen-provider-data.ts,packages/llm/llm-pi-ai/src/provider-data.generated.ts}'

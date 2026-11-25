@@ -45,34 +45,21 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 }
 
 /**
- * Required services for locale registration, the Remote bridge, and the
- * row-menu hole contribution.
+ * Required services: the slot registry and the dictionaries. Every other
+ * capability the menus draw from is optional and read through `ctx.get` when a
+ * menu renders:
  *
- * `remote.sdkworkAppBuild` is a DOTTED inject name and must be listed verbatim:
- * cordis gates every property read on `ctx.remote` against this list, so
- * touching `ctx.remote.sdkworkAppBuild` with only `'remote'` declared throws
- * `cannot get property "remote.sdkworkAppBuild" without inject`. The remotes
- * assembly registers dotted keys as literal services of their own, so the
- * name resolves on its own rather than through the `remote` aggregate.
+ * - `workspaces` (path actions), `sessionLogDownload` (export), and
+ *   `deployPublish` (publish rows) are provided by other plugins;
+ * - `remote.sdkworkAppBuild` (compile/package rows) is a dotted child service
+ *   the remotes assembly mounts asynchronously.
  *
- * This adds no composition constraint: the publish row this plugin already
- * requires (`deployPublish`, from ui-sdkwork-deploy) is itself gated on
- * `remote.sdkworkAppBuild`, so any composition that mounts these menus
- * already mounts that namespace.
+ * Declaring them as inject would park this whole plugin until each one
+ * appeared, so one unrelated plugin's failure would remove the path actions
+ * from every workspace and session row. The render-time reads keep the menus
+ * mounted and degrade only the rows whose service is absent.
  */
-export const inject = [
-  'slots', 'locale', 'workspaces', 'sessionLogDownload', 'deployPublish', 'remote', 'remote.sdkworkAppBuild',
-]
-
-/**
- * Structural slice of `ctx.remote` this plugin reads. The namespace stays
- * optional here on purpose: inject guarantees the service is registered, but
- * a harness that provides `remote` alone must still load these menus with no
- * compile/package rows instead of throwing.
- */
-interface AppBuildRemoteHost {
-  sdkworkAppBuild?: AppBuildRemoteNamespace | undefined
-}
+export const inject = ['slots', 'locale']
 
 /**
  * Client plugin body: register the dictionary, the app-build service, and the
@@ -82,16 +69,11 @@ interface AppBuildRemoteHost {
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-sdkwork-workspace-row-menus: dictionaries')
 
-  const workspaces = ctx.get('workspaces') as RowMenusWorkspacesPort | undefined
-  const sessionLogDownload = ctx.get('sessionLogDownload') as RowMenusSessionLogDownloadPort | undefined
-  const deployPublish = ctx.get('deployPublish') as RowMenusDeployPublishPort | undefined
-
   // App-build capability (probe + run + output panel). Owned here and shared
   // through a service so the menus stay decoupled from the transport and the
   // build panel outlives the menu component that started a build.
-  const remoteHost = ctx.remote as unknown as AppBuildRemoteHost | undefined
   const appBuild = createAppBuildService({
-    remote: () => remoteHost?.sdkworkAppBuild,
+    remote: () => ctx.get('remote.sdkworkAppBuild') as AppBuildRemoteNamespace | undefined,
     locale: {
       // `bind` keys its translate function to this namespace's literal key
       // union; the panel widens it to `string` because its call sites assemble
@@ -129,6 +111,9 @@ export function apply(ctx: ClientContext): void {
       id: 'sdkwork-row-menus',
       order: 0,
       locale: NS,
+      // `ctx.get` reads the live service store at each render, so a plugin
+      // that registers after this one (or one that failed) decides only its
+      // own rows: the path actions never wait on the publish or build rows.
       inject: (): {
         workspaces?: RowMenusWorkspacesPort | undefined
         sessionLogDownload?: RowMenusSessionLogDownloadPort | undefined
@@ -136,9 +121,9 @@ export function apply(ctx: ClientContext): void {
         appBuild?: typeof appBuild.service | undefined
         accessToken?: RowMenusAccessTokenPort | undefined
       } => ({
-        workspaces,
-        sessionLogDownload,
-        deployPublish,
+        workspaces: ctx.get('workspaces') as RowMenusWorkspacesPort | undefined,
+        sessionLogDownload: ctx.get('sessionLogDownload') as RowMenusSessionLogDownloadPort | undefined,
+        deployPublish: ctx.get('deployPublish') as RowMenusDeployPublishPort | undefined,
         appBuild: appBuild.service,
         // Optional service: the access-token initializer is a separate plugin,
         // so a composition without it keeps every other row and simply has no

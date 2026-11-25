@@ -26,6 +26,8 @@ This table connects model-visible tool names to the plugin package and service s
 | `@deepseek-ai/dsh-tool-bash` | `bash` | `ctx.workingDirectory`, `ctx.tools`, `ctx.shell`, `ctx.systemPrompt`, `ctx.shellEnv`, `ctx.jobs for run_in_background and the job-backed foreground path` | `tool/call`, `tool/result` | - | The bash tool is the model-facing consumer of the bash executor seam. With a job registry composed every call registers with the generic `ctx.jobs` runtime as it starts, collected/stopped through the `job_*` tools from `@deepseek-ai/dsh-tool-jobs`; without one, or with `enableRunInBackground: false`, the tool registers a foreground-only schema without the `run_in_background` parameter. |
 | `@deepseek-ai/dsh-tool-office` | `office_convert`, `office_recalculate`, `office_render` | `ctx.workingDirectory`, `ctx.tools`, `ctx.fs`, `ctx.agents`, `ctx.officeKit`, `ctx.attachments and ctx.llm for office_render` | `tool/call`, `tool/result with rendered image attachments`, `temporary converted files in the Office kit output store` | - | Declared to an Agent from the step after it successfully loads an Office skill, and kept while the previous request header declares an Office tool. Admitted calls fail with the Office service's unavailable error when LibreOffice Kit is not installed. |
 | `@deepseek-ai/dsh-tool-present` | `present` | `ctx.workingDirectory`, `ctx.tools`, `ctx.fs`, `ctx.agents` | `tool/call`, `deliverables/presented after a successful final result`, `tool/result` | - | Deliveries belong to the calling Session; Web ui-deliverables supplies source-file opening and cards. |
+| `@deepseek-ai/dsh-tool-sdkwork-deploy` | `sdkwork_deploy_app` | `ctx.tools`, `a connected signed-in Browser Client` | `tool/call`, `sdkwork-deploy/request relayed to the Client`, `tool/result` | - | Publishing runs in the BirdCoder Client, which owns the IAM session and the deploy clients; the Host relays the request and formats the returned site facts. |
+| `@deepseek-ai/dsh-tool-sdkwork-knowledge` | `sdkwork_content_publish`, `sdkwork_knowledge_write` | `ctx.tools`, `ctx.fs`, `ctx.workingDirectory`, `a connected signed-in Browser Client` | `tool/call`, `sdkwork-knowledge/request relayed to the Client`, `tool/result` | - | Article writing and media publishing run in the BirdCoder Client, which owns the IAM session and the generated Knowledge Base app client; the Host reads a local cover image and formats the returned article or platform receipt. |
 | `@deepseek-ai/dsh-tool-pwsh` | `pwsh` | `ctx.workingDirectory`, `ctx.tools`, `ctx.shell`, `ctx.systemPrompt`, `ctx.shellEnv`, `ctx.jobs for run_in_background and the job-backed foreground path` | `tool/call`, `tool/result` | - | The pwsh tool is the PowerShell-dialect consumer of the bash executor seam for Windows compositions (a PowerShell executor such as `@deepseek-ai/dsh-pwsh-local` backs `ctx.shell`); it mirrors the bash tool call-for-call minus sandbox controls — `run_in_background` runs register with the generic `ctx.jobs` runtime and are collected/stopped through the `job_*` tools, and the managed `DSH_*` environment comes from `@deepseek-ai/dsh-shell-env`. Each call runs in a fresh process (no persistent PTY session), with native `C:\...` paths and `$env:NAME` variables. |
 | `@deepseek-ai/dsh-tool-cordis` | `cordis_inspect` | `ctx.tools`, `ctx.cordisInspect` | `tool/call`, `tool/result` | - | Standard and Creator modes provide one read-only runtime inspection tool. Omit query for the provider directory; pass query to inspect a declared method. The Cordis host runner supplies the inspection registry; Client queries require a connected page. Author persistent changes as bundles and install them with plugin_manager. |
 | `@deepseek-ai/dsh-tool-bash-persistent` | `bash` | `ctx.workingDirectory`, `ctx.tools`, `ctx.terminals`, `an owning Agent at execution time` | `tool/call`, `PTY shell state`, `tool/result` | - | One owner-isolated persistent bash tool; deployment composition supplies the PTY backend and may override the model-facing environment description. |
@@ -885,6 +887,277 @@ Declare existing files as final deliverables for the user. Hosts may show presen
 Source: [`packages/deliverables/tool-present/src/index.ts`](../packages/deliverables/tool-present/src/index.ts)
 
 Deliveries belong to the calling Session; Web ui-deliverables supplies source-file opening and cards.
+
+<a id="deepseek-aidsh-tool-sdkwork-deploy"></a>
+
+## `@deepseek-ai/dsh-tool-sdkwork-deploy`
+
+### `sdkwork_deploy_app`
+
+Publish one SDKWork application and return its live site. Use it after the project carries `agent.app.config.json` and its build output exists. The signed-in BirdCoder client resolves or creates the application, packs the build output, uploads the immutable artifact, records it as the application source, creates the release and creates the deployment; the result names the public URL, the deployment identity, the previous deployment (rollback reference) and the account that published. Defaults fit the manifest; artifactForm, deploymentKind, deploymentTarget and platformTarget override them for a deployment form the manifest does not describe. A failure reports the stage that stopped, so the next call changes one thing rather than retrying blindly.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "directory": {
+      "type": "string",
+      "description": "Project directory holding agent.app.config.json. Relative paths resolve against the Session working directory; omitted uses it."
+    },
+    "buildOutput": {
+      "type": "string",
+      "description": "Build output directory to publish, relative to the project root (for example `dist` or `apps/web/dist`). Omit to resolve the conventional output."
+    },
+    "environment": {
+      "type": "string",
+      "description": "Lifecycle tier to deploy to. Omit for the tier the manifest and Host profile select.",
+      "enum": [
+        "development",
+        "test",
+        "staging",
+        "demo",
+        "production"
+      ]
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version for the release. Omit to derive the next patch over the application's existing releases."
+    },
+    "releaseNotes": {
+      "type": "string",
+      "description": "Short release note recorded with the release."
+    },
+    "artifactForm": {
+      "type": "string",
+      "description": "Artifact form registered on the platform. Omit to derive it from the application type.",
+      "enum": [
+        "static",
+        "native",
+        "mini-program",
+        "server-bundle",
+        "generic"
+      ]
+    },
+    "deploymentKind": {
+      "type": "string",
+      "description": "Deployment kind. Omit to derive it from the application type.",
+      "enum": [
+        "ARTIFACT_RELEASE",
+        "SITE_CONFIG",
+        "TLS_CONFIG",
+        "MINIPROGRAM_REVIEW",
+        "STORE_SUBMISSION",
+        "OTA_DISTRIBUTION",
+        "ENTERPRISE_DISTRIBUTION",
+        "CONTAINER_ROLLOUT"
+      ]
+    },
+    "deploymentTarget": {
+      "type": "string",
+      "description": "Where the deployment lands. Omit to derive it from the application type.",
+      "enum": [
+        "WEB_NODE",
+        "CONTAINER",
+        "WECHAT_REVIEW",
+        "DOUYIN_REVIEW",
+        "APP_STORE_CONNECT",
+        "TESTFLIGHT",
+        "OTA",
+        "ENTERPRISE",
+        "HARMONYOS_STORE"
+      ]
+    },
+    "platformTarget": {
+      "type": "string",
+      "description": "Platform target key (for example `pc-web`, `h5`, `android`). Omit to match the application's target for its type."
+    },
+    "recordSource": {
+      "type": "boolean",
+      "description": "Record the uploaded artifact as the application source. Defaults to true; pass false for an artifact-only upload."
+    }
+  }
+}
+```
+
+Source: [`packages/interaction/tool-sdkwork-deploy/src/index.ts`](../packages/interaction/tool-sdkwork-deploy/src/index.ts)
+
+Publishing runs in the BirdCoder Client, which owns the IAM session and the deploy clients; the Host relays the request and formats the returned site facts.
+
+<a id="deepseek-aidsh-tool-sdkwork-knowledge"></a>
+
+## `@deepseek-ai/dsh-tool-sdkwork-knowledge`
+
+### `sdkwork_content_publish`
+
+Publish content or an article to a media account. Use `action: capabilities` first to check which media this deployment can publish to and what each one accepts, then `action: accounts` for the configured accounts of one platform. Publishing needs an explicit account selection: when the user has not chosen one, show the accounts and ask which to use. `wechat-official-account` publishes through the signed-in Knowledge Base client and takes an HTML article plus a cover; `facebook`, `twitter` and `douyin` publish through this Host process with the official platform API and take `text`, plus `link`, `imagePaths` or `videoPath`. `toutiao` and `xiaohongshu` have no public creator-publishing API here and are reported as unavailable. Host platform accounts come from the media account file, whose accounts reference their token by environment variable; never pass a token in an argument.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "description": "Media operation to run.",
+      "enum": [
+        "capabilities",
+        "accounts",
+        "publish",
+        "preview"
+      ]
+    },
+    "platform": {
+      "type": "string",
+      "description": "Media platform. Defaults to `wechat-official-account`, the only platform with a live adapter in this deployment.",
+      "enum": [
+        "wechat-official-account",
+        "toutiao",
+        "douyin",
+        "xiaohongshu",
+        "facebook",
+        "twitter"
+      ]
+    },
+    "accountIds": {
+      "type": "array",
+      "description": "Accounts the publish targets. Required for publish; for preview the first id is the sending account.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "wechatIds": {
+      "type": "array",
+      "description": "WeChat recipient open ids for preview, 1 to 20 values.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "text": {
+      "type": "string",
+      "description": "Post, caption or note text for facebook, twitter and douyin."
+    },
+    "link": {
+      "type": "string",
+      "description": "Link a Facebook feed post attaches."
+    },
+    "imagePaths": {
+      "type": "array",
+      "description": "Local image paths. Facebook uploads the first one as a Page photo.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "videoPath": {
+      "type": "string",
+      "description": "Local video path. Required for douyin; Facebook uploads it as a Page video."
+    },
+    "title": {
+      "type": "string",
+      "description": "Article title, at most 64 characters."
+    },
+    "author": {
+      "type": "string",
+      "description": "Author line the platform renders. Required for a WeChat article."
+    },
+    "summary": {
+      "type": "string",
+      "description": "Short digest, at most 120 characters."
+    },
+    "contentHtml": {
+      "type": "string",
+      "description": "Article body as platform HTML. At most 20,000 characters and 2 MiB for WeChat."
+    },
+    "coverPath": {
+      "type": "string",
+      "description": "Local cover image path (png, jpeg, gif or bmp, at most 5 MiB). Resolved against the Session working directory."
+    },
+    "coverDataUri": {
+      "type": "string",
+      "description": "Cover image already encoded as a `data:image/...;base64,...` URI. Alternative to coverPath."
+    },
+    "coverMediaId": {
+      "type": "string",
+      "description": "Already-uploaded platform cover media id. Alternative to coverPath and coverDataUri."
+    },
+    "mode": {
+      "type": "string",
+      "description": "`publish` sends the article to followers; `draft` saves it to the platform draft box. Defaults to publish.",
+      "enum": [
+        "publish",
+        "draft"
+      ]
+    }
+  },
+  "required": [
+    "action"
+  ]
+}
+```
+
+Source: [`packages/interaction/tool-sdkwork-knowledge/src/index.ts`](../packages/interaction/tool-sdkwork-knowledge/src/index.ts)
+
+### `sdkwork_knowledge_write`
+
+Write or read an article in the SDKWork Knowledge Base through the signed-in BirdCoder client. Use `action: list_spaces` to see the knowledge bases the signed-in user can write to, `action: list_articles` to read one space, `action: read_article` to load one document's Markdown, `action: create_article` to ingest a Markdown article as a new document, and `action: upsert_concept` to create or update a wiki concept page. A write needs a space id: when the user has not chosen one, list the spaces first and ask which one to use. The tool reuses the account this app is already signed in to and never asks for a credential.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "description": "Article operation to run.",
+      "enum": [
+        "list_spaces",
+        "list_articles",
+        "read_article",
+        "create_article",
+        "upsert_concept"
+      ]
+    },
+    "spaceId": {
+      "type": "string",
+      "description": "Knowledge space id. Required for list_articles, create_article and upsert_concept; omit for list_spaces."
+    },
+    "documentId": {
+      "type": "string",
+      "description": "Document id to read. Required for read_article."
+    },
+    "title": {
+      "type": "string",
+      "description": "Article title, at most 64 characters. Required for create_article and upsert_concept."
+    },
+    "markdown": {
+      "type": "string",
+      "description": "Full article body in Markdown. Required for create_article and upsert_concept."
+    },
+    "conceptId": {
+      "type": "string",
+      "description": "Existing wiki concept id to update. Omit to create a new concept from the title."
+    },
+    "publishConcept": {
+      "type": "boolean",
+      "description": "Publish the wiki concept to its space after upserting it. Defaults to false, which leaves it unpublished."
+    },
+    "visibility": {
+      "type": "string",
+      "description": "Visibility of a created document. Omit for the space default.",
+      "enum": [
+        "private",
+        "space",
+        "organization",
+        "public"
+      ]
+    }
+  },
+  "required": [
+    "action"
+  ]
+}
+```
+
+Source: [`packages/interaction/tool-sdkwork-knowledge/src/index.ts`](../packages/interaction/tool-sdkwork-knowledge/src/index.ts)
+
+Article writing and media publishing run in the BirdCoder Client, which owns the IAM session and the generated Knowledge Base app client; the Host reads a local cover image and formats the returned article or platform receipt.
 
 <a id="deepseek-aidsh-tool-pwsh"></a>
 

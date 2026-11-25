@@ -115,7 +115,7 @@ async function bootDesktop(): Promise<{ ctx: Awaited<ReturnType<typeof boot>>; b
     await hostCtx.plugin(PluginPackages, { resolution })
     await hostCtx.plugin({
       inject: desktopAuthenticationInject,
-      apply: (scope: Context) => applyDesktopAuthentication(scope, { readSecret: () => desktopSecret }),
+      apply: (scope: Context) =>{  applyDesktopAuthentication(scope, { readSecret: () => desktopSecret }) },
     })
     provideCmdline(hostCtx, { args: [], exit: () => {} })
   }, pathToFileURL(join(profileDir, 'package.json')).href)

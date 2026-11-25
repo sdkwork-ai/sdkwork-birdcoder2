@@ -148,7 +148,7 @@ describe('sdkwork-git branches()', () => {
     await git(directory, 'checkout', '--detach', head)
     const listing = await service.branches({ cwd: directory })
     expect(listing.current).toBeNull()
-    expect(listing.branches.every(branch => branch.current === false)).toBe(true)
+    expect(listing.branches.every(branch => ! branch.current)).toBe(true)
   })
 })
 

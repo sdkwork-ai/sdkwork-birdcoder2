@@ -78,7 +78,7 @@ function interceptScripts(): MountedScript[] {
     const script = node as HTMLScriptElement
     appended.push({ script })
     return node
-  }) as typeof document.head.appendChild)
+  }))
   return appended
 }
 

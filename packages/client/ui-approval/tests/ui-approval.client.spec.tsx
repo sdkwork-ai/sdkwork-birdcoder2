@@ -238,7 +238,7 @@ describe('approval Remote Event consumer', () => {
       displayReason: { en: 'Display reason', zh: '展示原因' },
       signal: controller.signal,
     }, next)
-    const pending = bench.pending.getSnapshot()[0]!
+    const pending = bench.pending.getSnapshot()[0]
     const { options, component } = bench.registration()
 
     expect(component).toBe(ApprovalPanel)
@@ -305,7 +305,7 @@ describe('approval Remote Event consumer', () => {
     const scope = createScope(bench.ctx, id('s1'))
     await scope.fiber.await()
     const result = bench.listener.call(scope.ctx, { toolName: 'read' }, () => Promise.resolve('unavailable'))
-    const pending = bench.pending.getSnapshot()[0]!
+    const pending = bench.pending.getSnapshot()[0]
 
     await pending.answer('rejected')
 
@@ -394,7 +394,7 @@ describe('ApprovalPanel', () => {
     const view = render(<ApprovalPanel {...props} />)
     expect(screen.getByText('English explanation')).toBeTruthy()
     expect(screen.queryByText('audit reason')).toBeNull()
-    view.rerender(<ApprovalPanel {...props} resolveReason={reason => reason['zh']!} />)
+    view.rerender(<ApprovalPanel {...props} resolveReason={reason => reason['zh']} />)
     expect(screen.getByText('中文说明')).toBeTruthy()
     expect(pending.reason).toBe('audit reason')
   })
