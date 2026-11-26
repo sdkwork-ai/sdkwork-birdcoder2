@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-26-mobile-connect-rail-entry.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-26-mobile-connect-rail-entry.md
+/agent-note-mobile-connection-shortcut-above-the-message-center:
+  en: c99680a927851c0f
+  zh: b663b121fc3a5b4e
+/agent-note-mobile-connection-shortcut-above-the-message-center/problem:
+  en: 86a4414e3dc0f415
+  zh: da3162667661a26d
+/agent-note-mobile-connection-shortcut-above-the-message-center/decision:
+  en: b38981be38d2f256
+  zh: bd6af4d3ca4f8696
+/agent-note-mobile-connection-shortcut-above-the-message-center/alternatives-considered:
+  en: 4c2f143a726414cc
+  zh: f908e15822028f8f
+/agent-note-mobile-connection-shortcut-above-the-message-center/consequences:
+  en: 49cb70a9ced339cf
+  zh: dff6a99f1e4466c5
+/agent-note-mobile-connection-shortcut-above-the-message-center/verification:
+  en: 76a469ff7b7624ec
+  zh: 3af8a4135b0267f6

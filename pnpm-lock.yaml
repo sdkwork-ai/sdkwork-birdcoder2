@@ -8119,6 +8119,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-sdkwork-mini-program-accounts':
         specifier: workspace:*
         version: link:../../client/ui-sdkwork-mini-program-accounts
+      '@deepseek-ai/dsh-client-ui-sdkwork-mobile-connect':
+        specifier: workspace:*
+        version: link:../../client/ui-sdkwork-mobile-connect
       '@deepseek-ai/dsh-client-ui-sdkwork-model-price-group':
         specifier: workspace:*
         version: link:../../client/ui-sdkwork-model-price-group
@@ -13661,6 +13664,52 @@ importers:
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.5
+
+  packages/client/ui-sdkwork-mobile-connect:
+    dependencies:
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:~
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-client-locale':
+        specifier: workspace:*
+        version: link:../locale
+      '@deepseek-ai/dsh-client-test-runtime':
+        specifier: workspace:*
+        version: link:../../test-support/client-runtime
+      '@deepseek-ai/dsh-client-ui-primitives':
+        specifier: workspace:*
+        version: link:../ui-primitives
+      '@deepseek-ai/dsh-client-ui-renderer':
+        specifier: workspace:*
+        version: link:../ui-renderer
+      '@deepseek-ai/dsh-client-ui-sdkwork-app-modes':
+        specifier: workspace:*
+        version: link:../ui-sdkwork-app-modes
+      '@deepseek-ai/dsh-client-ui-settings':
+        specifier: workspace:*
+        version: link:../ui-settings
+      '@deepseek-ai/dsh-client-ui-slots':
+        specifier: workspace:*
+        version: link:../ui-slots
+      '@deepseek-ai/dsh-settings':
+        specifier: workspace:*
+        version: link:../../settings/settings
+      '@testing-library/react':
+        specifier: ^16.3.3
+        version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      qrcode.react:
+        specifier: ^4.2.0
+        version: 4.2.0(react@19.2.8)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
 
   packages/client/ui-sdkwork-mobile-simulator:
     devDependencies:

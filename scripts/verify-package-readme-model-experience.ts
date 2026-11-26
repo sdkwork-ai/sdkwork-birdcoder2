@@ -67,6 +67,7 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/client/ui-sdkwork-im': { kind: 'none', reason: 'The plugin renders a human-facing messaging surface and does not add prompt content, tools, or session events.' },
   'packages/client/ui-sdkwork-image-models': { kind: 'none', reason: 'The package configures where media generation calls go and registers no prompt section, tool, or session event.' },
   'packages/client/ui-sdkwork-markets': { kind: 'none', reason: 'The plugin adds no prompt content, tools, or session events; the create and market flows only submit user-authored text as an ordinary queued turn.' },
+  'packages/client/ui-sdkwork-mobile-connect': { kind: 'none', reason: 'Browser-side rail shortcut and scan card over one durable boolean preference; it registers no prompt section, tool, or session event.' },
   'packages/client/ui-sdkwork-mobile-simulator': { kind: 'none', reason: 'The package is a pure presentation tool that renders web content in an iframe without submitting messages, adding session events, or changing model requests.' },
   'packages/client/ui-sdkwork-music-models': { kind: 'none', reason: 'The package configures where media generation calls go and registers no prompt section, tool, or session event.' },
   'packages/client/ui-sdkwork-new-chat': { kind: 'none', reason: 'The package is human-only surface chrome; starting a conversation changes browser viewing state only, and nothing here reaches a model request.' },

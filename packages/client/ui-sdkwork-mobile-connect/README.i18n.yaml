@@ -1,0 +1,31 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-mobile-connect/README.md
+/:
+  en: 1c67e53d8284e462
+  zh: b9665f96ac5dccc8
+/deepseek-ai-dsh-client-ui-sdkwork-mobile-connect:
+  en: 662a6466c99e58e2
+  zh: 26e233c2b1d9eba9
+/deepseek-ai-dsh-client-ui-sdkwork-mobile-connect/summary:
+  en: 50cfdf1d558e64e0
+  zh: 4499ba8a9a37a3c9
+/deepseek-ai-dsh-client-ui-sdkwork-mobile-connect/table-of-contents:
+  en: 6b2e13d9f817df12
+  zh: dc640b62472cd60a
+/deepseek-ai-dsh-client-ui-sdkwork-mobile-connect/understand-the-implementation:
+  en: 9d9a113a8a37b8cb
+  zh: 6bda7e2256fe9b26
+/deepseek-ai-dsh-client-ui-sdkwork-mobile-connect/configuration:
+  en: 829b9c470d16c4d0
+  zh: 67e4bd3914bf2e8c
+/deepseek-ai-dsh-client-ui-sdkwork-mobile-connect/model-experience:
+  en: 30ea0130621894a9
+  zh: 632380cb029ed431
+/deepseek-ai-dsh-client-ui-sdkwork-mobile-connect/model-experience/kv-cache-effect:
+  en: 6250c7744b2590b1
+  zh: ac98c6edf72e7d4c
+/deepseek-ai-dsh-client-ui-sdkwork-mobile-connect/known-limitations-and-deferred-work:
+  en: 287be341dabaeba4
+  zh: f3ad8929f3569fc8

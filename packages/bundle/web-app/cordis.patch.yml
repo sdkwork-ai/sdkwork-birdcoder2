@@ -774,6 +774,13 @@
     - id: ui-sdkwork-message-center
       name: '@deepseek-ai/dsh-client-ui-sdkwork-message-center'
 
+    # Mobile connection: the device icon in the rail's panel seat directly above
+    # the message center. Hovering shows the scan card (mobile App / WeChat mini
+    # program) and the durable allow-remote-connection switch; the scan
+    # destinations are this entry's own `appDownloadUrl` / `miniProgramUrl`.
+    - id: ui-sdkwork-mobile-connect
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-mobile-connect'
+
     - id: ui-sdkwork-apikey
       name: '@deepseek-ai/dsh-client-ui-sdkwork-apikey'
 

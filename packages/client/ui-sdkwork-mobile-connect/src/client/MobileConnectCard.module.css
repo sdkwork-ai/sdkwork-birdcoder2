@@ -1,0 +1,142 @@
+/* The mobile-connection scan card: two scan destinations over the selected
+   QR code, a hairline, and the durable remote-connection switch.
+
+   The same body rides two hosts. In the rail's hover card it inherits the
+   hover-card material and remaps the semantic aliases it hands to the shared
+   controls (`SegmentedTabs`, `Switch`), so those keep their own geometry and
+   behavior on a dark surface. In the dialog it keeps the page material. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 244px;
+  margin-inline: auto;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* Hover-card material: the primitive's card supplies the fill, so this variant
+   only redirects the aliases its children read. */
+.compact {
+  --dsw-alias-label-primary: var(--dsw-alias-hovercard-label-primary);
+  --dsw-alias-label-secondary: var(--dsw-alias-hovercard-label-secondary);
+  --dsw-alias-border-l3: color-mix(in srgb, var(--dsw-alias-hovercard-label-primary) 20%, transparent);
+  --dsw-alias-bg-module-platform: color-mix(in srgb, var(--dsw-alias-hovercard-label-primary) 8%, transparent);
+  --dsw-alias-bg-layer-3: color-mix(in srgb, var(--dsw-alias-hovercard-label-primary) 14%, transparent);
+}
+
+/* Dialog material: an independent child card inside the dialog body. */
+.dialog {
+  padding: 16px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-lg);
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.tabs {
+  width: 100%;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  outline: none;
+}
+
+.title {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  text-align: center;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* The scan symbol needs a light field with dark modules in either theme, so the
+   plate paints from the artifact pair the card hands it (the same two colors
+   the encoder paints), not from a theme alias that flips with the palette. */
+.codePlate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 212px;
+  padding: 14px;
+  border: 0.5px solid color-mix(in srgb, var(--mc-plate-ink) 10%, transparent);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--mc-plate-field);
+  color: var(--mc-plate-ink);
+}
+
+.code {
+  display: block;
+}
+
+.unconfigured {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  text-align: center;
+  color: color-mix(in srgb, var(--mc-plate-ink) 62%, transparent);
+}
+
+.hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.spinner {
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  border: 2px solid color-mix(in srgb, var(--mc-plate-ink) 20%, transparent);
+  border-top-color: var(--mc-plate-ink);
+  border-radius: 50%;
+  /* A superellipse would visibly wobble this circle while it rotates. */
+  corner-shape: round;
+  animation: mobileConnectSpin 800ms linear infinite;
+}
+
+@keyframes mobileConnectSpin {
+  to { transform: rotate(360deg); }
+}
+
+.divider {
+  display: block;
+  height: 1px;
+  background: color-mix(in srgb, currentColor 16%, transparent);
+}
+
+.remoteRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.remoteLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.switch {
+  /* The shared switch keeps its own geometry; this class only anchors it in the row. */
+  flex: 0 0 auto;
+}
+
+.failure {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-hovercard-state-error);
+}
