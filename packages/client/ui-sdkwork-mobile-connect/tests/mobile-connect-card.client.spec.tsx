@@ -80,7 +80,7 @@ describe('MobileConnectCard', () => {
 
   it('disables the switch while the section is read-only', () => {
     render(<MobileConnectCard {...cardProps({ ...snapshot(), writable: false })} />)
-    const toggle = screen.getByRole('switch', { name: en['remote'] })
+    const toggle = screen.getByRole<HTMLButtonElement>('switch', { name: en['remote'] })
     expect(toggle.disabled).toBe(true)
     expect(toggle.getAttribute('title')).toBe(en['remote.readOnly'])
   })
@@ -89,7 +89,7 @@ describe('MobileConnectCard', () => {
     render(<MobileConnectCard {...cardProps(snapshot({}, 'loading'))} />)
     expect(screen.getByRole('status', { name: en['qr.loading'] })).toBeTruthy()
     expect(screen.queryByRole('img')).toBeNull()
-    expect(screen.getByRole('switch', { name: en['remote'] }).disabled).toBe(true)
+    expect(screen.getByRole<HTMLButtonElement>('switch', { name: en['remote'] }).disabled).toBe(true)
   })
 
   it('explains an unconfigured destination instead of drawing a code', () => {
