@@ -45,9 +45,6 @@
       "path": "../config"
     },
     {
-      "path": "../store"
-    },
-    {
       "path": "../locale/tsconfig.client.json"
     },
     {

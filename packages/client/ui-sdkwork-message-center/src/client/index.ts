@@ -1,21 +1,24 @@
 /**
- * SDKWork message center, browser half: the rail message shortcut above
- * Settings (`mode.rail.panel`) and the overlay that renders the notification
- * list and its detail view (`shell.overlay`). The plugin owns polling, the
- * unread badge, acknowledgement, and presentation; the notification service
- * owns visibility, ordering, and consumption.
+ * SDKWork message center, browser half: a mail shortcut in the mode rail above
+ * Settings (`mode.rail.panel`) and the message page it selects as the center
+ * column's main panel (`main`, key `message-center`). The plugin owns polling,
+ * the unread badge, acknowledgement, and presentation; the notification
+ * service owns visibility, ordering, and consumption.
+ *
+ * Selecting the shortcut is a plain panel selection through `ctx.layout`: the
+ * workspace's left column stays in place and the center switches from the
+ * conversation to the message page — no modal, no second window.
  *
  * The API origin and static access token come from the shared
  * [ui-sdkwork-env](../ui-sdkwork-env/README.md) profile; the signed-in
- * credential triple comes from `ctx.iam` when the composition mounts it.
- * Without a configured origin the center explains the missing configuration,
- * and without credentials it offers the in-app sign-in surface instead of an
- * error.
+ * credential triple comes from `ctx.iam`. Without a configured origin the page
+ * explains the missing configuration, and without credentials it offers the
+ * in-app sign-in surface instead of an error.
  * @module @deepseek-ai/dsh-client-ui-sdkwork-message-center/client
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { SyncedConfig } from '@deepseek-ai/dsh-client-config/types'
-// Type-only: pulls ctx.slots and the 'shell.overlay' seat declaration.
+// Type-only: pulls ctx.slots, ctx.layout, and the 'main' seat declaration.
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 // Type-only: pulls the 'mode.rail.panel' seat declaration.
@@ -28,20 +31,20 @@ import type { EnvService } from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 // Type-only: pulls ctx.iam (the sign-in service face) into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import type { HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
-import { MessageCenterDialog, type MessageCenterDialogInjected } from './MessageCenterDialog.tsx'
 import { MessageCenterRailEntry, type MessageCenterRailEntryInjected } from './MessageCenterRailEntry.tsx'
+import { MessageCenterView, type MessageCenterViewInjected } from './MessageCenterView.tsx'
 import {
   MessageCenterService,
   type MessageCenterIamLike,
   type MessageCenterSnapshot,
 } from './message-service.ts'
-import { createMessageCenterUiStore } from './message-ui-store.ts'
+import { MESSAGE_CENTER_PANEL_ID } from './panel-id.ts'
 import { en, zh, type MessageCenterKey } from './locales.ts'
 import type { MessageCenterConfig } from '../types.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
-    /** The message center's copy (rail shortcut, center shell, and states). */
+    /** The message center's copy (rail shortcut, page shell, and states). */
     messageCenter: MessageCenterKey
   }
 }
@@ -56,11 +59,11 @@ const ABSENT_POLL_INTERVAL_MS = 60_000
 const ABSENT_PAGE_SIZE = 20
 
 /** Services required by the message-center plugin. */
-export const inject = ['slots', 'locale', 'env', 'iam']
+export const inject = ['slots', 'locale', 'env', 'iam', 'layout']
 
 /**
  * Register the dictionaries, the notification service and its poll, the
- * message-center overlay, and the rail shortcut above Settings.
+ * message page as a `main` panel, and the rail shortcut above Settings.
  * @param ctx - client root context.
  * @param config - Host-synced polling interval and page size.
  */
@@ -70,7 +73,7 @@ export function apply(ctx: ClientContext, config: SyncedConfig<MessageCenterConf
   const env = ctx.get('env') as EnvService
   // The service consumes the session-token reader and the optional sign-in
   // gesture; a provider other than the shipped IAM service may omit the
-  // latter, and the center then offers no sign-in button.
+  // latter, and the page then offers no sign-in button.
   const iam = ctx.get('iam') as MessageCenterIamLike
   const service = new MessageCenterService({
     env,
@@ -86,50 +89,50 @@ export function apply(ctx: ClientContext, config: SyncedConfig<MessageCenterConf
     }
   }, 'ui-sdkwork-message-center: notification polling')
 
-  // One observable source per fact pair: the rail badge and the center read
-  // the same snapshot, so both surfaces agree on unread state.
+  // One observable source per fact pair: the rail badge and the page read the
+  // same snapshot, so both surfaces agree on unread state.
   const snapshot: HostObservable<MessageCenterSnapshot> = {
     getSnapshot: () => service.snapshot(),
     subscribe: listener => service.subscribe(listener),
   }
+  const refresh = (): void => { void service.refresh() }
+  const open = (): void => {
+    refresh()
+    ctx.layout.selectPanel(MESSAGE_CENTER_PANEL_ID)
+  }
 
-  // The overlay host and the rail shortcut share one store handle, so the
-  // shortcut's open action is the same state the overlay renders.
-  const uiStore = createMessageCenterUiStore()
-
-  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
-    name: 'shell.overlay',
-    id: 'message-center',
-    store: uiStore,
+  // The message page itself: the frame renders this keyed `main` entry in
+  // place of the conversation while the panel is selected. The page's close
+  // gesture returns the center column to the current conversation.
+  ctx.slots.inject('main', () => ctx.slots.register({
+    name: 'main',
+    key: MESSAGE_CENTER_PANEL_ID,
     locale: NS,
-    inject: (): MessageCenterDialogInjected => ({
+    inject: (): MessageCenterViewInjected => ({
       hooks: { snapshot },
-      refresh: () => { void service.refresh() },
+      refresh,
       loadMore: () => { void service.loadMore() },
       markRead: (id) => { void service.acknowledge(id) },
       signIn: () => { void service.signIn() },
       canSignIn: iam.requestSignInInPlace !== undefined,
+      close: () => { ctx.layout.selectPanel(null) },
     }),
-  }, MessageCenterDialog))
+  }, MessageCenterView))
 
   // The rail shortcut ordering: the panel seat renders ascending, so a later
   // order sits closer to Settings. 20 renders below the IM connector row (10)
   // and directly above the Settings seat.
   ctx.slots.inject('mode.rail.panel', () => ctx.slots.register({
     name: 'mode.rail.panel',
-    id: 'message-center',
+    id: MESSAGE_CENTER_PANEL_ID,
     order: 20,
-    store: uiStore,
     locale: NS,
-    inject: (): MessageCenterRailEntryInjected => ({
-      refresh: () => { void service.refresh() },
-      hooks: { snapshot },
-    }),
+    inject: (): MessageCenterRailEntryInjected => ({ open, hooks: { snapshot } }),
   }, MessageCenterRailEntry))
 }
 
-export type { MessageCenterDialogInjected, MessageCenterDialogProps } from './MessageCenterDialog.tsx'
 export type { MessageCenterRailEntryInjected, MessageCenterRailEntryProps } from './MessageCenterRailEntry.tsx'
+export type { MessageCenterViewInjected, MessageCenterViewProps } from './MessageCenterView.tsx'
 export type { MessageCenterSnapshot, MessageCenterStatus } from './message-service.ts'
 export type { MessageItem, MessagePage } from './message-contract.ts'
 export type { MessageCenterKey } from './locales.ts'

@@ -1,7 +1,7 @@
 /* The message-center rail shortcut: one 44px icon cell in the rail's
    `mode.rail.panel` seat, directly above Settings. Same cell geometry and
-   hover language as the mode entries; the unread badge is the only extra
-   chrome. */
+   hover language as the mode entries; the unread badge and the selected cell
+   are the only extra chrome. */
 
 .entry {
   position: relative;
@@ -18,9 +18,16 @@
   cursor: pointer;
 }
 
-.entry:hover {
+.entry:hover:not(.active) {
   background: var(--dsw-alias-interactive-bg-hover);
   color: var(--dsw-alias-label-primary);
+}
+
+/* The selected cell mirrors the mode entries' selection language: the neutral
+   active fill plus the brand ink, so an open message page is visibly lit. */
+.entry.active {
+  background: var(--dsw-alias-interactive-bg-active);
+  color: var(--dsw-alias-brand-primary-new-colorprimary-new-color);
 }
 
 .entry:focus-visible {

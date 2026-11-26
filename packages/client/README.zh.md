@@ -54,7 +54,7 @@ kind: "package-group"
 | [`ui-sdkwork-drive/`](ui-sdkwork-drive/README.zh.md) | 以独立插件提供 SDKWork 驱动的云盘模式 | — |
 | [`ui-sdkwork-assets/`](ui-sdkwork-assets/README.zh.md) | 以独立模块提供资产模式 | — |
 | [`ui-sdkwork-token-plan/`](ui-sdkwork-token-plan/README.zh.md) | 以独立插件提供 SDKWork 会员与 commerce 模式 | — |
-| [`ui-sdkwork-message-center/`](ui-sdkwork-message-center/README.zh.md) | 以设置上方的模式栏快捷入口及其浮层提供 SDKWork 账户消息中心 | — |
+| [`ui-sdkwork-message-center/`](ui-sdkwork-message-center/README.zh.md) | 以设置上方的模式栏快捷入口及其中间栏页面提供 SDKWork 账户消息中心 | — |
 | [`ui-sdkwork-pptx-preview/`](ui-sdkwork-pptx-preview/README.zh.md) | 用离线 OOXML 渲染器在右侧 Sidebar 的文档 tab 中绘制 `.pptx` 演示文稿 | `ctx.documentPreviews` |
 | [`ui-sdkwork-docx-preview/`](ui-sdkwork-docx-preview/README.zh.md) | 用离线 WordprocessingML 渲染器在右侧 Sidebar 的文档 tab 中绘制 `.docx` 文档 | `ctx.documentPreviews` |
 | [`ui-sdkwork-xlsx-preview/`](ui-sdkwork-xlsx-preview/README.zh.md) | 用离线 SpreadsheetML 渲染器在右侧 Sidebar 的文档 tab 中绘制 `.xlsx` 工作簿 | `ctx.documentPreviews` |

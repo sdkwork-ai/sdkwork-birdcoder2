@@ -1,10 +1,12 @@
 /**
- * The message-center overlay: a full-height sheet over the workspace with the
- * notification list grouped by local day and an in-place detail view. It is a
- * `shell.overlay` entry that renders while the shared UI store says open, so
- * the rail shortcut and the center read one open state; every product string
- * arrives through the `messageCenter` namespace.
- * @module @deepseek-ai/dsh-client-ui-sdkwork-message-center/client/MessageCenterDialog
+ * The message-center page: the center column's message view. Selecting the
+ * rail shortcut calls `layout.selectPanel('message-center')` and the frame
+ * renders this component as the `main` panel instead of the current
+ * conversation — no modal, and the workspace's left column stays in place.
+ * The page groups notifications by local day, opens one in place, and marks an
+ * unread notification read when it is opened; every product string arrives
+ * through the `messageCenter` namespace.
+ * @module @deepseek-ai/dsh-client-ui-sdkwork-message-center/client/MessageCenterView
  */
 import { useState } from 'react'
 import type { ReactNode } from 'react'
@@ -13,17 +15,14 @@ import {
   IconCloseOutlineRegular,
   IconMailReadOutlineRegular,
   IconMailUnreadOutlineRegular,
-  Modal,
+  IconRefreshOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
   HostObservable,
   InjectFace,
   PropsLocale,
   PropsRuntime,
-  PropsStore,
 } from '@deepseek-ai/dsh-client-ui-slots'
-// Type-only: pulls ui-layout's SlotMap merge ('shell.overlay' seat).
-import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import {
   groupMessagesByDay,
   localDayKey,
@@ -33,14 +32,13 @@ import {
 } from './message-contract.ts'
 import type { MessageCenterSnapshot } from './message-service.ts'
 import type { MessageLoadFailure } from './message-transport.ts'
-import type { createMessageCenterUiStore } from './message-ui-store.ts'
-import css from './MessageCenterDialog.module.css'
+import css from './MessageCenterView.module.css'
 
 /** Summary length above which the row offers an expand toggle. */
 const EXPANDABLE_DESC_LENGTH = 72
 
-/** Injected business face: snapshot, read/write gestures, and sign-in availability. */
-export interface MessageCenterDialogInjected {
+/** Injected business face: snapshot, read/write gestures, and navigation facts. */
+export interface MessageCenterViewInjected {
   /** Subscribe to the message-center snapshot. */
   hooks: { snapshot: HostObservable<MessageCenterSnapshot> }
   /** Re-read the first page. */
@@ -53,39 +51,33 @@ export interface MessageCenterDialogInjected {
   signIn: () => void
   /** Whether this composition can raise a sign-in surface. */
   canSignIn: boolean
+  /** Leave the page: return the center column to the current conversation. */
+  close: () => void
 }
 
-/** Full component props: overlay owner share + store + injected face + locale seat. */
-export type MessageCenterDialogProps =
-  PropsRuntime<'shell.overlay'>
-  & PropsStore<ReturnType<typeof createMessageCenterUiStore>>
-  & InjectFace<MessageCenterDialogInjected>
+/** Full component props: the keyed `main` panel seats + injected face + locale seat. */
+export type MessageCenterViewProps =
+  PropsRuntime<'main'>
+  & InjectFace<MessageCenterViewInjected>
   & PropsLocale<'messageCenter'>
 
 /**
- * Render the message center while the shared store says it is open.
- * @param props - composed slot props (store + injected face + locale seat).
- * @returns the overlay tree, or null while closed.
+ * Render the message-center page.
+ * @param props - composed slot props (injected face + locale seat).
+ * @returns the page element tree.
  */
-export function MessageCenterDialog({
-  useStore, actions, useSnapshot, refresh, loadMore, markRead, signIn, canSignIn, t,
-}: MessageCenterDialogProps) {
-  const open = useStore(state => state.open)
+export function MessageCenterView({
+  useSnapshot, refresh, loadMore, markRead, signIn, canSignIn, close, t,
+}: MessageCenterViewProps) {
   const snapshot = useSnapshot(value => value)
   const [selectedId, setSelectedId] = useState<MessageItem['id'] | null>(null)
   const [expanded, setExpanded] = useState<readonly MessageItem['id'][]>([])
-  if (!open) return null
   const selected = snapshot.items.find(item => item.id === selectedId) ?? null
-  const close = (): void => {
-    setSelectedId(null)
-    setExpanded([])
-    actions.closeDialog()
-  }
   const toggleExpanded = (id: MessageItem['id']): void => {
     setExpanded(current => current.includes(id) ? current.filter(value => value !== id) : [...current, id])
   }
   return (
-    <Modal headless open title={selected === null ? t('title') : t('detail.title')} onClose={close} className={css.sheet}>
+    <section className={css.view} aria-label={t('title')}>
       <header className={css.header}>
         <div className={css.headerEdge}>
           {selected !== null && (
@@ -95,36 +87,41 @@ export function MessageCenterDialog({
           )}
         </div>
         <div className={css.headerTitle}>
-          <h2 className={css.title}>{selected === null ? t('title') : t('detail.title')}</h2>
+          <h1 className={css.title}>{selected === null ? t('title') : t('detail.title')}</h1>
           {selected === null && snapshot.status === 'ready' && snapshot.unreadCount > 0 && (
             <p className={css.summary}>{t('summary.unread', { count: String(snapshot.unreadCount) })}</p>
           )}
         </div>
         <div className={`${css.headerEdge} ${css.headerEnd}`}>
+          <button type="button" className={css.iconButton} aria-label={t('action.refresh')} onClick={refresh}>
+            <IconRefreshOutlineRegular size={16} aria-hidden="true" />
+          </button>
           <button type="button" className={css.iconButton} aria-label={t('close')} onClick={close}>
             <IconCloseOutlineRegular size={16} aria-hidden="true" />
           </button>
         </div>
       </header>
       <div className={css.body}>
-        {selected === null
-          ? <CenterBody
-            snapshot={snapshot}
-            expanded={expanded}
-            canSignIn={canSignIn}
-            onRetry={refresh}
-            onSignIn={signIn}
-            onLoadMore={loadMore}
-            onToggleExpanded={toggleExpanded}
-            onOpen={(item) => {
-              setSelectedId(item.id)
-              if (!item.read) markRead(item.id)
-            }}
-            t={t}
-          />
-          : <MessageDetail item={selected} t={t} />}
+        <div className={css.content}>
+          {selected === null
+            ? <CenterBody
+              snapshot={snapshot}
+              expanded={expanded}
+              canSignIn={canSignIn}
+              onRetry={refresh}
+              onSignIn={signIn}
+              onLoadMore={loadMore}
+              onToggleExpanded={toggleExpanded}
+              onOpen={(item) => {
+                setSelectedId(item.id)
+                if (!item.read) markRead(item.id)
+              }}
+              t={t}
+            />
+            : <MessageDetail item={selected} t={t} />}
+        </div>
       </div>
-    </Modal>
+    </section>
   )
 }
 
@@ -138,7 +135,7 @@ function CenterBody({ snapshot, expanded, canSignIn, onRetry, onSignIn, onLoadMo
   onLoadMore: () => void
   onToggleExpanded: (id: MessageItem['id']) => void
   onOpen: (item: MessageItem) => void
-  t: MessageCenterDialogProps['t']
+  t: MessageCenterViewProps['t']
 }): ReactNode {
   switch (snapshot.status) {
     case 'unconfigured':
@@ -177,7 +174,7 @@ function MessageList({ snapshot, expanded, onRetry, onLoadMore, onToggleExpanded
   onLoadMore: () => void
   onToggleExpanded: (id: MessageItem['id']) => void
   onOpen: (item: MessageItem) => void
-  t: MessageCenterDialogProps['t']
+  t: MessageCenterViewProps['t']
 }): ReactNode {
   const today = localDayKey(new Date())
   const yesterdayDate = new Date()
@@ -196,7 +193,7 @@ function MessageList({ snapshot, expanded, onRetry, onLoadMore, onToggleExpanded
         {groups.map(group => (
           <div key={group.day}>
             {group.day !== '' && (
-              <h3 className={css.day}>{group.day === today ? t('day.today') : group.day === yesterday ? t('day.yesterday') : group.day}</h3>
+              <h2 className={css.day}>{group.day === today ? t('day.today') : group.day === yesterday ? t('day.yesterday') : group.day}</h2>
             )}
             {group.items.map(item => (
               <MessageRow key={item.id} item={item} expanded={expanded.includes(item.id)}
@@ -221,7 +218,7 @@ function MessageRow({ item, expanded, onToggleExpanded, onOpen, t }: {
   expanded: boolean
   onToggleExpanded: () => void
   onOpen: () => void
-  t: MessageCenterDialogProps['t']
+  t: MessageCenterViewProps['t']
 }): ReactNode {
   const expandable = item.desc.length > EXPANDABLE_DESC_LENGTH
   return (
@@ -232,10 +229,10 @@ function MessageRow({ item, expanded, onToggleExpanded, onOpen, t }: {
           : <IconMailUnreadOutlineRegular size={18} />}
       </span>
       <div className={css.messageMain}>
-        <h4 className={css.messageTitle}>
+        <h3 className={css.messageTitle}>
           {!item.read && <span className={css.unreadDot} aria-hidden="true" />}
           {item.title}
-        </h4>
+        </h3>
         {item.desc !== '' && (
           <p className={expanded ? `${css.messageDesc} ${css.messageDescExpanded}` : css.messageDesc}>{item.desc}</p>
         )}
@@ -253,12 +250,12 @@ function MessageRow({ item, expanded, onToggleExpanded, onOpen, t }: {
 /** The in-place detail view for one notification. */
 function MessageDetail({ item, t }: {
   item: MessageItem
-  t: MessageCenterDialogProps['t']
+  t: MessageCenterViewProps['t']
 }): ReactNode {
   const actionUrl = safeMessageActionUrl(item.actionUrl)
   return (
     <article className={css.detail}>
-      <h3 className={css.detailTitle}>{item.title}</h3>
+      <h2 className={css.detailTitle}>{item.title}</h2>
       <p className={css.detailTime}>{formatMessageTime(item.time)}</p>
       <div className={css.detailContent}>{item.content}</div>
       {actionUrl !== null && (
@@ -290,7 +287,7 @@ function StateNotice({ title, detail, children }: {
  * @param t - messageCenter seat.
  * @returns the localized failure sentence.
  */
-function failureText(failure: MessageLoadFailure | null, t: MessageCenterDialogProps['t']): string {
+function failureText(failure: MessageLoadFailure | null, t: MessageCenterViewProps['t']): string {
   switch (failure) {
     case 'unauthorized': return t('error.unauthorized.detail')
     case 'unavailable': return t('error.unavailable')

@@ -3,23 +3,23 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-message-center/README.md
 /:
-  en: a705a2d18f0c9557
-  zh: f50f8ba0a3711a08
+  en: 929fd5a5f2ee8b35
+  zh: 8afdfa280d018d21
 /deepseek-ai-dsh-client-ui-sdkwork-message-center:
   en: 3821f534ca32d2a3
   zh: 2c185f67bf47791e
 /deepseek-ai-dsh-client-ui-sdkwork-message-center/summary:
-  en: e1ebe3a9028bb719
-  zh: 15e0f96045413d01
+  en: dd5dccfba36b11f9
+  zh: c4d1a5125ee49d0a
 /deepseek-ai-dsh-client-ui-sdkwork-message-center/table-of-contents:
   en: 6c5fa201f719427c
   zh: d8068c06772729ff
 /deepseek-ai-dsh-client-ui-sdkwork-message-center/use-this-package:
-  en: 05b5a63830218971
-  zh: 8bdef271bf2478db
+  en: be1f4959ba367960
+  zh: fab875edc19553f7
 /deepseek-ai-dsh-client-ui-sdkwork-message-center/notification-contract:
-  en: c5b6dc0d23fdb8db
-  zh: efaa3701e08ba605
+  en: 4faeee668b7ec6d9
+  zh: 72c3211188157739
 /deepseek-ai-dsh-client-ui-sdkwork-message-center/configuration:
   en: 1cd3116df2e38e82
   zh: 54b7653de946450a

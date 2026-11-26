@@ -1,5 +1,5 @@
 ---
-description: "SDKWork message center: the mode rail's mail shortcut above Settings and the notification center over the SDKWork app notification API."
+description: "SDKWork message center: the mode rail's mail shortcut above Settings and the message page it selects as the center column over the SDKWork app notification API."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Provide the account message center as two seats of the existing frame: a mail shortcut in the mode rail directly above Settings, and an overlay that lists notifications read from the SDKWork app notification API. The rail badge counts unread notifications; the overlay groups them by local calendar day, opens one in place, and marks an unread notification consumed when the user opens it.
+Provide the account message center as two seats of the existing frame: a mail shortcut in the mode rail directly above Settings, and the message page it selects as the center column instead of the current conversation. The rail badge counts unread notifications; the page groups them by local calendar day, opens one in place, and marks an unread notification consumed when the user opens it. Selecting the shortcut is a plain panel selection, never a modal.
 
 ## Table of Contents
 
@@ -24,14 +24,14 @@ Provide the account message center as two seats of the existing frame: a mail sh
 
 The Web bundle mounts this plugin as `ui-sdkwork-message-center`. It contributes exactly two seats:
 
-- **The rail shortcut** (`mode.rail.panel`, id `message-center`, order `20`). The panel seat renders ascending, so `20` sits below the IM connector row (`10`) and directly above the Settings seat. The cell is a 44px icon: the unread mail glyph plus a dot while notifications are unread, the read glyph otherwise. Clicking it re-reads the first page and opens the overlay. It renders for every composition; a missing origin or session is the overlay's own state, never a dead icon.
-- **The overlay host** (`shell.overlay`, id `message-center`). It renders only while the shared store handle says open. The header carries the centered title, the unread summary line, the detail view's back control, and the close button; the body holds the state block, the day groups, and the in-place detail view.
+- **The rail shortcut** (`mode.rail.panel`, id `message-center`, order `20`). The panel seat renders ascending, so `20` sits below the IM connector row (`10`) and directly above the Settings seat. The cell is a 44px icon: the unread mail glyph plus a dot while notifications are unread, the read glyph otherwise. Clicking it re-reads the first page and selects `message-center` as the center column's main panel; the cell paints the selected state while the message page owns the column. It renders for every composition; a missing origin or session is the page's own state, never a dead icon.
+- **The message page** (`main`, key `message-center`). The frame renders this keyed entry in place of the conversation while the panel is selected. The header carries the centered title, the unread summary line, the detail view's back control, the refresh action, and the close button (which selects the conversation again); the body holds the state block, the day groups, and the in-place detail view.
 
-Both registrations receive the same store handle, so the shortcut's open action and the overlay's rendered state are one fact. The plugin owns polling, the unread badge, acknowledgement, and presentation; the notification service owns visibility, ordering, and consumption.
+The shortcut and the page read one snapshot source, so the badge and the rendered unread state cannot disagree. The plugin owns polling, the unread badge, acknowledgement, and presentation; the notification service owns visibility, ordering, and consumption. The left column stays in place while the page is open, and selecting a session returns the center column to that conversation.
 
-Startup and every credential or environment write start a new read cycle with an immediate `list` request. Credential writes come from `ctx.iam.sessionTokens()` and `ctx.iam.onAuthToken()`; the static `accessToken` of the active environment profile fills the access-token header when the session carries none, so a deployment with a bootstrap token still reads. Opening the center re-reads the first page; the badge poll reads at `pollIntervalMs` until the plugin is disposed. The page is the first `pageSize` notifications; `hasMore` renders the load-more row. Nothing is stored in the browser beyond the mounted snapshot.
+Startup and every credential or environment write start a new read cycle with an immediate `list` request. Credential writes come from `ctx.iam.sessionTokens()` and `ctx.iam.onAuthToken()`; the static `accessToken` of the active environment profile fills the access-token header when the session carries none, so a deployment with a bootstrap token still reads. Selecting the shortcut re-reads the first page; the badge poll reads at `pollIntervalMs` until the plugin is disposed. The page is the first `pageSize` notifications; `hasMore` renders the load-more row. Nothing is stored in the browser beyond the mounted snapshot.
 
-Every failure is classified for the presentation: `401`/`403` clears the badge and shows the signed-in-empty state with the in-app sign-in gesture (`requestSignInInPlace`), a network or gateway failure with no cached page shows the retry state, and a later failure keeps the cached page behind a retry banner. Acknowledgement is optimistic: the notification is marked read before the write, a refused write reports the banner and reconciles on the next read, and a refused credential returns to the signed-out state.
+Every failure is classified for the presentation: a refused credential (`401`, or `403` without the CORS problem code) clears the badge and shows the signed-in-empty state with the in-app sign-in gesture (`requestSignInInPlace`), a network or gateway failure with no cached page shows the retry state, and a later failure keeps the cached page behind a retry banner. Acknowledgement is optimistic: the notification is marked read before the write, a refused write reports the banner and reconciles on the next read, and a refused credential returns to the signed-out state.
 
 <a id="notification-contract"></a>
 ## Notification contract
@@ -45,7 +45,7 @@ The plugin speaks the app notification API served under the active environment's
 
 Requests carry the SDKWork dual-token credential headers (`Access-Token` and `Authorization: Bearer`), both optional and both derived from the session. They deliberately send no `app_id`: the platform derives the application context from the credential and rejects a client-supplied context selector. Responses use the shared `{ code, data, traceId }` envelope; `data` is `{ items, pageInfo }`.
 
-Each item carries `id`, `appId`, `title`, `desc`, `content`, `time`, `type` (`info`/`billing`/`warning`/`alert`), `read`, `showAsPopup`, `popupSeen`, `archived`, and an optional `actionUrl`. Content falls back to the summary. An unusable item is skipped with a diagnostic so its valid neighbours still render; `pageInfo.hasMore`, or `page < totalPages`, reports the continuation. The overlay orders the page newest-first by the parsed publish time, keeps undated notifications last, and prefixes an undated notification's group with the date its text starts with. `actionUrl` becomes a link only when it is an absolute HTTP(S) URL or a site-relative path.
+Each item carries `id`, `appId`, `title`, `desc`, `content`, `time`, `type` (`info`/`billing`/`warning`/`alert`), `read`, `showAsPopup`, `popupSeen`, `archived`, and an optional `actionUrl`. Content falls back to the summary. An unusable item is skipped with a diagnostic so its valid neighbours still render; `pageInfo.hasMore`, or `page < totalPages`, reports the continuation. The page orders the notifications newest-first by the parsed publish time, keeps undated notifications last, and prefixes an undated notification's group with the date its text starts with. `actionUrl` becomes a link only when it is an absolute HTTP(S) URL or a site-relative path.
 
 <a id="configuration"></a>
 ## Configuration

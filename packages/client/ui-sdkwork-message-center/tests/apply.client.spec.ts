@@ -1,7 +1,7 @@
 /**
- * ui-sdkwork-message-center apply wiring: the rail shortcut and the overlay
- * host register against the frame's seats, share one store handle, and read
- * one notification snapshot through the real SDKWork HTTP transport.
+ * ui-sdkwork-message-center apply wiring: the `main` message page and the rail
+ * shortcut register against the frame's seats, and the shortcut selects that
+ * page through `ctx.layout` instead of opening a modal.
  */
 import { Context } from '@deepseek-ai/cordis'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -12,13 +12,14 @@ import type { EnvService } from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type { IamService } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import { apply, inject } from '@deepseek-ai/dsh-client-ui-sdkwork-message-center/client'
 import type { MessageCenterConfig } from '../src/types.ts'
-import { MessageCenterDialog, type MessageCenterDialogInjected } from '../src/client/MessageCenterDialog.tsx'
+import { MessageCenterView, type MessageCenterViewInjected } from '../src/client/MessageCenterView.tsx'
 import { MessageCenterRailEntry, type MessageCenterRailEntryInjected } from '../src/client/MessageCenterRailEntry.tsx'
 import type { MessageCenterSnapshot } from '../src/client/message-service.ts'
 import { en } from '../src/client/locales.ts'
 
-const OVERLAY = 'shell.overlay'
+const MAIN = 'main'
 const RAIL_PANEL = 'mode.rail.panel'
+const PANEL_ID = 'message-center'
 const BASE_URL = 'https://api.example'
 
 /** One synced Config field that never moves. */
@@ -87,18 +88,30 @@ async function bench(options: { signedIn?: boolean; accessToken?: string } = {})
   ctx.provide('locale', new LocaleRuntime(ctx))
   ctx.provide('env', fakeEnv(options.accessToken ?? ''))
   ctx.provide('iam', fakeIam(options.signedIn ?? true))
+  const layout = { selectPanel: vi.fn(), panelInfo: { getSnapshot: () => ({ activePanelId: null }), subscribe: () => () => {} } }
+  ctx.provide('layout', layout)
   const slots = ctx.get('slots') as SlotRegistry
   slots.register(
     {
       name: 'root',
       children: {
-        [OVERLAY]: { kind: 'list', scope: 'root' },
+        [MAIN]: { kind: 'keyed', scope: 'root' },
         [RAIL_PANEL]: { kind: 'list', scope: 'root' },
       },
     } as never,
     () => null,
   )
-  return { ctx, slots }
+  return { ctx, slots, layout }
+}
+
+/** Read the message page's injected face. */
+function viewInjected(inject: unknown): MessageCenterViewInjected {
+  return (inject as () => MessageCenterViewInjected)()
+}
+
+/** Read the rail shortcut's injected face. */
+function railInjected(inject: unknown): MessageCenterRailEntryInjected {
+  return (inject as () => MessageCenterRailEntryInjected)()
 }
 
 afterEach(() => {
@@ -108,27 +121,47 @@ afterEach(() => {
 
 describe('ui-sdkwork-message-center apply', () => {
   it('declares the services it uses', () => {
-    expect(inject).toEqual(['slots', 'locale', 'env', 'iam'])
+    expect(inject).toEqual(['slots', 'locale', 'env', 'iam', 'layout'])
   })
 
-  it('registers the overlay host and the rail shortcut over one shared store', async () => {
+  it('registers the message page and the rail shortcut', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => listResponse([wire()])))
     const b = await bench()
     const fiber = b.ctx.plugin({ inject, apply: (context) => { apply(context, config()) } })
     await fiber.await()
 
-    const [dialog] = b.slots.entries(OVERLAY)
-    expect(dialog?.options.id).toBe('message-center')
-    expect(dialog?.component).toBe(MessageCenterDialog)
-    expect(dialog?.locale).toBe('messageCenter')
+    const [page] = b.slots.entries(MAIN)
+    expect(page?.options.key).toBe(PANEL_ID)
+    expect(page?.component).toBe(MessageCenterView)
+    expect(page?.locale).toBe('messageCenter')
 
     const [rail] = b.slots.entries(RAIL_PANEL)
-    expect(rail?.options.id).toBe('message-center')
+    expect(rail?.options.id).toBe(PANEL_ID)
     expect(rail?.options.order).toBe(20)
     expect(rail?.component).toBe(MessageCenterRailEntry)
     expect(rail?.locale).toBe('messageCenter')
 
-    expect(rail?.store).toBe(dialog?.store)
+    await fiber.dispose()
+  })
+
+  it('selects the message page from the rail shortcut, not a modal', async () => {
+    const fetchMock = vi.fn(async () => listResponse([wire()], true))
+    vi.stubGlobal('fetch', fetchMock)
+    const b = await bench()
+    const fiber = b.ctx.plugin({ inject, apply: (context) => { apply(context, config()) } })
+    await fiber.await()
+
+    const [page] = b.slots.entries(MAIN)
+    const view = viewInjected(page?.inject)
+    await vi.waitFor(() => {
+      expect(view.hooks.snapshot.getSnapshot().status).toBe('ready')
+    })
+    const [rail] = b.slots.entries(RAIL_PANEL)
+    const shortcut = railInjected(rail?.inject)
+    const before = fetchMock.mock.calls.length
+    shortcut.open()
+    expect(b.layout.selectPanel).toHaveBeenCalledExactlyOnceWith(PANEL_ID)
+    await vi.waitFor(() => { expect(fetchMock.mock.calls.length).toBe(before + 1) })
 
     await fiber.dispose()
   })
@@ -140,8 +173,8 @@ describe('ui-sdkwork-message-center apply', () => {
     const fiber = b.ctx.plugin({ inject, apply: (context) => { apply(context, config()) } })
     await fiber.await()
 
-    const [dialog] = b.slots.entries(OVERLAY)
-    const injected = (dialog?.inject as unknown as () => MessageCenterDialogInjected)()
+    const [page] = b.slots.entries(MAIN)
+    const injected = viewInjected(page?.inject)
     await vi.waitFor(() => {
       expect(injected.hooks.snapshot.getSnapshot()).toMatchObject({
         status: 'ready', unreadCount: 1, hasMore: true,
@@ -165,12 +198,15 @@ describe('ui-sdkwork-message-center apply', () => {
     injected.signIn()
     await vi.waitFor(() => { expect(fetchMock).toHaveBeenCalledTimes(5) })
     expect(injected.canSignIn).toBe(true)
+
+    injected.close()
+    expect(b.layout.selectPanel).toHaveBeenLastCalledWith(null)
     expect(en['title']).toBe('Message center')
 
     await fiber.dispose()
   })
 
-  it('exposes the rail refresh gesture and the unread snapshot', async () => {
+  it('exposes the page snapshot to the rail badge', async () => {
     const fetchMock = vi.fn(async () => listResponse([wire()]))
     vi.stubGlobal('fetch', fetchMock)
     const b = await bench()
@@ -178,14 +214,11 @@ describe('ui-sdkwork-message-center apply', () => {
     await fiber.await()
 
     const [rail] = b.slots.entries(RAIL_PANEL)
-    const injected = (rail?.inject as unknown as () => MessageCenterRailEntryInjected)()
+    const shortcut = railInjected(rail?.inject)
     await vi.waitFor(() => {
-      const snapshot: MessageCenterSnapshot = injected.hooks.snapshot.getSnapshot()
+      const snapshot: MessageCenterSnapshot = shortcut.hooks.snapshot.getSnapshot()
       expect(snapshot.unreadCount).toBe(1)
     })
-    const calls = fetchMock.mock.calls.length
-    injected.refresh()
-    await vi.waitFor(() => { expect(fetchMock.mock.calls.length).toBe(calls + 1) })
     await fiber.dispose()
   })
 
@@ -199,8 +232,8 @@ describe('ui-sdkwork-message-center apply', () => {
     }
     const fiber = b.ctx.plugin({ inject, apply: (context) => { apply(context, absentConfig) } })
     await fiber.await()
-    const [dialog] = b.slots.entries(OVERLAY)
-    const injected = (dialog?.inject as unknown as () => MessageCenterDialogInjected)()
+    const [page] = b.slots.entries(MAIN)
+    const injected = viewInjected(page?.inject)
     injected.refresh()
     await vi.waitFor(() => {
       expect(String(fetchMock.mock.calls[0]?.[0])).toContain('page_size=20')
@@ -215,8 +248,8 @@ describe('ui-sdkwork-message-center apply', () => {
     const fiber = b.ctx.plugin({ inject, apply: (context) => { apply(context, config()) } })
     await fiber.await()
 
-    const [dialog] = b.slots.entries(OVERLAY)
-    const injected = (dialog?.inject as unknown as () => MessageCenterDialogInjected)()
+    const [page] = b.slots.entries(MAIN)
+    const injected = viewInjected(page?.inject)
     expect(injected.hooks.snapshot.getSnapshot()).toMatchObject({ status: 'signed-out', items: [] })
     expect(fetchMock).not.toHaveBeenCalled()
     expect(injected.canSignIn).toBe(true)
@@ -229,11 +262,11 @@ describe('ui-sdkwork-message-center apply', () => {
     const b = await bench()
     const fiber = b.ctx.plugin({ inject, apply: (context) => { apply(context, config()) } })
     await fiber.await()
-    expect(b.slots.entries(OVERLAY)).toHaveLength(1)
+    expect(b.slots.entries(MAIN)).toHaveLength(1)
     expect(b.slots.entries(RAIL_PANEL)).toHaveLength(1)
     const calls = fetchMock.mock.calls.length
     await fiber.dispose()
-    expect(b.slots.entries(OVERLAY)).toEqual([])
+    expect(b.slots.entries(MAIN)).toEqual([])
     expect(b.slots.entries(RAIL_PANEL)).toEqual([])
     expect(fetchMock.mock.calls.length).toBe(calls)
   })

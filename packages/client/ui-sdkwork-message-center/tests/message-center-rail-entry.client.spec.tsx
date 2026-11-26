@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-/** The message-center rail shortcut: glyph, unread badge, accessible name, open gesture. */
+/** The message-center rail shortcut: glyph, unread badge, accessible name, selection, open gesture. */
 import { cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { GlobalStandardProps, HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PanelInfo } from '@deepseek-ai/dsh-client-ui-layout/client'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import {
   MessageCenterRailEntry,
@@ -25,32 +26,36 @@ function snapshotSource(unreadCount: number): HostObservable<MessageCenterSnapsh
   return { getSnapshot: () => snapshot, subscribe: () => () => {} }
 }
 
-/** Compose the shortcut's slot props over a snapshot that reports `unreadCount`. */
-function entryProps(unreadCount: number) {
-  const refresh = vi.fn()
-  const openDialog = vi.fn()
+/** One observable panel selection. */
+function panelSource(activePanelId: PanelInfo['activePanelId']): HostObservable<PanelInfo> {
+  const info: PanelInfo = { activePanelId }
+  return { getSnapshot: () => info, subscribe: () => () => {} }
+}
+
+/** Compose the shortcut's slot props over a snapshot and a panel selection. */
+function entryProps(unreadCount: number, activePanelId: PanelInfo['activePanelId'] = null) {
+  const open = vi.fn()
   const props = {
     ...({} as GlobalStandardProps),
-    activeMode: 'code',
+    activeMode: 'code' as const,
     useSnapshot: bindSnapshotSelector(snapshotSource(unreadCount)),
-    actions: { openDialog, closeDialog: vi.fn() },
-    refresh,
+    usePanelInfo: bindSnapshotSelector(panelSource(activePanelId)),
+    open,
     t,
   } as MessageCenterRailEntryProps
-  return { props, refresh, openDialog }
+  return { props, open }
 }
 
 describe('MessageCenterRailEntry', () => {
-  it('labels the unread-free shortcut and opens the center on click', () => {
-    const { props, refresh, openDialog } = entryProps(0)
+  it('labels the unread-free shortcut and selects the page on click', () => {
+    const { props, open } = entryProps(0)
     const { getByRole, container } = render(<MessageCenterRailEntry {...props} />)
     const button = getByRole('button', { name: 'Open the message center' })
-    expect(button.getAttribute('aria-haspopup')).toBe('dialog')
+    expect(button.getAttribute('aria-current')).toBeNull()
     expect(container.querySelector('[class*="badge"]')).toBeNull()
+    expect(container.querySelector('[class*="active"]')).toBeNull()
     fireEvent.click(button)
-    expect(refresh).toHaveBeenCalledOnce()
-    expect(openDialog).toHaveBeenCalledOnce()
-    expect(refresh.mock.invocationCallOrder[0]).toBeLessThan(openDialog.mock.invocationCallOrder[0] ?? 0)
+    expect(open).toHaveBeenCalledOnce()
   })
 
   it('reports the unread count in the accessible name and shows the badge', () => {
@@ -58,6 +63,13 @@ describe('MessageCenterRailEntry', () => {
     const { getByRole, container } = render(<MessageCenterRailEntry {...props} />)
     expect(getByRole('button', { name: 'Open the message center, 3 unread' })).toBeTruthy()
     expect(container.querySelector('[class*="badge"]')).not.toBeNull()
+  })
+
+  it('paints the selected cell while the message page owns the center column', () => {
+    const { props } = entryProps(0, 'message-center' as PanelInfo['activePanelId'])
+    const { getByRole, container } = render(<MessageCenterRailEntry {...props} />)
+    expect(getByRole('button', { name: 'Open the message center' }).getAttribute('aria-current')).toBe('page')
+    expect(container.querySelector('[class*="active"]')).not.toBeNull()
   })
 
   it('has a translated label and no literal copy in the component', () => {

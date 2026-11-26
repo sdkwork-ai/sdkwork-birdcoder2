@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-message-center",
-  "description": "SDKWork message center: the rail message shortcut and the account notification center over the SDKWork app notification API",
+  "description": "SDKWork message center: the rail message shortcut and the message page it opens over the SDKWork app notification API",
   "version": "0.2.3-alpha.2",
   "publishConfig": {
     "access": "public"
@@ -50,7 +50,6 @@
     "@deepseek-ai/dsh-client-config": "workspace:*",
     "@deepseek-ai/dsh-client-locale": "workspace:*",
     "@deepseek-ai/dsh-client-runtime": "workspace:*",
-    "@deepseek-ai/dsh-client-store": "workspace:*",
     "@deepseek-ai/dsh-client-test-runtime": "workspace:*",
     "@deepseek-ai/dsh-client-ui-layout": "workspace:*",
     "@deepseek-ai/dsh-client-ui-primitives": "workspace:*",
