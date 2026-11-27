@@ -4,6 +4,8 @@
 // Kept in one place so the assertions below and the vendor table they guard
 // cannot drift into two different stories.
 import { streamSimple } from '@earendil-works/pi-ai/api/openai-completions'
+import { normalizeContext } from '@earendil-works/pi-ai/utils/transcript'
+import type { Api, Model, ThinkingLevel } from '@earendil-works/pi-ai'
 
 /** One vendor's published contract on the OpenAI-compatible Chat Completions door. */
 export interface VendorContract {
@@ -76,17 +78,21 @@ export interface CapturedPayload {
  * @returns the built body, plus any transport error the probe swallowed.
  */
 export async function capturePayload(
-  model: Parameters<typeof streamSimple>[0],
+  model: Model<Api>,
   thinking: string | undefined,
   maxTokens = 4096,
 ): Promise<CapturedPayload> {
   let body: Record<string, unknown> | undefined
   let error: string | undefined
   try {
-    for await (const _event of streamSimple(model, { messages: [{ role: 'user', content: 'hi' }] }, {
+    // Every model this helper probes was resolved on its OpenAI-compatible
+    // face, so narrowing to that transport is what the relay actually dials.
+    for await (const _event of streamSimple(model as Model<'openai-completions'>, normalizeContext({
+      messages: [{ role: 'user', content: 'hi', timestamp: Date.now() }],
+    }), {
       apiKey: 'probe',
       maxTokens,
-      ...thinking === undefined ? {} : { reasoning: thinking },
+      ...thinking === undefined ? {} : { reasoning: thinking as ThinkingLevel },
       onPayload: (payload) => {
         body = structuredClone(payload) as Record<string, unknown>
         return payload

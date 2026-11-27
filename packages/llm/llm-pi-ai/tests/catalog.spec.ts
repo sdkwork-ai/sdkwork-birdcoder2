@@ -1719,7 +1719,7 @@ describe('harness-shipped relay routes', () => {
         {
           ...first.message,
           content: [{ type: 'tool-call', id: 'call-1', name: 'read', arguments: '{"path":"x"}' }],
-        } as typeof first.message,
+        } as unknown as typeof first.message,
         createUserMessage({ content: [{ type: 'text', text: 'next' }], source: { kind: 'user' } }),
       ],
     })

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { Model, OpenAICompletionsCompat } from '@earendil-works/pi-ai'
-import { getSupportedThinkingLevels, type Api } from '../src/models.ts'
+import type { Api, Model, OpenAICompletionsCompat } from '@earendil-works/pi-ai'
+import { getSupportedThinkingLevels } from '../src/models.ts'
 import { resolveProfiles } from '../src/config.ts'
 import { capturePayload, VENDOR_CONTRACTS } from './relay-vendor-contract.ts'
 
