@@ -761,7 +761,9 @@ export function apply(ctx: Context, config: Config): void {
 
   const webServer = (ctx as Context & { webServer?: { register?: (route: unknown) => () => void } }).webServer
   if (typeof webServer?.register === 'function') {
-    const register = webServer.register
+    // The route table lives on the service instance (`this.exact`), so a detached
+    // method reference throws; keep the receiver.
+    const register = webServer.register.bind(webServer)
     const registerApiRoutes = () => {
       const checkAuthAndMutation = (request: IncomingMessage, response: ServerResponse): boolean => {
         let connection: {
@@ -885,7 +887,9 @@ export function apply(ctx: Context, config: Config): void {
   }
   const settingsApi = ctx.settings as { configure?: (policy: { auto?: boolean }, owner?: unknown) => () => void }
   const fiber = (ctx as { fiber?: object }).fiber
-  const configureSettings = settingsApi.configure
+  // `configure` writes the service's own policy map, so the detached reference
+  // would call it with an undefined receiver; keep the binding.
+  const configureSettings = typeof settingsApi.configure === 'function' ? settingsApi.configure.bind(settingsApi) : undefined
   if (typeof ctx.effect === 'function' && fiber !== undefined && typeof configureSettings === 'function') {
     ctx.effect(() => configureSettings({ auto: false }, fiber), 'sdkwork-experts: settings presentation')
   }

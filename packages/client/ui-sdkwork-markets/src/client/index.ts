@@ -3,16 +3,16 @@
  * sidebar shell's `sidebar.actions` list seat (declared by ui-sidebar) and its
  * market page into the keyed `mode.page` seat (declared by ui-layout's frame),
  * both keyed by the `markets` mode id. The page's header hosts the market
- * categories (Plugins, Experts, Skills, Connectors). The Experts, Skills, and
- * Connectors cloud catalogs render the SDKWork App Store page for that category
- * through the host adapter configured from the shared environment, IAM, and
- * locale services, and the catalog is the category's landing view — the first
- * chip of that category's sub-tab row. Behind that first chip the page draws the
- * third-party panels described at the end of this comment: the expert market on
- * the Experts tab, the SkillHub market on the Skills tab, and the MCP connector
- * on the Connectors tab. The Plugins tab hosts the SDKWork Plugins catalog and
- * this application's own plugin management surface. Create requests dispatch a
- * composed prompt into a fresh conversation through sessions/workspaces.
+ * categories (Plugins, Experts, Skills, Connectors). The Skills cloud catalog
+ * reads the generated Skills SDK directly; the Experts and Connectors cloud
+ * catalogs render their SDKWork App Store pages through the host adapter
+ * configured from the shared environment, IAM, and locale services. Each cloud
+ * catalog is the category's landing view. Behind it the page draws the
+ * third-party panels described below: the expert market on the Experts tab,
+ * the SkillHub market on the Skills tab, and the MCP connector on the Connectors
+ * tab. The Plugins tab hosts the SDKWork Plugins catalog and this application's
+ * own plugin management surface. Create requests dispatch a composed prompt
+ * into a fresh conversation through sessions/workspaces.
  *
  * The Plugins tab is also the product's plugin surface, so this plugin declares
  * the seven seats the upstream Plugins page declares — `plugins.item`,
@@ -107,18 +107,20 @@ import { configLedgerSource } from './configItems.ts'
 import { createConfigForms, isServed, namespaceOfEntry } from './settingsForms.ts'
 import { createPluginStore } from './pluginStore.ts'
 import { createPluginNavigation } from './plugin-navigation.ts'
-import { createSkillMarketPanelSource, SKILL_MARKET_PANEL_ID } from './skillMarketPanel.ts'
+import { SKILL_MARKET_PANEL_ID } from './skillMarketPanel.ts'
 import { createExpertMarketPanelSource, EXPERT_MARKET_PANEL_ID } from './expertMarketPanel.ts'
 import { createMcpConnectorPanelSource, MCP_CONNECTOR_PANEL_ID } from './mcpConnectorPanel.ts'
 import { createMcpConnectorBridge } from './connectorBridge.ts'
 import { en, zh, type MarketsKey } from './locales.ts'
+import { createSkillsToastSource, SkillsToast } from './SkillsToast.tsx'
 
 export type {
   MarketsActionInjected, MarketsActionProps,
 } from './MarketsAction.tsx'
 export type {
-  MarketsPageInjected, MarketsPageProps, ExpertsSubTab, PluginsSubTab, SkillsSubTab,
+  MarketsPageInjected, MarketsPageProps, ExpertsSubTab, PluginsSubTab,
 } from './MarketsPage.tsx'
+export type { SkillsCatalogActions, SkillsCatalogPageProps } from './SkillsCatalogPage.tsx'
 export type {
   SkillMarketSurfaceProps,
 } from './SkillMarketSurface.tsx'
@@ -237,6 +239,8 @@ export function apply(ctx: ClientContext): void {
   })
   ctx.effect(() => () => { adapter.dispose() }, 'ui-sdkwork-markets: SDKWork host adapter')
 
+  const skillsToast = createSkillsToastSource()
+
   // The create-expert host adapter: the remote-expert flow (basic-info dialog
   // and agent editor) reads the same gateway, IAM session, and locale, and
   // binds the Agents app SDK clients (agents, memory, voice, skills,
@@ -311,17 +315,6 @@ export function apply(ctx: ClientContext): void {
   // The `pluginNavigation` request ledger: this plugin took over the service
   // upstream's Plugins page provided (see the registration below).
   const pluginNavigation = createPluginNavigation()
-
-  // The SkillHub market is the independent `@montersy123/dsh-skill-market`
-  // plugin's own keyed `main` panel plus its sidebar row; it publishes no
-  // client service, so the live `main` ledger is the only source this page can
-  // read. That entry carries the market's component, which the Skills tab
-  // renders in place: the market becomes the tab's own content instead of a
-  // hand-over to a second page. The source is live: the plugin may activate
-  // after this page, and a profile overlay that disables its row swaps the tab
-  // back to the unavailable notice.
-  const skillMarketPanel = createSkillMarketPanelSource(ctx.slots)
-  ctx.effect(() => () => { skillMarketPanel.dispose() }, 'ui-sdkwork-markets: skill market panel')
 
   // The expert market is the built-in experts package's own roster panel,
   // registered under the `agency-agents` `main` key while its entry is enabled
@@ -444,6 +437,13 @@ export function apply(ctx: ClientContext): void {
     })
   }
 
+  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay',
+    id: 'sdkwork-skills.toast',
+    locale: NS,
+    inject: () => ({ hooks: skillsToast.hooks, dismiss: skillsToast.dismiss }),
+  }, SkillsToast))
+
   ctx.slots.inject('sidebar.actions', () => ctx.slots.register({
     name: 'sidebar.actions',
     id: 'sdkwork-markets',
@@ -490,10 +490,14 @@ export function apply(ctx: ClientContext): void {
         onConfigure,
         bundleRequest: pluginNavigation.hooks.bundleRequest,
         onBundleRequestHandled: () => { pluginNavigation.handled() },
-        skillMarketPanel,
         expertMarketPanel,
         mcpConnectorPanel,
         connectorBridge,
+        hooks: adapter.hooks,
+        skillsCatalog: adapter.skillsCatalog,
+        requestSignIn: () => { adapter.requestSignIn() },
+        onSkillAdded: (name) => { skillsToast.report({ kind: 'added', name }) },
+        onSkillAddFailed: () => { skillsToast.report({ kind: 'failed' }) },
       }),
     }, MarketsPage)
     // The other half of the contract this page took over: `pluginNavigation` is

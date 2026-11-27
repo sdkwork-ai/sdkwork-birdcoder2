@@ -2,24 +2,27 @@
  * The Markets page: the center-column surface for the `markets` mode, keyed
  * into the frame's `mode.page` slot. The page header carries the category tab
  * bar (Plugins, Experts, Skills, Connectors) on the left and the catalog
- * tools on the right: a per-category search field and, on the Plugins and
- * Skills tabs, each category's add affordance (create or install plugin;
- * find / upload / create skill via
- * the find-skills, import, and skill-creator flows). The Experts tab's
+ * tools on the right: a per-category search field and the Plugins add
+ * affordance (create or install plugin). The Skills cloud catalog owns its
+ * find / upload / create skill toolbar; SkillHub keeps the same add affordance
+ * in the header. The Experts tab's
  * my-catalog affordance opens the full-page My-experts view ({@link
  * MineExpertsPage}), which the view's back control leaves.
- * The Experts, Skills, and Connectors tabs render their SDKWork App Store
- * market page (experts, skills, MCP) through this plugin's host adapter, with a
- * crash boundary so the panel never collapses blank. Those catalogs read the
+ * The Experts and Connectors tabs render their SDKWork App Store market page
+ * (experts, MCP) through this plugin's host adapter. Skills renders a
+ * BirdCoder-owned catalog over the Skills app SDK. A crash boundary keeps any
+ * failed panel from collapsing blank. Those catalogs read the
  * SDKWork app-api and need the application Access-Token the host environment
  * provides. The adapter draws the sign-in face when the host holds no
  * credential at all and hands the gesture to this application's own login
  * entry; the catalog loads once a session lands.
- * The page stays the single owner of market navigation chrome, so the
- * embedded surfaces render inside the panel without their own headers.
+ * The page stays the single owner of market navigation chrome. The embedded
+ * Plugins catalog keeps its toolbar behavior, but the host places that toolbar
+ * in the category row; the other embedded surfaces render without their own
+ * headers.
  *
- * Those three categories lead with their **cloud catalog** — the SDKWork App
- * Store page for that category — and land on it. Each opens a sub-tab row whose
+ * Those three categories lead with their **cloud catalog** and land on it.
+ * Each opens a sub-tab row whose
  * first chip it is, and the Experts tab opens a row too: its cloud catalog
  * leads and the **expert market** — the built-in
  * `@deepseek-ai/dsh-client-ui-sdkwork-experts` package's own roster panel —
@@ -49,7 +52,9 @@
  * application's official and installed views remain available alongside it.
  *
  * The Skills tab is a sub-root too, and its leading chip is the cloud catalog;
- * the SkillHub market follows it. That market is the independent
+ * it renders featured and recommended skills, categories, sorting, cloud-library
+ * installation state, and details over the Skills app SDK. The SkillHub market
+ * follows it. That market is the independent
  * `@montersy123/dsh-skill-market` plugin's own `main` panel; the chip's
  * surface renders it in place ({@link SkillMarketSurface}), so the market is
  * this tab's content rather than a second page to navigate to. When the
@@ -77,7 +82,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import clsx from 'clsx'
 import { Fragment, type ComponentType } from 'react'
-import type { HostObservable, PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { HostObservable, InjectFace, PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { ModeIconProps } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 import {
@@ -89,17 +94,17 @@ import type { MarketsConfigForms } from './settingsForms.ts'
 import type { PluginStore } from './pluginStore.ts'
 import { MarketsAdd } from './MarketsAdd.tsx'
 import { PluginSourceDialog, type PluginSourceSubmission } from './PluginSourceDialog.tsx'
-import { SkillsAdd } from './SkillsAdd.tsx'
-import { SkillMarketSurface } from './SkillMarketSurface.tsx'
-import type { SkillMarketPanel } from './skillMarketPanel.ts'
 import { ExpertMarketSurface } from './ExpertMarketSurface.tsx'
 import type { ExpertMarketPanel } from './expertMarketPanel.ts'
 import { McpConnectorSurface } from './McpConnectorSurface.tsx'
 import type { McpConnectorPanel } from './mcpConnectorPanel.ts'
 import type { McpConnectorBridge } from './connectorBridge.ts'
 import { ImportSkillDialog } from './ImportSkillDialog.tsx'
-import { skillSearchPrompt } from './skillPrompts.ts'
-import { MarketsApp, SdkworkPluginsMarketplace, type MarketsAppProps } from './marketsHost.ts'
+import {
+  MarketsApp, SkillsCatalogSurface, SdkworkPluginsMarketplace,
+  type MarketsAppProps, type MarketsHostRenderSnapshot,
+} from './marketsHost.ts'
+import type { SkillsCatalogActions } from './SkillsCatalogPage.tsx'
 import { findInstallation } from './pluginInstallation.ts'
 import { SurfaceBoundary } from './SurfaceBoundary.tsx'
 import { MineExpertsPage } from './MineExpertsPage.tsx'
@@ -137,18 +142,9 @@ export type PluginsSubTab = 'market' | 'official' | 'installed'
 export type ExpertsSubTab = 'cloud' | 'market'
 
 /**
- * The Skills tab's sub-views. Skills is a sub-root for the same reason Plugins
- * is: several catalogs answer the question "what can I install", and the
- * SkillHub community market is a different one from the cloud catalog. The
- * cloud catalog leads and is the landing view, so the tab opens on the
- * product's shelf; the SkillHub market keeps its chip beside it.
- */
-export type SkillsSubTab = 'cloud' | 'market'
-
-/**
- * The Connectors tab's sub-views. Connectors is a sub-root like Plugins and
- * Skills: its cloud catalog (the App Store's MCP catalog) leads and is the
- * landing view, and the MCP connector plugin's own panel follows it.
+ * The Connectors tab's sub-views. Connectors is a sub-root like Plugins:
+ * its cloud catalog (the App Store's MCP catalog) leads and is the landing
+ * view, and the MCP connector plugin's own panel follows it.
  */
 export type ConnectorsSubTab = 'cloud' | 'connector'
 
@@ -166,9 +162,6 @@ type MineMarketsTab = Exclude<MarketsTab, 'connectors' | 'plugins'>
  * navigation chrome and does not render this strip while active.
  */
 const PLUGIN_VIEW_IDS: readonly PluginsSubTab[] = ['market', 'official', 'installed']
-
-/** The Skills tab's sub-tabs, in chip order: the cloud catalog, then the SkillHub market. */
-const SKILL_VIEW_IDS: readonly SkillsSubTab[] = ['cloud', 'market']
 
 /** The Connectors tab's sub-tabs, in chip order: the cloud catalog, then the connector panel. */
 const CONNECTOR_VIEW_IDS: readonly ConnectorsSubTab[] = ['cloud', 'connector']
@@ -191,18 +184,6 @@ const EXPERT_SUB_TAB_ICONS: Record<ExpertsSubTab, ComponentType<ModeIconProps>> 
   market: ExpertsIcon,
 }
 
-/** Each Skills sub-tab's chip label, in {@link SKILL_VIEW_IDS} order. */
-const SKILL_SUB_TAB_KEYS = {
-  cloud: 'subtab.skillCloud',
-  market: 'subtab.skillMarket',
-} as const satisfies Record<SkillsSubTab, MarketsKey>
-
-/** Each Skills sub-tab's leading glyph, in {@link SKILL_VIEW_IDS} order. */
-const SKILL_SUB_TAB_ICONS: Record<SkillsSubTab, ComponentType<ModeIconProps>> = {
-  cloud: MarketsIcon,
-  market: SkillsIcon,
-}
-
 /** Each Connectors sub-tab's chip label, in {@link CONNECTOR_VIEW_IDS} order. */
 const CONNECTOR_SUB_TAB_KEYS = {
   cloud: 'subtab.cloud',
@@ -216,10 +197,11 @@ const CONNECTOR_SUB_TAB_ICONS: Record<ConnectorsSubTab, ComponentType<ModeIconPr
 }
 
 /**
- * The chips a divider precedes. Only the boundary between the market view and
- * the two local views is a group break.
+ * The chips a group break precedes. Only the boundary between the market view
+ * and the two local views is a group break; the break is whitespace, since the
+ * page draws no dividers.
  */
-const PLUGIN_SUB_TAB_DIVIDERS: ReadonlySet<PluginsSubTab> = new Set<PluginsSubTab>(['official'])
+const PLUGIN_SUB_TAB_BREAKS: ReadonlySet<PluginsSubTab> = new Set<PluginsSubTab>(['official'])
 
 /** The market categories, in tab-bar order (the panel marker's id space). */
 const TAB_IDS: readonly MarketsTab[] = ['plugins', 'experts', 'skills', 'connectors']
@@ -279,15 +261,13 @@ const PLUGIN_SUB_TAB_ICONS: Record<PluginsSubTab, ComponentType<ModeIconProps>> 
 }
 
 /**
- * The SDKWork App Store market page each storefront category's cloud catalog
- * renders. Connectors' cloud catalog is the App Store's MCP catalog, the one
- * page of that surface this product had not yet given a home.
+ * The SDKWork App Store market page each embedded cloud catalog renders.
+ * Connectors' cloud catalog is the App Store's MCP catalog.
  */
 const TAB_MARKET_PAGES = {
   experts: 'experts',
-  skills: 'skills',
   connectors: 'mcp',
-} as const satisfies Record<CloudMarketsTab, MarketsAppProps['page']>
+} as const satisfies Record<Exclude<CloudMarketsTab, 'skills'>, MarketsAppProps['page']>
 
 /**
  * The seven seats this page hosts. Written as one union so the props face and
@@ -351,15 +331,6 @@ export interface MarketsPageInjected {
   /** Clear the request once the roster has opened it. */
   onBundleRequestHandled: () => void
   /**
-   * The independent skill-market plugin's panel
-   * (`@montersy123/dsh-skill-market`, the SkillHub market), or undefined while
-   * it is not registered in this composition. The Skills tab's market chip
-   * renders that panel in place; while it is absent (the row is off, or the
-   * client half has not loaded yet) the chip's surface says the market is
-   * unavailable rather than drawing a panel that cannot work.
-   */
-  skillMarketPanel: HostObservable<SkillMarketPanel | undefined>
-  /**
    * The built-in expert market's roster panel
    * (`@deepseek-ai/dsh-client-ui-sdkwork-experts`), or undefined while its row
    * is off, its plugin entry is switched to settings-only, or its browser half
@@ -385,6 +356,16 @@ export interface MarketsPageInjected {
    * example Prompt opens.
    */
   connectorBridge: McpConnectorBridge
+  /** Framework-bound SDKWork environment, identity, locale, and authentication. */
+  hooks: { hostSnapshot: HostObservable<MarketsHostRenderSnapshot> }
+  /** Skills API callbacks owned by the SDKWork host adapter. */
+  skillsCatalog: SkillsCatalogActions
+  /** Open the application's shared sign-in surface. */
+  requestSignIn: () => void
+  /** Report a transient cloud-library installation success. */
+  onSkillAdded: (name: string) => void
+  /** Report a transient cloud-library installation failure. */
+  onSkillAddFailed: () => void
 }
 
 /**
@@ -398,7 +379,7 @@ export interface MarketsPageInjected {
  */
 export type MarketsPageProps =
   PropsRuntime<'mode.page'>
-  & MarketsPageInjected
+  & InjectFace<MarketsPageInjected>
   & PropsLocale<'markets'>
   & PropsRenderSlots<MarketsSeats>
 
@@ -407,16 +388,17 @@ export type MarketsPageProps =
  *
  * The Skills tab mirrors the Plugins tab's add affordance: its own trigger
  * (find via find-skills / upload via the import dialog / create via
- * skill-creator) rides the same prompt-dispatch channel, and the search
- * field hands its query to the find-skills flow on Enter.
+ * skill-creator) rides the same prompt-dispatch channel. The cloud catalog's
+ * header search filters Skills app SDK results.
  *
  * @param props - composed slot props (contract share + injected mode + locale seat).
  * @returns the page element tree.
  */
 export function MarketsPage({
   mode, t, dispatchPrompt, store, ledger, configForms, onConfigure,
-  bundleRequest, onBundleRequestHandled, skillMarketPanel,
+  bundleRequest, onBundleRequestHandled,
   expertMarketPanel, mcpConnectorPanel, connectorBridge, renderSlot,
+  useHostSnapshot, skillsCatalog, requestSignIn, onSkillAdded, onSkillAddFailed,
 }: MarketsPageProps) {
   // The page builds the registrants' render face once and hands it down: each
   // panel draws a configuration entry's own `summary` or `page` view, a
@@ -433,13 +415,12 @@ export function MarketsPage({
     detailSection: subject => renderSlot('plugins.detail.section', { subject }),
     activation: (owner, name) => renderSlot('plugins.bundle.activation', owner, { entryKey: name }),
   }
+  const hostSnapshot = useHostSnapshot(current => current)
   const [tab, setTab] = useState<MarketsTab>('plugins')
   // The SDKWork Plugins catalog is the default landing view.
   const [pluginSubTab, setPluginSubTab] = useState<PluginsSubTab>('market')
   // The Experts tab's cloud catalog chip leads; the expert market follows.
   const [expertSubTab, setExpertSubTab] = useState<ExpertsSubTab>('cloud')
-  // The Skills tab's cloud catalog chip leads; the SkillHub market follows.
-  const [skillSubTab, setSkillSubTab] = useState<SkillsSubTab>('cloud')
   // The Connectors tab's cloud catalog leads; the MCP connector panel follows.
   const [connectorSubTab, setConnectorSubTab] = useState<ConnectorsSubTab>('cloud')
   const [query, setQuery] = useState('')
@@ -458,7 +439,6 @@ export function MarketsPage({
     setQuery('')
     setPluginSubTab('market')
     setExpertSubTab('cloud')
-    setSkillSubTab('cloud')
     setConnectorSubTab('cloud')
   }
   const categoryTabs = (
@@ -481,11 +461,6 @@ export function MarketsPage({
     setPluginSubTab(current => current === 'market' ? 'official' : current)
   }, [requestedBundle])
 
-  // The SkillHub market is the independent skill-market plugin's own panel.
-  // Read live, because the plugin may activate after this page or be disabled
-  // by a profile overlay: the tab swaps between the panel and its notice
-  // without a reload, and never draws a panel that is not there.
-  const skillMarket = useSyncExternalStore(skillMarketPanel.subscribe, skillMarketPanel.getSnapshot)
   // The expert market's panel, read the same way and for the same reason: the
   // plugin may activate after this page, and a profile overlay that disables
   // its row (or a person switching its own entry off) swaps the Experts tab
@@ -518,21 +493,19 @@ export function MarketsPage({
 
   const marketSubTab = tab === 'plugins' && pluginSubTab === 'market'
   const showLocalPanel = tab === 'plugins' && (pluginSubTab === 'official' || pluginSubTab === 'installed')
-  const skillMarketSubTab = tab === 'skills' && skillSubTab === 'market'
   const expertMarketSubTab = tab === 'experts' && expertSubTab === 'market'
-  // The connector panel and the SkillHub market draw their own page, which
+  // The connector panel and the expert market draw their own page, which
   // carries its own search, so the header draws no second, dead field beside
-  // them — the same arrangement for both, and the same reason. The expert
-  // market is the third such panel: its roster carries its own search.
+  // them. The cloud catalogs keep the header search.
   const connectorPanelSubTab = tab === 'connectors' && connectorSubTab === 'connector'
-  // The header search belongs to every cloud catalog; the embedded panels own
-  // their search, so the field collapses for them.
-  const embeddedPanelSubTab = marketSubTab || skillMarketSubTab || connectorPanelSubTab || expertMarketSubTab
+  const embeddedPanelSubTab = connectorPanelSubTab || expertMarketSubTab
   const searchKey = tab === 'plugins' ? PLUGIN_SUB_TAB_SEARCH_KEYS[pluginSubTab] : SEARCH_KEYS[tab]
   // The storefront categories' embedded catalog page, or undefined on the
   // Plugins tab, which renders its own two local views and the community
   // market instead of an App Store page.
-  const cloudPage: MarketsAppProps['page'] | undefined = tab === 'plugins' ? undefined : TAB_MARKET_PAGES[tab]
+  const cloudPage: MarketsAppProps['page'] | undefined = tab === 'experts' || tab === 'connectors'
+    ? TAB_MARKET_PAGES[tab]
+    : undefined
   const installBusy = storeState.install !== undefined && (
     storeState.install.phase === 'checking'
     || storeState.install.phase === 'installing'
@@ -543,8 +516,8 @@ export function MarketsPage({
 
   if (marketSubTab) {
     return (
-      <div className={css.page} data-mode={mode} data-mode-page={mode} data-markets-surface="sdkwork">
-        <div className={css.header}>{categoryTabs}</div>
+      <div className={css.page} data-mode={mode} data-mode-page={mode} data-markets-surface="sdkwork" data-plugin-market="">
+        <div className={css.pluginMarketHeader}>{categoryTabs}</div>
         <SurfaceBoundary t={t}>
           <div className={css.marketScroll}>
             <SdkworkPluginsMarketplace
@@ -565,7 +538,6 @@ export function MarketsPage({
                   setPluginSubTab('market')
                 } else if (section === 'skills') {
                   setTab('skills')
-                  setSkillSubTab('cloud')
                 } else {
                   setTab('experts')
                   setExpertSubTab('cloud')
@@ -616,13 +588,6 @@ export function MarketsPage({
                 placeholder={t(searchKey)}
                 aria-label={t(searchKey)}
                 onChange={(e) => { setQuery(e.target.value) }}
-                onKeyDown={(e) => {
-                  // The skills catalog has no local surface yet: pressing Enter
-                  // hands the query to the find-skills flow instead.
-                  if (tab === 'skills' && e.key === 'Enter') {
-                    dispatchPrompt(skillSearchPrompt(t, query))
-                  }
-                }}
               />
             </div>
           )}
@@ -631,19 +596,6 @@ export function MarketsPage({
               t={t}
               onCreatePlugin={() => { setSourceMode('create') }}
               onInstallPlugin={() => { setSourceMode('install') }}
-            />
-          )}
-          {tab === 'skills' && (
-            <SkillsAdd
-              t={t}
-              dispatchPrompt={dispatchPrompt}
-              onImportSkill={() => { setSkillDialogOpen(true) }}
-              // The add menu's market row points at the market chip: the market
-              // is this tab's own content, so the row switches sub-tabs instead
-              // of leaving the page. It appears only while the panel is
-              // registered, so the menu never lists a destination this
-              // deployment cannot show.
-              {...(skillMarket === undefined ? {} : { onShowSkillMarket: () => { setSkillSubTab('market') } })}
             />
           )}
           {/* The Experts tab's my-catalog affordance opens the full-page
@@ -680,7 +632,7 @@ export function MarketsPage({
             const Icon = PLUGIN_SUB_TAB_ICONS[id]
             return (
               <Fragment key={id}>
-                {PLUGIN_SUB_TAB_DIVIDERS.has(id) && <div className={css.subTabDivider} aria-hidden="true" />}
+                {PLUGIN_SUB_TAB_BREAKS.has(id) && <span className={css.subTabBreak} aria-hidden="true" />}
                 <button
                   type="button"
                   role="tab"
@@ -727,36 +679,6 @@ export function MarketsPage({
           })}
         </div>
       )}
-      {/* The Skills tab is a sub-root for the same reason: the cloud catalog
-          leads (the landing view) and the SkillHub market keeps its seat
-          beside it. The row collapses out of the DOM for the other main
-          categories, so it adds chrome only where it means something. */}
-      {tab === 'skills' && (
-        <div
-          className={css.subTabs}
-          role="tablist"
-          aria-label={t('subtabs.skills.label')}
-          data-skills-subtabs
-        >
-          {SKILL_VIEW_IDS.map((id) => {
-            const Icon = SKILL_SUB_TAB_ICONS[id]
-            return (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                className={clsx(css.subTab, skillSubTab === id && css.subTabActive)}
-                aria-selected={skillSubTab === id}
-                data-skill-subtab={id}
-                onClick={() => { setSkillSubTab(id) }}
-              >
-                <Icon size={12} className={css.subTabIcon} />
-                {t(SKILL_SUB_TAB_KEYS[id])}
-              </button>
-            )
-          })}
-        </div>
-      )}
       {/* The Connectors tab is a sub-root too: the cloud catalog (the App
           Store's MCP catalog) leads as the landing view, and the MCP
           connector's own panel keeps the second chip. */}
@@ -792,7 +714,6 @@ export function MarketsPage({
         data-markets-tab={tab}
         data-plugins-subtab={tab === 'plugins' ? pluginSubTab : undefined}
         data-experts-subtab={tab === 'experts' ? expertSubTab : undefined}
-        data-skills-subtab={tab === 'skills' ? skillSubTab : undefined}
         data-connectors-subtab={tab === 'connectors' ? connectorSubTab : undefined}
       >
         <MarketsSurfaceBoundary t={t}>
@@ -800,28 +721,41 @@ export function MarketsPage({
             ? (
               <McpConnectorSurface t={t} panel={connector} bridge={connectorBridge} />
             )
-            : skillMarketSubTab
+            : expertMarketSubTab
               ? (
-                <SkillMarketSurface t={t} panel={skillMarket} />
+                <ExpertMarketSurface t={t} panel={expertMarket} />
               )
-              : expertMarketSubTab
+              : showLocalPanel
                 ? (
-                  <ExpertMarketSurface t={t} panel={expertMarket} />
+                  <OfficialPluginsPanel
+                    scope={pluginSubTab === 'installed' ? 'installed' : 'official'}
+                    t={t}
+                    query={query}
+                    store={store}
+                    onConfigure={onConfigure}
+                    ledger={ledger}
+                    configForms={configForms}
+                    slots={slots}
+                    openRequest={requestedBundle}
+                    onOpenRequestHandled={onBundleRequestHandled}
+                  />
                 )
-                : showLocalPanel
+                : tab === 'skills'
                   ? (
-                    <OfficialPluginsPanel
-                      scope={pluginSubTab === 'installed' ? 'installed' : 'official'}
-                      t={t}
-                      query={query}
-                      store={store}
-                      onConfigure={onConfigure}
-                      ledger={ledger}
-                      configForms={configForms}
-                      slots={slots}
-                      openRequest={requestedBundle}
-                      onOpenRequestHandled={onBundleRequestHandled}
-                    />
+                    <div className={css.marketScroll}>
+                      <SkillsCatalogSurface
+                        snapshot={hostSnapshot}
+                        actions={skillsCatalog}
+                        requestSignIn={requestSignIn}
+                        dispatchPrompt={dispatchPrompt}
+                        onImportSkill={() => { setSkillDialogOpen(true) }}
+                        onAdded={onSkillAdded}
+                        onAddFailed={onSkillAddFailed}
+                        t={t}
+                        searchQuery={query}
+                        onClearSearch={() => { setQuery('') }}
+                      />
+                    </div>
                   )
                   : cloudPage === undefined
                     ? null

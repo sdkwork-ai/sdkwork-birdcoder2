@@ -52,9 +52,9 @@
   align-items: center;
   height: 30px;
   padding: 0 12px;
-  border: 0.5px solid var(--dsw-alias-border-l3);
+  border: 0;
   border-radius: var(--dsw-radius-md);
-  background: transparent;
+  background: var(--dsw-alias-interactive-bg-hover);
   color: var(--dsw-alias-label-secondary);
   font-size: 12.5px;
   line-height: 18px;
@@ -62,7 +62,7 @@
 }
 
 .reload:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
+  background: var(--dsw-alias-interactive-bg-active);
   color: var(--dsw-alias-label-primary);
 }
 
@@ -101,9 +101,9 @@
 }
 
 .retry {
-  border: 0.5px solid var(--dsw-alias-border-l3);
+  border: 0;
   border-radius: var(--dsw-radius-md);
-  background: transparent;
+  background: var(--dsw-alias-interactive-bg-hover);
   color: var(--dsw-alias-label-primary);
   font-size: 12px;
   line-height: 18px;
@@ -112,7 +112,7 @@
 }
 
 .retry:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
+  background: var(--dsw-alias-interactive-bg-active);
 }
 
 /* ── Groups ──────────────────────────────────────────────────────────────── */
@@ -190,8 +190,9 @@
   justify-content: center;
   width: 48px;
   height: 48px;
-  border: 0.5px solid var(--dsw-alias-border-l3);
+  border: 0;
   border-radius: var(--dsw-radius-lg);
+  background: var(--dsw-alias-interactive-bg-active);
   color: var(--dsw-alias-label-secondary);
 }
 
@@ -320,10 +321,11 @@
 }
 
 .tag {
-  border: 0.5px solid var(--dsw-alias-border-l3);
+  border: 0;
   border-radius: 999px;
   corner-shape: round;
   padding: 1px 8px;
+  background: var(--dsw-alias-interactive-bg-active);
   font-size: 11px;
   line-height: 16px;
   color: var(--dsw-alias-label-secondary);
@@ -335,16 +337,16 @@
 }
 
 .tag[data-phase='failed'] {
-  border-color: var(--dsw-alias-border-danger);
-  color: var(--dsw-alias-label-danger);
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent);
+  color: var(--dsw-alias-state-error-primary);
 }
 
 /* The installed tab's settings affordance. */
 .settingsButton {
   flex: none;
-  border: 0.5px solid var(--dsw-alias-border-l3);
+  border: 0;
   border-radius: var(--dsw-radius-md);
-  background: transparent;
+  background: var(--dsw-alias-interactive-bg-hover);
   color: var(--dsw-alias-label-primary);
   font-size: 12px;
   line-height: 18px;
@@ -353,7 +355,7 @@
 }
 
 .settingsButton:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
+  background: var(--dsw-alias-interactive-bg-active);
 }
 
 .settingsButton:disabled {
@@ -362,7 +364,7 @@
 }
 
 .settingsButton:disabled:hover {
-  background: transparent;
+  background: var(--dsw-alias-interactive-bg-hover);
 }
 
 /* The trailing action pair. */
@@ -390,15 +392,15 @@
 }
 
 .writeFailed {
-  color: var(--dsw-alias-label-danger);
+  color: var(--dsw-alias-state-error-primary);
 }
 
 /* The uninstall affordance is destructive: quiet at rest, red on hover. */
 .dangerButton {
   flex: none;
-  border: 0.5px solid var(--dsw-alias-border-l3);
+  border: 0;
   border-radius: var(--dsw-radius-md);
-  background: transparent;
+  background: var(--dsw-alias-interactive-bg-hover);
   color: var(--dsw-alias-label-secondary);
   font-size: 12px;
   line-height: 18px;
@@ -407,8 +409,8 @@
 }
 
 .dangerButton:hover:not(:disabled) {
-  border-color: var(--dsw-alias-border-danger);
-  color: var(--dsw-alias-label-danger);
+  background: var(--dsw-alias-interactive-bg-hover-danger);
+  color: var(--dsw-alias-state-error-primary);
 }
 
 .dangerButton:disabled {
@@ -423,10 +425,10 @@
   gap: 6px;
   margin: 0;
   padding: 1px 8px;
-  border: 0.5px solid var(--dsw-alias-border-l3);
+  border: 0;
   border-radius: 999px;
   corner-shape: round;
-  background: none;
+  background: var(--dsw-alias-interactive-bg-active);
   font: inherit;
   font-size: 11px;
   line-height: 16px;
@@ -489,10 +491,11 @@
 
 .bundleRowLive {
   flex: none;
-  border: 0.5px solid var(--dsw-alias-border-l3);
+  border: 0;
   border-radius: 999px;
   corner-shape: round;
   padding: 0 6px;
+  background: var(--dsw-alias-interactive-bg-hover);
   font-size: 10px;
   line-height: 14px;
   color: var(--dsw-alias-label-tertiary);
@@ -560,7 +563,7 @@
 }
 
 .inspectRefused {
-  color: var(--dsw-alias-label-danger);
+  color: var(--dsw-alias-state-error-primary);
   font-weight: 600;
 }
 
@@ -589,9 +592,9 @@
   flex-direction: column;
   gap: 6px;
   padding: 10px 12px;
-  border: 0.5px solid var(--dsw-alias-border-danger);
+  border: 0;
   border-radius: var(--dsw-radius-lg);
-  background: var(--dsw-alias-bg-base);
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent);
 }
 
 .approvalTitle {
@@ -660,22 +663,23 @@
 .installField input[type='text'] {
   height: 40px;
   padding: 0 14px;
-  border: 0.5px solid var(--dsw-alias-border-l4);
+  border: 0;
   border-radius: var(--dsw-radius-md);
   outline: none;
-  background: var(--dsw-alias-bg-layer-3);
+  background: var(--dsw-alias-interactive-bg-hover);
   font: inherit;
   font-size: 13px;
   color: var(--dsw-alias-label-primary);
 }
 
 .installField input[type='text']:focus {
-  border-color: var(--dsw-alias-state-business-primary);
-  box-shadow: inset 0 0 0 0.5px var(--dsw-alias-state-business-primary);
+  background: var(--dsw-alias-interactive-bg-active);
+  outline: 1px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 0;
 }
 
 .installField input[aria-invalid='true'] {
-  border-color: var(--dsw-alias-state-error-primary);
+  box-shadow: inset 0 0 0 1px var(--dsw-alias-state-error-primary);
 }
 
 .guideToggle {
@@ -709,9 +713,9 @@
   flex-direction: column;
   gap: 10px;
   padding: 8px 14px;
-  border: 0.5px solid var(--dsw-alias-border-l4);
+  border: 0;
   border-radius: var(--dsw-radius-lg);
-  background: var(--dsw-alias-bg-layer-1);
+  background: var(--dsw-alias-interactive-bg-hover);
 }
 
 .guideIntro,
@@ -745,7 +749,7 @@
   margin: 0;
   padding: 8px 10px;
   border-radius: var(--dsw-radius-md);
-  background: var(--dsw-alias-bg-layer-3);
+  background: var(--dsw-alias-interactive-bg-active);
   font-size: 12px;
   line-height: 18px;
   color: var(--dsw-alias-label-secondary);
@@ -764,7 +768,6 @@
   align-items: flex-start;
   gap: 10px;
   padding: 8px 0;
-  border-top: 0.5px solid var(--dsw-alias-border-l4);
 }
 
 .guideIndex {
@@ -773,7 +776,7 @@
   height: 20px;
   border-radius: 999px;
   corner-shape: round;
-  background: var(--dsw-alias-bg-layer-3);
+  background: var(--dsw-alias-interactive-bg-active);
   font-size: 11px;
   line-height: 20px;
   text-align: center;
@@ -877,7 +880,7 @@
 }
 
 .wizardClose:hover {
-  background: var(--dsw-alias-bg-layer-3);
+  background: var(--dsw-alias-interactive-bg-hover);
   color: var(--dsw-alias-label-primary);
 }
 
@@ -928,8 +931,9 @@
   align-items: center;
   gap: 6px;
   padding: 16px;
-  border: 0.5px solid var(--dsw-alias-border-l3);
+  border: 0;
   border-radius: var(--dsw-radius-lg);
+  background: var(--dsw-alias-interactive-bg-hover);
   text-align: center;
 }
 
@@ -1059,7 +1063,7 @@
   --dsl-terminal-line-height: 18px;
   --dsl-terminal-output-max-height: 240px;
   margin: 4px 0 0;
-  border: 0.5px solid var(--dsw-alias-border-l1);
+  border: 0;
 }
 
 /* ── The plugin detail page ────────────────────────────────────────────────
@@ -1176,8 +1180,9 @@
 .detailMissing {
   margin: 0;
   padding: 10px 12px;
-  border: 0.5px dashed var(--dsw-alias-border-l3);
+  border: 0;
   border-radius: var(--dsw-radius-lg);
+  background: var(--dsw-alias-interactive-bg-hover);
   color: var(--dsw-alias-label-tertiary);
   font-size: 12px;
   line-height: 18px;

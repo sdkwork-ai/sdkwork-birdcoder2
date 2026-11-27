@@ -272,3 +272,6 @@ build/
 # is first-party now (`packages/client/ui-sdkwork-experts`); the submodule must
 # not come back, and this checkout must never be committed.
 /plugins/sdkwork-dsh-agents/
+
+# Local market visual-check diagnostics: Playwright screenshots and catalog dumps.
+/apps/web/artifacts/

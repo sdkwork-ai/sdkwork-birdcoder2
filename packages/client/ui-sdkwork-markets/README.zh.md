@@ -1,5 +1,5 @@
 ---
-description: "浏览 SDKWork 数据库中的插件目录、搜索本地化插件信息，并通过 Host 插件管理器安装已发布的插件制品。插件页还管理当前部署已安装的插件，并连接现有专家、技能和连接器目录。"
+description: "浏览 SDKWork 数据库中的插件与技能目录、搜索本地化记录、经 Host 插件管理器安装已发布的插件制品，并管理本地已安装插件。Markets 的四个 tab 连接插件、专家、技能与连接器。"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-从侧边栏打开 Markets，可以浏览 SDKWork Plugins 目录、经 Host 插件管理器安装目录记录给出的目标，或管理本地已安装的插件。专家、技能和连接器视图保留现有的 App Store 与内嵌插件市场。
+从侧边栏打开 Markets，可以浏览 SDKWork Plugins 目录、经 Host 插件管理器安装目录记录给出的目标，或管理本地已安装的插件。一级 tab 仍按插件、专家、技能、连接器的顺序排列；技能 tab 保留云端目录与 SkillHub 两个子 tab。
 
 ## 目录
 
@@ -22,12 +22,12 @@ kind: "package-reference"
 <a id="runtime-requirements"></a>
 ## 运行要求
 
-keyed 页面使用生成的 SDKWork Plugins App SDK，并沿用当前网关、语言和共享 IAM token manager。只有 Host 持有应用凭据时才显示目录，否则会打开本应用的登录界面。目录返回插件制品描述，本包会把 Git 和云盘来源转换成标准插件管理规格，再启动 Host 安装弹窗。本插件还声明 `slots`、`locale`、`layout`、`sessions`、`workspaces`、`env`、`iam` 和 `theme`。插件创建提示与技能操作通过 sessions 和 workspaces 服务运行。fork 侧边栏注册表仍是可选服务，用于在本页面显示 SkillHub 和 MCP connector 面板时隐藏重复的行。
+keyed 页面使用生成的 SDKWork Plugins App SDK 与 Skills App SDK，并沿用当前网关、语言和共享 IAM token manager。只有 Host 持有应用凭据时才显示远程目录，否则会打开本应用的登录界面。插件目录返回插件制品描述，本包会把 Git 和云盘来源转换成标准插件管理规格，再启动 Host 安装弹窗。技能目录直接从 Skills API 读取市场记录、分类、云端安装记录与包制品。本插件还声明 `slots`、`locale`、`layout`、`sessions`、`workspaces`、`env`、`iam` 和 `theme`。插件创建提示与技能操作通过 sessions 和 workspaces 服务运行。fork 侧边栏注册表仍是可选服务，用于在本页面显示 SkillHub 和 MCP connector 面板时隐藏重复的行。
 
 <a id="browser-bundle"></a>
 ## 浏览器 bundle
 
-客户端插件只发射一个 `client.js` 闭包，样式为自包含的 CSS modules，字形为内联 SVG。市场页面嵌入 SDKWork App Store 的 PC 界面，远程专家创建流程嵌入 SDKWork Agents 的创建界面，因此 bundle 会内联这些兄弟检出的源码（加入 workspace 的 `../sdkwork-*` 成员；见仓库的 `pnpm-workspace.yaml`），本地安装也需要这些检出位于本仓库旁边。
+客户端插件只发射一个 `client.js` 闭包，样式为自包含的 CSS modules，字形为内联 SVG。专家与连接器市场页面嵌入 SDKWork App Store 的 PC 界面，远程专家创建流程嵌入 SDKWork Agents 的创建界面，因此 bundle 会内联这些兄弟检出的源码（加入 workspace 的 `../sdkwork-*` 成员；见仓库的 `pnpm-workspace.yaml`），本地安装也需要这些检出位于本仓库旁边。技能云端目录直接使用生成的 Skills API 客户端，不嵌入 App Store 的技能页。
 
 ## 运行时不变量
 
@@ -35,9 +35,11 @@ keyed 页面使用生成的 SDKWork Plugins App SDK，并沿用当前网关、�
 
 ## 理解实现
 
-页面在 SDKWork Plugins 目录周围保留插件导航和本地管理视图。目录通过生成的 App SDK 读取插件与分类记录，显示本地化字段，并经现有 Host 安装器安装目录记录给出的目标。添加操作打开来源表单，创建操作仍将提示词派发到新会话。专家 tab 的「我的专家」页面使用 SDKWork Agents 创建流程处理远程专家，并用引导提示处理本地和个人虚拟机专家。专家、技能和连接器等 SDKWork 云端视图在缺少应用凭据时显示本应用的登录界面。
+页面在 SDKWork Plugins 目录周围保留插件导航和本地管理视图。目录通过生成的 App SDK 读取插件与分类记录，显示本地化字段，并经现有 Host 安装器安装目录记录给出的目标。添加操作打开来源表单，创建操作仍将提示词派发到新会话。专家、技能和连接器都以云端目录作为前置子 tab。专家 tab 的「我的专家」页面使用 SDKWork Agents 创建流程处理远程专家，并用引导提示处理本地和个人虚拟机专家。专家、技能和连接器等 SDKWork 云端视图在缺少应用凭据时显示本应用的登录界面。
 
-插件 tab 以 SDKWork Plugins 目录打头。生成的 App SDK 从 SDKWork Plugins 后端数据库读取分类与插件记录。精选卡片和热门列表使用记录中的本地化标题、描述、图标、使用量、制品来源与安装目标。安装把记录的目标交给本包的 Host 适配器：解析云盘下载 URL、验证压缩包校验和，并打开现有插件管理器安装弹窗。同一个适配器把 Host bundle 列表关联回卡片，已安装的记录会显示已安装版本、在目录有更新的注册表版本时提供更新，并可卸载。管理打开本地已安装插件列表，添加打开来源安装器。Host 未开放插件管理、另一个安装正在运行，或记录没有发布安装目标时，目录操作会禁用并说明原因。本包仍替换上游插件页，声明原有七个插件配置 slot，并提供 `pluginNavigation` 服务。技能、专家和连接器 tab 继续内嵌各自的独立面板，并隐藏重复的侧边栏入口。
+技能云端目录由 BirdCoder 自己实现，直接读取 Skills API。它展示精选记录、推荐卡片、API 分类、安装量排序、最新排序、已安装筛选与详情对话框。搜索和分类由服务端过滤，客户端在加载完所有结果页后排序。添加技能会为与记录版本完全匹配的已发布制品创建云端技能库安装记录；写入未完成时界面会阻止重复请求。该操作不会下载技能，也不会把技能注册到本机运行时；本机安装与执行由 SkillHub 负责。添加成功与一般添加失败使用应用级 Toast，离开技能 tab 后仍能看到反馈；制品版本缺失与目录加载失败保留在页面内。
+
+插件 tab 以 SDKWork Plugins 目录打头。生成的 App SDK 从 SDKWork Plugins 后端数据库读取分类与插件记录。精选卡片和热门列表使用记录中的本地化标题、描述、图标、使用量、制品来源与安装目标。安装把记录的目标交给本包的 Host 适配器：解析云盘下载 URL、验证压缩包校验和，并打开现有插件管理器安装弹窗。同一个适配器把 Host bundle 列表关联回卡片，已安装的记录会显示已安装版本、在目录有更新的注册表版本时提供更新，并可卸载。Host 确认安装、更新或卸载后，适配器把这次变更连同当时使用的目录快照写入后端，使每台设备保留一条持久的安装记录；Host 失败或取消时不写入，写库被拒绝时与 Host 结果分开报告。管理打开本地已安装插件列表，添加打开来源安装器。目录保留搜索、分类筛选和操作行为，本包把它的工具栏放入主分类行，并应用紧凑的页面密度。Host 未开放插件管理、另一个安装正在运行，或记录没有发布安装目标时，目录操作会禁用并说明原因。本包仍替换上游插件页，声明原有七个插件配置 slot，并提供 `pluginNavigation` 服务。SkillHub、专家市场与 MCP 连接器继续内嵌各自的独立面板，并隐藏重复的侧边栏入口。
 
 ## Model Experience
 
@@ -49,12 +51,12 @@ keyed 页面使用生成的 SDKWork Plugins App SDK，并沿用当前网关、�
 
 ## Known Limitations and Deferred Work
 
-- **空面板** —— 云端目录在 SDKWork 目录有内容前渲染 App Store 自己的空状态或建设提示。连接器 tab 的云端目录是 App Store 的 MCP 页，不属于这一类；它的连接器 chip 内嵌的是 MCP 连接器插件自己的页面。
+- **空面板** —— 专家与连接器的云端视图在 SDKWork 目录有内容前保留 App Store 自己的空状态或建设提示。技能云端目录有明确的加载、失败、重试与筛选无结果状态。连接器 tab 的云端目录是 App Store 的 MCP 页，不属于这一类；它的连接器 chip 内嵌的是 MCP 连接器插件自己的页面。
 - **空的专家花名册** —— 在专家目录 store 落地并供给数据前，「我的专家」页面在空花名册上渲染计数角标与按来源的空状态文案；刚创建的专家出现在 Agents 编辑器里，但尚未进入本花名册。
 - **对话执行的创建入口** —— 创建插件与添加市场通过合成提示词执行，因为它们要写文件；失败在会话内呈现，而非页面内。从来源安装插件是直接操作：它运行插件管理器的安装流水线，并在安装弹窗中报告进度。远程专家创建流程是例外：它完全在页面内经嵌入的 Agents 创建界面运行。
 - **压缩包与云盘安装属于 Host** —— 页面只传递标准规格，从不下包；下载、解包、限额与 `.plugin-manager/sources` 缓存归 profile 的插件管理器所有。
 - **远程专家由网关决定** —— 创建流程的第一步要经 Agents app API 持久化智能体，所以环境服务携带网关之前远程行为禁用；未登录用户在传输闸口遇到登录浮层。
-- **插件页交互** —— SDKWork Marketplace 自己管理目录搜索与分类筛选。管理打开已安装插件列表，添加打开来源安装器。只有技能市场面板已注册时，技能添加菜单才显示通往该面板的入口。
+- **插件页交互** —— SDKWork Marketplace 自己管理目录搜索与分类筛选。本包把目录工具栏放入主分类行，并应用紧凑的页面密度。管理打开已安装插件列表，添加打开来源安装器。Host 报告成功后，安装、更新与卸载才按设备同步到后端；数据库保存当时的完整目录快照，因此目录记录日后消失时，仍能用已存快照把该插件记为已更新或已移除。只有技能市场面板已注册时，技能添加菜单才显示通往该面板的入口。
 - **SDKWork 目录鉴权** —— Marketplace 需要应用 Access-Token 才能调用 SDKWork Plugins App API。Host 在 IAM 会话或静态环境 token 可用前显示共享登录界面。
 - **技能市场同样是访客** —— 目录、其安装/停用/回退流程、持久化以及 SkillHub 代理都属于 `@montersy123/dsh-skill-market`：它以 `plugins/dsh-skill-market` 子模块链接进本仓库，并由 web-app bundle patch 挂载。本页面只提供技能 chip、在该 chip 内渲染该插件注册的面板、把插件自己的侧边栏行声明为已内嵌，以及关闭该行时显示的说明文案；它不重写市场。面板经由 ledger 取得（该插件不发布客户端服务），因此两个包只共享一个字符串——它的 `skill-market` 面板 key；面板组件也必须保持无 props（它被画在其声明 seat 之外）。市场更新随该包发布，其 `skill-market` 面板 key 若改名，由 bundle 验收用例（`packages/bundle/web-app/tests/built-in-skill-market.spec.ts`）发现。
 - **MCP 连接器是第三个访客** —— 连接器目录、OAuth/API Key 与 `mcpServers` 授权、受管的 `@deepseek-ai/dsh-mcp-client` 条目、作用域、治理规则、工具工作台与诊断都属于 `dsh-mcp-connector`：它以 `plugins/dsh-mcp-connector` 子模块链接进本仓库，并由 web-app bundle patch 挂载。本页面内嵌该插件 Host 半边提供的面板页、把插件自己的侧边栏行声明为已内嵌，并回答页面的两个宿主问题（工作空间作用域与示例 Prompt 会话）；它不重写连接器的任何部分。两个包共享四个字符串——`mcp-connector` 面板 key、`/mcp-connector/ui/` 页面路径，以及请求/应答的消息名——bundle 验收用例（`packages/bundle/web-app/tests/built-in-mcp-connector.spec.ts`）针对已发布产物把它们全部钉住。连接器更新随该包发布。

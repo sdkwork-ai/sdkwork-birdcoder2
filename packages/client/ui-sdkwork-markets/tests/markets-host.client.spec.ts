@@ -1,16 +1,27 @@
 // @vitest-environment jsdom
 import { createElement } from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, cleanup, fireEvent, render } from '@testing-library/react'
 
 // The embed double records the props this adapter hands the catalog, so a case
 // can drive the install port the plugins page receives.
 const embed = vi.hoisted(() => ({ props: undefined as unknown }))
+const skillsPage = vi.hoisted(() => ({
+  render: vi.fn((_props: {
+    actions: unknown
+    searchQuery?: string
+    onClearSearch?: () => void
+    onAdded?: (name: string) => void
+    onAddFailed?: () => void
+  }) => 'skills-catalog'),
+}))
 const sdkMocks = vi.hoisted(() => ({
-  pluginsClient: { plugins: { list: vi.fn(), listCategories: vi.fn() } },
+  pluginsClient: { plugins: { list: vi.fn(), listCategories: vi.fn(), syncInstallation: vi.fn() } },
+  skillsClient: { skills: {} },
   driveClient: { drive: { nodes: { downloadUrls: { retrieve: vi.fn() } }, downloadPackages: { create: vi.fn() } } },
   tokenManager: {},
   createPluginsAppClient: vi.fn(),
+  createSkillsAppClient: vi.fn(),
   createDriveAppClient: vi.fn(),
   syncTokens: vi.fn(),
 }))
@@ -26,6 +37,14 @@ vi.mock('@sdkwork/plugins-app-sdk', () => ({
   createPluginsAppClient: sdkMocks.createPluginsAppClient.mockReturnValue(sdkMocks.pluginsClient),
 }))
 
+vi.mock('@sdkwork/skills-app-sdk', () => ({
+  createSkillsAppClient: sdkMocks.createSkillsAppClient.mockReturnValue(sdkMocks.skillsClient),
+}))
+
+vi.mock('../src/client/SkillsCatalogPage.tsx', () => ({
+  SkillsCatalogPage: skillsPage.render,
+}))
+
 vi.mock('@sdkwork/drive-app-sdk', () => ({
   createDriveAppClient: sdkMocks.createDriveAppClient.mockReturnValue(sdkMocks.driveClient),
 }))
@@ -38,9 +57,12 @@ vi.mock('@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager', (
 import {
   configureMarketsHost,
   createMarketsHostRuntime,
+  marketHostId,
   marketplaceInstallSpec,
+  MarketSyncError,
   pinMarketplaceGitSpec,
   MarketsApp,
+  SkillsCatalogSurface,
   pluginsInstallSpec,
   toMarketsSession,
   type MarketsHostEnvironment,
@@ -52,7 +74,25 @@ import {
 /** Translate seat double: the dictionary key is its own copy. */
 const t = (key: string): string => key
 
+beforeEach(() => {
+  sdkMocks.pluginsClient.plugins.syncInstallation.mockReset()
+  sdkMocks.createSkillsAppClient.mockClear()
+  sdkMocks.syncTokens.mockClear()
+  skillsPage.render.mockClear()
+})
 afterEach(() => { cleanup() })
+
+function settledStore(phase: 'done' | 'failed' = 'done') {
+  const install = { spec: 'demo-plugin@1.0.0', phase, log: [] }
+  return {
+    openInstall: vi.fn(),
+    runInstall: vi.fn().mockResolvedValue(undefined),
+    refresh: vi.fn().mockResolvedValue(undefined),
+    getSnapshot: () => ({ read: { status: 'ready' as const, snapshot: { bundles: [] } }, install }),
+    updatePlugin: vi.fn().mockResolvedValue(undefined),
+    removePlugin: vi.fn().mockResolvedValue(undefined),
+  }
+}
 
 function harness(initial: {
   baseUrl?: string
@@ -148,6 +188,91 @@ describe('MarketsHostRuntime', () => {
     }))
     expect(sdkMocks.syncTokens).toHaveBeenCalledWith(null, 'static-token')
     adapter.dispose()
+  })
+
+  it('keeps Skills SDK creation lazy behind injected callbacks', () => {
+    const h = harness({ baseUrl: 'https://gw.example' })
+    const adapter = createMarketsHostRuntime(h)
+    expect(adapter.hooks.hostSnapshot.getSnapshot()).toMatchObject({
+      apiBaseUrl: 'https://gw.example',
+    })
+    expect(adapter.skillsCatalog.listMarketplace).toBeTypeOf('function')
+    expect(adapter.skillsCatalog.createInstallation).toBeTypeOf('function')
+    expect(sdkMocks.createSkillsAppClient).not.toHaveBeenCalled()
+    expect(sdkMocks.syncTokens).not.toHaveBeenCalled()
+    adapter.dispose()
+  })
+
+  it('creates and caches the Skills SDK client with shared IAM tokens', () => {
+    const session = { accessToken: 'iam-token', user: { id: 'user' } }
+    const h = harness({ baseUrl: 'https://gw.example', session })
+    const adapter = createMarketsHostRuntime(h)
+
+    expect(adapter.getSkillsCatalogClient()).toBe(sdkMocks.skillsClient)
+    expect(adapter.getSkillsCatalogClient()).toBe(sdkMocks.skillsClient)
+    expect(sdkMocks.createSkillsAppClient).toHaveBeenCalledTimes(1)
+    expect(sdkMocks.createSkillsAppClient).toHaveBeenCalledWith(expect.objectContaining({
+      baseUrl: 'https://gw.example',
+      authMode: 'dual-token',
+      tokenManager: sdkMocks.tokenManager,
+    }))
+    expect(sdkMocks.syncTokens).toHaveBeenCalledWith(session, '')
+    adapter.dispose()
+  })
+
+  it('forwards catalog inputs and remounts it when the signed-in identity changes', () => {
+    const h = harness({
+      baseUrl: 'https://gw.example',
+      session: { accessToken: 'token-a', context: { tenantId: 'tenant', userId: 'user-a' } },
+    })
+    const adapter = createMarketsHostRuntime(h)
+    adapter.start()
+    const onClearSearch = vi.fn()
+    const dispatchPrompt = vi.fn()
+    const onImportSkill = vi.fn()
+    const onAdded = vi.fn()
+    const onAddFailed = vi.fn()
+    const actions = adapter.skillsCatalog
+    const requestSignIn = () => { adapter.requestSignIn() }
+    const renderCatalog = (snapshot: ReturnType<typeof adapter.getHostSnapshot>) => (
+      createElement(SkillsCatalogSurface, {
+        t,
+        snapshot,
+        actions,
+        requestSignIn,
+        dispatchPrompt,
+        onImportSkill,
+        onAdded,
+        onAddFailed,
+        searchQuery: 'docs',
+        onClearSearch,
+      })
+    )
+    try {
+      const view = render(renderCatalog(adapter.getHostSnapshot()))
+      expect(view.getByText('skills-catalog')).toBeTruthy()
+      expect(skillsPage.render.mock.calls[0][0]).toMatchObject({
+        actions,
+        searchQuery: 'docs',
+        onClearSearch,
+        dispatchPrompt,
+        onImportSkill,
+        onAdded,
+        onAddFailed,
+        locale: 'zh-CN',
+      })
+      expect(skillsPage.render.mock.calls[0][0].actions).toBe(actions)
+
+      h.iam.controller.getState = () => ({
+        session: { accessToken: 'token-b', context: { tenantId: 'tenant', userId: 'user-b' } },
+      })
+      act(() => { h.fireIam() })
+      view.rerender(renderCatalog(adapter.getHostSnapshot()))
+      expect(skillsPage.render).toHaveBeenCalledTimes(2)
+      expect(skillsPage.render.mock.calls[1][0].actions).toBe(actions)
+    } finally {
+      adapter.dispose()
+    }
   })
 
   it('reads the composed snapshot from env, iam, and locale', () => {
@@ -427,11 +552,9 @@ describe('marketplaceInstallSpec', () => {
       baseUrl: 'https://gw.example',
       session: { accessToken: 'iam-token' },
     }))
-    const store = {
-      openInstall: vi.fn(),
-      runInstall: vi.fn().mockResolvedValue(undefined),
-    }
+    const store = settledStore()
     await adapter.getPluginsMarketplaceHost().install({
+      pluginKey: 'dsh-plugin',
       marketplaceMetadata: {
         provider: 'dsh-market',
         npmPackage: 'sdkwork-plugin',
@@ -440,6 +563,13 @@ describe('marketplaceInstallSpec', () => {
     } as never, store as never)
     expect(store.openInstall).toHaveBeenCalledWith('sdkwork-plugin@2.0.0')
     expect(store.runInstall).toHaveBeenCalledOnce()
+    expect(sdkMocks.pluginsClient.plugins.syncInstallation).toHaveBeenCalledWith('web-anonymous', {
+      pluginKey: 'dsh-plugin',
+      action: 'installed',
+      packageName: 'sdkwork-plugin',
+      version: '2.0.0',
+      installSpec: 'sdkwork-plugin@2.0.0',
+    })
     adapter.dispose()
   })
 
@@ -448,7 +578,7 @@ describe('marketplaceInstallSpec', () => {
       baseUrl: 'https://gw.example',
       session: { accessToken: 'iam-token' },
     }))
-    const store = { openInstall: vi.fn(), runInstall: vi.fn().mockResolvedValue(undefined) }
+    const store = settledStore()
     await adapter.getPluginsMarketplaceHost().install({
       pluginKey: 'dsh-demo',
       marketplaceMetadata: {
@@ -467,7 +597,7 @@ describe('marketplaceInstallSpec', () => {
       baseUrl: 'https://gw.example',
       session: { accessToken: 'iam-token' },
     }))
-    const store = { openInstall: vi.fn(), runInstall: vi.fn().mockResolvedValue(undefined) }
+    const store = settledStore()
     await adapter.getPluginsMarketplaceHost().install({
       pluginKey: 'dsh-demo',
       installTarget: { kind: 'registry', spec: 'demo-plugin@4.5.6', packageName: 'demo-plugin', packageVersion: '4.5.6', isDefault: true },
@@ -498,12 +628,108 @@ describe('marketplaceInstallSpec', () => {
       session: { accessToken: 'iam-token' },
     }))
     const host = adapter.getPluginsMarketplaceHost()
-    const store = { updatePlugin: vi.fn().mockResolvedValue(undefined), removePlugin: vi.fn().mockResolvedValue(undefined) }
+    const store = settledStore()
     const installation = { status: 'update-available' as const, packageName: 'demo-plugin', installedVersion: '1.0.0', version: '1.1.0' }
     await host.update({ pluginKey: 'dsh-demo' } as never, installation, store as never)
     expect(store.updatePlugin).toHaveBeenCalledWith('demo-plugin', '1.1.0')
     await host.remove({ pluginKey: 'dsh-demo' } as never, installation, store as never)
     expect(store.removePlugin).toHaveBeenCalledWith('demo-plugin')
+    expect(sdkMocks.pluginsClient.plugins.syncInstallation).toHaveBeenNthCalledWith(1, 'web-anonymous', {
+      pluginKey: 'dsh-demo',
+      action: 'updated',
+      packageName: 'demo-plugin',
+      version: '1.1.0',
+    })
+    expect(sdkMocks.pluginsClient.plugins.syncInstallation).toHaveBeenNthCalledWith(2, 'web-anonymous', {
+      pluginKey: 'dsh-demo',
+      action: 'removed',
+      packageName: 'demo-plugin',
+      version: '1.0.0',
+    })
+    adapter.dispose()
+  })
+
+  it('still synchronizes after a successful install when the roster refresh fails', async () => {
+    const adapter = createMarketsHostRuntime(harness({
+      baseUrl: 'https://gw.example',
+      session: { accessToken: 'iam-token' },
+    }))
+    const store = settledStore()
+    store.refresh.mockRejectedValueOnce(new Error('roster unavailable'))
+    await adapter.getPluginsMarketplaceHost().install({
+      pluginKey: 'dsh-demo',
+      marketplaceMetadata: { provider: 'dsh-market', npmPackage: 'demo-plugin', version: '1.0.0' },
+    } as never, store as never)
+    expect(sdkMocks.pluginsClient.plugins.syncInstallation).toHaveBeenCalledWith('web-anonymous', {
+      pluginKey: 'dsh-demo',
+      action: 'installed',
+      packageName: 'demo-plugin',
+      version: '1.0.0',
+      installSpec: 'demo-plugin@1.0.0',
+    })
+    adapter.dispose()
+  })
+
+  it('still synchronizes updates and removals when the roster refresh fails', async () => {
+    const adapter = createMarketsHostRuntime(harness({
+      baseUrl: 'https://gw.example',
+      session: { accessToken: 'iam-token' },
+    }))
+    const host = adapter.getPluginsMarketplaceHost()
+    const store = settledStore()
+    store.refresh.mockRejectedValue(new Error('roster unavailable'))
+    const installation = { status: 'update-available' as const, packageName: 'demo-plugin', installedVersion: '1.0.0', version: '1.1.0' }
+    await host.update({ pluginKey: 'dsh-demo' } as never, installation, store as never)
+    await host.remove({ pluginKey: 'dsh-demo' } as never, installation, store as never)
+    expect(sdkMocks.pluginsClient.plugins.syncInstallation).toHaveBeenNthCalledWith(1, 'web-anonymous', {
+      pluginKey: 'dsh-demo',
+      action: 'updated',
+      packageName: 'demo-plugin',
+      version: '1.1.0',
+    })
+    expect(sdkMocks.pluginsClient.plugins.syncInstallation).toHaveBeenNthCalledWith(2, 'web-anonymous', {
+      pluginKey: 'dsh-demo',
+      action: 'removed',
+      packageName: 'demo-plugin',
+      version: '1.0.0',
+    })
+    adapter.dispose()
+  })
+
+  it('names the Host by its device id, with a signed-in fallback', () => {
+    expect(marketHostId({ context: { deviceId: ' device-alpha ' } })).toBe('device-alpha')
+    expect(marketHostId({ context: { tenantId: 't1', userId: 'u1' } })).toBe('web-t1:u1')
+    expect(marketHostId(null)).toBe('web-anonymous')
+  })
+
+  it('does not persist a Host mutation the Host did not confirm', async () => {
+    const adapter = createMarketsHostRuntime(harness({
+      baseUrl: 'https://gw.example',
+      session: { accessToken: 'iam-token' },
+    }))
+    const store = settledStore('failed')
+    await adapter.getPluginsMarketplaceHost().install({
+      pluginKey: 'dsh-demo',
+      marketplaceMetadata: { provider: 'dsh-market', npmPackage: 'demo-plugin', version: '1.0.0' },
+    } as never, store as never)
+    expect(store.runInstall).toHaveBeenCalledOnce()
+    expect(store.refresh).not.toHaveBeenCalled()
+    expect(sdkMocks.pluginsClient.plugins.syncInstallation).not.toHaveBeenCalled()
+    adapter.dispose()
+  })
+
+  it('reports a database sync failure without changing the Host result', async () => {
+    sdkMocks.pluginsClient.plugins.syncInstallation.mockRejectedValueOnce(new Error('database offline'))
+    const adapter = createMarketsHostRuntime(harness({
+      baseUrl: 'https://gw.example',
+      session: { accessToken: 'iam-token' },
+    }))
+    const store = settledStore()
+    await expect(adapter.getPluginsMarketplaceHost().install({
+      pluginKey: 'dsh-demo',
+      marketplaceMetadata: { provider: 'dsh-market', npmPackage: 'demo-plugin', version: '1.0.0' },
+    } as never, store as never)).rejects.toBeInstanceOf(MarketSyncError)
+    expect(store.runInstall).toHaveBeenCalledOnce()
     adapter.dispose()
   })
 })

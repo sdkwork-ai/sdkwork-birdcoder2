@@ -22,7 +22,7 @@
   padding: 24px;
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
-  border: 0.5px solid var(--dsw-alias-border-l2);
+  border: 0;
   border-radius: 14px;
   background: var(--dsw-alias-bg-layer-1);
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.32);
@@ -89,9 +89,9 @@
   width: 100%;
   box-sizing: border-box;
   padding: 8px 10px;
-  border: 0.5px solid var(--dsw-alias-border-l2);
+  border: 0;
   border-radius: 8px;
-  background: var(--dsw-alias-bg-layer-2);
+  background: var(--dsw-alias-interactive-bg-hover);
   color: var(--dsw-alias-label-primary);
   font-family: inherit;
   font-size: 13px;
@@ -100,7 +100,11 @@
 }
 
 .input::placeholder { color: var(--dsw-alias-label-tertiary); }
-.input:focus { outline: none; border-color: var(--dsw-alias-border-l3); }
+.input:focus {
+  background: var(--dsw-alias-interactive-bg-active);
+  outline: 1px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 0;
+}
 
 .footer {
   display: flex;
@@ -123,21 +127,21 @@
 }
 
 .cancel {
-  border: 0.5px solid var(--dsw-alias-border-l2);
-  background: transparent;
+  border: 0;
+  background: var(--dsw-alias-interactive-bg-hover);
   color: var(--dsw-alias-label-primary);
 }
 
-.cancel:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.cancel:hover { background: var(--dsw-alias-interactive-bg-active); }
 
 .submit {
-  border: 1px solid transparent;
-  background: var(--dsw-alias-interactive-bg-active);
-  color: var(--dsw-alias-label-primary);
+  border: 0;
+  background: var(--dsw-alias-button-primary-fill);
+  color: var(--dsw-alias-label-primary-foreground);
 }
 
-.submit:hover { border-color: var(--dsw-alias-border-l3); }
-.submit:disabled { opacity: 0.45; cursor: default; border-color: transparent; }
+.submit:hover:not(:disabled) { background: var(--dsw-alias-button-primary-hover); }
+.submit:disabled { opacity: 0.45; cursor: default; }
 
 .chips { display: flex; gap: 6px; }
 
@@ -145,7 +149,7 @@
   flex: 1;
   height: 30px;
   padding: 0 10px;
-  border: 0.5px solid var(--dsw-alias-border-l2);
+  border: 0;
   border-radius: 8px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
@@ -158,7 +162,6 @@
 .chip:hover { background: var(--dsw-alias-interactive-bg-hover); }
 
 .chipActive {
-  border-color: var(--dsw-alias-border-l3);
   background: var(--dsw-alias-interactive-bg-active);
   color: var(--dsw-alias-label-primary);
 }

@@ -264,7 +264,7 @@ export function createPluginStore(ctx: ClientContext): PluginStore {
         last.error?.diagnostic ?? `pluginManager.updateBundle: ${name}@${version}`,
       )
     }
-    await refresh()
+    void refresh().catch(() => {})
   }
 
   /** Uninstall an installed catalog dependency and publish the new tree. */
@@ -276,7 +276,7 @@ export function createPluginStore(ctx: ClientContext): PluginStore {
         result.error?.diagnostic ?? `pluginManager.removeBundle: ${name}`,
       )
     }
-    await refresh()
+    void refresh().catch(() => {})
   }
 
   /** Fold one settled ChangeResult onto the session, then re-read the tree. */
@@ -324,7 +324,7 @@ export function createPluginStore(ctx: ClientContext): PluginStore {
     // the Host's own reason, an accepted one proceeds to the install.
     setInstall({ ...current, phase: 'checking', problem: undefined, inspection: undefined, detail: undefined, log: [] })
     try {
-      const inspected = await unwrap(() => ctx.remote.pluginManager.inspect(spec), 'pluginManager.inspect')
+      const inspected = await unwrap(() => ctx.remote.pluginManager.inspect(spec, {}), 'pluginManager.inspect')
       const live = install ?? current
       if (inspected.status === 'refused') {
         setInstall({ ...live, phase: 'ready', problem: { problem: inspected.problem, reason: inspected.reason } })
@@ -360,7 +360,7 @@ export function createPluginStore(ctx: ClientContext): PluginStore {
     if (current === undefined) return
     setInstall({ ...current, phase: 'checking', problem: undefined, inspection: undefined, detail: undefined })
     try {
-      const inspection = await unwrap(() => ctx.remote.pluginManager.inspect(current.spec), 'pluginManager.inspect')
+      const inspection = await unwrap(() => ctx.remote.pluginManager.inspect(current.spec, {}), 'pluginManager.inspect')
       const live = install ?? current
       if (inspection.status === 'refused') {
         setInstall({ ...live, phase: 'ready', problem: { problem: inspection.problem, reason: inspection.reason } })

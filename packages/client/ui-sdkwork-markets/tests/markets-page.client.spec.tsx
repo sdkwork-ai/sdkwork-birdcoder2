@@ -24,6 +24,8 @@ import type {
   PluginSpecInspection,
 } from '@deepseek-ai/dsh-api-remotes/client'
 import { MarketsPage, type MarketsPageProps } from '../src/client/MarketsPage.tsx'
+import type { MarketsHostRenderSnapshot } from '../src/client/marketsHost.ts'
+import type { SkillsCatalogActions } from '../src/client/SkillsCatalogPage.tsx'
 import type { ConfigLedger, OfficialItem } from '../src/client/configItems.ts'
 import type { MarketsConfigForms } from '../src/client/settingsForms.ts'
 import { emptyInstallSession, type PluginStore, type PluginReadState, type PluginStoreState } from '../src/client/pluginStore.ts'
@@ -32,33 +34,59 @@ const useSessionStatus: GlobalStandardProps['useSessionStatus'] = selector => se
 
 // The embedded SDKWork market page is mocked: its panel copy is rendered
 // verbatim so assertions read the page contract without the App Store stack.
-vi.mock('../src/client/marketsHost.ts', () => ({
-  MarketsApp: ({ page, t, searchQuery }: {
-    page: string
-    t: (key: string) => string
-    searchQuery?: string
-  }) => (
-    <div
-      data-testid={`markets-app-${page}`}
-      {...(searchQuery === undefined ? {} : { 'data-search-query': searchQuery })}
-    >
-      Market surface {page} {t(`panel.${page}.empty`)}
-    </div>
-  ),
-  SdkworkPluginsMarketplace: (props: {
-    onManage: () => void
-    onAdd: () => void
-    onSectionChange: (section: 'plugins' | 'skills' | 'partners') => void
-  }) => (
-    <div data-sdkwork-marketplace="">
-      <button type="button" onClick={props.onManage}>market.manage</button>
-      <button type="button" onClick={props.onAdd}>market.add</button>
-      <button type="button" onClick={() => { props.onSectionChange('plugins') }}>market.plugins</button>
-      <button type="button" onClick={() => { props.onSectionChange('skills') }}>market.skills</button>
-      <button type="button" onClick={() => { props.onSectionChange('partners') }}>market.partners</button>
-    </div>
-  ),
-}))
+vi.mock('../src/client/marketsHost.ts', async () => {
+  const { SkillsAdd } = await import('../src/client/SkillsAdd.tsx')
+  return {
+    MarketsApp: ({ page, t, searchQuery }: {
+      page: string
+      t: (key: string) => string
+      searchQuery?: string
+    }) => (
+      <div
+        data-testid={`markets-app-${page}`}
+        {...(searchQuery === undefined ? {} : { 'data-search-query': searchQuery })}
+      >
+        Market surface {page} {t(`panel.${page}.empty`)}
+      </div>
+    ),
+    SkillsCatalogSurface: ({ searchQuery, t, dispatchPrompt, onImportSkill, onShowSkillMarket }: {
+      searchQuery?: string
+      t: (key: string) => string
+      dispatchPrompt: (text: string) => void
+      onImportSkill: () => void
+      onShowSkillMarket?: () => void
+    }) => (
+      <div
+        data-testid="markets-app-skills"
+        {...(searchQuery === undefined ? {} : { 'data-search-query': searchQuery })}
+      >
+        Market surface skills {t('panel.skills.empty')}
+        <SkillsAdd
+          t={t}
+          dispatchPrompt={dispatchPrompt}
+          onImportSkill={onImportSkill}
+          {...(onShowSkillMarket === undefined ? {} : { onShowSkillMarket })}
+        />
+      </div>
+    ),
+    SdkworkPluginsMarketplace: (props: {
+      onManage: () => void
+      onAdd: () => void
+      onSectionChange: (section: 'plugins' | 'skills' | 'partners') => void
+    }) => (
+      <div data-sdkwork-marketplace="">
+        <div data-market-toolbar="">
+          <input type="search" aria-label="market.search" placeholder="market.search" />
+          <button type="button" onClick={props.onManage}>market.manage</button>
+          <button type="button" onClick={props.onAdd}>market.add</button>
+        </div>
+        <button type="button" onClick={() => { props.onSectionChange('plugins') }}>market.plugins</button>
+        <button type="button" onClick={() => { props.onSectionChange('skills') }}>market.skills</button>
+        <button type="button" onClick={() => { props.onSectionChange('partners') }}>market.partners</button>
+      </div>
+    ),
+  }
+})
 
 // The embedded SDKWork create-expert flow is mocked for the same reason: the
 // my-experts body renders without the Agents PC stack.
@@ -121,6 +149,9 @@ const onBundleRequestHandled = vi.fn()
 // The doubles are module-level; clear the per-test tally.
 beforeEach(() => {
   dispatchPrompt.mockClear()
+  requestSignIn.mockClear()
+  onSkillAdded.mockClear()
+  onSkillAddFailed.mockClear()
   onConfigure.mockClear()
   onBundleRequestHandled.mockClear()
   clearStoreDoubles()
@@ -438,6 +469,27 @@ function ledgerDouble(items: readonly OfficialItem[], registered: {
   return { getSnapshot: () => snapshot, subscribe: () => () => {} }
 }
 
+/** Host and Skills doubles: page tests do not execute the catalog requests. */
+const hostSnapshot: MarketsHostRenderSnapshot = {
+  environmentRevision: 1,
+  identityKey: 'test-user',
+  apiBaseUrl: 'https://fixture.example',
+  accessToken: '',
+  locale: 'en',
+  session: null,
+  authenticated: true,
+}
+const skillsCatalog: SkillsCatalogActions = {
+  listMarketplace: vi.fn<SkillsCatalogActions['listMarketplace']>(),
+  listCategories: vi.fn<SkillsCatalogActions['listCategories']>(),
+  listInstallations: vi.fn<SkillsCatalogActions['listInstallations']>(),
+  listArtifacts: vi.fn<SkillsCatalogActions['listArtifacts']>(),
+  createInstallation: vi.fn<SkillsCatalogActions['createInstallation']>(),
+}
+const requestSignIn = vi.fn()
+const onSkillAdded = vi.fn()
+const onSkillAddFailed = vi.fn()
+
 function page(options: {
   managementAvailable?: boolean
   bundles?: readonly BundleInfo[]
@@ -491,6 +543,11 @@ function page(options: {
       mode="markets"
       t={options.translate ?? t}
       dispatchPrompt={dispatchPrompt}
+      useHostSnapshot={bindSnapshotSelector(createSnapshotStore(hostSnapshot))}
+      skillsCatalog={skillsCatalog}
+      requestSignIn={requestSignIn}
+      onSkillAdded={onSkillAdded}
+      onSkillAddFailed={onSkillAddFailed}
       store={store}
       ledger={ledgerDouble(items, options.registered)}
       configForms={configFormsDouble(options.served ?? servedNamespaces)}
@@ -631,12 +688,14 @@ describe('MarketsPage', () => {
     })
     expect(view.container.querySelector('[data-mode-page="markets"]')).not.toBeNull()
     expect(view.container.querySelector('[data-sdkwork-marketplace]')).not.toBeNull()
+    expect(view.container.querySelector('[data-plugin-market]')).not.toBeNull()
     expect(view.container.querySelector('[data-markets-tab]')).toBeNull()
     const tabList = view.getByRole('tablist', { name: 'tabs.label' })
     const tabs = Array.from(tabList.querySelectorAll<HTMLElement>('[role="tab"]'))
     expect(tabs.map(tab => tab.textContent)).toEqual(['插件', '专家', '技能', '连接器'])
     expect(tabs.map(tab => tab.getAttribute('aria-selected'))).toEqual(['true', 'false', 'false', 'false'])
-    expect(view.queryByRole('searchbox')).toBeNull()
+    expect(view.getByRole('searchbox', { name: 'market.search' })).not.toBeNull()
+    expect(view.container.querySelector('[data-market-toolbar]')).not.toBeNull()
 
     fireEvent.keyDown(tabs[0], { key: 'ArrowRight' })
     expect(tabs[1].getAttribute('aria-selected')).toBe('true')
@@ -1215,7 +1274,7 @@ describe('MarketsPage', () => {
     expect(dispatchPrompt).not.toHaveBeenCalled()
   })
 
-  it('dispatches the find-skills prompt with the query on Enter in the skills search', () => {
+  it('filters the cloud skills catalog on Enter without dispatching a conversation prompt', () => {
     const view = page()
     clickTab(view, 'tab.skills')
     // The search field belongs to the cloud catalog's tools; the market chip
@@ -1224,11 +1283,11 @@ describe('MarketsPage', () => {
     const search = view.getByRole('searchbox', { name: 'search.skills' })
     fireEvent.change(search, { target: { value: 'pdf' } })
     fireEvent.keyDown(search, { key: 'Enter' })
-    expect(dispatchPrompt).toHaveBeenCalledTimes(1)
-    expect(dispatchPrompt).toHaveBeenCalledWith('prompt.skills.find')
-    // Non-Enter keys never dispatch.
+    expect(view.getByTestId('markets-app-skills').getAttribute('data-search-query')).toBe('pdf')
+    expect(dispatchPrompt).not.toHaveBeenCalled()
+    // Other keys never dispatch either.
     fireEvent.keyDown(search, { key: 'a' })
-    expect(dispatchPrompt).toHaveBeenCalledTimes(1)
+    expect(dispatchPrompt).not.toHaveBeenCalled()
   })
 
   it('splits the official tab into the official and installed bundle groups', async () => {

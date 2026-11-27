@@ -14,7 +14,7 @@
  * ({@link MarketsHostRuntime.requestSignIn}).
  */
 import { createElement, Fragment, useState, useSyncExternalStore, type FC, type ReactNode } from 'react'
-import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import type { HostObservable, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { SdkworkHostThemeSurface, type HostThemeBridge } from './sdkworkHostThemeSurface.tsx'
 import { MarketsAuthSurface } from './MarketsAuthSurface.tsx'
 import { MarketsEmptySurface } from './MarketsEmptySurface.tsx'
@@ -31,12 +31,16 @@ import { createPluginsAppClient } from '@sdkwork/plugins-app-sdk'
 import { MarketplacePage, type MarketplaceInstallationState } from '@sdkwork/plugins-pc-marketplace'
 import type { SdkworkDriveAppClient } from '@sdkwork/drive-app-sdk'
 import { createDriveAppClient } from '@sdkwork/drive-app-sdk'
+import type { SdkworkSkillsAppClient } from '@sdkwork/skills-app-sdk'
+import { createSkillsAppClient } from '@sdkwork/skills-app-sdk'
 import { syncSdkworkGlobalTokenManager } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
 import { parsePluginSource, pluginSourceSpec, parsePluginSourceSpec } from '@deepseek-ai/dsh-plugin-manager/source'
 import type { PluginStore } from './pluginStore.ts'
 import type { MarketsKey } from './locales.ts'
+import { SkillsCatalogPage, type SkillsCatalogActions } from './SkillsCatalogPage.tsx'
 import {
-  installTargetOf, type MarketplaceInstallation,
+  catalogPackageName, catalogVersion, findInstallation, installTargetOf,
+  type MarketplaceInstallation,
 } from './pluginInstallation.ts'
 import css from './MarketsPage.module.css'
 
@@ -204,6 +208,33 @@ export class MarketInstallError extends Error {
     super(detail ?? problem)
     this.name = 'MarketInstallError'
   }
+}
+
+/**
+ * A Host mutation that succeeded but whose catalog record could not be
+ * persisted. The local operation already happened, so this is reported apart
+ * from a failed mutation and never changes the Host result.
+ */
+export class MarketSyncError extends Error {
+  constructor(detail: string) {
+    super(detail)
+    this.name = 'MarketSyncError'
+  }
+}
+
+/**
+ * Stable identifier for the Host a catalog mutation came from. The IAM
+ * context's device id is the installation identity; a browser session without
+ * one falls back to the signed-in `tenant:user`, so the same person on the
+ * same build keeps one installation history.
+ * @param session - current host IAM session, or null when none exists.
+ * @returns a 1–128 character Host id accepted by the Plugins API.
+ */
+export function marketHostId(session: MarketsHostSession | null | undefined): string {
+  const deviceId = session?.context?.deviceId?.trim()
+  if (deviceId !== undefined && deviceId !== '' && deviceId.length <= 128) return deviceId
+  const identity = hostIdentityKey(session)
+  return identity === '' ? 'web-anonymous' : `web-${identity}`
 }
 
 /** The source metadata imported from the dsh-market catalog. */
@@ -428,9 +459,15 @@ export function toMarketsSession(
   }
 }
 
-/** Lifecycle handle returned after configuring the SDKWork host. */
+/** Stable callbacks and live data supplied to the Markets page. */
 export interface MarketsHostAdapter {
-  /** Dispose environment and IAM subscriptions. */
+  /** Host environment, identity, locale, and authentication snapshot. */
+  readonly hooks: { readonly hostSnapshot: HostObservable<MarketsHostRenderSnapshot> }
+  /** Skills API calls; the SDK client is created only when a call runs. */
+  readonly skillsCatalog: SkillsCatalogActions
+  /** Open the application's own sign-in surface from a catalog's gate. */
+  requestSignIn(): void
+  /** Dispose environment, IAM, and locale subscriptions. */
   dispose(): void
 }
 
@@ -454,9 +491,9 @@ export interface MarketsHostRuntime extends MarketsHostAdapter {
   resolveHostLanguage(): string
   /** @returns the render snapshot for the embedded host component. */
   getHostSnapshot(): MarketsHostRenderSnapshot
+  /** @returns the cached Skills SDK client bound to shared IAM credentials. */
+  getSkillsCatalogClient(): SdkworkSkillsAppClient
   getPluginsMarketplaceHost(): PluginsMarketplaceHost
-  /** Open the application's own sign-in surface from a catalog's gate. */
-  requestSignIn(): void
 }
 
 /** Host adapter implementation and SDKWork host prop owner. */
@@ -470,8 +507,25 @@ class MarketsHostRuntimeImpl implements MarketsHostRuntime {
   private disposed = false
   private pluginsClient: SdkworkPluginsAppClient | undefined
   private pluginsClientBaseUrl: string | undefined
+  private skillsClient: SdkworkSkillsAppClient | undefined
+  private skillsClientBaseUrl: string | undefined
   private driveClient: SdkworkDriveAppClient | undefined
   private driveClientBaseUrl: string | undefined
+
+  readonly hooks: MarketsHostAdapter['hooks'] = {
+    hostSnapshot: {
+      getSnapshot: () => this.getHostSnapshot(),
+      subscribe: listener => this.subscribe(listener),
+    },
+  }
+
+  readonly skillsCatalog: SkillsCatalogActions = {
+    listMarketplace: (...args) => this.getSkillsCatalogClient().skills.marketplace.list(...args),
+    listCategories: (...args) => this.getSkillsCatalogClient().skills.skillCategories.list(...args),
+    listInstallations: (...args) => this.getSkillsCatalogClient().skills.skillInstallations.list(...args),
+    listArtifacts: (...args) => this.getSkillsCatalogClient().skills.skillPackages.artifacts.list(...args),
+    createInstallation: (...args) => this.getSkillsCatalogClient().skills.skillPackages.installations.create(...args),
+  }
 
   constructor(private readonly options: ConfigureMarketsHostOptions) {}
 
@@ -548,6 +602,23 @@ class MarketsHostRuntimeImpl implements MarketsHostRuntime {
     return this.cachedSnapshot
   }
 
+  /** Build or reuse the generated Skills client for this host. */
+  getSkillsCatalogClient(): SdkworkSkillsAppClient {
+    const baseUrl = this.options.env.apiBaseUrl().trim()
+    const session = this.options.iam.controller.getState().session
+    syncSdkworkGlobalTokenManager(session, this.options.env.accessToken())
+    if (baseUrl === '') throw new Error('ui-sdkwork-markets: SDKWork base URL is not configured')
+    if (this.skillsClient === undefined || this.skillsClientBaseUrl !== baseUrl) {
+      this.skillsClientBaseUrl = baseUrl
+      this.skillsClient = createSkillsAppClient({
+        baseUrl,
+        authMode: 'dual-token',
+        tokenManager: getSdkworkGlobalTokenManager(),
+      })
+    }
+    return this.skillsClient
+  }
+
   /** Build or reuse the generated Plugins and Drive clients for this host. */
   getPluginsMarketplaceHost(): PluginsMarketplaceHost {
     const baseUrl = this.options.env.apiBaseUrl().trim()
@@ -583,8 +654,21 @@ class MarketsHostRuntimeImpl implements MarketsHostRuntime {
           return
         }
         const spec = await this.resolveInstallSpec(plugin, client, driveClient)
-        store.openInstall(await pinMarketplaceGitSpec(plugin, spec))
+        const pinned = await pinMarketplaceGitSpec(plugin, spec)
+        store.openInstall(pinned)
         await store.runInstall()
+        const settled = store.getSnapshot().install
+        if (settled?.phase !== 'done') return
+        await store.refresh().catch(() => {})
+        const catalogInstallation = this.installedCatalogRecord(plugin, store)
+        const target = installTargetOf(plugin)
+        const packageName = catalogInstallation?.packageName ?? catalogPackageName(plugin) ?? target?.packageName ?? undefined
+        const version = catalogInstallation?.installedVersion ?? catalogVersion(plugin) ?? target?.packageVersion ?? undefined
+        await this.syncInstallation(client, 'installed', plugin, {
+          ...(packageName === undefined ? {} : { packageName }),
+          ...(version === undefined ? {} : { version }),
+          installSpec: pinned,
+        })
       },
       update: async (plugin, installation, store) => {
         if (!canInstall) {
@@ -594,14 +678,68 @@ class MarketsHostRuntimeImpl implements MarketsHostRuntime {
         const version = installation.version
         if (version === undefined) throw new MarketInstallError('no-target', 'the catalog declares no version')
         await store.updatePlugin(installation.packageName, version)
+        await store.refresh().catch(() => {})
+        const catalogInstallation = this.installedCatalogRecord(plugin, store)
+        const installSpec = installTargetOf(plugin)?.spec ?? marketplaceInstallSpec(plugin)
+        const installedVersion = catalogInstallation?.installedVersion ?? version
+        await this.syncInstallation(client, 'updated', plugin, {
+          packageName: installation.packageName,
+          ...(installedVersion === undefined ? {} : { version: installedVersion }),
+          ...(installSpec === undefined ? {} : { installSpec }),
+        })
       },
-      remove: async (_plugin, installation, store) => {
+      remove: async (plugin, installation, store) => {
         if (!canInstall) {
           this.requestSignIn()
           return
         }
         await store.removePlugin(installation.packageName)
+        await store.refresh().catch(() => {})
+        await this.syncInstallation(client, 'removed', plugin, {
+          packageName: installation.packageName,
+          ...(installation.installedVersion === undefined ? {} : { version: installation.installedVersion }),
+        })
       },
+    }
+  }
+
+  /** Join the catalog record with the bundle roster of the last Host read. */
+  private installedCatalogRecord(
+    plugin: PluginRecord,
+    store: PluginStore,
+  ): MarketplaceInstallation | undefined {
+    const state = store.getSnapshot()
+    return state.read.status === 'ready'
+      ? findInstallation(plugin, state.read.snapshot.bundles)
+      : undefined
+  }
+
+  /**
+   * Persist one confirmed Host mutation with its catalog snapshot. Only called
+   * after the Host reported success; a database refusal is reported as
+   * {@link MarketSyncError} so it cannot be mistaken for a failed install.
+   */
+  private async syncInstallation(
+    client: SdkworkPluginsAppClient,
+    action: 'installed' | 'updated' | 'removed',
+    plugin: PluginRecord,
+    facts: { packageName?: string; version?: string; installSpec?: string },
+  ): Promise<void> {
+    const pluginKey = plugin.pluginKey.trim()
+    if (pluginKey === '') throw new MarketSyncError('the catalog record has no plugin key')
+    try {
+      await client.plugins.syncInstallation(
+        marketHostId(this.options.iam.controller.getState().session),
+        {
+          pluginKey,
+          action,
+          ...(facts.packageName === undefined ? {} : { packageName: facts.packageName }),
+          ...(facts.version === undefined ? {} : { version: facts.version }),
+          ...(facts.installSpec === undefined ? {} : { installSpec: facts.installSpec }),
+        },
+      )
+    } catch (error) {
+      throw new MarketSyncError(error instanceof Error ? error.message : String(error))
     }
   }
 
@@ -652,6 +790,8 @@ class MarketsHostRuntimeImpl implements MarketsHostRuntime {
     this.offLocale = undefined
     this.pluginsClient = undefined
     this.pluginsClientBaseUrl = undefined
+    this.skillsClient = undefined
+    this.skillsClientBaseUrl = undefined
     this.driveClient = undefined
     this.driveClientBaseUrl = undefined
     this.listeners.clear()
@@ -790,6 +930,52 @@ export function MarketsApp(props: MarketsAppProps): ReactNode {
   )
 }
 
+/** Props for the BirdCoder cloud Skills catalog. */
+export interface SkillsCatalogSurfaceProps {
+  snapshot: MarketsHostRenderSnapshot
+  actions: SkillsCatalogActions
+  requestSignIn: () => void
+  dispatchPrompt: (text: string) => void
+  onImportSkill: () => void
+  onShowSkillMarket?: () => void
+  onClearSearch?: () => void
+  onAdded: (name: string) => void
+  onAddFailed: () => void
+  searchQuery?: string
+  t: TranslateNS<'markets'>
+}
+
+/** Render the cloud Skills catalog from its framework-bound host snapshot. */
+export function SkillsCatalogSurface({
+  snapshot,
+  actions,
+  requestSignIn,
+  dispatchPrompt,
+  onImportSkill,
+  onShowSkillMarket,
+  onClearSearch,
+  onAdded,
+  onAddFailed,
+  searchQuery,
+  t,
+}: SkillsCatalogSurfaceProps): ReactNode {
+  if (snapshot.apiBaseUrl === '') return createElement(MarketsEmptySurface, { t })
+  if (!snapshot.authenticated) return createElement(MarketsAuthSurface, { t, onSignIn: requestSignIn })
+  return createElement(SkillsCatalogPage, {
+    key: `${snapshot.environmentRevision}:${snapshot.identityKey}`,
+    actions,
+    ...(searchQuery === undefined ? {} : { searchQuery }),
+    locale: snapshot.locale,
+    t,
+    dispatchPrompt,
+    onImportSkill,
+    ...(onShowSkillMarket === undefined ? {} : { onShowSkillMarket }),
+    ...(onClearSearch === undefined ? {} : { onClearSearch }),
+    onAdded,
+    onAddFailed,
+  })
+}
+
 /** Props for the SDKWork Plugins marketplace hosted in the Plugins tab. */
 export interface SdkworkPluginsMarketplaceProps {
   t: TranslateNS<'markets'>
@@ -831,6 +1017,10 @@ export function SdkworkPluginsMarketplace({
   const canInstall = host.canInstall && managementAvailable && !installBusy
   const translate = t as (key: MarketsKey, params?: Record<string, string>) => string
   const fail = (error: unknown): void => {
+    if (error instanceof MarketSyncError) {
+      setInstallFailure({ key: 'market.sync.failed', detail: error.message })
+      return
+    }
     if (error instanceof MarketInstallError) {
       setInstallFailure({
         key: `market.install.problem.${error.problem}` as MarketsKey,
@@ -869,7 +1059,7 @@ export function SdkworkPluginsMarketplace({
   }
   return createElement(
     SdkworkHostThemeSurface,
-    { theme: adapter.readThemeBridge(), surface: 'markets-plugins' },
+    { theme: adapter.readThemeBridge(), surface: 'markets-plugins', className: css.pluginMarketplace },
     createElement(
       Fragment,
       null,

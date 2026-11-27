@@ -16,6 +16,9 @@
       "path": "../runtime"
     },
     {
+      "path": "../store"
+    },
+    {
       "path": "../ui-sdkwork-app-modes"
     },
     {

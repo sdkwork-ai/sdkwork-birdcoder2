@@ -243,7 +243,7 @@ export function PluginInstallDialog({ t, store, install }: PluginInstallDialogPr
                       <span className={css.guideHint}>{t(hintKey)}</span>
                     </div>
                     <Button
-                      variant="outline"
+                      variant="toolbar"
                       size="sm"
                       aria-label={t('install.guide.fillAria', { example: t(exampleKey) })}
                       disabled={checking}
@@ -361,7 +361,7 @@ export function PluginInstallDialog({ t, store, install }: PluginInstallDialogPr
             {pending
               ? (
                 <Button
-                  variant="outline"
+                  variant="toolbar"
                   size="sm"
                   disabled={phase !== 'installing'}
                   data-install-cancel

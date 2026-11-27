@@ -625,7 +625,7 @@ export const CARD_SETTINGS_CSS = `
 .aag-chips::-webkit-scrollbar{display:none}
 .aag-chip{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;height:30px;padding:0 12px;border:0;border-radius:999px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;line-height:18px;white-space:nowrap;cursor:pointer;transition:background 120ms ease,color 120ms ease}
 .aag-chip:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
-.aag-chip-active,.aag-chip-active:hover{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-on-brand,#fff)}
+.aag-chip-active,.aag-chip-active:hover{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-brand-primary-invert,#fff)}
 .aag-sort-chips{display:flex;align-items:center;gap:6px;flex:0 0 auto;flex-wrap:wrap}
 .aag-sort-label{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px}
 `

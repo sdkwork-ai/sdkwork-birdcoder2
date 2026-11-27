@@ -16,9 +16,11 @@ import type {
 } from '@deepseek-ai/dsh-client-ui-sdkwork-markets/client'
 import { MarketsAction } from '../src/client/MarketsAction.tsx'
 import { MarketsPage } from '../src/client/MarketsPage.tsx'
+import { SkillsToast } from '../src/client/SkillsToast.tsx'
 
 const ACTIONS = 'sidebar.actions'
 const PAGE = 'mode.page'
+const OVERLAY = 'shell.overlay'
 
 async function bench(declare = true) {
   const ctx = new Context()
@@ -52,11 +54,13 @@ async function bench(declare = true) {
     subscribe: () => () => {},
   }
   ctx.provide('env', env)
+  const openSignIn = vi.fn()
   const iam = {
     controller: {
       getState: () => ({ session: null }),
       subscribe: () => () => {},
     },
+    openSignIn,
   }
   ctx.provide('iam', iam)
   const theme = {
@@ -140,6 +144,7 @@ async function bench(declare = true) {
         children: {
           'sidebar': { kind: 'single', scope: 'root' },
           [PAGE]: { kind: 'keyed', scope: 'root' },
+          [OVERLAY]: { kind: 'list', scope: 'root' },
           // The frame declares the keyed `main` seat the SkillHub market (and
           // every other global panel) registers into; this bench stands in for
           // that declaration so a panel registration can be exercised.
@@ -153,7 +158,7 @@ async function bench(declare = true) {
       () => null,
     )
   }
-  return { ctx, slots, layout, sessions, workspaces, manager: pluginManager, remote, sdkworkSidebar }
+  return { ctx, slots, layout, sessions, workspaces, manager: pluginManager, remote, sdkworkSidebar, openSignIn }
 }
 describe('ui-sdkwork-markets apply', () => {
   it('declares the services it uses', () => {
@@ -175,6 +180,10 @@ describe('ui-sdkwork-markets apply', () => {
     const [page] = b.slots.entries(PAGE)
     expect(page?.options.key).toBe('markets')
     expect(page?.component).toBe(MarketsPage)
+    const [toast] = b.slots.entries(OVERLAY)
+    expect(toast?.options.id).toBe('sdkwork-skills.toast')
+    expect(toast?.component).toBe(SkillsToast)
+    expect(toast?.locale).toBe('markets')
     // The market page declares the seven seats upstream's Plugins page
     // declared. That page is disabled in this composition, so without these
     // declarations the registrants have nowhere to land and the official group
@@ -190,6 +199,14 @@ describe('ui-sdkwork-markets apply', () => {
     const injected = (page.inject as unknown as () => MarketsPageInjected)()
     expect(injected.mode).toBe('markets')
     expect(typeof injected.dispatchPrompt).toBe('function')
+    expect(injected.hooks.hostSnapshot.getSnapshot()).toMatchObject({ authenticated: false })
+    expect(typeof injected.skillsCatalog.listMarketplace).toBe('function')
+    expect(typeof injected.skillsCatalog.createInstallation).toBe('function')
+    expect(typeof injected.requestSignIn).toBe('function')
+    injected.requestSignIn()
+    expect(b.openSignIn).toHaveBeenCalledOnce()
+    expect(typeof injected.onSkillAdded).toBe('function')
+    expect(typeof injected.onSkillAddFailed).toBe('function')
     // The upstream navigation contract this page took over: `pluginNavigation`
     // is provided beside the page declaration (the only production consumer is
     // voice input, which opens its own bundle's configuration through it) and
@@ -286,7 +303,7 @@ describe('ui-sdkwork-markets apply', () => {
     b.slots.register(
       {
         name: 'root',
-        children: { [PAGE]: { kind: 'keyed', scope: 'root' } },
+        children: { [PAGE]: { kind: 'keyed', scope: 'root' }, [OVERLAY]: { kind: 'list', scope: 'root' } },
       } as never,
       () => null,
     )
@@ -421,8 +438,10 @@ describe('ui-sdkwork-markets apply', () => {
     await fiber.await()
     expect(b.slots.entries(ACTIONS)).toHaveLength(1)
     expect(b.slots.entries(PAGE)).toHaveLength(1)
+    expect(b.slots.entries(OVERLAY)).toHaveLength(1)
     await fiber.dispose()
     expect(b.slots.entries(ACTIONS)).toHaveLength(0)
     expect(b.slots.entries(PAGE)).toHaveLength(0)
+    expect(b.slots.entries(OVERLAY)).toHaveLength(0)
   })
 })

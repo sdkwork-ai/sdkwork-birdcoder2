@@ -27,7 +27,7 @@
      card scrolls while sitting on its own layer, so the l2 pair is bound. */
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
-  border: 0.5px solid var(--dsw-alias-border-l2);
+  border: 0;
   border-radius: 14px;
   background: var(--dsw-alias-bg-layer-1);
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.32);
@@ -64,8 +64,9 @@
   color: var(--dsw-alias-label-primary);
 }
 
-/* The dropzone: the dashed pick target that also accepts drops; a picked
-   file's name replaces the placeholder copy. */
+/* The dropzone: the pick target that also accepts drops; a picked file's name
+   replaces the placeholder copy. It reads as a filled region rather than a
+   dashed frame, and the drag-over state lifts it to the selected wash. */
 .dropzone {
   display: flex;
   flex-direction: column;
@@ -74,9 +75,9 @@
   gap: 10px;
   min-height: 132px;
   padding: 20px;
-  border: 1px dashed var(--dsw-alias-border-l3);
+  border: 0;
   border-radius: 10px;
-  background: var(--dsw-alias-bg-layer-2);
+  background: var(--dsw-alias-interactive-bg-hover);
   color: var(--dsw-alias-label-secondary);
   text-align: center;
   cursor: pointer;
@@ -84,12 +85,11 @@
 
 .dropzone:hover,
 .dropzone[data-drag-over] {
-  border-color: var(--dsw-alias-border-l4, var(--dsw-alias-border-l3));
-  background: var(--dsw-alias-interactive-bg-hover);
+  background: var(--dsw-alias-interactive-bg-active);
 }
 
 .dropzone:focus-visible {
-  outline: 2px solid var(--dsw-alias-border-l3);
+  outline: 2px solid var(--dsw-alias-state-business-primary);
   outline-offset: 2px;
 }
 
@@ -189,23 +189,23 @@
 }
 
 .cancel {
-  border: 0.5px solid var(--dsw-alias-border-l2);
-  background: transparent;
+  border: 0;
+  background: var(--dsw-alias-interactive-bg-hover);
   color: var(--dsw-alias-label-primary);
 }
 
 .cancel:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
+  background: var(--dsw-alias-interactive-bg-active);
 }
 
 .submit {
-  border: 1px solid transparent;
-  background: var(--dsw-alias-interactive-bg-active);
-  color: var(--dsw-alias-label-primary);
+  border: 0;
+  background: var(--dsw-alias-button-primary-fill);
+  color: var(--dsw-alias-label-primary-foreground);
 }
 
-.submit:hover {
-  border-color: var(--dsw-alias-border-l3);
+.submit:hover:not(:disabled) {
+  background: var(--dsw-alias-button-primary-hover);
 }
 
 /* The gated submit: a picked file is required, so an empty state keeps the
@@ -213,5 +213,4 @@
 .submit:disabled {
   opacity: 0.45;
   cursor: default;
-  border-color: transparent;
 }

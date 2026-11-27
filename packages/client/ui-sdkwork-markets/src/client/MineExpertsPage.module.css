@@ -77,14 +77,16 @@
   width: 220px;
   height: 30px;
   padding: 0 10px;
-  border: 0.5px solid var(--dsw-alias-border-l2);
+  border: 0;
   border-radius: 8px;
-  background: var(--dsw-alias-bg-layer-1);
+  background: var(--dsw-alias-interactive-bg-hover);
   color: var(--dsw-alias-label-tertiary);
 }
 
 .search:focus-within {
-  border-color: var(--dsw-alias-border-l3);
+  background: var(--dsw-alias-interactive-bg-active);
+  outline: 1px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 0;
 }
 
 .searchIcon {
@@ -142,7 +144,8 @@
 }
 
 /* The hover menu: anchored below the trigger's right edge, floating above
-   the page content with the elevated layer surface. */
+   the page content with the elevated layer surface. The elevation shadow
+   already carries a neutral hairline, so the card draws no border. */
 .menu {
   position: absolute;
   top: calc(100% + 6px);
@@ -153,7 +156,7 @@
   flex-direction: column;
   gap: 2px;
   padding: 6px;
-  border: 0.5px solid var(--dsw-alias-border-l2);
+  border: 0;
   border-radius: 10px;
   background: var(--dsw-alias-bg-layer-2);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.24);
@@ -261,21 +264,22 @@
   line-height: 1;
 }
 
-/* The source scope: a segmented two-option group. */
+/* The source scope: a segmented two-option group drawn as one filled track
+   with the selected option lifted to the stronger wash. */
 .scope {
   display: inline-flex;
   align-items: center;
   gap: 2px;
   padding: 2px;
-  border: 0.5px solid var(--dsw-alias-border-l2);
+  border: 0;
   border-radius: 8px;
-  background: var(--dsw-alias-bg-layer-1);
+  background: var(--dsw-alias-interactive-bg-hover);
 }
 
 .scopeOption {
   height: 24px;
   padding: 0 10px;
-  border: 0.5px solid transparent;
+  border: 0;
   border-radius: 6px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
@@ -292,8 +296,7 @@
 
 .scopeOptionActive,
 .scopeOptionActive:hover {
-  background: var(--dsw-alias-bg-base);
-  border-color: var(--dsw-alias-border-l3);
+  background: var(--dsw-alias-interactive-bg-active);
   color: var(--dsw-alias-label-primary);
 }
 
