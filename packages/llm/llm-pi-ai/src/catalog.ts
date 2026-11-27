@@ -17,7 +17,7 @@
  */
 
 import { builtinProviders, getAllBuiltinModels, getBuiltinModels } from '@earendil-works/pi-ai/providers/all'
-import { harnessModels, harnessProvider, harnessRelayIds } from './relay.ts'
+import { harnessModels, harnessProvider, harnessRelay, harnessRelayCompat, harnessRelayIds } from './relay.ts'
 import type { BuiltinProvider } from '@earendil-works/pi-ai/providers/all'
 import type {
   AnthropicMessagesCompat,
@@ -740,6 +740,14 @@ function resolveModelReasoning(
     // spell them, and no listing endpoint reports a model's reasoning
     // protocol. The entry's map (when any) arrives through the `...base`
     // spread in the model literal.
+    //
+    // A relay seed can carry `reasoning: true` without a map — its catalog row
+    // declares the capability, and pi-ai describes no levels for a relay host.
+    // pi-ai's `getSupportedThinkingLevels` then invents `minimal`/`low`/
+    // `medium`/`high` for the picker while nothing can be sent for them, so the
+    // user's choice would be silently dropped. A reasoning model with no wire
+    // spelling for any level is therefore not offered as a reasoning model.
+    if (base?.reasoning === true && base.thinkingLevelMap === undefined) return { reasoning: false }
     return { reasoning: base?.reasoning ?? false }
   }
   // The installed entry's map may ride along through `...base`; pi-ai never
@@ -786,6 +794,58 @@ function resolveModelReasoning(
 
 /** The compat block a materialized model carries, whichever protocol it speaks. */
 type ModelCompat = OpenAICompletionsCompat | OpenAIResponsesCompat | AnthropicMessagesCompat | BedrockCompat | MistralConversationsCompat
+
+/**
+ * The compat a harness-shipped relay model must carry on the protocol it was
+ * resolved onto, after every configured and inherited switch has been applied.
+ *
+ * A relay profile may repoint the route at another protocol face. BirdCoder
+ * ships Anthropic Messages, so its OpenAI-compatible face is reachable only
+ * through such a repoint, and the seed then starts from pi-ai's baseURL
+ * detection — which recognizes no relay host, so the request would differ from
+ * the vendor's own API in its output-cap field and its thinking switch. The
+ * model's vendor dialect is a property of the route, so it is re-asserted here
+ * rather than trusting whichever layer survived the repoint.
+ *
+ * `maxTokensField` is the one field a deployment may move: a relay that reads
+ * the OpenAI field instead must stay expressible, so a profile's spelling wins.
+ * The remaining fields are additive and always apply.
+ * @param provider - provider route key.
+ * @param api - the model's resolved wire protocol.
+ * @param entry - the configured model entry, whose own switch always wins.
+ * @param request - the route-level catalog facts.
+ * @param vendorCode - the model's vendor code, which decides the dialect.
+ * @returns a `compat` field to spread into the model, or nothing.
+ */
+function relayCompatFor(
+  provider: string,
+  api: string,
+  entry: PiAiModelProfile,
+  request: RouteCatalogRequest,
+  vendorCode: string | undefined,
+): { compat: ModelCompat } | Record<string, never> {
+  const pins = harnessRelayCompat(provider, api, vendorCode)
+  if (pins === undefined) return {}
+  const { maxTokensField: pinned = 'max_tokens', ...rest } = pins as { maxTokensField?: 'max_tokens' | 'max_completion_tokens' }
+  const configured = { ...request.compat, ...entry.compat }
+  return { compat: { maxTokensField: configured.maxTokensField ?? pinned, ...rest } as ModelCompat }
+}
+
+/**
+ * The sdkwork-models vendor code behind one catalog model id.
+ *
+ * A relay seeds `<vendorCode>/<modelId>` keys, so the vendor is the key's first
+ * segment. A route that is not a relay has no seeded key to read, and its
+ * models carry the dialect pi-ai's own catalog assigns them.
+ * @param provider - provider route key.
+ * @param modelId - the model id being resolved.
+ * @returns the vendor code, or `undefined` when the id names no relay key.
+ */
+function relayVendorCode(provider: string, modelId: string): string | undefined {
+  if (harnessRelay(provider) === undefined) return undefined
+  const slash = modelId.indexOf('/')
+  return slash > 0 ? modelId.slice(0, slash) : ''
+}
 
 /**
  * Resolve one model's compat block from the profile's switches.
@@ -968,6 +1028,7 @@ export function resolveRouteModels(
       maxTokens,
       ...resolveModelReasoning(provider, entry, base),
       ...resolveModelCompat(provider, entry, request.compat, base, api),
+      ...relayCompatFor(provider, api, entry, request, relayVendorCode(provider, entry.id)),
     }
   }
   const models: Model<Api>[] = []

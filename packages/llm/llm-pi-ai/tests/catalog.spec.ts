@@ -17,6 +17,7 @@ import { resolveProfiles } from '../src/config.ts'
 import { createModels, createProvider, getSupportedThinkingLevels } from '../src/models.ts'
 import { buildProvider, supportedProtocols } from '../src/provider.ts'
 import { RELAY_MODEL_CATALOG_VERSION, RELAY_MODEL_PRESETS } from '../src/relay-models.generated.ts'
+import { relayVendorDialect } from '../src/relay.ts'
 import { assemble } from './assemble.ts'
 import { memoryAuth } from './auth-double.ts'
 import { closeMockServers, mockServer, anthropicTextEvents, textEvents } from './mock-server.ts'
@@ -1548,6 +1549,185 @@ describe('harness-shipped relay routes', () => {
       expect.objectContaining({ model }),
       expect.objectContaining({ model }),
     ])
+  })
+
+  it('asks a relay for its output budget in the field the relay reads', async () => {
+    // pi-ai auto-detects `max_completion_tokens` from a base URL it recognizes,
+    // and a relay host is none of the dialects it knows, so a model with no
+    // pinned dialect asks in a field most vendors ignore — they fall back to
+    // their own cap and report a truncated turn the user never asked for.
+    // BirdCoder serves Anthropic Messages by default, so its OpenAI face is the
+    // one a profile selects; whichever field a vendor publishes, every
+    // OpenAI-face model must state one (never neither).
+    for (const providers of [
+      { birdcoder: { api: 'openai-completions' } },
+      { sdkwork: {} },
+    ]) {
+      const route = Object.keys(providers)[0] as 'birdcoder' | 'sdkwork'
+      const models = resolveProfiles(providers).get(route)?.piProvider?.getModels() ?? []
+      const completions = models.filter(model => model.api === 'openai-completions')
+      expect(completions).not.toHaveLength(0)
+      for (const model of completions) {
+        const field = (model.compat as OpenAICompletionsCompat | undefined)?.maxTokensField
+        expect(`${model.id}:${String(field)}`).toMatch(/:(max_tokens|max_completion_tokens)$/u)
+      }
+    }
+
+    // The wire agrees: a DeepSeek model — one of the vendors that reads only
+    // `max_tokens` — carries `max_tokens` in its own request.
+    const server = await mockServer([{ events: textEvents }])
+    const ctx = await harness({
+      providers: {
+        birdcoder: {
+          api: 'openai-completions',
+          apiKeyEnv: KEY_ENV,
+          baseURL: `${server.url}/v1`,
+        },
+      },
+    })
+    await assemble(ctx, {
+      provider: 'birdcoder',
+      model: 'deepseek/deepseek-flash',
+      messages: [createUserMessage({ content: [{ type: 'text', text: 'hi' }], source: { kind: 'user' } })],
+    })
+
+    expect(server.requests[0]).toMatchObject({ max_tokens: expect.any(Number) as number })
+    expect(server.requests[0]).not.toHaveProperty('max_completion_tokens')
+
+    // A deployment that names the field itself keeps its choice.
+    const configured = resolveProfiles({
+      birdcoder: {
+        api: 'openai-completions',
+        compat: { maxTokensField: 'max_completion_tokens' } as never,
+      },
+    }).get('birdcoder')?.piProvider?.getModels() ?? []
+    expect(configured).not.toHaveLength(0)
+    expect(configured.every(model => (model.compat as OpenAICompletionsCompat | undefined)?.maxTokensField
+      === 'max_completion_tokens')).toBe(true)
+  })
+
+  it('gives every relay vendor the wire dialect its own API reference publishes', () => {
+    // Each vendor publishes where its output cap and thinking switch go, and
+    // the OpenAI-compatible dialects genuinely disagree. pi-ai derives mine from
+    // the base URL and recognizes no relay host, so every vendor silently got
+    // `max_completion_tokens` — which most of them ignore, applying their own
+    // cap instead. These expectations are transcribed from each vendor's
+    // reference, so a regression names the vendor that broke.
+    const capField = {
+      deepseek: 'max_tokens', alibaba: 'max_tokens', zhipu: 'max_tokens', moonshot: 'max_tokens',
+      bytedance: 'max_tokens', tencent: 'max_tokens', stepfun: 'max_tokens',
+      openai: 'max_completion_tokens', xai: 'max_completion_tokens', xiaomi: 'max_completion_tokens',
+    } as const
+    const thinkingFormat = {
+      deepseek: 'deepseek', zhipu: 'deepseek', alibaba: 'qwen', moonshot: 'string-thinking',
+      bytedance: 'openai', tencent: 'openai', stepfun: 'openai',
+      openai: 'openai', xai: 'openai', xiaomi: 'openai',
+    } as const
+
+    const models = resolveProfiles({ birdcoder: { api: 'openai-completions' } }).get('birdcoder')
+      ?.piProvider?.getModels() ?? []
+    expect(models).not.toHaveLength(0)
+
+    const seen = new Set<string>()
+    for (const model of models) {
+      const vendor = model.id.slice(0, model.id.indexOf('/')) as keyof typeof capField
+      if (capField[vendor] === undefined) continue
+      seen.add(vendor)
+      const compat = model.compat as OpenAICompletionsCompat | undefined
+      expect(`${vendor}:${compat?.maxTokensField}`).toBe(`${vendor}:${capField[vendor]}`)
+      expect(`${vendor}:${compat?.thinkingFormat}`).toBe(`${vendor}:${thinkingFormat[vendor]}`)
+      // A relay has no OpenAI store to honor, so it never asks for one.
+      expect(compat?.supportsStore).toBe(false)
+    }
+    // Every vendor the seed carries is covered, so a new vendor cannot arrive
+    // without a dialect decision.
+    expect([...seen].sort()).toEqual(Object.keys(capField).sort())
+  })
+
+  it('states reasoning_content only for the vendor that requires it', () => {
+    const models = resolveProfiles({ birdcoder: { api: 'openai-completions' } }).get('birdcoder')
+      ?.piProvider?.getModels() ?? []
+    const requires = (id: string): boolean =>
+      (models.find(model => model.id === id)?.compat as OpenAICompletionsCompat | undefined)
+        ?.requiresReasoningContentOnAssistantMessages === true
+    // DeepSeek documents the empty `reasoning_content` on a tool-calling
+    // assistant message; the vendors adopting its dialect do not.
+    expect(requires('deepseek/deepseek-flash')).toBe(true)
+    for (const other of ['zhipu/glm-5.3', 'alibaba/qwen4-max', 'moonshot/kimi-k3.1-pro']) {
+      if (models.some(model => model.id === other)) expect(requires(other)).toBe(false)
+    }
+  })
+
+  it('gives a relay model whose vendor the build cannot name a safe dialect', () => {
+    // An operator policy can expose a model a later catalog published, so the
+    // vendor half of its `<vendorCode>/<modelId>` key may be one this build has
+    // never heard of. An unknown vendor takes the output-cap field every vendor
+    // accepts instead of inheriting pi-ai's OpenAI default.
+    expect(relayVendorDialect('a-vendor-shipped-later')).toEqual({
+      maxTokensField: 'max_tokens',
+      thinkingFormat: 'openai',
+      requiresReasoningContent: false,
+    })
+    // A known vendor keeps what its own reference publishes.
+    expect(relayVendorDialect('xiaomi').maxTokensField).toBe('max_completion_tokens')
+    expect(relayVendorDialect('alibaba').thinkingFormat).toBe('qwen')
+  })
+
+  it('requests a relay exactly as the official DeepSeek endpoint is asked', async () => {
+    const server = await mockServer([{ events: textEvents }])
+    const ctx = await harness({
+      providers: {
+        birdcoder: { api: 'openai-completions', apiKeyEnv: KEY_ENV, baseURL: `${server.url}/v1` },
+      },
+    })
+    await assemble(ctx, {
+      provider: 'birdcoder',
+      model: 'deepseek/deepseek-flash',
+      messages: [createUserMessage({ content: [{ type: 'text', text: 'hi' }], source: { kind: 'user' } })],
+    })
+
+    const sent = server.requests[0] as Record<string, unknown>
+    // The output cap travels in the field the relay reads.
+    expect(sent).toMatchObject({ max_tokens: expect.any(Number) as number })
+    expect(sent).not.toHaveProperty('max_completion_tokens')
+    // Thinking is the top-level DeepSeek switch, not pi-ai's nested object.
+    expect(sent['thinking']).toEqual({ type: 'disabled' })
+    expect(sent).not.toHaveProperty('reasoning')
+    // OpenAI-only fields a relay cannot honor stay off the wire.
+    expect(sent).not.toHaveProperty('store')
+  })
+
+  it('replays a relay tool round the way DeepSeek requires', async () => {
+    // DeepSeek rejects a tool-calling assistant message that omits
+    // `reasoning_content`, and pi-ai emits that empty field only for the
+    // `deepseek` dialect. A relay must produce it or the model's tool rounds
+    // diverge from the official endpoint's.
+    const server = await mockServer([{ events: textEvents }])
+    const ctx = await harness({
+      providers: {
+        birdcoder: { api: 'openai-completions', apiKeyEnv: KEY_ENV, baseURL: `${server.url}/v1` },
+      },
+    })
+    const model = 'deepseek/deepseek-flash'
+    const firstPrompt = createUserMessage({ content: [{ type: 'text', text: 'first' }], source: { kind: 'user' } })
+    const first = await assemble(ctx, { provider: 'birdcoder', model, messages: [firstPrompt] })
+    await assemble(ctx, {
+      provider: 'birdcoder',
+      model,
+      messages: [
+        firstPrompt,
+        {
+          ...first.message,
+          content: [{ type: 'tool-call', id: 'call-1', name: 'read', arguments: '{"path":"x"}' }],
+        } as typeof first.message,
+        createUserMessage({ content: [{ type: 'text', text: 'next' }], source: { kind: 'user' } }),
+      ],
+    })
+
+    const messages = (server.requests[1] as { messages: Record<string, unknown>[] }).messages
+    const assistant = messages.find(message => message['role'] === 'assistant' && message['tool_calls'] !== undefined)
+    expect(assistant).toBeDefined()
+    expect(assistant).toHaveProperty('reasoning_content', '')
   })
 
   it('moves a relay profile onto another protocol face without restating the endpoint', () => {

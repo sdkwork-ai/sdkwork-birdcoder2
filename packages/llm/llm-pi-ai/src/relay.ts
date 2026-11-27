@@ -33,7 +33,7 @@
 import { anthropicMessagesApi } from '@earendil-works/pi-ai/api/anthropic-messages.lazy'
 import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completions.lazy'
 import { getBuiltinModels } from '@earendil-works/pi-ai/providers/all'
-import type { Api, ApiKeyAuth, Model, ModelCost, Provider } from '@earendil-works/pi-ai'
+import type { Api, ApiKeyAuth, Model, ModelCost, OpenAICompletionsCompat, Provider } from '@earendil-works/pi-ai'
 import { RELAY_MODEL_PRESETS } from './relay-models.generated.ts'
 import type { SdkworkRelayModelPreset } from './relay-models.generated.ts'
 import { relayCatalogPolicy } from './relay-catalog-policy.ts'
@@ -56,6 +56,158 @@ const NO_COST: ModelCost = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
  */
 const FALLBACK_CONTEXT_WINDOW = 128_000
 const FALLBACK_MAX_TOKENS = 32_768
+
+/**
+ * How one vendor's OpenAI-compatible API expects the output cap and the
+ * thinking switch. Every entry is read from that vendor's own published API
+ * reference, not from a shared convention: these fields are exactly where the
+ * OpenAI-compatible dialects diverge.
+ */
+interface VendorWireDialect {
+  /** Body field carrying the output cap. */
+  readonly maxTokensField: NonNullable<OpenAICompletionsCompat['maxTokensField']>
+  /** pi-ai thinking dialect that emits this vendor's switch. */
+  readonly thinkingFormat: NonNullable<OpenAICompletionsCompat['thinkingFormat']>
+  /**
+   * Whether the vendor requires `reasoning_content` on a replayed tool-calling
+   * assistant message (DeepSeek's documented `tool_calls` rule, inherited by
+   * the vendors that adopt its dialect).
+   */
+  readonly requiresReasoningContent: boolean
+}
+
+/**
+ * Per-vendor wire dialects for the models a relay serves.
+ *
+ * A relay exists to stand in for a provider's own endpoint, so its request must
+ * say what that endpoint's request says. pi-ai derives the dialect from the
+ * base URL, and a relay host matches none of the vendors it knows — measured
+ * across every vendor this build offers, that produced the same wrong shape for
+ * all of them: `max_completion_tokens` plus a nested `reasoning` object.
+ *
+ * Two independent families carry the output cap:
+ *
+ * - `max_tokens` — DeepSeek, Alibaba, Zhipu, Moonshot, ByteDance, Tencent,
+ *   StepFun, MiniMax. Alibaba's reference additionally lists
+ *   `max_completion_tokens` among the parameters it *silently ignores*, which
+ *   is the same silent fallback that truncates a turn at the gateway default.
+ * - `max_completion_tokens` — OpenAI, xAI, Xiaomi MiMo.
+ *
+ * The thinking switch diverges further, and pi-ai carries a dialect for each:
+ * `deepseek` writes `thinking: { type }` (+ `reasoning_effort` when supported)
+ * for DeepSeek and Zhipu; `qwen` writes a top-level `enable_thinking` for
+ * Alibaba; `openai` writes `reasoning_effort` for OpenAI, Tencent, StepFun and
+ * xAI; `string-thinking` writes a top-level `thinking` string for Moonshot.
+ * ByteDance and MiniMax expose no documented thinking switch on this door, so
+ * they take `openai`, whose switch only appears when the model offers an effort
+ * level — none is declared for them here.
+ *
+ * A vendor absent from this table (a model published after this build shipped)
+ * takes {@link CONSERVATIVE_DIALECT}: the field and switch that every vendor
+ * above accepts, so an unknown route degrades instead of silently dropping its
+ * cap.
+ */
+const VENDOR_WIRE_DIALECTS: Readonly<Record<string, VendorWireDialect>> = {
+  deepseek: { maxTokensField: 'max_tokens', thinkingFormat: 'deepseek', requiresReasoningContent: true },
+  alibaba: { maxTokensField: 'max_tokens', thinkingFormat: 'qwen', requiresReasoningContent: false },
+  zhipu: { maxTokensField: 'max_tokens', thinkingFormat: 'deepseek', requiresReasoningContent: false },
+  moonshot: { maxTokensField: 'max_tokens', thinkingFormat: 'string-thinking', requiresReasoningContent: false },
+  bytedance: { maxTokensField: 'max_tokens', thinkingFormat: 'openai', requiresReasoningContent: false },
+  tencent: { maxTokensField: 'max_tokens', thinkingFormat: 'openai', requiresReasoningContent: false },
+  stepfun: { maxTokensField: 'max_tokens', thinkingFormat: 'openai', requiresReasoningContent: false },
+  minimax: { maxTokensField: 'max_tokens', thinkingFormat: 'openai', requiresReasoningContent: false },
+  openai: { maxTokensField: 'max_completion_tokens', thinkingFormat: 'openai', requiresReasoningContent: false },
+  xai: { maxTokensField: 'max_completion_tokens', thinkingFormat: 'openai', requiresReasoningContent: false },
+  xiaomi: { maxTokensField: 'max_completion_tokens', thinkingFormat: 'openai', requiresReasoningContent: false },
+  // LongCat documents `max_tokens` plus a top-level `thinking` switch.
+  meituan: { maxTokensField: 'max_tokens', thinkingFormat: 'deepseek', requiresReasoningContent: false },
+  // Qianfan's OpenAI-compatible mode documents `max_tokens` and no thinking field.
+  baidu: { maxTokensField: 'max_tokens', thinkingFormat: 'openai', requiresReasoningContent: false },
+}
+
+/** The dialect for a vendor this build does not describe: the cap every vendor accepts. */
+const CONSERVATIVE_DIALECT: VendorWireDialect = {
+  maxTokensField: 'max_tokens',
+  thinkingFormat: 'openai',
+  requiresReasoningContent: false,
+}
+
+/**
+ * The wire dialect for one relay model.
+ * @param vendorCode - the model's sdkwork-models vendor code (`preset.vendorCode`).
+ * @returns that vendor's dialect, or {@link CONSERVATIVE_DIALECT} when unknown.
+ */
+export function relayVendorDialect(vendorCode: string): VendorWireDialect {
+  return VENDOR_WIRE_DIALECTS[vendorCode] ?? CONSERVATIVE_DIALECT
+}
+
+/**
+ * The compat a relay model needs for one vendor, on the OpenAI face.
+ *
+ * `store` is an OpenAI platform request field; a relay has no store to honor, so
+ * it stays off the wire for every vendor. The developer role is kept when the
+ * vendor accepts it — the OpenAI family does; the DeepSeek-derived dialects use
+ * `system`.
+ *
+ * @param vendorCode - the model's sdkwork-models vendor code.
+ * @param api - the model's resolved wire protocol.
+ * @returns the compat fields to force, or nothing for a protocol that takes none.
+ */
+function relayCompat(vendorCode: string | undefined, api: string): Readonly<Record<string, unknown>> {
+  // The Anthropic face sends Anthropic Messages, whose compat type has neither
+  // an output-cap field nor a thinking dialect to choose.
+  if (api !== 'openai-completions') return {}
+  const dialect = relayVendorDialect(vendorCode ?? '')
+  const openAiFamily = dialect.maxTokensField === 'max_completion_tokens'
+  return {
+    maxTokensField: dialect.maxTokensField,
+    thinkingFormat: dialect.thinkingFormat,
+    ...dialect.requiresReasoningContent ? { requiresReasoningContentOnAssistantMessages: true } : {},
+    supportsStore: false,
+    ...openAiFamily ? {} : { supportsDeveloperRole: false },
+  } satisfies OpenAICompletionsCompat
+}
+
+/** The `compat` a seed carries, or nothing — kept separate so `exactOptionalPropertyTypes` never sees `undefined`. */
+type CompatField = { compat: NonNullable<Model<Api>['compat']> }
+
+/**
+ * The seed compat for one materialized relay model.
+ * @param entry - the harness relay route.
+ * @param vendorCode - the model's sdkwork-models vendor code, which decides the dialect.
+ * @param borrowed - the installed entry the seed borrows from, when its compat applies.
+ * @returns the `compat` field to spread in, or nothing.
+ */
+function seedCompat(
+  entry: HarnessRelayEntry,
+  vendorCode: string,
+  borrowed: Model<Api> | undefined,
+): CompatField | Record<string, never> {
+  const relay = relayCompat(vendorCode, entry.api)
+  if (borrowed?.compat !== undefined) {
+    return { compat: { ...borrowed.compat, ...relay } as CompatField['compat'] }
+  }
+  if (Object.keys(relay).length === 0) return {}
+  return { compat: { ...relay } as CompatField['compat'] }
+}
+
+/**
+ * The compat a harness-shipped relay model needs on one resolved protocol.
+ *
+ * Request resolution re-asserts this after every configured and inherited
+ * switch, because a profile can repoint the route onto a protocol face the
+ * seed did not speak, and a repoint starts from pi-ai's URL detection.
+ * @param provider - provider route key.
+ * @param api - the model's resolved wire protocol.
+ * @param vendorCode - the model's sdkwork-models vendor code, when the catalog names one.
+ * @returns the compat fields to force, or `undefined` for a route this build
+ *   does not ship or a protocol that takes none.
+ */
+export function harnessRelayCompat(provider: string, api: string, vendorCode?: string): Readonly<Record<string, unknown>> | undefined {
+  if (harnessRelay(provider) === undefined) return undefined
+  const compat = relayCompat(vendorCode, api)
+  return Object.keys(compat).length === 0 ? undefined : compat
+}
 
 /**
  * One harness-shipped relay route: an OpenAI-compatible gateway pi-ai's
@@ -296,6 +448,9 @@ function seedModel(provider: string, entry: HarnessRelayEntry, preset: SdkworkRe
       ? preset.contextWindow
       : (borrowed?.contextWindow ?? FALLBACK_CONTEXT_WINDOW),
     maxTokens: preset.maxTokens > 0 ? preset.maxTokens : (borrowed?.maxTokens ?? FALLBACK_MAX_TOKENS),
+    // A borrowed entry's compat describes OpenRouter's dialect, so the relay's
+    // own vendor dialect is layered over it; a borrow from another protocol carries none.
+    ...seedCompat(entry, preset.vendorCode, compatApplies ? borrowed : undefined),
   }
 }
 
@@ -324,13 +479,15 @@ let relayIndex: Map<string, Provider> | undefined
  * so the runtime document may name an unknown key. A minimal OpenAI-compatible
  * entry keeps that model selectable and routable without pretending to know
  * capacities nobody declared; the first request that exercises it fails with
- * the provider's own answer if the deployment does not serve it.
+ * the provider's own answer if the deployment does not serve it. Its catalog
+ * key is `<vendorCode>/<modelId>`, so the vendor's wire dialect still applies.
  * @param provider - harness relay route key.
  * @param entry - the harness relay route whose catalog is being materialized.
  * @param catalogKey - `<vendorCode>/<modelId>` key the document named.
  * @returns a minimal relay model for that key.
  */
 function remoteSeedModel(provider: string, entry: HarnessRelayEntry, catalogKey: string): Model<Api> {
+  const vendorCode = catalogKey.includes('/') ? catalogKey.slice(0, catalogKey.indexOf('/')) : ''
   return {
     id: catalogKey,
     name: catalogKey,
@@ -342,6 +499,7 @@ function remoteSeedModel(provider: string, entry: HarnessRelayEntry, catalogKey:
     reasoning: false,
     contextWindow: FALLBACK_CONTEXT_WINDOW,
     maxTokens: FALLBACK_MAX_TOKENS,
+    ...seedCompat(entry, vendorCode, undefined),
   }
 }
 
