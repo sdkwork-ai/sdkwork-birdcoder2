@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-access-token",
   "description": "SDKWork access-token initializer: workspace-row action and dialog for tenant/organization public application tokens across every SDKWork application format, plus the DSH-home settings section that remembers admin/operator logins and its sdkwork/access-token.config.json projection",
-  "version": "0.2.3-alpha.2",
+  "version": "0.2.3-alpha.3",
   "publishConfig": {
     "access": "public"
   },

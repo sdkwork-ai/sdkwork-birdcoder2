@@ -56,5 +56,12 @@
 * BirdCoder 品牌在合并后复核：`Brand.tsx` 仍渲染 `BirdLogo` / `BirdWordmark`，官方名称槽未回退上游 `BrandWordmark`；`EmptyHero` 保留静态鸟标；`WelcomePage` 与 `SignInDialog` 仍渲染共享 `LoginPanel`；启动页 `createBootBrand()` 保持在位——图标、标语与登录面全部采用当前仓库版本。
 * SDKWork 自有包、connector、skillhub、专家/技能市场、desktop carrier/app、fork tsconfig 引用与打包/CI 配置均取 fork 行为，上游新增功能在其旁并集；生成物与 lockfile 取 fork 侧内容。
 * 三方并集在 6 个 JSON 清单（根 `package.json`、`apps/desktop-host/package.json`、`packages/bundle/web-app/package.json`、`packages/api/gateway/tsconfig.client.json`、`packages/test-support/client-runtime/package.json`、`.oxlintrc.json`）产生过缺分隔符与重复键，已由 `fix(merge)` 修复并通过 JSON 解析校验；后续编译/测试面的潜在问题按约定在合并完成后单独处理。
+* 回归检查发现并集策略在 30 个源码文件里留下重复声明与语法破坏，已用真正的三方合并（`git merge-file --diff3`）逐块重建：保留 fork 定制（`FORK DIVERGENCE`、SDKWork、React 19 类型写法）的同时补回上游新增标识符（如 `sidebarAnimating`、`createDocumentPortal` 等）；全仓 14828 个源码文件复验 0 语法错误，品牌资产与登录面字节完整。
+
+### 发布与打包修复
+
+* **版本族对齐**：上游把 dsh 一方包推进到 `0.2.3-alpha.3`，fork 自有 92 个包仍停在 `alpha.2`，会让 `verifyReleaseVersions` 拒绝单一 tag 发布；已全部对齐到 `0.2.3-alpha.3`（505 个非 private 成员同版本，0 偏差）。
+* **submodule 前移**：`plugins/dsh-im`（v5.10.0 → v5.11.0，8 提交）与 `plugins/dsh-better-sidebar`（→ v0.34.0-alpha.1，69 提交，含「适配 DSH 0.2.3-alpha.3 的 `/client` 入口」）更新到各自远端分支最新；其余三个已最新不动。
+* **依赖规范**：本地保持 `pnpm-workspace.yaml` 的 `../sdkwork-*` 相对路径与 `workspace:*`，release 仍按 `sdkwork-sources.manifest.json` + `agent.workflow.json` 双 pin 的 git 仓库依赖 checkout（40 个 pin 双记录 0 偏差），遵循 sdkwork-specs。本地 sibling 比 pin 新造成的 `verify-sdkwork-dependencies` 提示不在打包 lane 路径上，未前移未验证的 pin。
 
 本文件只保留当前版本一节；往期条目随各自版本的提交留在 git 历史里（`git log -p CHANGELOG.md`）。Release notes 就是本节内容。

@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-tool-sdkwork-knowledge",
   "description": "Model-facing sdkwork_knowledge_write and sdkwork_content_publish tools: validate an article or media request, relay it to the connected BirdCoder client, and return the Knowledge Base article or media publish facts.",
-  "version": "0.2.3-alpha.2",
+  "version": "0.2.3-alpha.3",
   "publishConfig": {
     "access": "public"
   },

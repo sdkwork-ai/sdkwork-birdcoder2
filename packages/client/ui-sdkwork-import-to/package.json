@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-import-to",
   "description": "SDKWork relay API-key \"导入到\" plugin: the hover menu lists CC Switch's sixteen link-importable coding tools (its app catalog minus CodeBuddy), and each click reproduces CC Switch's provider activation (its 点击使用 live-config projection) in TypeScript",
-  "version": "0.2.3-alpha.2",
+  "version": "0.2.3-alpha.3",
   "publishConfig": {
     "access": "public"
   },
