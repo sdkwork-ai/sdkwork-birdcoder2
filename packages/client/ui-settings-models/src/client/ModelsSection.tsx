@@ -1,15 +1,13 @@
 /**
  * Models settings section: the provider rows joined from the configurable
  * directory, settings namespaces, and credential states, with one editor
- * card at a time. Rows retain the BirdCoder-first order supplied by the store
- * and expose only confirmed API-key state through accessible
- * solid configured or missing dots. A whole-section provider without a
  * card at a time. Rows retain the account-first order supplied by the store
  * and expose only confirmed API-key state: a solid dot when the key is
  * configured, and a dot beside its wording when it is missing. A row whose
  * editor is open becomes the editing surface itself, under its own name, and
  * offers no second Edit. A whole-section provider without a
- * configured key renders as its open setup card instead of a row, but only in
+
+ * card at a time. Rows retain the BirdCoder-first order supplied by the store * configured key renders as its open setup card instead of a row, but only in
  * the first-run posture — no provider on the page can serve requests yet — and
  * only until the user closes that card. The add flow is one card behind one
  * button: a mode switch chooses between adopting a dormant directory provider
@@ -28,8 +26,6 @@
 
 import { useEffect, useId, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Button, IconPlusOutlineRegular, Modal, SegmentedControl } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { InjectFace, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { Button, IconPlusOutlineRegular, Modal, SegmentedControl } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type { InjectFace, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { LlmNativeAuth, SettingsNamespaceView } from '@deepseek-ai/dsh-api-remotes/client'
@@ -529,12 +525,6 @@ function Loaded({ injected, renderSlot, focusProvider }: {
             && row.apiKeyEnv !== undefined
             && row.credential?.configured === false
           return (
-            <li
-              key={row.entry.provider}
-              ref={cardRef(row.entry.provider)}
-              className={styles['rowCard']}
-              data-revealed={revealedProvider === row.entry.provider || undefined}
-            >
             <li key={row.entry.provider} className={`${styles['rowCard']} ${open ? styles['rowCardOpen'] : ''}`}>
               <div className={styles['rowHead']}>
                 <span className={styles['rowIdentity']}>

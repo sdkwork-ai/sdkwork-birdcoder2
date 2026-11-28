@@ -51,10 +51,6 @@ export const TextShimmer = memo(function TextShimmer({ children, active = false,
         <span className={clsx(css.content, contentClassName)}>{content}</span>
       </DecorativeCopy.Provider>
       {active && (
-        // React 19 types `inert` as a boolean: `true` renders the attribute, and an
-        // empty string is warned about and dropped, which left the decorative copy
-        // readable by assistive technology.
-        <span className={css.decoration} aria-hidden="true" inert>
         <span className={css.decoration} aria-hidden="true" {...INERT}>
           <span className={css.sweep}>
             <DecorativeCopy.Provider value>

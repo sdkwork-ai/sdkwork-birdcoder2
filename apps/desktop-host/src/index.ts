@@ -48,15 +48,6 @@ async function main(profileLease: ProfileLease): Promise<void> {
   }
   const runtimeDir = process.argv[2] as string
   const projectDir = process.argv[3] as string
-  // FORK DIVERGENCE (Linux desktop): keep sharp's prebuilt libvips out of the
-  // Electron Host process; see sharp-platform.ts for the crash it avoids.
-  installLinuxSharpGuard()
-  installOfficeEngineResolution(runtimeDir)
-  // FORK DIVERGENCE: the Desktop Host applies the SDKWork launch environment the
-  // CLI launcher applies, before the frozen launch snapshot, so the embedded
-  // platform surfaces receive the deployment's identity, gateway, and bootstrap
-  // credential; see launch-environment.ts.
-  const { cwd: projectRoot } = await applyDesktopLaunchEnvironment({ cwd: process.cwd(), env: process.env })
   const { values, positionals: [pnpm, nodeBin] } = parseArgs({
     args: process.argv.slice(5),
     allowPositionals: true,
@@ -64,7 +55,9 @@ async function main(profileLease: ProfileLease): Promise<void> {
   })
   const receiverPath = values['frame-receiver-path']
   if (receiverPath !== undefined && !isAbsolute(receiverPath)) throw new Error('--frame-receiver-path must be absolute')
-  // Set before the launch-environment snapshot and profile evaluation; empty means the payload sits beside the runtime directory.
+
+  // FORK DIVERGENCE (Linux desktop): keep sharp's prebuilt libvips out of the
+  // FORK DIVERGENCE: the Desktop Host applies the SDKWork launch environment the  // Set before the launch-environment snapshot and profile evaluation; empty means the payload sits beside the runtime directory.
   process.env.DSH_PRIMARY_RUNTIME = process.argv[4] || join(runtimeDir, '..', 'runtime', 'primary-runtime')
   const installAnchor = join(runtimeDir, 'node_modules', '@deepseek-ai', 'dsh', 'package.json')
   const profile = loadProfileDirectory('dsh', projectDir, installAnchor)
@@ -73,17 +66,11 @@ async function main(profileLease: ProfileLease): Promise<void> {
     environment: loadLayeredEnv('dsh', projectRoot),
     profile: 'desktop',
     resolvedProfile: { profile, installAnchor },
-    // FORK DIVERGENCE: upstream empties patchFiles and inherits the shared Web
-    // profile defaults. The fork's desktop override layer forces the apiproxy
-    // `nativeOpen` fact platform detection cannot express; guarded by
-    // apps/desktop/tests/desktop-host-composition.spec.ts.
-    patchFiles: [fileURLToPath(new URL('../config/desktop.cordis.patch.yml', import.meta.url))],
-    args: ['--no-open', '--host', '127.0.0.1', '--port', String(resolveDesktopHostWebPort(process.env))],
-    ...(process.argv[5] === undefined ? {} : {
     patchFiles: [],
     args: ['--no-open', '--host', '127.0.0.1', '--port', '0'],
     ...(pnpm === undefined ? {} : {
-      packageManager: {
+
+    // FORK DIVERGENCE: upstream empties patchFiles and inherits the shared Web      packageManager: {
         command: process.execPath,
         args: ['--expose-internals', pnpm],
         env: {
@@ -204,7 +191,6 @@ async function main(profileLease: ProfileLease): Promise<void> {
   installOperationDiagnostics(ctx, record => send({ type: 'plugin-operation', record }), 32, runId)
   control.updateTasks = installDesktopUpdateTaskControl(ctx)
   control.quitInspection = installDesktopQuitInspection(ctx)
-  control.bootInjections = () => ctx.webServer.collectIndexInjections(ctx.connection.browserPeer)
   if (receiverPath !== undefined) ctx.provide('desktopFrameReceiver', { path: receiverPath })
   await ctx.plugin(sharedTexture)
   installPlatformSessionPublisher(ctx, (session) => {

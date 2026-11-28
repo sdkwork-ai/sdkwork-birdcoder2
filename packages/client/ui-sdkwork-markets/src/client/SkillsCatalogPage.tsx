@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
-import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
   PageInfo,
   SdkworkSkillsAppClient,
@@ -28,6 +28,7 @@ import {
   type FeaturedShelfMessages,
 } from '@sdkwork/featured-pc-react'
 import type { FeaturedShelfPayload } from '@sdkwork/featured-contracts'
+import { MarketsDialog } from './MarketsDialog.tsx'
 import css from './SkillsCatalogPage.module.css'
 
 /** Tag prefix the catalog mirror uses to carry a record's upstream install coordinate. */
@@ -754,7 +755,7 @@ export function SkillsCatalogPage({
       </section>
 
       {selectedSkill !== null && (
-        <Modal
+        <MarketsDialog
           open
           onClose={() => { setSelectedSkill(null) }}
           title={selectedSkill.name}
@@ -885,7 +886,7 @@ export function SkillsCatalogPage({
                 : t('skills.catalog.cloudNote')}
             </p>
           </div>
-        </Modal>
+        </MarketsDialog>
       )}
     </div>
   )

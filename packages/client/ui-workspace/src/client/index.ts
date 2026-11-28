@@ -400,12 +400,9 @@ export function apply(ctx: Context, config: SyncedConfig<WorkspaceNavigationConf
     requestAddWorkspace: shortcutControls.add,
     closeAddWorkspace: shortcutControls.closeAdd,
     setDirectoryBusy: shortcutControls.directoryBusy,
-    // FORK DIVERGENCE: the fork's plugin row-menu seam draws Pin, Fork and
-    // Archive itself, so the browser share also carries the rowMenus flag.
-    hooks: { workspaceActionRequest, contextMenuTarget: ctx.contextMenus.active,
-      directoryFlow: browserFlowSource, hostInfo, rowMenus: rowMenusSource,
     hooks: { workspaceActionRequest, contextMenuOpener: ctx.contextMenus.opener, directoryFlow: browserFlowSource, hostInfo,
-      workspaceShortcuts: shortcutControls.state, shortcuts: ctx.shortcuts.catalog },
+
+    // FORK DIVERGENCE: the fork's plugin row-menu seam draws Pin, Fork and      workspaceShortcuts: shortcutControls.state, shortcuts: ctx.shortcuts.catalog },
   })
   const pickerInjected = (directoryFlow: HostObservable<boolean>) => (): WorkspacePickerInjected => ({
     createWorkspace: input => workspaces.create(input),

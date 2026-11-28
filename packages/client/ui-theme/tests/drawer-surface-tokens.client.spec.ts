@@ -61,7 +61,7 @@ describe('record-drawer surface alias', () => {
 
   it('is the token the harness drawer paints', () => {
     const drawerSheet = readFileSync(
-      fileURLToPath(new URL('../../ui-primitives/src/Drawer.module.css', import.meta.url)),
+      fileURLToPath(new URL('../../ui-primitives/src/client/Drawer.module.css', import.meta.url)),
       'utf8',
     )
     const panel = parseRules(drawerSheet).find(rule => rule.selectors.includes('.panel'))

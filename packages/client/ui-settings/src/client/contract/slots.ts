@@ -226,35 +226,6 @@ declare module '@deepseek-ai/dsh-client-ui-slots/client' {
     'settings.myDeployments': { kind: 'single'; scope: 'root'; owner: SettingsMyDeploymentsOwnerProps }
   }
 }
-/** Owner share of the mini-program account management modal seat (shell-driven visibility). */
-export interface SettingsMiniProgramsOwnerProps {
-  /** Whether the modal is currently shown. */
-  open: boolean
-  /** Request dismissal (Escape, mask click, or the header close button). */
-  onClose: () => void
-}
-/** Owner share of the domain (DNS) management modal seat (shell-driven visibility). */
-export interface SettingsDnsOwnerProps {
-/** Owner share of the certificate management modal seat (shell-driven visibility). */
-export interface SettingsCertificatesOwnerProps {
-/** Owner share of the deployed-applications modal seat (shell-driven visibility). */
-export interface SettingsMyDeploymentsOwnerProps {
-/** Owner share of the official-account management modal seat (shell-driven visibility). */
-export interface SettingsOfficialAccountsOwnerProps {
-/** Owner share of the API-key management modal seat (shell-driven visibility). */
-export interface SettingsApiKeysOwnerProps {
-/** Owner share of the settings menu's account-card seat. */
-export interface SettingsMenuAccountOwnerProps {
-  /** Dismiss the settings menu (content opened its own surface over it). */
-  close: () => void
-/** Owner share of the settings menu's plan/points card seat. */
-export interface SettingsMenuPlanOwnerProps {
-  /** Open the shell-owned points purchase modal (the card's top-up action). */
-  openPointsRecharge: () => void
-
-/** Owner share of the points purchase modal seat (shell-driven visibility). */
-export interface SettingsPointsRechargeOwnerProps {
-  /** Request dismissal (Escape, mask click, or the modal's own close control). */
 /** Built-in group item slots; custom groups declare their own SlotMap keys. */
 export type SettingsGeneralGroupItemSlot =
   | 'settings.general.group.display.item'

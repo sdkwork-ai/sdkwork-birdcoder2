@@ -1,7 +1,6 @@
 /** Build and launch the unpackaged Electron shell; `--online` targets the production tier with a request log. */
 
 import { spawn, execFileSync } from 'node:child_process'
-import { cpSync, existsSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
@@ -98,8 +97,6 @@ async function run(
   })
 }
 
-async function runPackageScript(script: string, cwd: string, environment: NodeJS.ProcessEnv): Promise<void> {
-  if (process.env.npm_execpath === undefined || process.env.npm_execpath === '') {
 /** Workspace packages declaring `dsh.native`; development loads them in place, so they build in their own directories. */
 function workspaceNativePackages(): NativePackageBuild[] {
   const packages = join(REPOSITORY_ROOT, 'packages')
@@ -329,31 +326,6 @@ async function launchElectron(
 }
 
 async function main(): Promise<void> {
-  const arguments_ = parseDevelopmentArguments(process.argv.slice(2))
-  const online = arguments_.online
-  if (online) {
-    // FORK DIVERGENCE: the online debug lane targets the deployed production tier
-    // (AGENTS.md, "Desktop application identity" applies to state isolation; the
-    // production identity and request-log wiring live in online-debug-launch.ts).
-    // The profile and gateway are guaranteed: identity and gateway keys are
-    // forced to the canonical standalone.production values, and every other
-    // SDKWork value is inherited untouched.
-    if (!existsSync(ONLINE_REQUEST_LOG_MODULE)) {
-      throw new Error(`desktop development: missing request logger ${ONLINE_REQUEST_LOG_MODULE}`)
-    }
-    const onlineLaunch = onlineLaunchEnvironment(process.env, {
-      requestLogModule: ONLINE_REQUEST_LOG_MODULE,
-      applicationCode: resolveApplicationCode(REPOSITORY_ROOT),
-    })
-    console.log(`desktop development: ONLINE tier (profile ${PRODUCTION_PROFILE_ID}) - local source talks to `
-      + 'the deployed production environment')
-    console.log(`desktop development: SDK gateway=${PRODUCTION_GATEWAY_URL}`)
-    console.log(`desktop development: request log ${process.env[ONLINE_REQUEST_LOG_VARIABLE] === '0' ? 'off' : 'on'} `
-      + `(${ONLINE_REQUEST_LOG_VARIABLE}=${onlineLaunch.environment[ONLINE_REQUEST_LOG_VARIABLE]})`)
-    if (arguments_.printGateway) return
-    await launchDevelopment(onlineBuildEnvironment(onlineLaunch.environment, process.env),
-      onlineLaunch.environment, online, arguments_)
-    return
   const { values } = parseArgs({ options: { 'skip-build': { type: 'boolean', default: false } } })
   if (!values['skip-build']) {
     await runPackageScript('build:artifacts', REPOSITORY_ROOT)
@@ -368,7 +340,9 @@ async function main(): Promise<void> {
         console.warn(`desktop development: ${declaration.name} native addon not built: ${error instanceof Error ? error.message : String(error)}`)
       }
     }
-  }
+
+    // FORK DIVERGENCE: the online debug lane targets the deployed production tier
+    // SDKWork value is inherited untouched.  }
   // A packaged Desktop application exports the deployment it resolved into every child
   // process, so a shell that carries that environment would otherwise point this source
   // run at the packaged deployment. The checkout owns the development tier, so both builds

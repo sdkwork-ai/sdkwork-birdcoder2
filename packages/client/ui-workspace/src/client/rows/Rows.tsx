@@ -15,21 +15,14 @@
  * shared `contextMenu.button` factory, so compositions without the plugin
  * keep the stock behavior.
  */
-// FORK DIVERGENCE: `useState` is fork-side only (the rowMenus seam keeps the
-// menu open state in the row). An upstream merge that adopts upstream's import
-// line silently drops it and crashes every workspace row at render.
-import { useEffect, useMemo, useRef, useState } from 'react'
-import type { PointerEvent, RefObject } from 'react'
 import { useEffect, useId, useRef } from 'react'
-import clsx from 'clsx'
+
+// FORK DIVERGENCE: `useState` is fork-side only (the rowMenus seam keeps theimport clsx from 'clsx'
 import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots/client'
 import {
   HoverCard, IconArchiveOutlineRegular,
   IconFolderCloseRegular, IconFolderOpenRegular,
   IconNewChatOutlineRegular, IconPinFillRegular,
-  IconTriangleRightFillRegular, IconUnarchiveOutlineRegular, relativeTime, StateDot, Tooltip, useRowDragPreview,
-} from '@deepseek-ai/dsh-client-ui-primitives'
-import type { StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
   IconTriangleRightFillRegular, IconUnarchiveOutlineRegular, relativeTime, StateDot, Tooltip, useHoverMarquee, useRowDragPreview,
 } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type { ShortcutCatalogEntry } from '@deepseek-ai/dsh-client-shortcuts/client'
@@ -381,10 +374,6 @@ function WorkspaceProjectRow({ workspaceId, ...props }: ProjectRowItemProps & { 
 }
 
 function ProjectRow({
-  group, containsCurrentDescendant = false, onToggle, actions, drag: offeredDrag, home, menu, newShortcut, t, access,
-  renderFactorySlot, useContextMenu, useContextMenuTarget,
-}: ProjectRowItemProps & { access: ProjectRowAccess }) {
-  const drag = access.reorder ? offeredDrag : undefined
   group, containsCurrentDescendant = false, onToggle, drag: offeredDrag, home, newShortcut, t, actions,
   renderFactorySlot, useContextMenuOpener, useContextMenu,
 }: Omit<ProjectRowItemProps, 'onCreate'> & { actions: ProjectRowActions }) {
@@ -396,45 +385,6 @@ function ProjectRow({
   // The ungrouped bucket has no workspace title: its label is dictionary copy.
   const label = workspaceId === undefined ? t('group.ungrouped') : row.label
   const active = containsCurrentDescendant || (group.expanded && group.containsCurrent)
-  const [pluginMenuOpen, setPluginMenuOpen] = useState(false)
-  // Upstream owns the row menu: the context-menu container captures the target
-  // on right-click or on the ellipsis toggle and reports it back, so the hover
-  // card stands down while that menu is up. A plugin renderer (the rowMenus
-  // hole) replaces the container wholesale and reports its own open state.
-  const menuCaptured = useContextMenuTarget(select => select !== null && select.kind === 'workspace'
-    && workspaceId !== undefined && select.value.workspaceId === workspaceId)
-  const menuOpen = pluginMenuOpen || menuCaptured
-  const reportMenuOpen = (open: boolean): void => { setPluginMenuOpen(open) }
-  const dragPreview = useRowDragPreview(css.dragPreview, DRAG_PREVIEW_PROPERTIES)
-  // The plugin renderer drives its own context-menu surface through this
-  // command channel; the row only forwards the pointer position.
-  const [, setContextPoint] = useState<{ x: number; y: number } | null>(null)
-  const contextMenuChannel = useMemo(() => ({ open: (x: number, y: number) => { setContextPoint({ x, y }) } }), [])
-  const menuNode = actions !== undefined && menu !== undefined
-    ? menu({
-      label, cwd: row.cwd, actions, iconButtonClassName: css.iconButton, onMenuOpenChange: reportMenuOpen,
-      contextMenu: contextMenuChannel,
-    })
-    : null
-  // Plugin path: the mounted renderer overrides the channel's open, so the row
-  // forwards the pointer and lets the renderer own the menu. Absent a renderer
-  // the trigger opens the shared context menu, which is where upstream declares
-  // the Workspace rename/delete entries (and every plugin's own entries).
-  const { getTriggerProps } = useContextMenu()
-  const trigger = getTriggerProps(
-    workspaceId === undefined
-      ? undefined
-      : { kind: 'workspace', value: { workspaceId, path: row.cwd ?? '', displayTitle: label } },
-    menu === undefined
-      ? undefined
-      : {
-        onContextMenu: (e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          contextMenuChannel.open(e.clientX, e.clientY)
-        },
-      },
-  )
   // The row's gesture and its button share one opener id, so a menu for the
   // same Workspace opened elsewhere leaves this row unchanged.
   const menuOpener = useId()
@@ -442,14 +392,14 @@ function ProjectRow({
   const dragPreview = useRowDragPreview(css.dragPreview as string, DRAG_PREVIEW_PROPERTIES)
   const workspaceMenuTarget = row.workspaceId !== undefined && row.cwd !== undefined
     ? { workspaceId: row.workspaceId, path: row.cwd } : undefined
-  const ownRow = (
+
+  const [, setContextPoint] = useState<{ x: number; y: number } | null>(null)  const ownRow = (
     <div
       className={clsx(css.projectRow, menuOpen && css.menuOpen)}
       data-row-key={`workspace:${group.key}`}
       role="treeitem"
       aria-expanded={row.expanded}
       onClick={onToggle}
-      {...trigger}
       {...getTriggerProps(workspaceMenuTarget === undefined
         ? undefined
         : { kind: 'workspace', value: { ...workspaceMenuTarget, displayTitle: label } }, undefined, menuOpener)}
@@ -474,18 +424,6 @@ function ProjectRow({
         <span className={css.title}>{label}</span>
       </span>
       <span className={css.rowActions}>
-        {/* One trigger, and only for a real Workspace: the shared context menu
-            carries the rename/delete entries (they check the Workspace's own
-            access snapshot) plus every file-manager and plugin entry, so the
-            button stays available even when this fork's built-in pair is not.
-            A plugin renderer draws its own trigger instead. */}
-        {menu === undefined && workspaceId !== undefined && renderFactorySlot('contextMenu.button', {
-          target: { kind: 'workspace', value: { workspaceId, path: row.cwd ?? '', displayTitle: label } },
-          label: t('actions.workspace.aria', { name: label }),
-          className: css.iconButton,
-        })}
-        {menuNode}
-        {access.create !== undefined && (
         {workspaceMenuTarget !== undefined && (
           renderFactorySlot('contextMenu.button', {
             target: { kind: 'workspace', value: { ...workspaceMenuTarget, displayTitle: label } },
@@ -765,8 +703,6 @@ export function SearchResultItem({
  * @returns the session row.
  */
 export function SessionNodeItem({
-  node, currentId, now, onOpen, onRenameRequest, onFork, onArchive, onPin, onUnpin,
-  renderSlot, onReveal, drag, menu, home, useSessionAccess, t, renderFactorySlot, useContextMenu, useContextMenuTarget,
   node, currentId, now, onOpen, onRenameRequest, renderSlot, renderFactorySlot, useContextMenuOpener,
   useContextMenu, onReveal, drag, home, useSessionAccess, t,
 }: {
@@ -825,22 +761,13 @@ export function SessionNodeItem({
   const reorderable = useSessionAccess(node.id, 'workspace/insertSessionBefore')
   const draggable = !row.blank && !row.archived
   const reorderDraggable = draggable && drag !== undefined && reorderable
-  // Two surfaces can own this row's menu: the plugin renderer reports its own
-  // open state, and the shared context menu reports the target it captured. A
-  // captured target means the menu is up even though the row's own state never
-  // flipped, so the marquee and the hover card must read both.
-  const [pluginMenuOpen, setPluginMenuOpen] = useState(false)
-  const menuCaptured = useContextMenuTarget(select => select !== null && select.kind === 'session'
-    && select.value.sessionId === node.id)
-  const menuOpen = pluginMenuOpen || menuCaptured
-  const [, setContextPoint] = useState<{ x: number; y: number } | null>(null)
-  const dragPreview = useRowDragPreview(css.dragPreview, DRAG_PREVIEW_PROPERTIES)
   // The row's gesture and its button share one opener id, so the conversation
   // title's menu for the same Session leaves this row unchanged.
   const menuOpener = useId()
   const menuOpen = useContextMenuOpener(opener => opener === menuOpener)
   const dragPreview = useRowDragPreview(css.dragPreview as string, DRAG_PREVIEW_PROPERTIES)
-  const rowRef = useRef<HTMLDivElement>(null)
+
+  const [, setContextPoint] = useState<{ x: number; y: number } | null>(null)  const rowRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLSpanElement>(null)
   // On macOS the click that activates the window is not delivered, but the
   // next click arrives with detail 2 and fires dblclick, so rename requires a
@@ -909,10 +836,6 @@ export function SessionNodeItem({
         if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
         event.preventDefault()
         onOpen(node.id)
-      } })}
-      onPointerEnter={marquee.enter}
-      onPointerLeave={leaveRow}
-      {...(onRowContextMenu === undefined ? {} : { onContextMenu: onRowContextMenu })}
       } }, menuOpener)}
       onPointerEnter={marquee.onPointerEnter}
       onPointerLeave={marquee.onPointerLeave}

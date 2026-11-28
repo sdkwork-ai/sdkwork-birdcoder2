@@ -1,6 +1,5 @@
 /** Anchor-preserving tooltips; an optional body portal escapes clipping containers and stacking contexts that cap the bubble's z-index. */
 
-import { cloneElement, createContext, useCallback, useContext, useEffect, useId, useRef, useState } from 'react'
 import { cloneElement, createContext, useCallback, useContext, useEffect, useId, useRef, useState, version } from 'react'
 import type { FocusEventHandler, MouseEventHandler, PointerEventHandler, ReactElement, Ref } from 'react'
 import { createPortal } from 'react-dom'

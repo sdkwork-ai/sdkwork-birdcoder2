@@ -14,14 +14,6 @@ import { build, type Rolldown, type TsdownBundle, type UserConfig } from 'tsdown
 import type { DshClientModuleManifest } from '@deepseek-ai/dsh-package-manifest'
 import { afterEach, describe, expect, it } from 'vitest'
 import { packageAssetRevision } from '../packages/client/modules/src/assets.ts'
-import {
-  EMBEDDED_APP_CSS_LAYER,
-  EMBEDDED_APP_LAYER_ORDER,
-  EMBEDDED_APPSTORE_CSS_LAYER,
-  clientBundle,
-  embedAppStylesheetInLayer,
-  scopeStyleSheetUtilities,
-} from '../packages/client/tsdown.client.ts'
 import { clientBundle } from '../packages/client/tsdown.client.ts'
 import { cssIdentifier } from './test-css-identifier.ts'
 
@@ -532,50 +524,6 @@ describe('client bundle stylesheet url()', () => {
     expect(context.emitted.map(file => file.fileName)).toEqual([`assets/whale-${WHALE_REV}.png`])
   })
 
-  // Rolldown strips `?inline` before resolveId and re-appends it onto the resolved
-  // virtual id, so a `x.css?inline` import reaches the global-inline arm as
-  // `\0dsh-global-css:<abs>.mjs?inline` — not through the text-inline arm.
-  it('exports a url-free inline stylesheet as its own text, not a quoted literal', async () => {
-    const root = await assetPackage({ 'src/client/theme.css': 'body { color: red; }' })
-    const { resolveId, load } = hooks(browserPlugins(root)('dsh-css-global-inline'))
-
-    const id = resolveId('./theme.css', join(root, 'src/client/index.ts'))
-    if (typeof id !== 'string') throw new Error('global-inline did not resolve ./theme.css')
-
-    const loaded = await load.call(recordingContext(), `${id}?inline`)
-    // The inline rule emits the stylesheet as module text, never as a bundle
-    // record; the rollup hook type widens to `LoadedModule`, so narrow it here.
-    if (typeof loaded !== 'string') throw new Error('global-inline must emit the stylesheet as text')
-    const output = loaded
-
-    expect(output).toBe('export default "body{color:red}";')
-    // The value must be the stylesheet text itself: a quoted literal parses to zero
-    // CSS rules, which is how the whole `--dsw-*` token sheet once vanished.
-    expect(stylesheetText(output, reference => reference)).toBe('body{color:red}')
-  })
-
-  it('exports an inline stylesheet that carries package assets as one expression', async () => {
-    const root = await assetPackage({
-      'src/client/assets/whale.png': WHALE,
-      'src/client/theme.css': 'body { background: url(./assets/whale.png); }',
-    })
-    const { resolveId, load } = hooks(browserPlugins(root)('dsh-css-global-inline'))
-
-    const id = resolveId('./theme.css', join(root, 'src/client/index.ts'))
-    if (typeof id !== 'string') throw new Error('global-inline did not resolve ./theme.css')
-
-    const loaded = await load.call(recordingContext(), `${id}?inline`)
-    // The inline rule emits the stylesheet as module text, never as a bundle
-    // record; the rollup hook type widens to `LoadedModule`, so narrow it here.
-    if (typeof loaded !== 'string') throw new Error('global-inline must emit the stylesheet as text')
-    const output = loaded
-
-    expect(output).not.toContain('\\"')
-    expect(stylesheetText(output, reference => `resolved:${reference}`))
-      .toBe(`body{background:url(resolved:${WHALE_URL})}`)
-  })
-
-  it('leaves stylesheets outside the package src untouched', async () => {
   it('leaves package stylesheets outside src untouched', async () => {
     const root = await assetPackage({
       'node_modules/@fortune-sheet/react/dist/index.css': '.sheet { background: url("EwaAntH.gif"); }',

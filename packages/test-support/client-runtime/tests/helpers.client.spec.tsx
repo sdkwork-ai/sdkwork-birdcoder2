@@ -125,10 +125,6 @@ describe('fixture helpers', () => {
       await act(async () => {
         await runtime.mount({
           inject: ['slots'],
-          apply(ctx) {
-            // Release and replacement must be atomic: the renderer materializes
-            // root hooks strictly per render, so a render between the two steps
-            // would crash the mounted entry instead of serving the new source.
           // Release and replace in one step: a render between them would find no usePanelInfo.
           apply(ctx) {
             runtime.releasePanelInfoSource()

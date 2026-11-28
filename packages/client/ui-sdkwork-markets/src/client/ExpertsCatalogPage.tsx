@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import clsx from 'clsx'
-import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarketsKey } from './locales.ts'
 import { ExpertsIcon, SearchIcon, TeamsIcon } from './icons.tsx'
+import { MarketsDialog } from './MarketsDialog.tsx'
 import css from './ExpertsCatalogPage.module.css'
 
 /**
@@ -683,7 +684,7 @@ export function ExpertsCatalogPage({
       </section>
 
       {selectedExpert === null ? null : (
-        <Modal
+        <MarketsDialog
           open
           onClose={() => { setSelectedExpert(null) }}
           title={selectedExpert.name}
@@ -734,11 +735,11 @@ export function ExpertsCatalogPage({
               </div>
             )}
           </div>
-        </Modal>
+        </MarketsDialog>
       )}
 
       {selectedTeam === null ? null : (
-        <Modal
+        <MarketsDialog
           open
           onClose={() => { setSelectedTeam(null) }}
           title={selectedTeam.name}
@@ -792,7 +793,7 @@ export function ExpertsCatalogPage({
               </ul>
             )}
           </div>
-        </Modal>
+        </MarketsDialog>
       )}
     </div>
   )

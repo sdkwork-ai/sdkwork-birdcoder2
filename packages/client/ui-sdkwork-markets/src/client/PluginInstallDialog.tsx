@@ -16,9 +16,10 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   Button, IconCheckOutlineRegular, IconChevronDownOutlineRegular, IconChevronLeftOutlineRegular,
-  IconCloseOutlineRegular, IconWarningOutlineRegular, Modal, TerminalBlock,
+  IconCloseOutlineRegular, IconWarningOutlineRegular, TerminalBlock,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { TerminalBlockLabels } from '@deepseek-ai/dsh-client-ui-primitives'
+import { MarketsDialog } from './MarketsDialog.tsx'
 import type { MarketsKey } from './locales.ts'
 import type { InstallSession, PluginStore } from './pluginStore.ts'
 import css from './OfficialPluginsPanel.module.css'
@@ -168,7 +169,7 @@ export function PluginInstallDialog({ t, store, install }: PluginInstallDialogPr
     const checking = phase === 'checking'
     const empty = draft.trim() === ''
     return (
-      <Modal
+      <MarketsDialog
         open
         onClose={() => { store.closeInstall() }}
         title={t('install.title')}
@@ -261,7 +262,7 @@ export function PluginInstallDialog({ t, store, install }: PluginInstallDialogPr
             </div>
           ) : null}
         </div>
-      </Modal>
+      </MarketsDialog>
     )
   }
 
@@ -282,7 +283,7 @@ export function PluginInstallDialog({ t, store, install }: PluginInstallDialogPr
   const closeDialog = (): void => { store.closeInstall() }
 
   return (
-    <Modal open onClose={closeDialog} title={heading} headless className={css.installDialog}>
+    <MarketsDialog open onClose={closeDialog} title={heading} headless className={css.installDialog}>
       <div
         className={css.wizard}
         data-install-phase={phase}
@@ -392,6 +393,6 @@ export function PluginInstallDialog({ t, store, install }: PluginInstallDialogPr
             : <Button variant="primary" className={css.wide} onClick={closeDialog}>{t('install.close')}</Button>}
         </div>
       </div>
-    </Modal>
+    </MarketsDialog>
   )
 }

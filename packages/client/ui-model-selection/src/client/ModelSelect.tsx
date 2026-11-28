@@ -36,14 +36,6 @@ import clsx from 'clsx'
 import type { ModelReasoningEffort, ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
 import {
   IconCheckOutlineRegular, IconChevronDownOutlineRegular, IconChevronRightOutlineRegular, IconCloseFillRegular,
-  IconDataOutlineRegular, IconWarningOutlineRegular, Input, isMobileDevice, StateDot, Tag, Toast,
-} from '@deepseek-ai/dsh-client-ui-primitives'
-import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
-import type {
-  FactoryComponentPropsOf, PropsLocale, PropsRenderSlots, PropsRuntime, TranslateNS,
-} from '@deepseek-ai/dsh-client-ui-slots'
-import type { ModelLabelOwner, ModelMenuControls, ModelMenuOptions, ModelMenuPaneRef, ModelSelectInjected } from './slots.ts'
-import type { ModelDirectoryState } from './directory.ts'
   IconDataOutlineRegular, IconWarningOutlineRegular, Input, StateDot, Tag, Toast,
 } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type { PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots/client'
@@ -145,11 +137,6 @@ export type ModelPickerProps = ModelPickerInputs & ModelPickerSeats & {
  * @param props - picker inputs, dictionary seat and optional child renderers.
  * @returns the trigger and, while open, the two-level menu.
  */
-export function ModelPicker(
-  {
-    state, load, select, available = true, locked, requestSignIn, waitForSignedInModel, resolveText, t,
-    renderLabel, renderAfterModel, renderOptions, renderPane,
-  }: ModelPickerProps,
 export function ModelSelect(
   { locked, available, directory, load, select, resolveText, t, renderSlot, useMobile, useDocumentPortal }:
   ModelSelectInjected & Pick<PropsRuntime<'conversation.input.model'>, 'locked' | 'useMobile' | 'useDocumentPortal'> & PropsLocale<'model'>

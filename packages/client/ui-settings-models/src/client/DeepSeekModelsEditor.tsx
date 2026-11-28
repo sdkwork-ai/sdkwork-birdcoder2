@@ -229,10 +229,6 @@ export function DeepSeekModelsEditor(props: DeepSeekModelsEditorProps): ReactNod
             <button type="button" className={styles['textAction']} disabled={props.disabled} onClick={reset}>
               {props.t('resetModels')}
             </button>
-          )
-          : null}
-      </div>
-      <AnimatedRows className={styles['modelList']} rowKeys={rowState.rows.map(row => String(row.key))} ready resetKey="">
           </>
         )
         : undefined}

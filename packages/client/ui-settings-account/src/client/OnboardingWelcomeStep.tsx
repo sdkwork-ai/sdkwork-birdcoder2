@@ -10,11 +10,10 @@ import artZhDark from './assets/onboarding-welcome-zh-dark.webp'
 import css from './DesktopOnboarding.module.css'
 
 /** @param props - localized content, focus target and navigation. @returns the welcome step. */
-export function OnboardingWelcomeStep({ t, locale, heading, busy, onStart }: Pick<DesktopOnboardingProps, 't' | 'locale'> & {
-  heading: RefObject<HTMLHeadingElement | null>
 export function OnboardingWelcomeStep({ t, locale, colorScheme, heading, busy, onStart }: Pick<DesktopOnboardingProps, 't' | 'locale' | 'colorScheme'> & {
   heading: Ref<HTMLHeadingElement>
-  busy: boolean
+
+  heading: RefObject<HTMLHeadingElement | null>  busy: boolean
   onStart: () => void
 }) {
   return <div className={`${css.content} ${css.welcome}`}>

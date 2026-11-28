@@ -366,52 +366,6 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
           onClick={() => { void fetchModels() }}
         >
           {busy ? t('fetching') : t('fetchModels')}
-        </button>
-      </div>
-      {models.length === 0 && !listsInherited ? <p className={styles['modelEmpty']}>{t('modelsEmpty')}</p> : null}
-      {listsInherited
-        ? (
-          <AnimatedRows
-            className={styles['modelList']}
-            rowKeys={inheritedRows.rows.map(row => `inherited-${String(row.key)}`)}
-            ready
-            resetKey=""
-          >
-            {inheritedRows.rows.map(({ model, key, expanded, order }, index) => (
-              <ModelRow
-                key={key}
-                rowKey={key}
-                order={order}
-                model={model}
-                position={index + 1}
-                inputField="input"
-                inputFallback={inputDefaults.get(textOf(model, 'id')) ?? props.defaultInput}
-                reasoningLevels={props.reasoningLevels}
-                reasoningLevelsOnly={props.reasoningLevelsOnly}
-                expanded={expanded}
-                disabled
-                t={t}
-                contextWindow={{
-                  value: capacitySpelling(numberOf(model, 'contextWindow')),
-                  placeholder: CAPACITY_HINT.contextWindow,
-                  onChange: () => {},
-                }}
-                maxTokens={{
-                  value: capacitySpelling(numberOf(model, 'maxTokens')),
-                  placeholder: CAPACITY_HINT.maxTokens,
-                  onChange: () => {},
-                }}
-                onFieldChange={() => {}}
-                onChange={() => {}}
-                onToggle={() => { inheritedRows.toggle(index) }}
-                onRemove={() => {}}
-              />
-            ))}
-          </AnimatedRows>
-        )
-        : null}
-      <AnimatedRows className={styles['modelList']} rowKeys={rowState.rows.map(row => String(row.key))} ready resetKey="">
-        {rowState.rows.map(({ model, key, expanded, order }, index) => (
         </Button>
       )}
       notice={(

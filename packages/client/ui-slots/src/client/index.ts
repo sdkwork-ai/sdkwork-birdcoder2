@@ -447,7 +447,6 @@ export type PropsRenderSlots<S extends keyof SlotMap & string> = {
  * function-component return type, so `FC`-annotated components are accepted.
  */
 export type SlotComponent<P> = (props: P) => ReactNode | Promise<ReactNode>
-export type SlotComponent<P> = (props: P) => ReturnType<FunctionComponent>
 
 type FactoryDefOf<F extends keyof SlotFactoryMap & string> = SlotFactoryMap[F] & SlotFactoryDef
 type FactoryInputPropsOf<F extends keyof SlotFactoryMap & string> =

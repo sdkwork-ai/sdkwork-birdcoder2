@@ -1,72 +1,7 @@
-/* The import-skill dialog: a centered modal card over a dimming overlay,
-   matching the source dialog's shell with a dropzone body. Paints the
-   host appearance aliases so the card follows the running theme in both
-   schemes. */
+/* The import-skill dialog body: the dropzone, the gate, and the requirements
+   block. The dialog shell (overlay, mask, card, footer) belongs to
+   MarketsDialog.module.css, so this sheet only paints its own content. */
 
-.overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: rgba(0, 0, 0, 0.55);
-}
-
-.card {
-  position: relative;
-  width: 460px;
-  max-width: 100%;
-  max-height: 100%;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-  padding: 24px;
-  /* Elevated-surface scrollbar rebind (ui-theme scrollbar.css contract): the
-     card scrolls while sitting on its own layer, so the l2 pair is bound. */
-  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
-  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
-  border: 0;
-  border-radius: 14px;
-  background: var(--dsw-alias-bg-layer-1);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.32);
-}
-
-.close {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 26px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--dsw-alias-label-secondary);
-  font-size: 17px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.close:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
-  color: var(--dsw-alias-label-primary);
-}
-
-.title {
-  margin: 0 0 16px;
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 26px;
-  color: var(--dsw-alias-label-primary);
-}
-
-/* The dropzone: the pick target that also accepts drops; a picked file's name
-   replaces the placeholder copy. It reads as a filled region rather than a
-   dashed frame, and the drag-over state lifts it to the selected wash. */
 .dropzone {
   display: flex;
   flex-direction: column;

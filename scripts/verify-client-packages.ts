@@ -116,8 +116,6 @@ export interface ClientPackageFacts {
   readonly platformModules: readonly string[]
   readonly preloadedExternals: readonly string[]
   readonly parserPreloadIds: readonly string[]
-  /** Shell source-alias find patterns: seeded specifiers the web Vite shell compiles to src directly. */
-  readonly webSourceAliases: readonly RegExp[]
   /** Workspace packages whose root `types` export is their `./client` declarations ({@link reusesClientTypes}). */
   readonly clientTypedRoots: ReadonlySet<string>
   /**
@@ -397,15 +395,11 @@ function collectModeViolations(facts: ClientPackageFacts): string[] {
   for (const specifier of facts.platformModules) {
     const owner = packageNameOf(specifier)
     if (!workspaceNames.has(owner) || owner === CORDIS || facts.staticLinkedPackages.has(owner)) continue
-    // The web shell compiles a seeded dynamic-package source directly when its
-    // Vite alias table maps the specifier to a src entry — the same static
-    // inclusion the staticLinked roster provides, so it is not a module-edge
-    // drift (ui-renderer/client, ui-attachment, sdkwork token-manager / icons).
-    if (facts.webSourceAliases.some(pattern => pattern.test(specifier))) continue
     // A dynamic row answers its package name in the module table once the immediately tier has loaded.
     const row = facts.declarations.find(entry => entry.dynamic && entry.name === specifier)
     if (row?.immediately === true) continue
-    violations.push(
+
+    // drift (ui-renderer/client, ui-attachment, sdkwork token-manager / icons).    violations.push(
       PLATFORM_SOURCE + ': workspace platform module ' + JSON.stringify(specifier)
       + ' belongs to ' + owner + ', whose build does not use the staticLinked preset,'
       + ' and has no dsh.client row of the same package name with immediately: true',
@@ -782,24 +776,12 @@ function readStringLiteralArray(root: string, sourcePath: string, name: string):
 }
 
 /**
- * The web shell's source-alias find patterns (apps/web/vite-source-aliases.ts).
- * A seeded specifier matching one of these is compiled to its src entry by the
- * shell itself, which is the dynamic-package counterpart of the staticLinked
- * roster. Imported like {@link readStaticLinkedRoster} so the alias table stays
- * the single source of truth for what the shell compiles directly.
- * @returns the `find` RegExp of every alias entry.
- */
-async function readWebSourceAliases(): Promise<readonly RegExp[]> {
-  const aliasesUrl = pathToFileURL(resolve(import.meta.dirname, '..', 'apps/web/vite-source-aliases.ts')).href
-  const aliases = await import(aliasesUrl) as { WEB_SOURCE_ALIASES?: readonly { find?: unknown }[] }
-  return (aliases.WEB_SOURCE_ALIASES ?? [])
-    .map(entry => entry.find)
-    .filter((find): find is RegExp => find instanceof RegExp)
  * Read the references to the given packages and their `/client` subpaths in the tracked and untracked, not ignored,
  * TypeScript sources outside `vendor/` and the external consumer fixtures.
  * @param root - Absolute repository root.
  * @param packages - Package names whose references to read.
  * @returns The references, by file and then line.
+ */
 function readPackageReferences(root: string, packages: ReadonlySet<string>): ModuleReference[] {
   const listing = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], {
     cwd: root,
@@ -943,7 +925,6 @@ async function readFacts(root: string): Promise<ClientPackageFacts> {
     platformModules: readStringLiteralArray(root, PLATFORM_SOURCE, 'PLATFORM_MODULES'),
     preloadedExternals: readStringLiteralArray(root, PLATFORM_SOURCE, 'PRELOADED_CLIENT_EXTERNALS'),
     parserPreloadIds: readStringLiteralArray(root, PARSER_PRELOAD_SOURCE, 'PARSER_PRELOAD_IDS'),
-    webSourceAliases,
     clientTypedRoots,
     clientTypedRootReferences: readPackageReferences(root, clientTypedRoots),
     malformed,

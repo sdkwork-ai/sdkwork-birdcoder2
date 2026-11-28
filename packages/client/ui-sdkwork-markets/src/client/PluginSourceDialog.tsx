@@ -15,12 +15,13 @@
  * source. Every form keeps the plugin's directory: a repository that publishes
  * several plugins is addressed by path, not by a separate repository.
  */
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import {
   InvalidPluginSourceError, parsePluginSource, pluginSourceSpec,
   type PluginSource, type PluginSourceKind,
 } from '@deepseek-ai/dsh-plugin-manager/source'
 import type { MarketsKey } from './locales.ts'
+import { MarketsDialog } from './MarketsDialog.tsx'
 import css from './MarketDialog.module.css'
 
 /** Translate seat (the locale render currency, keys rendered verbatim in tests). */
@@ -102,15 +103,6 @@ export function PluginSourceDialog({
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [error, setError] = useState<MarketsKey | undefined>(undefined)
-  const card = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => { document.removeEventListener('keydown', onKeyDown) }
-  }, [onClose])
 
   const create = mode === 'create'
   const title = t(create ? 'source.title.create' : 'source.title.install')
@@ -141,16 +133,13 @@ export function PluginSourceDialog({
   }
 
   return (
-    <div
-      className={css.overlay}
-      role="presentation"
-      onPointerDown={(event) => {
-        if (card.current !== null && !card.current.contains(event.target as Node)) onClose()
-      }}
+    <MarketsDialog
+      open
+      onClose={onClose}
+      title={title}
+      closeLabel={t('dialog.close')}
     >
-      <div className={css.card} ref={card} role="dialog" aria-modal="true" aria-label={title} data-plugin-source-dialog={mode}>
-        <button type="button" className={css.close} aria-label={t('dialog.close')} onClick={onClose}>×</button>
-        <h2 className={css.title}>{title}</h2>
+      <div data-plugin-source-dialog={mode}>
         <p className={css.hint}>{t(create ? 'source.hint.create' : 'source.hint.install')}</p>
         <form
           className={css.form}
@@ -274,6 +263,6 @@ export function PluginSourceDialog({
           </div>
         </form>
       </div>
-    </div>
+    </MarketsDialog>
   )
 }

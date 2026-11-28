@@ -123,7 +123,6 @@ export function TabLayout(props: LayoutProps): ReactNode {
   // so the pending request's own absence is spelled in the type — which is also
   // the `MutableRefObject<... | undefined>` the consumers above already declare.
   const focusRequest = useRef<{ readonly tabId: TabId; readonly origin: Element | null } | undefined>(undefined)
-  const focusRequest = useRef<{ readonly tabId: TabId; readonly origin: Element | null }>(undefined)
   // Each pane's strip remounts under the newly selected tab's host.
   const [offsets] = useState(() => new Map<PaneId, number>())
   const tabCallbacks: PaneCallbacks = {

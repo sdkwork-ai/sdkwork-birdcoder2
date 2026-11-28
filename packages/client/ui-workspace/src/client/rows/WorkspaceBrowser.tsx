@@ -255,8 +255,6 @@ function workspaceGroupHalf(e: { clientY: number; currentTarget: HTMLElement }):
 
 type SessionTreeProps = Pick<
   WorkspaceBrowserProps,
-  'useSessionStatus' | 'startSession' | 'open' | 'forkSession' | 'pinSession' | 'unpinSession'
-  | 'renderFactorySlot' | 'useContextMenuTarget' | 'useContextMenu'
   'useSessionStatus' | 'startSession' | 'open' | 'renderFactorySlot' | 'useContextMenuOpener' | 'useContextMenu'
   | 'insertWorkspaceBefore' | 't' | 'usePanelInfo'
   | 'useSessionAccess' | 'useWorkspaceAccess'
@@ -335,8 +333,6 @@ function SessionTree({
   list, useSessionStatus, startSession, open, forkSession, pinSession, unpinSession, workspaces, ungroupedSessionIds,
   rowState,
   workspaceReady, animationResetKey, usePanelInfo, useSessionAccess, useWorkspaceAccess,
-  onRenameRequest, onDeleteRequest, onSessionRenameRequest, onSessionArchive,
-  renderSlot, renderFactorySlot, useContextMenuTarget, useContextMenu,
   onSessionRenameRequest,
   renderSlot, renderFactorySlot, useContextMenuOpener, useContextMenu,
   insertWorkspaceBefore,
@@ -716,11 +712,6 @@ function SessionTree({
 
 /** The flat "In one list" body: every session is one draggable top-level row. */
 function FlatList({
-  list, sessionIds, rowState, onLeaveArchivedOnly, useSessionStatus, useSessionAccess, open, forkSession, pinSession, unpinSession,
-  onSessionRenameRequest, onSessionArchive,
-  renderSlot, renderFactorySlot, useContextMenuTarget, useContextMenu, usePanelInfo, setSessionOrder, rowMenus,
-  workspaceReady, animationResetKey,
-  revealSessionId, onSessionRevealed, home, t,
   list, sessionIds, rowState, onLeaveArchivedOnly, useSessionStatus, useSessionAccess, open, onSessionRenameRequest,
   usePanelInfo, setSessionOrder, workspaceReady, animationResetKey,
   revealSessionId, onSessionRevealed, renderSlot, renderFactorySlot, useContextMenuOpener, useContextMenu, home, t,
@@ -996,7 +987,6 @@ export function WorkspaceBrowser({
   requestAddWorkspace,
   closeAddWorkspace,
   setDirectoryBusy,
-  renderFactorySlot, useContextMenuTarget, useContextMenu,
   renderSlot, renderFactorySlot, useContextMenuOpener, useContextMenu,
   t,
 }: WorkspaceBrowserProps) {
@@ -1057,11 +1047,6 @@ export function WorkspaceBrowser({
   }
   const leaveArchivedOnly = (): void => { actions.setArchivedFilter('default') }
   const workspaceReady = workspacePhase === 'ready' && workspaceStreamState !== 'loading'
-  const mainSessionId = Object.values(list.byId)
-    .find(session => (session.retainedBy.mainView ?? 0) > 0)?.id
-  const currentBlank = mainSessionId !== undefined &&  list.byId[mainSessionId]?.blank
-    ? mainSessionId
-    : undefined
   const currentRowId = currentRowSessionId(list)
   const currentBlank = currentRowId !== undefined && list.byId[currentRowId]?.blank === true ? currentRowId : undefined
   const ungroupedMemberIds = useMemo(() => {

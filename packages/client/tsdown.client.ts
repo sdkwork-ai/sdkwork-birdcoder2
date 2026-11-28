@@ -34,7 +34,6 @@ import { createRequire, isBuiltin } from 'node:module'
 import { basename, dirname, extname, isAbsolute, join, posix, relative, resolve as resolvePath, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Rolldown, type TsdownPlugin, type UserConfig } from 'tsdown'
-import { transform, type CustomAtRules, type Url, type Visitor } from 'lightningcss'
 import { compile as tailwindCompile, optimize as tailwindOptimize } from '@tailwindcss/node'
 import { Scanner as TailwindScanner, type SourceEntry as TailwindSourceEntry } from '@tailwindcss/oxide'
 import { transform, type CSSModuleExports, type CustomAtRules, type Url, type Visitor } from 'lightningcss'
@@ -122,7 +121,7 @@ export {
   scopeStyleSheetUtilities,
   type EmbeddedAppStyleOptions,
 } from './embedded-app-styles.ts'
-export const INLINE_SAFE = /^(?:@deepseek-ai\/dsh-(?:file-reference|fs-patch|session|llm|tools|brand|error|official-bundles|deque|output-retention|typert-protocol|util-code-language|util-crypto|util-text-search|util-time|util-values|util-workspace-path)(?:\/|$)|@deepseek-ai\/dsh-util-file-drag$|@deepseek-ai\/dsh-token-meter\/client$|@deepseek-ai\/dsh-commands\/builtin$|@deepseek-ai\/dsh-native-command\/types$|@deepseek-ai\/dsh-host-open-in-app\/shared$|@deepseek-ai\/dsh-plugin-manager\/(?:grammar|registry)$|@deepseek-ai\/dsh-plugin-market-index\/source$|@deepseek-ai\/dsh-agent-preset-registry\/display$|@deepseek-ai\/dsh-api-workspace-controller\/default-workspace$|@deepseek-ai\/dsh-api-session-controller\/client\/directories$|@deepseek-ai\/dsh-spill-policy\/notice$)/
+export const INLINE_SAFE = /^(?:@deepseek-ai\/dsh-(?:brand|deque|error|file-reference|fs-patch|host-apiproxy|llm|official-bundles|output-retention|session|tools|typert-protocol|util-code-language|util-crypto|util-text-search|util-time|util-values|util-workspace-path)(?:\/|$)|@deepseek-ai\/dsh-client-sdkwork-office(?:\/|$)|@deepseek-ai\/dsh-util-file-drag$|@deepseek-ai\/dsh-token-meter\/client$|@deepseek-ai\/dsh-commands\/builtin$|@deepseek-ai\/dsh-native-command\/types$|@deepseek-ai\/dsh-host-open-in-app\/shared$|@deepseek-ai\/dsh-sdkwork-skillhub\/shared$|@deepseek-ai\/dsh-plugin-manager\/(?:grammar|registry|source)$|@deepseek-ai\/dsh-plugin-market-index\/source$|@deepseek-ai\/dsh-agent-preset-registry\/display$|@deepseek-ai\/dsh-api-workspace-controller\/default-workspace$|@deepseek-ai\/dsh-api-session-controller\/client\/directories$|@deepseek-ai\/dsh-spill-policy\/notice$)/
 
 /**
  * Vendored framework libraries: rescoped into @deepseek-ai, so the gate below
@@ -134,14 +133,6 @@ const VENDORED_LIBRARY = /^@deepseek-ai\/(?:(?:cosmokit|schemastery)(?:\/|$)|cor
 
 /** Generated descriptor/codec contribution with no shared runtime identity. */
 const GENERATED_REMOTE = /^@deepseek-ai\/dsh-[a-z0-9]+(?:-[a-z0-9]+)*\/remote$/
-
-/**
- * Contract layers and pure folds a client bundle may inline: browser-safe
- * values with no runtime identity to share (no Symbol/instanceof/singleton state).
- * Everything else under @deepseek-ai/* is either a module-table entry
- * (external) or a leak the purity gate rejects.
- */
-export const INLINE_SAFE = /^(?:@deepseek-ai\/dsh-(?:brand|deque|error|file-reference|fs-patch|host-apiproxy|llm|official-bundles|output-retention|session|tools|typert-protocol|util-crypto|util-text-search|util-time|util-values|util-workspace-path)(?:\/|$)|@deepseek-ai\/dsh-client-sdkwork-office(?:\/|$)|@deepseek-ai\/dsh-util-file-drag$|@deepseek-ai\/dsh-token-meter\/client$|@deepseek-ai\/dsh-commands\/builtin$|@deepseek-ai\/dsh-native-command\/types$|@deepseek-ai\/dsh-host-open-in-app\/shared$|@deepseek-ai\/dsh-sdkwork-skillhub\/shared$|@deepseek-ai\/dsh-plugin-manager\/registry$|@deepseek-ai\/dsh-plugin-manager\/source$|@deepseek-ai\/dsh-plugin-market-index\/source$|@deepseek-ai\/dsh-agent-preset-registry\/display$|@deepseek-ai\/dsh-api-workspace-controller\/default-workspace$|@deepseek-ai\/dsh-api-session-controller\/client\/directories$|@deepseek-ai\/dsh-spill-policy\/notice$)/
 
 /**
  * Workspace mode replaces an empty config array with the root defaults. A
@@ -200,6 +191,7 @@ function sdkworkSourceAliases(): Record<string, string> {
     const target = targets[0]
     if (typeof target !== 'string') continue
     aliases[specifier] = resolvePath(REPOSITORY_ROOT, target)
+  }
   // ui-sdkwork-token-plan imports three ui-pc-react subpaths whose package
   // exports point at dist builds the release runner does not carry; their
   // source files sit at src/<subpath>, so map them explicitly. Keep this list
@@ -1629,9 +1621,6 @@ function clientConfig(
           ...stylesheetAssets.options,
         })
         return `export default ${stylesheetSource(code.toString(), stylesheetAssets.references)};`
-        const fileId = virtualId.slice(INLINE_CSS_VIRTUAL_PREFIX.length, -CSS_VIRTUAL_SUFFIX.length)
-        const compiled = await compileStylesheet(this, fileId, false)
-        return `export default ${stylesheetSource(compiled.code, compiled.references)};`
       },
     }, {
       name: 'dsh-css-global-inline',
@@ -1675,11 +1664,6 @@ function clientConfig(
         // sheet defines disappears (a light palette over the boot dark canvas).
         if (inlineWanted) return `export default ${code};`
         return styleInjectionModule(id, fileId, code)
-        const fileId = virtualId.slice(GLOBAL_CSS_VIRTUAL_PREFIX.length, -CSS_VIRTUAL_SUFFIX.length)
-        const compiled = await compileStylesheet(this, fileId, false)
-        styles.set(virtualId, compiledClientStyle(id, packageDir, fileId,
-          stylesheetSource(compiled.code, compiled.references, 'context.asset')))
-        return { code: 'export {};', moduleSideEffects: 'no-treeshake' }
       },
     }, assets.plugin],
     outputOptions: {

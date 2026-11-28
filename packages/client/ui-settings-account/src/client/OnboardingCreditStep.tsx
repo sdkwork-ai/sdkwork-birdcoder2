@@ -10,13 +10,11 @@ import artZhDark from './assets/onboarding-recharge-zh-dark.webp'
 import css from './DesktopOnboarding.module.css'
 
 /** @param props - credit facts, localized content and recharge/navigation actions. @returns the credit step. */
-export function OnboardingCreditStep({ t, locale, heading, busy, funded, canRecharge, onContinue, onRecharge, onLater }:
-  Pick<DesktopOnboardingProps, 't' | 'locale'> & {
-    heading: RefObject<HTMLHeadingElement | null>
 export function OnboardingCreditStep({ t, locale, colorScheme, heading, busy, funded, canRecharge, onContinue, onRecharge, onLater }:
   Pick<DesktopOnboardingProps, 't' | 'locale' | 'colorScheme'> & {
     heading: Ref<HTMLHeadingElement>
-    busy: boolean
+
+    heading: RefObject<HTMLHeadingElement | null>    busy: boolean
     funded: boolean
     canRecharge: boolean
     onContinue: () => void

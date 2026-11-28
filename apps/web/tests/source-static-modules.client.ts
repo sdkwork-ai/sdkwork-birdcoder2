@@ -50,6 +50,5 @@ export function getStaticModules(): ClientModuleCreateOptions['staticModules'] {
     '@deepseek-ai/dsh-client-ui-primitives': UiPrimitives,
     '@deepseek-ai/dsh-client-ui-dockkit': UiDockkit,
   } satisfies Record<SourcePlatformModule, Record<string, unknown>>
-  } satisfies Partial<Record<PlatformModule, Record<string, unknown>>>
   return Object.entries(sources).map(([id, exports]) => ({ id, factory: () => exports }))
 }

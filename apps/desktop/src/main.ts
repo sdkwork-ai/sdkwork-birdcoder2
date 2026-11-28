@@ -6,8 +6,6 @@ import { BRAND_PROTOCOL_ENV, oemConfigPath, readOemConfig, resolveOemEnvironment
 import { usesProductCaption } from './caption-platform.ts'
 import { configurationFailure, channelSaveFailure, configurationMessage } from './update-configuration.ts'
 import type { DesktopChannelState, DesktopChannelChangeResult } from '@deepseek-ai/dsh-client-ui-settings-general/types'
-import { DesktopUpdateSettings } from './update-settings.ts'
-import { createUpdateConfigSource } from './updates/config/index.ts'
 import { DesktopUpdateSettings, type DesktopUpdateConfigVersion } from './update-settings.ts'
 import { isDesktopUpdateChannel } from './settings-file.ts'
 import type { ProductEventMap, ProductEvent } from '@deepseek-ai/dsh-client-product-analytics/types'
@@ -782,12 +780,6 @@ async function main(): Promise<void> {
     () => locale.id === 'zh-CN' ? 'zh_CN' : 'en_US', process.platform === 'win32' ? 'win32' : 'darwin',
     owner => isMandatory() || updateOverlays.input(owner).blocked)
   const backend = new DesktopBackendController((onFailure) => {
-    const hostInspectPort = developmentHostInspectPort(development)
-    const host = new DesktopHostProcess(resources.node, resources.dsh, activeProject,
-      hostInspectPort, {
-        ...hostEnvironment,
-        DSH_CLIENT_VERSION: desktopClientVersion(),
-      }, onFailure,
     const host = new DesktopHostProcess(resources.node, resources.dsh, activeProject, {
       inspectPort: developmentHostInspectPort(development),
       environment: { ...hostEnvironment, DSH_CLIENT_VERSION: desktopClientVersion() },
@@ -978,21 +970,6 @@ async function main(): Promise<void> {
   }
 
   const manifest: unknown = JSON.parse(await readFile(join(app.getAppPath(), 'package.json'), 'utf8'))
-  const distribution = readDesktopDistribution(manifest)
-  const updateConfigSource = distribution.configUrl === undefined || distribution.productKey === ''
-    ? undefined
-    : createUpdateConfigSource({
-      configUrl: distribution.configUrl,
-      productKey: distribution.productKey,
-      platform: process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'macos' : 'linux',
-      architecture: process.arch === 'arm64' ? 'arm64' : 'x64',
-      allowedHosts: distribution.allowedHosts,
-      cachePath: join(app.getPath('userData'), 'desktop', 'update-config.json'),
-      installIdPath: join(app.getPath('userData'), 'desktop', 'install-id'),
-      currentVersion: app.getVersion(),
-    })
-  const packagedChannel = desktopUpdateChannel(manifest)
-  const channelSettings = new DesktopUpdateSettings(app.getPath('userData'), packagedChannel)
   const channelSettings = new DesktopUpdateSettings(app.getPath('userData'))
   const initialChannel = await channelSettings.load()
   let configVersion: DesktopUpdateConfigVersion = initialChannel.kind === 'ready' ? initialChannel.configVersion : '0'
@@ -1065,7 +1042,6 @@ async function main(): Promise<void> {
     (success, reason) => { void track('desktop_upgrade_download_result', { is_success: success, ...reason === undefined ? {} : { error_reason: reason } }) },
     updateChannel,
     undefined,
-    updateConfigSource,
     () => ({ configVersion, unlocked: channelState?.unlocked ?? false, bundledDshVersion: readBundledDshVersion() }),
   )
 

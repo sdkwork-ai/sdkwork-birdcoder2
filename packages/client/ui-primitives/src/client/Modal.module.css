@@ -29,7 +29,10 @@
   animation: modalEnter var(--ds-transition-duration) var(--ds-ease-in-out);
 }
 
-/* Dialogs use the prominent elevation on the secondary layer. */
+/* Dialogs use the prominent elevation on the secondary layer. The card caps
+   itself to the padding box and scrolls its content region, so a long dialog
+   stays centered and keeps its header and footer reachable instead of
+   overflowing the viewport at both ends. */
 .dialog {
   box-sizing: border-box;
   position: relative;
@@ -38,6 +41,7 @@
   flex-direction: column;
   gap: 20px;
   width: min(380px, 100%);
+  max-height: 100%;
   padding: 0 0 24px;
   overflow: hidden;
   border: 0;
@@ -64,6 +68,8 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Header controls and footer actions share the content column's trailing edge. */
@@ -132,10 +138,13 @@
 
 .body {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   margin-top: 20px;
   padding: 0 24px;
+  overflow-y: auto;
 }
 
 .header + .body {

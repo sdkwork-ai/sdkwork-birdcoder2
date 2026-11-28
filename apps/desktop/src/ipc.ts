@@ -114,23 +114,9 @@ export interface DshDesktopProductApi {
    */
   deviceInfo(): Promise<string>
   /**
-   * The product sign-in page: the welcome window a signed-out workspace shows
-   * when a surface needs an account. The workspace starts the IAM browser login
-   * itself after `'login'`, so the page never holds tokens.
-   */
-  readonly auth: {
-    /**
-     * Open the welcome sign-in page over the workspace.
-     * @returns the gesture the page ended with.
-     */
-    openSignIn(): Promise<DesktopSignInOutcome>
-     * Report that the workspace ended the signed-in IAM session on the user's
-     * confirmation. The shell returns to the welcome entry only when no
-     * independently stored API key keeps the workspace usable.
-    signedOut(): Promise<void>
-  }
    * Textures the Desktop Host presents in this window; see {@link SharedTextureClientExport}. Desktop-internal: frame
    * forwarding consumes it for the document's whole life, so plugins use frame forwarding instead.
+   */
   readonly textures: SharedTextureClientExport
   readonly updates: {
     readonly channels: DesktopChannelBridge

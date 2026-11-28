@@ -77,65 +77,6 @@ function failureMessage(
   return code === 'AUTH' ? t('message.failure.auth') : message
 }
 
-/**
- * The repair seats a terminal failure row declares. A missing credential splits
- * its sentence around two in-place gestures; a quota failure keeps its neutral
- * copy and appends the one replenishment gesture a feature can offer.
- */
-type TurnErrorRepairSlot =
-  | 'conversation.chat.turn-error.sign-in'
-  | 'conversation.chat.turn-error.model-settings'
-  | 'conversation.chat.turn-error.top-up'
-
-type TurnErrorRepairRenderer = PropsRenderSlots<TurnErrorRepairSlot>['renderSlot']
-
-/**
- * The missing-credential sentence with its two repair seats in place: the
- * sign-in and Models-page phrases become the feature-provided links exactly
- * where the sentence names them, and stay plain text when no feature fills the
- * seat, so the row reads as one piece of copy in every composition.
- */
-function MissingCredentialCopy({ node, renderSlot, t }: {
-  node: TurnErrorNode
-  renderSlot: TurnErrorRepairRenderer
-  t: ChatViewSlotProps['t']
-}) {
-  const signIn = t('message.failure.missingCredential.signIn')
-  const models = t('message.failure.missingCredential.models')
-  return (
-    <>
-      {t('message.failure.missingCredential.before')}
-      {renderSlot('conversation.chat.turn-error.sign-in', { code: node.code, label: signIn }, { fallback: signIn })}
-      {t('message.failure.missingCredential.between')}
-      {renderSlot('conversation.chat.turn-error.model-settings', { code: node.code, label: models }, { fallback: models })}
-      {t('message.failure.missingCredential.after')}
-    </>
-  )
-}
-
-/**
- * The neutral quota sentence with the optional replenishment gesture a feature
- * contributes. That feature owns whether a top-up can repair this failure (its
- * account state, its product's billing surface) and the gesture's own spacing,
- * so an empty seat adds nothing at all: the row never names an action the
- * composition cannot perform.
- */
-function QuotaFailureCopy({ node, renderSlot, t }: {
-  node: TurnErrorNode
-  renderSlot: TurnErrorRepairRenderer
-  t: ChatViewSlotProps['t']
-}) {
-  return (
-    <>
-      {t('message.failure.quota')}
-      {renderSlot('conversation.chat.turn-error.top-up', {
-        code: node.code, label: t('message.failure.quota.action'),
-      })}
-    </>
-  )
-}
-
-function ModelRetryItem({ node, active, t }: {
 /** The retry glyph: an empty model answer is a warning; other failures read as connection trouble. */
 function retryIcon(node: ModelRetryNode, failed: boolean): ReactNode {
   if (node.failure.code === 'EMPTY_RESPONSE') return <IconWarningOutlineRegular />
