@@ -984,6 +984,13 @@ export interface SdkworkPluginsMarketplaceProps {
   installBusy: boolean
   /** Installed state of one catalog record, joined from the local profile. */
   installationOf: (plugin: PluginRecord) => MarketplaceInstallation | undefined
+  /**
+   * The catalog query. The page's header row owns the search field, so it owns
+   * this text; the catalog renders its categories and cards only.
+   */
+  searchQuery: string
+  /** Hand the next query back to the page. */
+  onSearchChange: (value: string) => void
   onManage: () => void
   onAdd: () => void
   onSectionChange: (section: 'plugins' | 'skills' | 'partners') => void
@@ -994,7 +1001,8 @@ export interface SdkworkPluginsMarketplaceProps {
  * theme and locale. Marketplace artifacts use the Host's existing installer.
  */
 export function SdkworkPluginsMarketplace({
-  t, store, managementAvailable, installBusy, installationOf, onManage, onAdd, onSectionChange,
+  t, store, managementAvailable, installBusy, installationOf, searchQuery, onSearchChange,
+  onManage, onAdd, onSectionChange,
 }: SdkworkPluginsMarketplaceProps): ReactNode {
   const [installFailure, setInstallFailure] = useState<{ readonly key: MarketsKey; readonly detail?: string } | undefined>()
   const [installingKey, setInstallingKey] = useState<string | undefined>()
@@ -1067,6 +1075,11 @@ export function SdkworkPluginsMarketplace({
         appClient: host.client,
         locale: snapshot.locale === 'zh-CN' ? 'zh-CN' : 'en-US',
         showSectionNavigation: false,
+        // The host's category row carries the search and the action pair, so the
+        // catalog drops its own header and takes the query from above.
+        hideToolbar: true,
+        searchValue: searchQuery,
+        onSearchValueChange: onSearchChange,
         canInstall,
         onManage,
         onAdd,

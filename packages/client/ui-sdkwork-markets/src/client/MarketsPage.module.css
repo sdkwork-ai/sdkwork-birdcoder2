@@ -29,12 +29,9 @@
   padding: 10px 16px;
 }
 
-/* The Plugins catalog keeps its own search state and actions, but its controls
-   trail the category tabs in this row instead of consuming a header band of
-   their own. The row is the toolbar's containing block. */
+/* The Plugins catalog's row is the same header: the embedded catalog draws no
+   header of its own, so this row owns its search and action pair too. */
 .pluginMarketHeader {
-  position: relative;
-  z-index: 2;
   background: var(--dsw-alias-bg-base);
 }
 
@@ -210,119 +207,14 @@
   line-height: 20px;
 }
 
-/* The toolbar is positioned against the mode page's top row, where the
-   category tabs live. The catalog's own wrappers are pinned to static so the
-   page stays the nearest containing block: a positioned wrapper inside the
-   catalog would otherwise take the toolbar and drop it onto the catalog's own
-   header row. */
+/* The embedded catalog draws no toolbar of its own — the page's header row
+   owns the search and the action pair — so nothing here is pinned over it. The
+   catalog's wrappers stay unpositioned so its first row keeps its place in the
+   page's column. */
 .marketScroll,
 .pluginMarketplace,
 .pluginMarketplace :global(main) {
   position: static;
-}
-
-/* The toolbar rides the category row: the page's top band is the row's own
-   box, so the search field and the action pair sit beside the tabs at every
-   width instead of under them. The band carries no fill — the row behind it is
-   opaque — and takes no pointer events, so the tabs stay clickable through it;
-   only the controls themselves are hit-testable. The controls trail rather
-   than split, so no measured tab width enters the layout. */
-.pluginMarketplace :global(main > header) {
-  position: absolute;
-  inset: 0 16px auto 0;
-  z-index: 3;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: nowrap;
-  gap: 8px;
-  width: auto;
-  height: 50px;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  pointer-events: none;
-}
-
-/* Only the controls are hit-testable: the toolbar wrapper spans the rest of
-   the band, and giving it pointer events would swallow the tab clicks it
-   overlaps. */
-.pluginMarketplace :global(main > header label),
-.pluginMarketplace :global(main > header button),
-.pluginMarketplace :global(main > header a) {
-  pointer-events: auto;
-}
-
-/* The search field gives way before the action pair: it holds its measure on a
-   wide window and shrinks on a narrow one, so Manage and Add always stay on
-   the row. */
-.pluginMarketplace :global(main > header label) {
-  gap: 6px;
-  flex: 0 1 184px;
-  width: 184px;
-  min-width: 0;
-  height: 30px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--dsw-alias-interactive-bg-hover);
-  color: var(--dsw-alias-label-tertiary);
-}
-
-.pluginMarketplace :global(main > header label:focus-within) {
-  background: var(--dsw-alias-interactive-bg-active);
-  outline: 1px solid var(--dsw-alias-state-business-primary);
-  outline-offset: 0;
-}
-
-.pluginMarketplace :global(main > header label > svg) {
-  width: 14px;
-  height: 14px;
-  flex: none;
-}
-
-.pluginMarketplace :global(main > header input) {
-  color: var(--dsw-alias-label-primary);
-  font-size: 13px;
-  line-height: 20px;
-}
-
-.pluginMarketplace :global(main > header input::placeholder) {
-  color: var(--dsw-alias-label-tertiary);
-}
-
-.pluginMarketplace :global(main > header button) {
-  gap: 6px;
-  min-height: 30px;
-  padding: 0 9px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--dsw-alias-interactive-bg-hover);
-  color: var(--dsw-alias-label-primary);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 20px;
-}
-
-.pluginMarketplace :global(main > header button > svg) {
-  width: 14px;
-  height: 14px;
-  flex: none;
-}
-
-/* The catalog's toolbar separates the search field from the action pair with a
-   slightly wider gap than the pair's own; one gap keeps the three controls on
-   an even rhythm. */
-.pluginMarketplace :global(main > header > div) {
-  gap: 8px;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .pluginMarketplace :global(main > header button:not(:disabled):hover) {
-    background: var(--dsw-alias-interactive-bg-active);
-  }
 }
 
 .pluginMarketplace :global(main > nav) {

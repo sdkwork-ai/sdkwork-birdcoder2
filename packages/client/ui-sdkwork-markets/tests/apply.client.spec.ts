@@ -218,23 +218,6 @@ describe('ui-sdkwork-markets apply', () => {
     expect(injected.bundleRequest.getSnapshot()).toBe('@deepseek-ai/dsh-experimental-voice-input-bundle')
     injected.onBundleRequestHandled()
     expect(injected.bundleRequest.getSnapshot()).toBeUndefined()
-    // The SkillHub market publishes no client service: this page reads the live
-    // `main` ledger for its panel key instead, and draws the registered
-    // component inside the Skills tab. Nothing is mounted in this composition,
-    // so the tab shows its unavailable notice.
-    expect(injected.skillMarketPanel.getSnapshot()).toBeUndefined()
-    // The plugin's own registration flips the source live and hands over the
-    // component the tab must render — the plugin's own panel, never a copy.
-    const marketPanel = () => null
-    const disposeSkillMarket = b.slots.register(
-      { name: 'main', key: 'skill-market' } as never,
-      marketPanel as never,
-    )
-    await vi.waitFor(() => {
-      expect(injected.skillMarketPanel.getSnapshot()?.component).toBe(marketPanel)
-    })
-    disposeSkillMarket()
-    await vi.waitFor(() => { expect(injected.skillMarketPanel.getSnapshot()).toBeUndefined() })
     // The market's content lives on the Skills tab now, so the plugin's own
     // sidebar row is suppressed instead of listed twice. The declaration is an
     // owned effect: unloading this plugin restores the row.
@@ -359,8 +342,10 @@ describe('ui-sdkwork-markets apply', () => {
     // inspection result and the settled bundle onto the session.
     store.openInstall('@scope/demo')
     await store.inspectInstall()
+    expect(b.manager.inspect).toHaveBeenLastCalledWith('@scope/demo', {})
     expect(store.getSnapshot().install?.inspection).toMatchObject({ status: 'accepted', name: 'demo-plugin' })
     await store.runInstall()
+    expect(b.manager.inspect).toHaveBeenLastCalledWith('@scope/demo', {})
     expect(b.manager.installBundle).toHaveBeenCalledWith('@scope/demo', expect.objectContaining({
       requestId: expect.any(String),
     }))

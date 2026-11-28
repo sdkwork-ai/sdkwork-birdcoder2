@@ -28,6 +28,7 @@ export const zh = {
   'search.connectors': '搜索连接器名称或描述',
   'search.official': '搜索官方插件名称或模块',
   'search.installed': '搜索已安装插件名称或模块',
+  'manage.plugins': '管理',
   'mine.experts': '我的专家',
   'mine.skills': '我的技能',
   // ── 我的专家页面（专家 tab 的「我的专家」入口进入的整页视图） ──
@@ -420,6 +421,7 @@ export const en = {
   'search.connectors': 'Search connectors by name or description',
   'search.official': 'Search official plugins by name or module',
   'search.installed': 'Search installed plugins by name or module',
+  'manage.plugins': 'Manage',
   'mine.experts': 'My experts',
   'mine.skills': 'My skills',
   // See the zh block: the full-page My-experts view the Experts tab's

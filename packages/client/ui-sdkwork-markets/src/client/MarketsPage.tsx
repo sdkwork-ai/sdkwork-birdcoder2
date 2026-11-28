@@ -514,10 +514,49 @@ export function MarketsPage({
   )
   const managementAvailable = storeState.read.status === 'ready' && storeState.read.snapshot.managementAvailable
 
+  // One search field for the whole page: it filters the embedded catalog on
+  // every category, and the Plugins catalog takes its query from here too.
+  const pageSearch = (
+    <div className={css.search}>
+      <SearchIcon size={14} className={css.searchIcon} />
+      <input
+        className={css.searchInput}
+        type="search"
+        value={query}
+        placeholder={t(searchKey)}
+        aria-label={t(searchKey)}
+        onChange={(e) => { setQuery(e.target.value) }}
+      />
+    </div>
+  )
+
   if (marketSubTab) {
     return (
       <div className={css.page} data-mode={mode} data-mode-page={mode} data-markets-surface="sdkwork" data-plugin-market="">
-        <div className={css.pluginMarketHeader}>{categoryTabs}</div>
+        {/* The Plugins catalog is hosted by this page, so the row carries the
+            same tools as every other category: the catalog's search and its
+            Manage / Add pair live here, not inside the embedded page. The
+            catalog itself renders only its category strip and cards. */}
+        <div className={css.pluginMarketHeader}>
+          {categoryTabs}
+          <div className={css.tools}>
+            {pageSearch}
+            <button
+              type="button"
+              className={clsx(css.mineButton, css.mineButtonLive)}
+              data-manage-plugins=""
+              onClick={() => { setPluginSubTab('installed') }}
+            >
+              <InstalledIcon size={14} className={css.mineIcon} />
+              {t('manage.plugins')}
+            </button>
+            <MarketsAdd
+              t={t}
+              onCreatePlugin={() => { setSourceMode('create') }}
+              onInstallPlugin={() => { setSourceMode('install') }}
+            />
+          </div>
+        </div>
         <SurfaceBoundary t={t}>
           <div className={css.marketScroll}>
             <SdkworkPluginsMarketplace
@@ -525,6 +564,8 @@ export function MarketsPage({
               store={store}
               managementAvailable={managementAvailable}
               installBusy={installBusy}
+              searchQuery={query}
+              onSearchChange={setQuery}
               installationOf={plugin => findInstallation(
                 plugin,
                 storeState.read.status === 'ready' ? storeState.read.snapshot.bundles : [],
@@ -578,19 +619,7 @@ export function MarketsPage({
             beside the panel's own. The storefront cloud catalogs and the local
             plugin views are the surfaces the header search serves. */}
         <div className={css.tools}>
-          {!embeddedPanelSubTab && (
-            <div className={css.search}>
-              <SearchIcon size={14} className={css.searchIcon} />
-              <input
-                className={css.searchInput}
-                type="search"
-                value={query}
-                placeholder={t(searchKey)}
-                aria-label={t(searchKey)}
-                onChange={(e) => { setQuery(e.target.value) }}
-              />
-            </div>
-          )}
+          {!embeddedPanelSubTab && pageSearch}
           {tab === 'plugins' && pluginSubTab !== 'market' && (
             <MarketsAdd
               t={t}
