@@ -151,7 +151,6 @@
       ]
     },
     {
-      "files": [
         "packages/*/*/src/**/*.{ts,tsx}",
         "apps/*/src/**/*.{ts,tsx}",
         "examples/**/*.{ts,tsx}",
@@ -190,10 +189,8 @@
       "files": [
         "examples/**/*.ts"
       ],
-      "rules": {
         "typescript/require-await": "off" // Demo callbacks conform to async interfaces without awaiting.
       },
-      "plugins": [
         "typescript"
       ]
     },
@@ -302,7 +299,6 @@
               "delimiter": "none"
             },
             "singleline": {
-              "delimiter": "semi",
               "requireLast": false
             }
           }
@@ -337,7 +333,6 @@
         "packages/typert/generator/tests/fixtures/type-model/packages/host/src/models.ts"
       ],
       "rules": {
-        "@stylistic/quotes": "off"
       }
     },
     {
@@ -348,7 +343,6 @@
         "packages/experimental/webworker-runtime/src/transport/synthetic-http.ts"
       ],
       "rules": {
-        "typescript/require-await": "off", // Async faces Node and Cordis define (fs promises, the module seam) reject rather than throw; the VFS beneath them never awaits.
         "typescript/no-extraneous-class": "off" // Node constructs these (`new Script()`, `new Worker()`), so a stub that refuses must still be a class.
       },
       "plugins": [

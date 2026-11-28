@@ -20,20 +20,14 @@
       "path": "../../../vendor/cordis"
     },
     {
-      "path": "../../client/connection/tsconfig.client.json"
     },
     {
-      "path": "../../typert/protocol"
     },
     {
-      "path": "../../util/deque"
     },
     {
-      "path": "../../util/crypto"
     },
     {
-      "path": "../../host/apiproxy"
-      "path": "../../util/values"
     }
   ]
 }

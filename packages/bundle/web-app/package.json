@@ -19,8 +19,6 @@
       "default": "./lib/index.js"
     },
     "./startup": {
-      "types": "./lib/types/startup.d.ts",
-      "default": "./lib/startup.js"
     },
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./presets/*.patch.yml": "./presets/*.patch.yml",
@@ -291,7 +289,6 @@
     "@botharness/ui": "workspace:*",
     "deepseekbot": "workspace:*",
     "@deepseek-ai/dsh-client-ui-file-drag": "workspace:*",
-    "@deepseek-ai/dsh-client-ui-context-menu": "workspace:*",
     "@deepseek-ai/dsh-client-ui-file-actions": "workspace:*",
     "@deepseek-ai/dsh-client-ui-account-notifications": "workspace:*",
     "@deepseek-ai/dsh-office-kit": "workspace:*",
@@ -315,9 +312,7 @@
     "@deepseek-ai/dsh-shell-env": "workspace:*"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/cordis-plugin-include": "workspace:~",
-    "@deepseek-ai/cordis-plugin-loader": "workspace:~",
     "@deepseek-ai/dsh-agent": "workspace:*",
     "@deepseek-ai/dsh-agent-loop-testkit": "workspace:*",
     "@deepseek-ai/dsh-brand": "workspace:*",
@@ -326,22 +321,15 @@
     "@deepseek-ai/dsh-sandbox-policy": "workspace:*",
     "@deepseek-ai/dsh-session": "workspace:*",
     "@deepseek-ai/dsh-session-projection": "workspace:*",
-    "@deepseek-ai/dsh-shell-env": "workspace:*",
     "@deepseek-ai/dsh-typert-registry": "workspace:*",
     "@deepseek-ai/libreoffice-kit": "0.2.3",
     "@deepseek-ai/dsh-otel": "workspace:*",
-    "@deepseek-ai/dsh-agent": "workspace:*",
-    "@deepseek-ai/dsh-agent-loop-testkit": "workspace:*",
     "@deepseek-ai/dsh-home-paths": "workspace:*",
     "@deepseek-ai/dsh-llm": "workspace:*",
     "@deepseek-ai/dsh-skill": "workspace:*",
     "@deepseek-ai/dsh-system-prompt": "workspace:*",
     "@deepseek-ai/dsh-tool-registry-native": "workspace:*",
     "@deepseek-ai/dsh-tool-testkit": "workspace:*",
-    "@deepseek-ai/dsh-tools": "workspace:*"
     "@deepseek-ai/dsh-tools": "workspace:*",
-    "@deepseek-ai/dsh-typert-registry": "workspace:*",
-    "@deepseek-ai/libreoffice-kit": "0.2.4",
-    "@deepseek-ai/dsh-otel": "workspace:*"
   }
 }
