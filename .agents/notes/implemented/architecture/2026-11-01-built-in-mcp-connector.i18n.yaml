@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-01-built-in-mcp-connector.md
 /agent-note-built-in-mcp-connector-framed-by-the-connectors-tab:
-  en: 21d4919647253c93
-  zh: 91d35ef3e7199ded
+  en: bfec52467a8c78dc
+  zh: 0494f1db9145497f
 /agent-note-built-in-mcp-connector-framed-by-the-connectors-tab/problem:
   en: 0022eb685da5d5e0
   zh: cc49d1747e3163e4

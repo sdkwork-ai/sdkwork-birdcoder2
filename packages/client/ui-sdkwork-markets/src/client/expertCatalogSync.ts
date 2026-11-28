@@ -64,10 +64,14 @@ export interface ExpertCatalogTeam {
   description: string
   tags: string[]
   goal: string
+  /** The team's shared constraints; the catalog authors them in one language. */
+  constraints: string
   deliveryRequirements: string
   examples: string[]
   coordinatorMode: 'template' | 'custom'
   coordinatorTemplateId: 'general' | 'product' | 'technical' | 'content' | 'data' | 'research'
+  /** A custom coordinator's prompt; empty for a template coordinator. */
+  coordinatorPrompt: string
   locale: ExpertCatalogLocale
   members: { expertSlug: string; expertAgentId: string; duty: string; instructions: string }[]
 }
@@ -209,7 +213,7 @@ export async function syncExpertCatalogFromSdkworkAgents(options: {
     description: team.description,
     tags: team.tags,
     goal: team.goal,
-    constraints: '',
+    constraints: team.constraints,
     deliveryRequirements: team.deliveryRequirements,
     members: team.members.map(member => ({
       expertSlug: member.expertSlug,
@@ -220,7 +224,9 @@ export async function syncExpertCatalogFromSdkworkAgents(options: {
     coordinatorMode: team.coordinatorMode,
     coordinatorTemplateId: team.coordinatorTemplateId,
     coordinatorTemplateVersion: 1,
-    coordinatorPrompt: '',
+    // A template coordinator's text comes from the package's own template; a
+    // custom one carries the catalog's prompt.
+    coordinatorPrompt: team.coordinatorPrompt,
   }))
 
   const delivered = await remote.syncSdkworkCatalog({ experts: syncExperts, teams: syncTeams })

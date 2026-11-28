@@ -15,14 +15,18 @@ import type { McpConnectorBridge } from '../src/client/connectorBridge.ts'
 import {
   MCP_CONNECTOR_FRAME_TYPES, MCP_CONNECTOR_SURFACE_PATH, type McpConnectorPanel,
 } from '../src/client/mcpConnectorPanel.ts'
-import { applyConnectorTheme, readConnectorBrandTokens } from '../src/client/connectorTheme.ts'
+import { applyConnectorTheme, readConnectorTheme } from '../src/client/connectorTheme.ts'
 import type { MarketsKey } from '../src/client/locales.ts'
 
 // The projection into the panel document is its own module with its own cases;
 // here only the wiring is under test — that a load themes the frame it drew.
 vi.mock('../src/client/connectorTheme.ts', () => ({
   applyConnectorTheme: vi.fn(),
-  readConnectorBrandTokens: vi.fn(() => ({ base: 'b', hoverOnLight: 'l', hoverOnDark: 'd' })),
+  readConnectorTheme: vi.fn((_host: unknown, scheme: string) => ({
+    scheme,
+    brand: { base: 'b', hoverOnLight: 'l', hoverOnDark: 'd' },
+    tokens: { '--dsw-alias-bg-base': 'bg' },
+  })),
 }))
 
 afterEach(() => { cleanup() })
@@ -43,16 +47,33 @@ function bridge(overrides: Partial<McpConnectorBridge> = {}): McpConnectorBridge
   }
 }
 
-/** Render the surface with the given panel and bridge. */
+/** Record what the header's state reports carried back up. */
+const reported: unknown[] = []
+
+/** Render the surface with the given panel, bridge and header toolbar state. */
 function surface(options: {
   panel?: McpConnectorPanel | undefined
   bridge?: McpConnectorBridge
+  colorScheme?: 'light' | 'dark'
+  view?: 'market' | 'installed' | 'tools'
+  query?: string
+  locale?: 'zh-CN' | 'en'
+  addSeq?: number
+  refreshSeq?: number
 } = {}) {
+  reported.length = 0
   return render(
     <McpConnectorSurface
       t={t}
       panel={'panel' in options ? options.panel : panel}
       bridge={options.bridge ?? bridge()}
+      colorScheme={options.colorScheme ?? 'light'}
+      view={options.view ?? 'market'}
+      query={options.query ?? ''}
+      locale={options.locale ?? 'zh-CN'}
+      addSeq={options.addSeq ?? 0}
+      refreshSeq={options.refreshSeq ?? 0}
+      onState={(state) => { reported.push(state) }}
     />,
   )
 }
@@ -121,36 +142,162 @@ describe('McpConnectorSurface', () => {
     expect(view.getByText('connectors.unavailable.detail')).not.toBeNull()
   })
 
-  it('hands the page the Workspace scope the moment it loads', () => {
-    const view = surface()
+  it('hands the page the Workspace scope and the toolbar state the moment it loads', () => {
+    const view = surface({ view: 'installed', query: 'qcc', locale: 'en' })
     const frame = frameOf(view)
     const posts = recordPosts(frame)
     fireEvent.load(frame)
-    expect(posts).toEqual([{
-      message: {
+    // The page's own toolbar is owned by this application's header, so the load
+    // hands it that mode plus the header's current state, then the scope.
+    expect(posts.map(post => (post.message as { type: string }).type)).toEqual([
+      MCP_CONNECTOR_FRAME_TYPES.hostToolbar,
+      MCP_CONNECTOR_FRAME_TYPES.hostLocale,
+      MCP_CONNECTOR_FRAME_TYPES.hostView,
+      MCP_CONNECTOR_FRAME_TYPES.hostSearch,
+      MCP_CONNECTOR_FRAME_TYPES.workspaceContext,
+    ])
+    expect(posts.map(post => post.message)).toEqual([
+      { type: MCP_CONNECTOR_FRAME_TYPES.hostToolbar, enabled: true },
+      { type: MCP_CONNECTOR_FRAME_TYPES.hostLocale, locale: 'en' },
+      { type: MCP_CONNECTOR_FRAME_TYPES.hostView, view: 'installed' },
+      { type: MCP_CONNECTOR_FRAME_TYPES.hostSearch, query: 'qcc' },
+      {
         type: MCP_CONNECTOR_FRAME_TYPES.workspaceContext,
         workspace: { workspaceId: 'w1', title: 'Project one' },
         workspaces: [{ workspaceId: 'w1', title: 'Project one' }],
       },
-      targetOrigin: window.location.origin,
-    }])
+    ])
+    expect(posts.every(post => post.targetOrigin === window.location.origin)).toBe(true)
   })
 
-  it('projects the host brand into the panel it frames', () => {
-    vi.mocked(applyConnectorTheme).mockClear()
+  it('forwards the header view, search and add actions as commands', () => {
+    const view = surface()
+    const frame = frameOf(view)
+    const posts = recordPosts(frame)
+    fireEvent.load(frame)
+    const commands = (): string[] => posts
+      .map(post => (post.message as { type: string }).type)
+      .filter(type => type !== MCP_CONNECTOR_FRAME_TYPES.workspaceContext
+        && type !== MCP_CONNECTOR_FRAME_TYPES.hostToolbar
+        && type !== MCP_CONNECTOR_FRAME_TYPES.hostLocale)
+    expect(commands()).toEqual([MCP_CONNECTOR_FRAME_TYPES.hostView, MCP_CONNECTOR_FRAME_TYPES.hostSearch])
+
+    posts.length = 0
+    view.rerender(
+      <McpConnectorSurface
+        t={t}
+        panel={panel}
+        bridge={bridge()}
+        colorScheme="light"
+        view="tools"
+        query="wind"
+        locale="zh-CN"
+        addSeq={0}
+        refreshSeq={0}
+        onState={() => {}}
+      />,
+    )
+    expect(posts.map(post => post.message)).toEqual([
+      { type: MCP_CONNECTOR_FRAME_TYPES.hostView, view: 'tools' },
+      { type: MCP_CONNECTOR_FRAME_TYPES.hostSearch, query: 'wind' },
+    ])
+
+    posts.length = 0
+    view.rerender(
+      <McpConnectorSurface
+        t={t}
+        panel={panel}
+        bridge={bridge()}
+        colorScheme="light"
+        view="tools"
+        query="wind"
+        locale="zh-CN"
+        addSeq={1}
+        refreshSeq={0}
+        onState={() => {}}
+      />,
+    )
+    expect(posts.map(post => post.message)).toEqual([{ type: MCP_CONNECTOR_FRAME_TYPES.hostAdd }])
+    // The same counter is the same request: no second dialog.
+    posts.length = 0
+    view.rerender(
+      <McpConnectorSurface
+        t={t}
+        panel={panel}
+        bridge={bridge()}
+        colorScheme="light"
+        view="tools"
+        query="wind"
+        locale="zh-CN"
+        addSeq={1}
+        refreshSeq={0}
+        onState={() => {}}
+      />,
+    )
+    expect(posts).toEqual([])
+  })
+
+  it('reports the page view and counts back to the header', () => {
     const view = surface()
     const frame = frameOf(view)
     recordPosts(frame)
     fireEvent.load(frame)
-    // The panel ships an indigo accent family; the frame's owner re-points it at
-    // the host brand the moment the page is up, before anything in it is read as
-    // part of this application.
-    expect(readConnectorBrandTokens).toHaveBeenCalled()
-    expect(applyConnectorTheme).toHaveBeenCalledWith(frame, {
-      base: 'b',
-      hoverOnLight: 'l',
-      hoverOnDark: 'd',
+    send(frame, {
+      type: MCP_CONNECTOR_FRAME_TYPES.hostState,
+      view: 'installed',
+      counts: { market: 7, installed: 2 },
     })
+    expect(reported).toEqual([{ view: 'installed', counts: { market: 7, installed: 2 } }])
+    // A report that names no view, or carries unusable counts, is not a state.
+    send(frame, { type: MCP_CONNECTOR_FRAME_TYPES.hostState, view: 'bogus', counts: {} })
+    send(frame, { type: MCP_CONNECTOR_FRAME_TYPES.hostState, view: 'market', counts: { market: -1 } })
+    expect(reported).toEqual([
+      { view: 'installed', counts: { market: 7, installed: 2 } },
+      { view: 'market', counts: { market: 0, installed: 0 } },
+    ])
+  })
+
+  it('answers the page locale request with the application locale', () => {
+    const view = surface({ locale: 'en' })
+    const frame = frameOf(view)
+    recordPosts(frame)
+    fireEvent.load(frame)
+    const posts = recordPosts(frame)
+    send(frame, { type: MCP_CONNECTOR_FRAME_TYPES.hostLocaleRequest })
+    expect(posts).toEqual([{
+      message: { type: MCP_CONNECTOR_FRAME_TYPES.hostLocale, locale: 'en' },
+      targetOrigin: window.location.origin,
+    }])
+  })
+
+  it('projects the host theme into the panel it frames', () => {
+    vi.mocked(applyConnectorTheme).mockClear()
+    const view = surface({ colorScheme: 'dark' })
+    const frame = frameOf(view)
+    recordPosts(frame)
+    fireEvent.load(frame)
+    // The panel is a separate document: the frame's owner re-points its tokens at
+    // the host theme the moment the page is up, and states the resolved scheme so
+    // it follows the application rather than the operating system.
+    expect(readConnectorTheme).toHaveBeenCalledWith(expect.anything(), 'dark')
+    expect(applyConnectorTheme).toHaveBeenCalledWith(frame, {
+      scheme: 'dark',
+      brand: { base: 'b', hoverOnLight: 'l', hoverOnDark: 'd' },
+      tokens: { '--dsw-alias-bg-base': 'bg' },
+    })
+  })
+
+  it('repaints the open panel when the application scheme changes', () => {
+    vi.mocked(applyConnectorTheme).mockClear()
+    const view = surface({ colorScheme: 'light' })
+    const frame = frameOf(view)
+    recordPosts(frame)
+    fireEvent.load(frame)
+    expect(vi.mocked(applyConnectorTheme).mock.calls.at(-1)?.[1]).toMatchObject({ scheme: 'light' })
+    view.rerender(
+      <McpConnectorSurface t={t} panel={panel} bridge={bridge()} colorScheme="dark" />,
+    )
+    expect(vi.mocked(applyConnectorTheme).mock.calls.at(-1)?.[1]).toMatchObject({ scheme: 'dark' })
   })
 
   it('answers a later scope request with the current answer', () => {

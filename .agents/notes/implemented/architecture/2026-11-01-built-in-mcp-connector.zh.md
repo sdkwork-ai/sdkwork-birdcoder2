@@ -4,6 +4,8 @@ Status: implemented
 
 [English](2026-11-01-built-in-mcp-connector.md) | 中文
 
+> 组装方式已被取代：[2026-11-28-sdkwork-mcp-connector-migration](2026-11-28-sdkwork-mcp-connector-migration.zh.md) 用一方插件 @sdkwork/dsh-mcp-connector 取代了子模块，并用 sdkwork-mcp App SDK 取代了它的目录来源。下文的框架桥论证仍然成立。
+
 ## Problem
 
 Markets 页面的链接器 tab 是四个分类里唯一背后空无一物的一个。它绘制的是 SDKWork 云端商店的 MCP 目录——在已发布的构建里没有内容——外加一个惰性的「我的链接器」按钮；而人们打开这个 tab 想要的能力（连接 MCP Server、完成授权、跨连接查找工具、诊断坏掉的连接）住在第三方 Harness 插件 `dsh-mcp-connector` 里。要够到它，得先找到这个包、执行 `dsh plugin --profile web add dsh-mcp-connector`、再重启宿主。

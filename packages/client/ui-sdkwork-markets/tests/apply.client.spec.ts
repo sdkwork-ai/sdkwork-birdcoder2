@@ -222,20 +222,9 @@ describe('ui-sdkwork-markets apply', () => {
     // sidebar row is suppressed instead of listed twice. The declaration is an
     // owned effect: unloading this plugin restores the row.
     expect(b.sdkworkSidebar.suppressPanel).toHaveBeenCalledWith('skill-market')
-    // The expert market's row is suppressed the same way: the Experts tab
-    // embeds the built-in experts package's roster panel, so its own sidebar
-    // row would be a second entry to the same page.
-    expect(injected.expertMarketPanel.getSnapshot()).toBeUndefined()
-    const expertPanel = () => null
-    const disposeExpertMarket = b.slots.register(
-      { name: 'main', key: 'agency-agents' } as never,
-      expertPanel as never,
-    )
-    await vi.waitFor(() => {
-      expect(injected.expertMarketPanel.getSnapshot()?.component).toBe(expertPanel)
-    })
-    disposeExpertMarket()
-    await vi.waitFor(() => { expect(injected.expertMarketPanel.getSnapshot()).toBeUndefined() })
+    // The expert library's row is suppressed the same way: the Experts tab is
+    // the expert navigation entry, so the built-in experts package's own
+    // sidebar row would be a second entry to the same experts.
     expect(b.sdkworkSidebar.suppressPanel).toHaveBeenCalledWith('agency-agents')
     // The official group's second source rides the same injection as one live
     // ledger over the three seats the page renders from. With no registrant the

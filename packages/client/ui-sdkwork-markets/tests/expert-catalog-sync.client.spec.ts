@@ -22,7 +22,7 @@ function fakeClient(script: {
     divisionCode: string
     tags: string[]
   }>[]
-  teams: ExpertCatalogPage<{ teamId: string; name: string; description: string; tags: string[]; goal: string; deliveryRequirements: string; examples: string[]; coordinatorMode: 'template'; coordinatorTemplateId: 'product'; locale: 'zh-CN'; members: { expertSlug: string; expertAgentId: string; duty: string; instructions: string }[] }>[]
+  teams: ExpertCatalogPage<{ teamId: string; name: string; description: string; tags: string[]; goal: string; constraints: string; deliveryRequirements: string; examples: string[]; coordinatorMode: 'template'; coordinatorTemplateId: 'product'; coordinatorPrompt: string; locale: 'zh-CN'; members: { expertSlug: string; expertAgentId: string; duty: string; instructions: string }[] }>[]
   personas: Record<'zh-CN' | 'en-US', ExpertCatalogPage<{ expertSlug: string; agentId: string; locale: 'zh-CN' | 'en-US'; persona: string; contentSha256: string }>[]>
 }): { client: ExpertCatalogSdkClient; calls: string[] } {
   const calls: string[] = []
@@ -78,10 +78,12 @@ const team = {
   description: '评审产品',
   tags: ['评审'],
   goal: '评审',
+  constraints: '仅评审，不改文件',
   deliveryRequirements: '清单',
   examples: ['评审需求'],
   coordinatorMode: 'template' as const,
   coordinatorTemplateId: 'product' as const,
+  coordinatorPrompt: '',
   locale: 'zh-CN' as const,
   members: [
     { expertSlug: 'product-manager', expertAgentId: 'agent.expert.product-manager', duty: '需求', instructions: '检查需求' },
@@ -112,7 +114,13 @@ describe('syncExpertCatalogFromSdkworkAgents', () => {
     expect(catalog.experts.map(expert => expert.slug)).toEqual(['product-manager', 'design-ux-researcher'])
     expect(catalog.experts[0]).toMatchObject({ nameEn: '产品经理', divisionZh: '产品', custom: false })
     expect(catalog.experts[1]?.divisionZh).toBe('design')
-    expect(catalog.teams[0]).toMatchObject({ id: 'team-product', constraints: '', coordinatorTemplateVersion: 1 })
+    expect(catalog.teams[0]).toMatchObject({
+      id: 'team-product',
+      // The catalog's shared constraints reach the plugin overlay instead of
+      // being dropped, so the team runtime prompt keeps them.
+      constraints: '仅评审，不改文件',
+      coordinatorTemplateVersion: 1,
+    })
     expect(catalog.teams[0]?.members).toHaveLength(2)
     expect(calls.filter(call => call.method.startsWith('personas:'))).toHaveLength(2)
   })

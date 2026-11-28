@@ -99,10 +99,13 @@ function harness(initial: {
   accessToken?: string
   session?: Parameters<typeof toMarketsSession>[0]
   language?: string
+  colorScheme?: 'light' | 'dark'
 }) {
   let environmentListener: (() => void) | undefined
   let iamListener: (() => void) | undefined
   let localeListener: (() => void) | undefined
+  let themeListener: (() => void) | undefined
+  let colorScheme: 'light' | 'dark' = initial.colorScheme ?? 'light'
   const env: MarketsHostEnvironment = {
     apiBaseUrl: () => initial.baseUrl ?? 'https://fixture.example',
     accessToken: () => initial.accessToken ?? '',
@@ -130,14 +133,19 @@ function harness(initial: {
     },
   }
   const theme: MarketsHostTheme = {
-    getColorScheme: () => 'light',
-    subscribe: () => () => {},
+    getColorScheme: () => colorScheme,
+    subscribe: (listener) => {
+      themeListener = listener
+      return () => { themeListener = undefined }
+    },
   }
   return {
     env, iam, locale, theme, openSignIn,
     fireEnvironment: () => { environmentListener?.() },
     fireIam: () => { iamListener?.() },
     fireLocale: () => { localeListener?.() },
+    fireTheme: () => { themeListener?.() },
+    setColorScheme: (next: 'light' | 'dark') => { colorScheme = next },
   }
 }
 
@@ -314,6 +322,21 @@ describe('MarketsHostRuntime', () => {
     expect(runtime.getHostSnapshot()).toBe(first)
     h.fireLocale()
     expect(runtime.getHostSnapshot()).not.toBe(first)
+    runtime.dispose()
+  })
+
+  it('carries the resolved color scheme and republishes when the application theme changes', () => {
+    const h = harness({ baseUrl: 'https://gw.example', colorScheme: 'light' })
+    const runtime = createMarketsHostRuntime(h)
+    runtime.start()
+    // Embedded surfaces are separate documents, so the scheme is data the page
+    // hands the frame instead of something it could inherit.
+    expect(runtime.getHostSnapshot().colorScheme).toBe('light')
+    const first = runtime.getHostSnapshot()
+    h.setColorScheme('dark')
+    h.fireTheme()
+    expect(runtime.getHostSnapshot()).not.toBe(first)
+    expect(runtime.getHostSnapshot().colorScheme).toBe('dark')
     runtime.dispose()
   })
 

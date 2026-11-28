@@ -9,9 +9,45 @@ import type {
   SkillRecord,
 } from '@sdkwork/skills-app-sdk'
 import type { MarketsKey } from './locales.ts'
+import type { SkillhubDetail, SkillhubInstalledSkill } from '@deepseek-ai/dsh-sdkwork-skillhub/shared'
 import { CheckPlateIcon, PlusIcon, RefreshIcon, SkillsIcon } from './icons.tsx'
 import { MarketplaceTabs } from './MarketplaceTabs.tsx'
+import {
+  SkillInstallerError,
+  fetchSkillDetail,
+  installSkill as installLocalSkill,
+  listInstalledSkills,
+  setSkillEnabled,
+  uninstallSkill,
+} from './skillsInstaller.ts'
+import {
+  FeaturedShelfView,
+  shelvesFromEntries,
+  shelvesFromPayload,
+  type FeaturedEntryFace,
+  type FeaturedShelfMessages,
+} from '@sdkwork/featured-pc-react'
+import type { FeaturedShelfPayload } from '@sdkwork/featured-contracts'
 import css from './SkillsCatalogPage.module.css'
+
+/** Tag prefix the catalog mirror uses to carry a record's upstream install coordinate. */
+const SOURCE_TAG_PREFIX = 'skillhub:'
+
+/**
+ * Read the upstream install coordinate a mirrored record carries.
+ * The catalog stores it as a `skillhub:<handle>/<slug>` tag because the Skills
+ * API record has no package key; seed records without it are not local-installable.
+ */
+function skillSource(skill: SkillRecord): string | undefined {
+  const tag = skill.tags.find(entry => entry.startsWith(SOURCE_TAG_PREFIX))
+  const coordinate = tag?.slice(SOURCE_TAG_PREFIX.length).trim()
+  return coordinate === undefined || coordinate === '' ? undefined : `skillhub.${coordinate}`
+}
+
+/** Display tags, without the internal install-coordinate tag. */
+function displayTags(skill: SkillRecord): readonly string[] {
+  return skill.tags.filter(entry => !entry.startsWith(SOURCE_TAG_PREFIX))
+}
 
 type SkillsSort = 'comprehensive' | 'installs' | 'latest'
 type SkillsTranslate = (key: MarketsKey, params?: Record<string, unknown>) => string
@@ -26,6 +62,8 @@ interface CatalogSnapshot {
   skills: SkillRecord[]
   categories: SkillCategoryRecord[]
   installations: SkillInstallationRecord[]
+  /** Curated shelves of this catalog; empty when the service has none. */
+  featuredShelves: FeaturedShelfPayload[]
 }
 
 type SkillsApi = SdkworkSkillsAppClient['skills']
@@ -38,6 +76,8 @@ export interface SkillsCatalogActions {
   listInstallations: SkillsApi['skillInstallations']['list']
   listArtifacts: SkillPackageApi['artifacts']['list']
   createInstallation: SkillPackageApi['installations']['create']
+  /** Curated shelves of the skills catalog; absent on clients without the route. */
+  listFeaturedShelves?: SkillsApi['featuredShelves']['list']
 }
 
 /**
@@ -75,6 +115,46 @@ const SORT_TABS: readonly { id: SkillsSort; label: MarketsKey }[] = [
 
 /** The featured shelf shows one batch of five at a time, like the catalog row. */
 const FEATURED_BATCH = 5
+
+/**
+ * The curated shelves of the skills catalog.
+ *
+ * Curation is its own model, and a service may not have adopted it yet: a
+ * missing route answers nothing and the catalog falls back to its featured
+ * records. Any other failure belongs to the catalog request and surfaces there.
+ *
+ * @param actions - the skills catalog actions.
+ * @param signal - aborts with the catalog request.
+ * @returns the shelves, or an empty list when the service has none.
+ */
+async function loadFeaturedShelves(
+  actions: SkillsCatalogActions,
+  signal: AbortSignal,
+): Promise<FeaturedShelfPayload[]> {
+  const list = actions.listFeaturedShelves
+  if (list === undefined) return []
+  try {
+    const page = await list({ scope: 'skill' }, { signal })
+    return (page.items ?? []).map(shelf => ({
+      shelfCode: shelf.shelfCode,
+      scope: 'skill',
+      kind: shelf.kind === 'collection' ? 'collection' : 'item',
+      title: shelf.title,
+      description: shelf.description ?? undefined,
+      artworkUrl: shelf.artworkUrl ?? undefined,
+      sortOrder: shelf.sortOrder,
+      items: shelf.items.map(item => ({
+        itemKey: item.itemKey,
+        sortOrder: item.sortOrder,
+        installWithCollection: item.installWithCollection ?? true,
+        displayName: item.displayName ?? undefined,
+        displayDescription: item.displayDescription ?? undefined,
+      })),
+    }))
+  } catch {
+    return []
+  }
+}
 
 async function loadAllPages<T>(
   loadPage: (page: number, signal: AbortSignal) => Promise<PageData<T>>,
@@ -118,11 +198,27 @@ function isInstalled(skill: SkillRecord, installations: readonly SkillInstallati
   )
 }
 
-function installedCountOf(
+/** The record is installed on this machine through the Host installer. */
+function isLocallyInstalled(skill: SkillRecord, installed: readonly SkillhubInstalledSkill[]): boolean {
+  const packageKey = skillSource(skill)
+  return packageKey !== undefined && installed.some(entry => entry.packageKey === packageKey)
+}
+
+/** Installed either locally (SkillHub) or in the cloud library (seed records). */
+function isSkillInstalled(
+  skill: SkillRecord,
+  installations: readonly SkillInstallationRecord[],
+  installed: readonly SkillhubInstalledSkill[],
+): boolean {
+  return isLocallyInstalled(skill, installed) || isInstalled(skill, installations)
+}
+
+function countInstalled(
   skills: readonly SkillRecord[],
   installations: readonly SkillInstallationRecord[],
+  installed: readonly SkillhubInstalledSkill[],
 ): number {
-  return skills.filter(skill => isInstalled(skill, installations)).length
+  return skills.filter(skill => isSkillInstalled(skill, installations, installed)).length
 }
 
 /**
@@ -221,12 +317,35 @@ export function SkillsCatalogPage({
   const [selectedSkill, setSelectedSkill] = useState<SkillRecord | null>(null)
   const [pendingIds, setPendingIds] = useState<ReadonlySet<string>>(new Set())
   const [notice, setNotice] = useState<string | null>(null)
+  // Local (SkillHub) installs: the Host holds the files and reports what it
+  // holds, so this list is the page's only statement of "installed on this
+  // machine". Cloud-library records from the seed catalog keep their own flow.
+  const [installed, setInstalled] = useState<readonly SkillhubInstalledSkill[]>([])
+  const [installingKeys, setInstallingKeys] = useState<ReadonlySet<string>>(new Set())
+  const [detail, setDetail] = useState<SkillhubDetail | null>(null)
+  const [detailError, setDetailError] = useState<string | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [confirmUninstall, setConfirmUninstall] = useState(false)
+  const [installNotice, setInstallNotice] = useState<string | null>(null)
+  const installedRef = useRef<readonly SkillhubInstalledSkill[]>([])
   const pendingIdsRef = useRef(new Set<string>())
   const actionControllers = useRef(new Set<AbortController>())
   // The header chip's reporter: a latest-callback ref keeps the load effect off
   // a dependency that an inline callback would re-create on every render.
   const reportInstalledCount = useRef(onInstalledCountChange)
   useEffect(() => { reportInstalledCount.current = onInstalledCountChange })
+
+  useEffect(() => {
+    let active = true
+    void listInstalledSkills().then((skills) => {
+      if (!active) return
+      installedRef.current = skills
+      setInstalled(skills)
+    }).catch(() => {
+      // A composition without the installer host keeps the cloud-library flow.
+    })
+    return () => { active = false }
+  }, [])
 
   useEffect(() => {
     const timeout = window.setTimeout(() => { setDebouncedQuery(searchQuery.trim()) }, 250)
@@ -255,16 +374,17 @@ export function SkillsCatalogPage({
       }, { signal }), controller.signal),
       loadAllPages((page, signal) => actions.listCategories({ page, pageSize: 200, categoryType: 'skill_market' }, { signal }), controller.signal),
       loadAllPages((page, signal) => actions.listInstallations({ page, pageSize: 200 }, { signal }), controller.signal),
-    ]).then(([skills, categoryRows, installations]) => {
+      loadFeaturedShelves(actions, controller.signal),
+    ]).then(([skills, categoryRows, installations, featuredShelves]) => {
       if (!active) return
       const categories = categoryRows
         .filter(category => category.visible && category.status === 1 && category.categoryType === 'skill_market')
         .slice()
         .sort((left, right) => left.sortWeight - right.sortWeight)
-      setCatalog({ requestKey, skills, categories, installations })
+      setCatalog({ requestKey, skills, categories, installations, featuredShelves })
       setLoading(false)
       // Commit the header fact together with the data it is derived from.
-      reportInstalledCount.current(installedCountOf(skills, installations))
+      reportInstalledCount.current(countInstalled(skills, installations, installedRef.current))
     }).catch((cause: unknown) => {
       if (!active) return
       const detail = errorDetail(cause)
@@ -282,10 +402,20 @@ export function SkillsCatalogPage({
   const skills = visibleCatalog?.skills ?? []
   const categories = catalog?.categories ?? []
   const installations = catalog?.installations ?? []
-  const installedSkills = useMemo(
-    () => skills.filter(skill => isInstalled(skill, installations)),
-    [installations, skills],
+  const installedById = useMemo(
+    () => new Map(installed.map(entry => [entry.packageKey, entry])),
+    [installed],
   )
+  const installedSkills = useMemo(
+    () => skills.filter(skill => isSkillInstalled(skill, installations, installed)),
+    [installations, installed, skills],
+  )
+
+  /** Local installation state for one record, when it is locally installed. */
+  const localInstallOf = (skill: SkillRecord): SkillhubInstalledSkill | undefined => {
+    const packageKey = skillSource(skill)
+    return packageKey === undefined ? undefined : installedById.get(packageKey)
+  }
 
   const visibleSkills = useMemo(() => {
     const filtered = installedOnly ? installedSkills : skills.slice()
@@ -313,12 +443,54 @@ export function SkillsCatalogPage({
     )
   }, [featuredOffset, featuredPool])
 
+  // The featured shelf shares the marketplace's curation module: the page only
+  // supplies its records and its own install actions.
+  const featuredShelves = useMemo(() => {
+    const recordsByKey = new Map<string, SkillRecord>()
+    for (const skill of catalog?.skills ?? []) {
+      recordsByKey.set(skill.packageId, skill)
+      recordsByKey.set(skill.id, skill)
+    }
+    const curated = catalog?.featuredShelves ?? []
+    if (curated.length > 0) return shelvesFromPayload(curated, recordsByKey)
+    return shelvesFromEntries(
+      featuredSkills,
+      skill => skill.id,
+      skill => ({ title: skill.name, description: skill.summary?.trim() || undefined }),
+      'skill',
+    )
+  }, [catalog, featuredSkills])
+  const featuredShelfMessages: FeaturedShelfMessages = {
+    install: t('skills.shelf.install'),
+    installing: t('skills.shelf.installing'),
+    installed: t('skills.shelf.installed'),
+    installAll: t('skills.shelf.installAll'),
+    installingAll: t('skills.shelf.installingAll'),
+    itemCount: count => t('skills.shelf.itemCount', { count }),
+    openCollection: title => t('skills.shelf.openCollection', { title }),
+    close: t('skills.shelf.close'),
+  }
+  const featuredShelfFace: FeaturedEntryFace<SkillRecord> = {
+    title: skill => skill.name,
+    description: skill => skill.summary?.trim() || '',
+    installed: skill => isSkillInstalled(skill, installations, installed),
+    installing: (skill) => {
+      const packageKey = skillSource(skill)
+      return packageKey === undefined ? pendingIds.has(skill.id) : installingKeys.has(packageKey)
+    },
+    install: (skill) => {
+      const packageKey = skillSource(skill)
+      if (packageKey !== undefined) void installFromSkillHub(skill)
+      else void addSkill(skill)
+    },
+  }
+
   const showAnotherBatch = () => {
     setFeaturedOffset(current => (current + FEATURED_BATCH) % Math.max(featuredPool.length, 1))
   }
 
   const addSkill = async (skill: SkillRecord) => {
-    if (pendingIdsRef.current.has(skill.id) || isInstalled(skill, installations)) return
+    if (pendingIdsRef.current.has(skill.id) || isSkillInstalled(skill, installations, installedRef.current)) return
     pendingIdsRef.current.add(skill.id)
     setPendingIds(new Set(pendingIdsRef.current))
     setNotice(null)
@@ -348,7 +520,7 @@ export function SkillsCatalogPage({
       })
       // The add is a commit point for the header fact too: the new installation
       // is counted before the toast reports success.
-      reportInstalledCount.current(installedCountOf(skills, [...installations, installation]))
+      reportInstalledCount.current(countInstalled(skills, [...installations, installation], installedRef.current))
       onAdded(skill.name)
     } catch {
       if (!controller.signal.aborted) onAddFailed()
@@ -365,25 +537,125 @@ export function SkillsCatalogPage({
     onClearSearch?.()
   }
 
-  const renderCard = (skill: SkillRecord, featured: boolean) => (
-    <SkillCard
-      key={`${featured ? 'featured' : 'grid'}-${skill.id}`}
-      skill={skill}
-      locale={locale}
-      t={t}
-      installed={isInstalled(skill, installations)}
-      pending={pendingIds.has(skill.id)}
-      featured={featured}
-      onOpen={() => { setSelectedSkill(skill) }}
-      onAdd={() => { void addSkill(skill) }}
-    />
-  )
+  /** Re-read the Host ledger and publish the header count it implies. */
+  const refreshInstalled = async (skillsForCount: readonly SkillRecord[] = skills): Promise<void> => {
+    const next = await listInstalledSkills()
+    installedRef.current = next
+    setInstalled(next)
+    reportInstalledCount.current(countInstalled(skillsForCount, installations, next))
+  }
+
+  const installFailure = (error: unknown): void => {
+    const failure = error instanceof SkillInstallerError ? error : undefined
+    setNotice(failure?.code === 'unsupported-coordinate'
+      ? t('skills.catalog.installUnsupported')
+      : t('skills.catalog.installFailed'))
+  }
+
+  /** Install a SkillHub record into the Harness skill root through the Host. */
+  const installFromSkillHub = async (skill: SkillRecord, version?: string): Promise<void> => {
+    const packageKey = skillSource(skill)
+    if (packageKey === undefined || installingKeys.has(packageKey)) return
+    setInstallingKeys(current => new Set(current).add(packageKey))
+    setInstallNotice(null)
+    setNotice(null)
+    try {
+      await installLocalSkill(packageKey, version)
+      setInstallNotice(t('skills.catalog.installDone', { name: skill.name }))
+      await refreshInstalled()
+    } catch (error) {
+      installFailure(error)
+    } finally {
+      setInstallingKeys((current) => {
+        const next = new Set(current)
+        next.delete(packageKey)
+        return next
+      })
+    }
+  }
+
+  /** Enable or disable an installed skill by moving its directory. */
+  const toggleInstalled = async (skill: SkillRecord, enabled: boolean): Promise<void> => {
+    const packageKey = skillSource(skill)
+    if (packageKey === undefined) return
+    setNotice(null)
+    try {
+      await setSkillEnabled(packageKey, enabled)
+      setInstallNotice(enabled ? t('skills.catalog.skillEnabled') : t('skills.catalog.skillDisabled'))
+      await refreshInstalled()
+    } catch (error) {
+      installFailure(error)
+    }
+  }
+
+  /** Remove an installed skill's directory and ledger row. */
+  const uninstallInstalled = async (skill: SkillRecord): Promise<void> => {
+    const packageKey = skillSource(skill)
+    if (packageKey === undefined) return
+    setNotice(null)
+    setConfirmUninstall(false)
+    try {
+      await uninstallSkill(packageKey)
+      setInstallNotice(null)
+      await refreshInstalled()
+    } catch (error) {
+      installFailure(error)
+    }
+  }
+
+  /** Open the drawer; mirrored records also load their upstream detail. */
+  const openSkill = (skill: SkillRecord): void => {
+    setSelectedSkill(skill)
+    setDetail(null)
+    setDetailError(null)
+    setDetailLoading(false)
+    setConfirmUninstall(false)
+    setInstallNotice(null)
+    const packageKey = skillSource(skill)
+    if (packageKey === undefined) return
+    setDetailLoading(true)
+    void fetchSkillDetail(packageKey).then((next) => {
+      setDetail(next)
+    }).catch((cause: unknown) => {
+      const failure = cause instanceof SkillInstallerError ? cause : undefined
+      setDetailError(failure?.message ?? t('skills.catalog.detailUnavailable'))
+    }).finally(() => {
+      setDetailLoading(false)
+    })
+  }
+
+  const renderCard = (skill: SkillRecord, featured: boolean) => {
+    const packageKey = skillSource(skill)
+    return (
+      <SkillCard
+        key={`${featured ? 'featured' : 'grid'}-${skill.id}`}
+        skill={skill}
+        locale={locale}
+        t={t}
+        installed={isSkillInstalled(skill, installations, installed)}
+        pending={packageKey !== undefined ? installingKeys.has(packageKey) : pendingIds.has(skill.id)}
+        featured={featured}
+        onOpen={() => { openSkill(skill) }}
+        onAdd={() => {
+          if (packageKey !== undefined) void installFromSkillHub(skill)
+          else void addSkill(skill)
+        }}
+      />
+    )
+  }
 
   return (
     <div className={css.catalog}>
       {notice !== null && (
         <div className={clsx(css.notice, css.noticeError)} role="alert">
           {notice}
+        </div>
+      )}
+
+      {installNotice !== null && (
+        <div className={css.notice} role="status" data-install-notice="">
+          <span>{installNotice}</span>
+          <span className={css.noticeNote}>{t('skills.catalog.restartNotice')}</span>
         </div>
       )}
 
@@ -403,9 +675,14 @@ export function SkillsCatalogPage({
               </button>
             )}
           </div>
-          <div className={css.featuredGrid}>
-            {featuredSkills.map(skill => renderCard(skill, true))}
-          </div>
+          {/* The skills catalog draws its featured shelf through the same module
+              as every other catalog: single placements today, collections when
+              the Skills service serves them. */}
+          <FeaturedShelfView
+            shelves={featuredShelves}
+            messages={featuredShelfMessages}
+            face={featuredShelfFace}
+          />
         </section>
       )}
 
@@ -486,33 +763,127 @@ export function SkillsCatalogPage({
           footer={(
             <div className={css.detailActions}>
               <Button variant="ghost" onClick={() => { setSelectedSkill(null) }}>{t('dialog.close')}</Button>
-              <Button
-                variant="primary"
-                disabled={isInstalled(selectedSkill, installations) || pendingIds.has(selectedSkill.id)}
-                data-modal-autofocus
-                onClick={() => { void addSkill(selectedSkill) }}
-              >
-                {isInstalled(selectedSkill, installations)
-                  ? t('skills.catalog.added')
-                  : pendingIds.has(selectedSkill.id)
-                    ? t('skills.catalog.adding')
-                    : t('skills.catalog.addToCloud')}
-              </Button>
+              {skillSource(selectedSkill) !== undefined ? (
+                <Button
+                  variant="primary"
+                  disabled={installingKeys.has(skillSource(selectedSkill)!)}
+                  data-modal-autofocus
+                  onClick={() => { void installFromSkillHub(selectedSkill) }}
+                >
+                  {installingKeys.has(skillSource(selectedSkill)!)
+                    ? t('skills.catalog.installing')
+                    : localInstallOf(selectedSkill) !== undefined
+                      ? t('skills.catalog.reinstall')
+                      : t('skills.catalog.install')}
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  disabled={isInstalled(selectedSkill, installations) || pendingIds.has(selectedSkill.id)}
+                  data-modal-autofocus
+                  onClick={() => { void addSkill(selectedSkill) }}
+                >
+                  {isInstalled(selectedSkill, installations)
+                    ? t('skills.catalog.added')
+                    : pendingIds.has(selectedSkill.id)
+                      ? t('skills.catalog.adding')
+                      : t('skills.catalog.addToCloud')}
+                </Button>
+              )}
             </div>
           )}
         >
           <div className={css.detailBody}>
             <p className={css.detailDescription}>{selectedSkill.description?.trim() || selectedSkill.summary?.trim() || t('skills.catalog.noDescription')}</p>
+            {installNotice !== null && (
+              <p className={css.installNotice} role="status">
+                {installNotice}
+                {' '}
+                {t('skills.catalog.restartNotice')}
+              </p>
+            )}
             <dl className={css.detailMeta}>
-              <div><dt>{t('skills.catalog.version')}</dt><dd>{selectedSkill.version}</dd></div>
+              <div><dt>{t('skills.catalog.version')}</dt><dd>{detail?.version ?? selectedSkill.version}</dd></div>
               <div><dt>{t('skills.catalog.installCountLabel')}</dt><dd>{formatCount(selectedSkill.installCount, locale)}</dd></div>
             </dl>
-            {selectedSkill.tags.length > 0 && (
-              <div className={css.tags} aria-label={t('skills.catalog.tags')}>
-                {selectedSkill.tags.map(tag => <span key={tag} className={css.tag}>{tag}</span>)}
+            {localInstallOf(selectedSkill) !== undefined && (() => {
+              const local = localInstallOf(selectedSkill)!
+              return (
+                <div className={css.installActions} data-installed-skill={local.id}>
+                  <span className={css.installState}>
+                    {local.enabled ? t('skills.catalog.enabledState') : t('skills.catalog.disabledState')}
+                    {' · '}
+                    {t('skills.catalog.installedVersion', { version: local.version })}
+                    {' · '}
+                    {t('skills.catalog.installedFiles', { count: String(local.files) })}
+                  </span>
+                  <div className={css.installButtons}>
+                    <Button size="sm" variant="toolbar" onClick={() => { void toggleInstalled(selectedSkill, !local.enabled) }}>
+                      {local.enabled ? t('skills.catalog.disable') : t('skills.catalog.enable')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        if (confirmUninstall) void uninstallInstalled(selectedSkill)
+                        else setConfirmUninstall(true)
+                      }}
+                    >
+                      {confirmUninstall ? t('skills.catalog.confirmUninstall') : t('skills.catalog.uninstall')}
+                    </Button>
+                  </div>
+                </div>
+              )
+            })()}
+            <div className={css.statusLines}>
+              {detailLoading && <p className={css.detailNote} role="status">{t('skills.catalog.detailLoading')}</p>}
+              {detailError !== null && <p className={css.detailNote} role="alert">{detailError}</p>}
+            </div>
+            {detail !== null && detail.versions.length > 0 && (
+              <div className={css.versions}>
+                <h3 className={css.detailSectionTitle}>{t('skills.catalog.versions')}</h3>
+                <ul className={css.versionList}>
+                  {detail.versions.slice(0, 8).map((version) => {
+                    const current = localInstallOf(selectedSkill)?.version === version.version
+                    const safe = version.security.length > 0 && version.security.every(report => report.status === 'benign')
+                    return (
+                      <li key={version.version} className={css.versionRow}>
+                        <span className={css.versionLabel}>{version.version}</span>
+                        <span className={css.versionNote}>
+                          {version.security.length === 0
+                            ? t('skills.catalog.securityNone')
+                            : safe
+                              ? t('skills.catalog.securitySafe')
+                              : t('skills.catalog.securityMixed')}
+                        </span>
+                        {current
+                          ? <span className={css.versionCurrent}>{t('skills.catalog.currentVersion')}</span>
+                          : (
+                            <button
+                              type="button"
+                              className={css.versionInstall}
+                              disabled={installingKeys.has(skillSource(selectedSkill)!)}
+                              onClick={() => { void installFromSkillHub(selectedSkill, version.version) }}
+                            >
+                              {t('skills.catalog.installVersion')}
+                            </button>
+                          )}
+                      </li>
+                    )
+                  })}
+                </ul>
               </div>
             )}
-            <p className={css.detailNote}>{t('skills.catalog.cloudNote')}</p>
+            {displayTags(selectedSkill).length > 0 && (
+              <div className={css.tags} aria-label={t('skills.catalog.tags')}>
+                {displayTags(selectedSkill).map(tag => <span key={tag} className={css.tag}>{tag}</span>)}
+              </div>
+            )}
+            <p className={css.detailNote}>
+              {skillSource(selectedSkill) !== undefined
+                ? t('skills.catalog.localNote')
+                : t('skills.catalog.cloudNote')}
+            </p>
           </div>
         </Modal>
       )}

@@ -113,6 +113,17 @@
         iconTimeoutMs: 10000
         launchWatchMs: 1000
 
+    # SkillHub catalog proxy and local skill installer behind the Skills page.
+    # The routes are same-origin only (SkillHub sends no CORS headers): they
+    # list what is installed, fetch a version's files, verify each file against
+    # the upstream manifest, publish the skill into the Harness skill root, and
+    # move it between the enabled and disabled roots. Installs are visible to a
+    # new session, so the page reports that a restart is required.
+    - id: sdkwork-skillhub
+      name: '@deepseek-ai/dsh-sdkwork-skillhub'
+      config:
+        apiBaseUrl: https://api.skillhub.cn
+
     - id: ui-file-actions
       name: '@deepseek-ai/dsh-client-ui-file-actions'
     - id: ui-context-menu
@@ -488,32 +499,36 @@
     - id: montersy-skill-market
       name: '@montersy123/dsh-skill-market'
 
-    # MCP connector: the third-party dsh-mcp-connector plugin is linked into
-    # this repository as the `plugins/dsh-mcp-connector` git submodule and
-    # mounts here by default, so a shipped build — and the desktop layer
-    # patched over this bundle — offers MCP server setup, cross-connection
-    # tool search and connection troubleshooting with no installer step. One
-    # row carries both halves: the host half owns the connector catalog, the
-    # OAuth/API-key credentials, the connection scopes and governance rules,
-    # and the `@deepseek-ai/dsh-mcp-client` loader entries a live connection
-    # becomes, and it serves its panel at `/mcp-connector/ui/`; the browser
-    # half registers the `mcp-connector` main panel plus its sidebar row. The
-    # Connectors tab of `ui-sdkwork-markets` above embeds that panel and
-    # declares its row embedded, so the connectors keep one navigation entry.
-    # The package's own `dsh.bundle.patch` is deliberately NOT in the profile's
-    # bundle list — this row is the single mount, so its double-mount guard
-    # never has to reason about a second instance. Removing this row (or a
-    # profile `disabled: true` overlay) turns the whole connector surface off;
-    # the desktop profile inherits it, because dsh-sdkwork-desktop-app patches
-    # over this bundle.
-    - id: duhu2000-mcp-connector
-      name: 'dsh-mcp-connector'
-      # The catalog is the plugin's own deployment-varying setting (its
-      # documented default): pin it here so the shipped build keeps the public
-      # registry even if the plugin's default moves. An empty string would keep
-      # only the bundled cards.
-      config:
-        catalogUrl: 'https://cdn.jsdelivr.net/gh/duhu2000/dsh-mcp-connector-registry@main/catalog.json'
+    # MCP connector: the first-party SDKWork MCP connector plugin lives in this
+    # repository at `plugins/sdkwork-mcp-connector` (committed `lib/` + `ui/`,
+    # not a git submodule) and mounts here by default, so a shipped build — and
+    # the desktop layer patched over this bundle — offers MCP server setup,
+    # cross-connection tool search and connection troubleshooting with no
+    # installer step. One row carries both halves: the host half owns the local
+    # connection records, the OAuth/API-key credentials, the connection scopes
+    # and governance rules, and the `@deepseek-ai/dsh-mcp-client` loader entries
+    # a live connection becomes, and it serves its panel at `/mcp-connector/ui/`;
+    # the browser half registers the `mcp-connector` main panel plus its sidebar
+    # row. The connector market itself is not bundled: the host half loads it
+    # from the `sdkwork-mcp` application through that application's generated
+    # App SDK (`@sdkwork/mcp-app-sdk`), using the SDKWork deployment environment
+    # the `ui-sdkwork-env` settings section holds. The Connectors tab of
+    # `ui-sdkwork-markets` above embeds that panel and declares its row
+    # embedded, so the connectors keep one navigation entry. The package's own
+    # `dsh.bundle.patch` is deliberately NOT in the profile's bundle list — this
+    # row is the single mount, so its double-mount guard never has to reason
+    # about a second instance. Removing this row (or a profile `disabled: true`
+    # overlay) turns the whole connector surface off; the desktop profile
+    # inherits it, because dsh-sdkwork-desktop-app patches over this bundle.
+    - id: sdkwork-mcp-connector
+      name: '@sdkwork/dsh-mcp-connector'
+      # The cloud catalog's origin and credentials come from the deployment
+      # environment (`ui-sdkwork-env`, then the SDKWork host environment
+      # variables), so the row carries no config: the plugin's defaults are the
+      # shipped behavior. Override them here only for an environment that must
+      # pin a different MCP service:
+      #   catalogApiBaseUrl: 'https://api.example.com'
+      #   catalogAccessToken: '...'
 
     # Expert market: the SDKWork expert market ships as a built-in plugin of
     # this repository (`@deepseek-ai/dsh-client-ui-sdkwork-experts`) and mounts

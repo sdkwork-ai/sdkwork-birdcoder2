@@ -1,0 +1,231 @@
+/**
+ * 通道一：OAuth 一键授权（通用 Authorization Code + PKCE S256 + DCR）。
+ * 完成全流程并把结果交给 index.js 落库、挂载 mcp-client 条目、调度刷新。
+ */
+import {
+  discoverProtectedResource,
+  discoverServerMetadata,
+  registerClient,
+  OAuthError,
+  pkcePair,
+  generateState,
+  buildAuthorizeUrl,
+  exchangeCode,
+  extractTokenResources,
+} from '../oauth.js';
+import { startCallbackServer } from '../callback-server.js';
+import { openBrowser } from '../util.js';
+import { DEFAULT_LOCALE, createTranslator } from '../i18n/index.js';
+
+/** 缺省译文：中文（既有调用点与测试无需改动）。 */
+const tZh = createTranslator(DEFAULT_LOCALE);
+
+/** 阶段枚举 → 中文标签（msgid）。枚举值本身不翻译，只在 `describeOAuthAuthorizationError` 里经 `t()` 输出。 */
+const OAUTH_STAGE_LABELS = Object.freeze({
+  unknown: 'OAuth 授权',
+  'resource-discovery': '受保护资源发现',
+  'server-metadata': 'OAuth 服务发现',
+  'callback-listener': '本机回调监听',
+  'client-registration': 'OAuth 客户端注册',
+  'authorization-callback': '浏览器授权回调',
+  'token-exchange': 'OAuth Token 换取',
+});
+
+async function atOAuthStage(stage, action) {
+  try {
+    return await action();
+  } catch (error) {
+    if (error && typeof error === 'object' && !error.oauthStage) {
+      error.oauthStage = stage;
+      error.oauthStageLabel = OAUTH_STAGE_LABELS[stage] ?? stage;
+    }
+    throw error;
+  }
+}
+
+function stagedError(stage, message) {
+  const error = new Error(message);
+  error.oauthStage = stage;
+  error.oauthStageLabel = OAUTH_STAGE_LABELS[stage] ?? stage;
+  return error;
+}
+
+/** 把 OAuth 底层异常收敛为可操作、不泄露响应体的用户诊断。 */
+export function describeOAuthAuthorizationError(error, { t = tZh } = {}) {
+  const stage = error?.oauthStage ?? 'unknown';
+  // 标签在抛出时记录为 msgid，因此这里按当前语言渲染；外部自带的标签也能安全过一遍 `t()`。
+  const stageLabel = t(error?.oauthStageLabel ?? OAUTH_STAGE_LABELS[stage] ?? OAUTH_STAGE_LABELS.unknown);
+  const httpStatus = Number.isInteger(error?.httpStatus) ? error.httpStatus : undefined;
+  const upstreamCode = typeof error?.code === 'string' ? error.code : undefined;
+  if (stage === 'client-registration' && httpStatus === 403) {
+    return {
+      message: t('OAuth 客户端注册被服务商拒绝（HTTP 403），尚未进入浏览器授权。该服务可能只允许已审核客户端；请查看服务商的 MCP 客户端准入说明，或等待连接器完成官方登记。'),
+      detail: {
+        kind: 'oauth-client-registration-rejected',
+        stage,
+        stageLabel,
+        code: 'oauth-dcr-forbidden',
+        httpStatus,
+        upstreamCode,
+      },
+    };
+  }
+  const safeReason = httpStatus
+    ? (upstreamCode && upstreamCode !== 'http_error' ? upstreamCode : t('服务端拒绝请求'))
+    : String(error?.message ?? t('未知错误'))
+      .replace(/[\r\n\t]+/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .slice(0, 240);
+  return {
+    message: t('{stage}失败{status}：{reason}', {
+      stage: stageLabel,
+      status: httpStatus ? t('（HTTP {status}）', { status: httpStatus }) : '',
+      reason: safeReason,
+    }),
+    detail: {
+      kind: 'oauth-authorization',
+      stage,
+      stageLabel,
+      code: upstreamCode ?? 'oauth-error',
+      ...(httpStatus ? { httpStatus } : {}),
+    },
+  };
+}
+
+/**
+ * @param {object} args
+ * @param {object} args.connector 归一化后的连接器描述（auth.mode = oauth2-pkce）
+ * @param {object} args.config 插件配置
+ * @param {{info:Function,warn:Function,error:Function}} args.logger
+ * @param {AbortSignal} [args.signal]
+ */
+export async function oauthAuthorize({ connector, config, logger, signal, expectedDiscovery }) {
+  const entryServer = connector.servers.find((server) => server.url);
+  if (!entryServer) throw stagedError('resource-discovery', `connector "${connector.id}" has no HTTP OAuth resource`);
+
+  const protectedResource = await atOAuthStage(
+    'resource-discovery',
+    () => discoverProtectedResource(entryServer.url, config.requestTimeoutMs),
+  );
+  const issuer = protectedResource.authorizationServers[0] ?? connector.auth.issuer;
+  if (!issuer) throw stagedError('resource-discovery', `connector "${connector.id}" missing issuer`);
+
+  if (expectedDiscovery && (issuer !== expectedDiscovery.issuer || (protectedResource.resource ?? entryServer.url) !== expectedDiscovery.resource)) {
+    throw stagedError('resource-discovery', 'OAuth metadata changed; remove and add this connection again');
+  }
+  const metadata = await atOAuthStage(
+    'server-metadata',
+    () => discoverServerMetadata(issuer, config.requestTimeoutMs),
+  );
+  const requestedAuthMethod = connector.auth.tokenEndpointAuthMethod ?? 'none';
+  if (metadata.tokenEndpointAuthMethodsSupported.length > 0
+      && !metadata.tokenEndpointAuthMethodsSupported.includes(requestedAuthMethod)) {
+    throw stagedError('server-metadata', t('OAuth 服务不支持 token_endpoint_auth_method={method}', { method: requestedAuthMethod }));
+  }
+  let callback = await atOAuthStage(
+    'callback-listener',
+    () => startCallbackServer({ path: '/callback', timeoutMs: config.callbackTimeoutMs, signal }),
+  );
+  try {
+    const register = () => atOAuthStage('client-registration', () => registerClient(metadata.registrationEndpoint, {
+      clientName: connector.auth.clientName,
+      redirectUris: [callback.url],
+      scope: connector.auth.scope,
+      tokenEndpointAuthMethod: requestedAuthMethod,
+      timeoutMs: config.requestTimeoutMs,
+    }));
+    let registration;
+    try {
+      registration = await register();
+    } catch (error) {
+      // Some providers allow /oauth/callback but reject /callback. Only retry an
+      // explicit redirect-URI rejection, never a timeout, outage or generic 400.
+      // Both URIs use our own loopback listener; no upstream-supplied URI is used.
+      const redirectRejected = error instanceof OAuthError
+        && error.httpStatus === 400
+        && error.code === 'invalid_client_metadata'
+        && /^redirect_uris? (?:are|is) not allowed[.!]?$/i.test(error.message.trim());
+      if (!redirectRejected || signal?.aborted) throw error;
+      await callback.close();
+      callback = await atOAuthStage('callback-listener', () => startCallbackServer({
+        path: '/oauth/callback', port: callback.port,
+        timeoutMs: config.callbackTimeoutMs, signal,
+      }));
+      registration = await register();
+    }
+
+    const { verifier, challenge, method } = pkcePair();
+    const state = generateState();
+    const entryResource = protectedResource.resource ?? entryServer.url;
+    const authorizeUrl = buildAuthorizeUrl(metadata, {
+      clientId: registration.clientId,
+      redirectUri: callback.url,
+      state,
+      challenge,
+      challengeMethod: method,
+      resource: entryResource,
+      scope: connector.auth.scope,
+    });
+
+    logger.info(`opening authorization page: ${authorizeUrl}`);
+    if (config.openBrowser) openBrowser(authorizeUrl, logger);
+    else logger.info('openBrowser disabled — please open the URL above manually to authorize');
+
+    const { code, state: returnedState } = await atOAuthStage(
+      'authorization-callback',
+      () => callback.waitForCallback(),
+    );
+    if (returnedState !== state) {
+      const error = new Error('OAuth callback state mismatch — aborting (possible CSRF)');
+      error.oauthStage = 'authorization-callback';
+      error.oauthStageLabel = OAUTH_STAGE_LABELS['authorization-callback'];
+      throw error;
+    }
+
+    const token = await atOAuthStage('token-exchange', () => exchangeCode(metadata.tokenEndpoint, {
+      clientId: registration.clientId,
+      clientSecret: registration.clientSecret,
+      tokenEndpointAuthMethod: registration.tokenEndpointAuthMethod,
+      code,
+      redirectUri: callback.url,
+      codeVerifier: verifier,
+      resource: entryResource,
+      scope: connector.auth.scope,
+      timeoutMs: config.requestTimeoutMs,
+    }));
+
+    // 按 token 实际授权范围过滤 server；非 JWT / 无 resource claim 时 fallback 全部
+    const grantedUrls = extractTokenResources(token.accessToken);
+    let grantedKeys;
+    let grantedResources;
+    if (grantedUrls) {
+      const granted = new Set(grantedUrls);
+      const grantedServers = connector.servers.filter((s) => granted.has(s.oauthResource ?? s.url));
+      grantedKeys = grantedServers.map((s) => s.serverKey);
+      grantedResources = [...new Set(grantedServers.map((s) => s.oauthResource ?? s.url).filter(Boolean))];
+      if (grantedKeys.length === 0) {
+        grantedKeys = [entryServer.serverKey];
+        grantedResources = [entryServer.url];
+      }
+    } else {
+      grantedKeys = connector.servers.map((s) => s.serverKey);
+      grantedResources = [...new Set(connector.servers.map((s) => s.oauthResource ?? s.url).filter(Boolean))];
+    }
+
+    return {
+      issuer,
+      clientId: registration.clientId,
+      clientSecret: registration.clientSecret,
+      clientSecretExpiresAt: registration.clientSecretExpiresAt,
+      tokenEndpointAuthMethod: registration.tokenEndpointAuthMethod,
+      clientName: connector.auth.clientName,
+      scope: connector.auth.scope,
+      token,
+      grantedKeys,
+      grantedResources,
+      entryResource,
+    };
+  } finally {
+    await callback.close().catch((error) => logger?.warn(`close OAuth callback listener failed: ${error.message}`));
+  }
+}

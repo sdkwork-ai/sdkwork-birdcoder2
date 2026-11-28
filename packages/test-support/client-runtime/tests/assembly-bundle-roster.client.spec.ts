@@ -22,11 +22,11 @@ describe('webApp (the real web profile)', () => {
     // row (or losing the submodule checkout) must fail here and in the bundle's
     // own acceptance spec, not only at boot.
     expect(names).toContain('@montersy123/dsh-skill-market')
-    // FORK: the MCP connector is the second shipped browser row from a
-    // submodule (`plugins/dsh-mcp-connector`); its panel is what the
-    // Connectors tab of the market page embeds. Losing the row or the
-    // checkout must fail here and in the bundle's own acceptance spec.
-    expect(names).toContain('dsh-mcp-connector')
+    // FORK: the MCP connector is a first-party browser row of this repository
+    // (`plugins/sdkwork-mcp-connector`, committed lib/ + ui/); its panel is what
+    // the Connectors tab of the market page embeds. Losing the row must fail
+    // here and in the bundle's own acceptance spec.
+    expect(names).toContain('@sdkwork/dsh-mcp-connector')
     // FORK: the expert market is a first-party browser row of this repository
     // (`packages/client/ui-sdkwork-experts`, built here since the MichengAI
     // submodule was removed); its roster panel is what the Experts tab of the

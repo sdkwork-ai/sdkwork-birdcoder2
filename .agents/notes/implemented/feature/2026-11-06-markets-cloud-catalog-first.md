@@ -4,6 +4,8 @@ Status: implemented
 
 English | [中文](2026-11-06-markets-cloud-catalog-first.zh.md)
 
+> Partial supersession: [2026-11-28-sdkwork-mcp-connector-migration](../architecture/2026-11-28-sdkwork-mcp-connector-migration.md) removed the connector's cloud | connector sub-root; every other category ordering decision below still holds.
+
 ## Problem
 
 The Markets page orders each category's views differently. The Plugins chip row led with the community Plugin Market (`dshmarket`) and only then showed the SDKWork cloud catalog; the Skills chip row led with the SkillHub market and put the cloud catalog second. Experts already showed the cloud catalog as its only surface, while Connectors mounted the MCP connector plugin's panel and had no cloud catalog at all. The product wants the SDKWork catalog to be the shelf every category opens on: the cloud catalog first, and selected by default, in all four categories.

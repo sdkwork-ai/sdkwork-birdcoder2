@@ -35,6 +35,7 @@ The packages play the host roles; each package README owns its contract and conf
 | [`open-in-app/`](open-in-app/README.md) | Application probe, icon, and launch routes opening the workspace directory in an installed application | consumes `ctx.webServer` |
 | [`plugin-inventory/`](plugin-inventory/README.md) | Read-only projection of current Loader entries | Remote `pluginInventory/list` |
 | [`product-telemetry-otel/`](product-telemetry-otel/README.md) | Explicit product usage events over OTLP/HTTP | `ctx.productTelemetry` |
+| [`sdkwork-skillhub/`](sdkwork-skillhub/README.md) | SkillHub catalog proxy and the local skill installer behind the Skills page | consumes `ctx.webServer` |
 
 -----
 

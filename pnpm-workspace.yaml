@@ -1,6 +1,8 @@
 packages:
   - "vendor/*"
   - "packages/*/*"
+  - "../sdkwork-appbase/packages/common/intelligence/sdkwork-featured-contracts"
+  - "../sdkwork-appbase/packages/pc-react/foundation/sdkwork-featured-pc-react"
   # Git-linked third-party plugins shipped inside this repository (git
   # submodules under `plugins/`). Members for BOTH dependency installation and
   # loading: the row that mounts one is a `packages/bundle/*` patch row, so the

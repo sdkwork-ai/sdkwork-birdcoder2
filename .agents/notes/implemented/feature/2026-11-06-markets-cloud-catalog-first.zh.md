@@ -4,6 +4,8 @@ Status: implemented
 
 [English](2026-11-06-markets-cloud-catalog-first.md) | 中文
 
+> 部分取代：[2026-11-28-sdkwork-mcp-connector-migration](../architecture/2026-11-28-sdkwork-mcp-connector-migration.zh.md) 移除了连接器的 cloud | connector 子根；下文其余分类顺序决策仍然成立。
+
 ## 问题
 
 Markets 页面对每个分类的视图排序并不一致。插件 chip 行以社区插件市场（`dshmarket`）打头，之后才显示 SDKWork 云端目录；技能 chip 行以 SkillHub 市场打头，云端目录排在第二。专家本来就以云端目录作为唯一表面，而链接器挂载的是 MCP 连接器插件的面板，根本没有云端目录。产品希望 SDKWork 目录成为每个分类打开时所在的货架：四个分类都以云端目录打头，并默认选中。

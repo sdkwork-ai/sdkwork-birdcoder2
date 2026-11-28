@@ -268,6 +268,22 @@
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
 
+/* AppFrame contains SDK surfaces for window-safe fixed overlays. Keep the
+   catalog's scrollport inside that containment boundary so its content and
+   paging sentinel share the same scroll root. */
+.pluginMarketViewport {
+  scrollbar-gutter: auto;
+}
+
+.pluginMarketplace {
+  height: 100%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
 /* Embedded Plugins catalog density. The component keeps search, filtering and
    installation behavior; these rules give that component the same compact
    header and type scale as the Experts page. */
@@ -745,14 +761,93 @@
 }
 
 /* The connector panel is one same-origin page in a frame: it owns its whole
-   layout and its own light/dark scheme, so the frame is only the viewport. */
+   layout, and its color scheme is the application's resolved one — the surface
+   sets it inline on the element and projects the host tokens into the page, so
+   the frame is only the viewport. */
 .connectorFrame {
   flex: 1;
   width: 100%;
   min-height: 0;
   border: none;
   background: transparent;
-  color-scheme: light dark;
+}
+
+/* The connector page's own toolbar lives in this header row (the Skills tab's
+   arrangement): three view chips with the page's counts, the search field the
+   page obeys, and the add action that opens the page's add dialog. The chips
+   are flat — fill, no stroke — and the active one is the only filled chip. */
+.connectorViews {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+
+.connectorViewChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.connectorViewChip:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.connectorViewChip:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 2px;
+}
+
+.connectorViewChipActive {
+  background: var(--dsw-alias-interactive-bg-active);
+  color: var(--dsw-alias-label-primary);
+}
+
+.connectorViewCount {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.connectorViewChipActive .connectorViewCount {
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* The header's refresh control: an icon-only ghost button beside the add action. */
+.connectorRefresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.connectorRefresh:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.connectorRefresh:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 2px;
 }
 
 /* An embedded panel's surface, unavailable: a single card, centered in

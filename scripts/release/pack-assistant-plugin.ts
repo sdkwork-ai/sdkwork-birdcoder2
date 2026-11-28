@@ -25,8 +25,16 @@ import { capture, pnpmCommand } from './process.ts'
 const PLUGIN = join('plugins', 'sdkwork-deepseekbot')
 /** Runtime packages packed as-is. */
 const RUNTIME_PACKAGES = ['core', 'client'] as const
-/** Fork-carried plugin packages whose pinned versions no registry serves. */
-const FORK_PLUGINS = ['plugins/dsh-ui-usage-billing'] as const
+/**
+ * Fork-carried plugin packages whose pinned versions no registry serves.
+ *
+ * `sdkwork-mcp-connector` is the in-tree fork of `dsh-mcp-connector`: the Web
+ * bundle declares it as a `workspace:*` dependency, so its tarball has to exist
+ * in the release input set for the packed manifest to resolve. Its own
+ * `@sdkwork/mcp-app-sdk` dependency is a registry package and must be published
+ * at the version the packed manifest names before the bundle is released.
+ */
+const FORK_PLUGINS = ['plugins/dsh-ui-usage-billing', 'plugins/sdkwork-mcp-connector'] as const
 /** Files the `sdkwork-deepseekbot` tarball carries (its manifest `files`). */
 const DEEPSEEKBOT_FILES = ['dist', 'cordis.patch.yml', 'desktop-theme', 'desktop-theme-0.2.2-rc.1'] as const
 

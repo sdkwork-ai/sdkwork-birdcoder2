@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/host/sdkwork-skillhub/README.md
+/:
+  en: 5c91d88c14430121
+  zh: e918c732521de811
+/deepseek-ai-dsh-sdkwork-skillhub:
+  en: 4b15d0862f661425
+  zh: d392878f5922011a
+/deepseek-ai-dsh-sdkwork-skillhub/summary:
+  en: 18c77330dad48d9a
+  zh: 6a97da1cf6bfa66a
+/deepseek-ai-dsh-sdkwork-skillhub/table-of-contents:
+  en: 122f0d41696980b1
+  zh: 0954a7d7fb2c03f7
+/deepseek-ai-dsh-sdkwork-skillhub/use-this-package:
+  en: dd77a412a2a44b6b
+  zh: 1558fc84e5bbc1e0
+/deepseek-ai-dsh-sdkwork-skillhub/use-this-package/when-to-choose-it:
+  en: 2e32820b223a0f30
+  zh: b7e8d0bbdd5b41b4
+/deepseek-ai-dsh-sdkwork-skillhub/understand-the-implementation:
+  en: da23bdf78417785a
+  zh: ebe9e201c7ca1bf6
+/deepseek-ai-dsh-sdkwork-skillhub/model-experience:
+  en: 790cd192f60336d2
+  zh: 7d883ef931db2a20
+/deepseek-ai-dsh-sdkwork-skillhub/model-experience/kv-cache-effect:
+  en: 6ca184962a4c7217
+  zh: 11e439606937c9b9
+/deepseek-ai-dsh-sdkwork-skillhub/known-limitations-and-deferred-work:
+  en: 2a38358f62699ca2
+  zh: 3c391cd576e50f83
+/deepseek-ai-dsh-sdkwork-skillhub/dev-note:
+  en: 91600d309853352f
+  zh: b5f942b8490bf6b9

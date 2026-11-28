@@ -1,21 +1,27 @@
 /**
- * The built-in MCP connector integration: `dsh-mcp-connector` is linked into
- * this repository as the `plugins/dsh-mcp-connector` git submodule and composed
- * by this bundle, so a shipped build — and the desktop layer patched over it —
- * offers MCP server setup, cross-connection tool search and connection
- * troubleshooting (and the Connectors tab of `ui-sdkwork-markets`, which embeds
- * that plugin's panel) without an installer step.
+ * The built-in MCP connector integration: the first-party SDKWork MCP connector
+ * lives in this repository at `plugins/sdkwork-mcp-connector` (a committed
+ * `lib/` + `ui/` build, not a git submodule) and is composed by this bundle, so
+ * a shipped build — and the desktop layer patched over it — offers MCP server
+ * setup, cross-connection tool search and connection troubleshooting (and the
+ * Connectors tab of `ui-sdkwork-markets`, which embeds that plugin's panel)
+ * without an installer step.
  *
- * The submodule contents are not edited by this repository, so the assertions
- * below read the artifacts as shipped rather than pinning source text: the row
- * exists and is enabled, the package resolves with both halves declared and
- * present, the browser half registers the keyed `main` panel the Connectors tab
- * watches for, the Host half serves the panel page that tab frames, and the
- * shipped page still speaks the messages the tab answers. Those last four are
- * the soft contracts between the two packages: `ui-sdkwork-markets` hard-codes
- * the panel key, the panel path, and the message names, so a rename upstream
- * has to fail here instead of leaving a tab that frames nothing or a Prompt
- * button that times out.
+ * The assertions below read the artifacts as shipped rather than pinning source
+ * text: the row exists and is enabled, the package resolves with both halves
+ * declared and present, the browser half registers the keyed `main` panel the
+ * Connectors tab watches for, the Host half serves the panel page that tab
+ * frames, and the shipped page still speaks the messages the tab answers. Those
+ * last four are the soft contracts between the two packages:
+ * `ui-sdkwork-markets` hard-codes the panel key, the panel path, and the message
+ * names, so a rename has to fail here instead of leaving a tab that frames
+ * nothing or a Prompt button that times out.
+ *
+ * One more contract belongs to the migration that replaced the third-party
+ * connector: the market is no longer bundled with the plugin. The Host half
+ * loads it from the `sdkwork-mcp` application through that application's
+ * generated App SDK, so this spec pins the SDK dependency and the catalog module
+ * and fails if a bundled catalog ever comes back as the real source.
  */
 
 import { existsSync, readFileSync } from 'node:fs'
@@ -27,8 +33,8 @@ import { parseEntryYaml } from '@deepseek-ai/cordis-plugin-include'
 import type { EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
 
 /** Loader row id and npm name of the built-in MCP connector plugin. */
-const ROW_ID = 'duhu2000-mcp-connector'
-const PACKAGE_NAME = 'dsh-mcp-connector'
+const ROW_ID = 'sdkwork-mcp-connector'
+const PACKAGE_NAME = '@sdkwork/dsh-mcp-connector'
 
 /** The keyed `main` panel the Connectors tab embeds (see ui-sdkwork-markets). */
 const PANEL_ID = 'mcp-connector'
@@ -49,8 +55,27 @@ const MESSAGE_TYPES = [
 ]
 
 /**
+ * The host-owned toolbar protocol: the page accepts the header's view switch,
+ * search, add action and locale, and reports its view and counts back. The
+ * shipped page must keep every name, and the host-owned mode must keep the rule
+ * that hides the page's own toolbar; otherwise the tab shows two toolbars again.
+ */
+const HOST_TOOLBAR_MESSAGES = [
+  'mcp-connector:host-toolbar',
+  'mcp-connector:host-view',
+  'mcp-connector:host-search',
+  'mcp-connector:host-add',
+  'mcp-connector:host-refresh',
+  'mcp-connector:host-state',
+  'mcp-connector:host-locale',
+]
+
+/** The rule that drops the page's own toolbar while the application header owns it. */
+const HOST_TOOLBAR_RULE = "html[data-host-toolbar='true'] header > .toolbar"
+
+/**
  * The panel's accent family, which `ui-sdkwork-markets` re-points at the host
- * brand when it frames the page. A rename upstream must fail here: the tab would
+ * brand when it frames the page. A rename must fail here: the tab would
  * otherwise keep the panel's own indigo next to the application's chrome without
  * a single test noticing.
  */
@@ -58,6 +83,15 @@ const PANEL_ACCENT_VARIABLES = ['--accent', '--accent-hover', '--accent-light']
 
 /** The Host services the connector's one plugin row depends on. */
 const HOST_SERVICES = ['tools', 'storageDomain', 'loader', 'workspaceRegistry']
+
+/** The published SDK that carries the sdkwork-mcp catalog records. */
+const CATALOG_SDK = '@sdkwork/mcp-app-sdk'
+
+/** The Host module that turns sdkwork-mcp catalog records into descriptors. */
+const CATALOG_MODULE = 'lib/sdkwork-catalog.js'
+
+/** The deployment environment settings namespace the catalog source resolves. */
+const ENV_SETTINGS_NAMESPACE = 'ui-sdkwork-env'
 
 /** One shipped file of the linked package, with its source when readable. */
 interface Artifact {
@@ -104,20 +138,21 @@ function artifact(root: string, relative: string): string {
  * Everything this integration reads out of the linked package.
  * @returns the manifest (when it resolves) and the shipped files it depends on.
  */
-function inspect(): { manifest: Record<string, unknown> | undefined; present: Artifact[] } {
+function inspect(): { manifest: Record<string, unknown> | undefined; root: string | undefined; present: Artifact[] } {
   const root = packageRoot()
-  if (root === undefined) return { manifest: undefined, present: [] }
+  if (root === undefined) return { manifest: undefined, root, present: [] }
   const manifest = JSON.parse(artifact(root, 'package.json')) as Record<string, unknown>
-  // The two entry artifacts are the paths the manifest exports; the panel page
-  // and the route module are fixed paths the plugin's own panel uses.
+  // The two entry artifacts are the paths the manifest exports; the panel page,
+  // the route module and the cloud-catalog module are fixed paths the plugin's
+  // own halves use.
   const entryPaths = (['.', './client'] as const)
     .map(key => (manifest.exports as Record<string, unknown> | undefined)?.[key])
     .filter((value): value is string => typeof value === 'string')
-  const present = [...entryPaths, 'lib/web.js', 'ui/index.html'].map((relative) => {
+  const present = [...entryPaths, 'lib/web.js', 'ui/index.html', CATALOG_MODULE].map((relative) => {
     if (!existsSync(join(root, relative))) return { path: relative, exists: false }
     return { path: relative, exists: true, source: artifact(root, relative) }
   })
-  return { manifest, present }
+  return { manifest, root, present }
 }
 
 /**
@@ -135,11 +170,11 @@ function violations(
   const found: string[] = []
   if (row === undefined) found.push(`the web patch declares no ${ROW_ID} row`)
   else {
-    if (row.name !== PACKAGE_NAME) found.push(`${ROW_ID} names ${row.name}, not ${PACKAGE_NAME}`)
+    if (row.name !== PACKAGE_NAME) found.push(`${ROW_ID} names ${String(row.name)}, not ${PACKAGE_NAME}`)
     if (row.disabled !== undefined) found.push(`${ROW_ID} is not enabled by default`)
   }
   if (manifest === undefined) {
-    found.push(`${PACKAGE_NAME} does not resolve from this bundle (is the plugins/dsh-mcp-connector submodule checked out?)`)
+    found.push(`${PACKAGE_NAME} does not resolve from this bundle (is plugins/${ROW_ID} present?)`)
     return found
   }
   const dsh = manifest.dsh
@@ -154,6 +189,10 @@ function violations(
   // profile does not list it, this bundle's row is the single composition — but
   // a package that stopped declaring one at all is worth noticing.
   if (bundle?.patch === undefined) found.push(`${PACKAGE_NAME} declares no dsh.bundle.patch`)
+  const dependencies = manifest.dependencies
+  const declaresSdk = typeof dependencies === 'object' && dependencies !== null
+    && Object.hasOwn(dependencies as Record<string, unknown>, CATALOG_SDK)
+  if (!declaresSdk) found.push(`${PACKAGE_NAME} depends on no ${CATALOG_SDK}`)
   for (const entry of present) {
     if (!entry.exists) {
       found.push(`${PACKAGE_NAME} is missing its built ${entry.path}`)
@@ -168,6 +207,18 @@ function violations(
       }
       for (const type of MESSAGE_TYPES) {
         if (!source(entry).includes(type)) found.push(`${PACKAGE_NAME} client half declares no ${type} message`)
+      }
+    } else if (entry.path.endsWith(CATALOG_MODULE)) {
+      // The cloud catalog module is what makes the market the sdkwork-mcp
+      // application's data instead of a bundled JSON file.
+      if (!source(entry).includes(CATALOG_SDK)) {
+        found.push(`${PACKAGE_NAME} loads its catalog from no ${CATALOG_SDK}`)
+      }
+      if (!source(entry).includes(ENV_SETTINGS_NAMESPACE)) {
+        found.push(`${PACKAGE_NAME} resolves no ${ENV_SETTINGS_NAMESPACE} deployment environment`)
+      }
+      if (!/export\s+(async\s+)?function\s+fetchSdkworkCatalogEntries/.test(source(entry))) {
+        found.push(`${PACKAGE_NAME} exposes no cloud catalog reader`)
       }
     } else if (entry.path.endsWith('index.js')) {
       for (const service of HOST_SERVICES) {
@@ -202,15 +253,23 @@ function source(entry: Artifact): string {
 }
 
 describe('built-in MCP connector', () => {
-  it('composes dsh-mcp-connector by default from the linked submodule', () => {
+  it('composes sdkwork-mcp-connector by default from the in-tree plugin', () => {
     const { manifest, present } = inspect()
     expect(violations(rows().find(row => row.id === ROW_ID), manifest, present)).toEqual([])
     // Both entry halves must be the shipped artifacts: this repository runs the
     // plugin's committed `lib/` files rather than rebuilding them, and the panel
-    // page travels with them.
+    // page and the cloud catalog module travel with them.
     expect(present.map(entry => entry.path)).toEqual([
-      './lib/index.js', './lib/client.js', 'lib/web.js', 'ui/index.html',
+      './lib/index.js', './lib/client.js', 'lib/web.js', 'ui/index.html', CATALOG_MODULE,
     ])
+  })
+
+  it('ships no bundled connector catalog', () => {
+    // The market belongs to the sdkwork-mcp application. A `catalog/` directory
+    // in the plugin would be a second, silent source of truth.
+    const { root } = inspect()
+    if (root === undefined) throw new Error('the integration is already incomplete')
+    expect(existsSync(join(root, 'catalog', 'catalog.json'))).toBe(false)
   })
 
   it('rejects each way the integration can be incomplete', () => {
@@ -224,9 +283,13 @@ describe('built-in MCP connector', () => {
     expect(violations({ ...row, disabled: true }, manifest, present))
       .toEqual([`${ROW_ID} is not enabled by default`])
     expect(violations(row, undefined, present))
-      .toEqual([`${PACKAGE_NAME} does not resolve from this bundle (is the plugins/dsh-mcp-connector submodule checked out?)`])
-    expect(violations(row, { ...manifest, dsh: {} }, present))
-      .toEqual([`${PACKAGE_NAME} declares no dsh.client web half`, `${PACKAGE_NAME} declares no dsh.bundle.patch`])
+      .toEqual([`${PACKAGE_NAME} does not resolve from this bundle (is plugins/${ROW_ID} present?)`])
+    expect(violations(row, { ...manifest, dsh: {}, dependencies: {} }, present))
+      .toEqual([
+        `${PACKAGE_NAME} declares no dsh.client web half`,
+        `${PACKAGE_NAME} declares no dsh.bundle.patch`,
+        `${PACKAGE_NAME} depends on no ${CATALOG_SDK}`,
+      ])
     expect(violations(row, manifest, present.map(entry => ({ ...entry, exists: false }))))
       .toEqual(present.map(entry => `${PACKAGE_NAME} is missing its built ${entry.path}`))
   })
@@ -264,9 +327,9 @@ describe('built-in MCP connector', () => {
     expect(violations(row, manifest, without('ui/index.html', messagesOnly)))
       .toEqual(PANEL_ACCENT_VARIABLES.map(variable => `${PACKAGE_NAME} panel page declares no ${variable} accent variable`))
 
-    // The Host half is the half that makes a connection real: the catalog, the
-    // credentials, and the managed mcp-client entries all hang off these
-    // services.
+    // The Host half is the half that makes a connection real: the local
+    // connections, the credentials, and the managed mcp-client entries all hang
+    // off these services.
     expect(violations(row, manifest, without('./lib/index.js', 'export const inject = [];')))
       .toEqual(HOST_SERVICES.map(service => `${PACKAGE_NAME} host half does not inject ${service}`))
     for (const service of HOST_SERVICES) {
@@ -281,6 +344,47 @@ describe('built-in MCP connector', () => {
     // to frame.
     expect(violations(row, manifest, without('lib/web.js', 'export function mountWebRoutes() {}')))
       .toEqual([`${PACKAGE_NAME} host half serves no ${SURFACE_ROUTE} panel page`])
+  })
+
+  it('lets the application header own the connector toolbar', () => {
+    const { root } = inspect()
+    if (root === undefined) throw new Error('the integration is already incomplete')
+    const page = artifact(root, 'ui/index.html')
+    // Every host command and the page's report are shipped strings; the tab's
+    // header draws the controls, so the page has to answer all of them.
+    for (const type of HOST_TOOLBAR_MESSAGES) {
+      expect(page).toContain(type)
+    }
+    // And the page must drop its own toolbar in that mode: two toolbars in one
+    // tab is the regression this mode exists to prevent.
+    expect(page).toContain(HOST_TOOLBAR_RULE)
+    expect(page).toMatch(/\[data-host-toolbar='true'\] header > \.toolbar \{ display: none; \}/)
+    // The standalone page keeps the toolbar markup, so the same artifact still
+    // works outside the application frame.
+    expect(page).toContain('id="add-connection"')
+    expect(page).toContain('id="search"')
+  })
+
+  it('loads the market from the sdkwork-mcp application, never from a bundled catalog', () => {
+    const { manifest, present } = inspect()
+    const row = rows().find(candidate => candidate.id === ROW_ID)
+    if (row === undefined || manifest === undefined) throw new Error('the integration is already incomplete')
+    const catalog = present.find(entry => entry.path === CATALOG_MODULE)
+    if (catalog === undefined) throw new Error('the integration is already incomplete')
+    const without = (replacement: string): Artifact[] => present.map(entry => (
+      entry.path === CATALOG_MODULE ? { ...entry, source: replacement } : entry
+    ))
+
+    expect(violations(row, manifest, without('export const nothing = true;')))
+      .toEqual([
+        `${PACKAGE_NAME} loads its catalog from no ${CATALOG_SDK}`,
+        `${PACKAGE_NAME} resolves no ${ENV_SETTINGS_NAMESPACE} deployment environment`,
+        `${PACKAGE_NAME} exposes no cloud catalog reader`,
+      ])
+    // The generated SDK subpath is the only transport: importing the composed
+    // facade root would resolve the repository's TypeScript sources, which a
+    // committed Node plugin cannot execute.
+    expect(source(catalog)).toContain(`${CATALOG_SDK}/generated`)
   })
 
   it('stays enabled under every desktop layer a shipped build applies', () => {

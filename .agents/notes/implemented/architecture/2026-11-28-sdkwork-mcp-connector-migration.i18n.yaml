@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-28-sdkwork-mcp-connector-migration.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-28-sdkwork-mcp-connector-migration.md
+/agent-note-the-sdkwork-mcp-connector-replaces-the-third-party-connector:
+  en: cd73dd78dd76a848
+  zh: 4072d25bd76ace5d
+/agent-note-the-sdkwork-mcp-connector-replaces-the-third-party-connector/problem:
+  en: d0844ed94e821f3d
+  zh: 1adb1b5e012a4d8d
+/agent-note-the-sdkwork-mcp-connector-replaces-the-third-party-connector/decision:
+  en: 824a41ee8b199c5e
+  zh: 855540716aac6104
+/agent-note-the-sdkwork-mcp-connector-replaces-the-third-party-connector/alternatives-considered:
+  en: 8bfc17a6eb733318
+  zh: f9e2e0b4e364cb93
+/agent-note-the-sdkwork-mcp-connector-replaces-the-third-party-connector/consequences:
+  en: 601e35b613fb6068
+  zh: ad69eb7f40b721d5

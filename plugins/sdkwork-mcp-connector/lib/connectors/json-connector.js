@@ -1,0 +1,215 @@
+/**
+ * 通道三：粘贴 JSON 配置（兼容 { mcpServers: {...} } 与 { connections: [...] }）。
+ * 批量预校验，支持 HTTP/SSE 与 stdio（command/args/env/cwd）。
+ */
+import { JSON_CONNECTOR_ID } from '../constants.js';
+import { assertConnectionUrl, assertSafeHeaderName, isPrivateNetworkHost, slugServerName } from '../util.js';
+import { unresolvedRedactions } from '../connection-backup.js';
+import { normalizeInjectionMode } from '../session-injection.js';
+import { DEFAULT_LOCALE, createTranslator } from '../i18n/index.js';
+
+/** 缺省译文：中文（既有调用点与测试无需改动）。 */
+const tZh = createTranslator(DEFAULT_LOCALE);
+
+function parseInput(input, { t = tZh } = {}) {
+  if (typeof input === 'string') {
+    try {
+      return JSON.parse(input);
+    } catch (error) {
+      throw new Error(t('JSON 解析失败: {error}', { error: error.message }));
+    }
+  }
+  return input;
+}
+
+function coerceHeaders(headers) {
+  const out = {};
+  for (const [key, value] of Object.entries(headers ?? {})) out[assertSafeHeaderName(key)] = String(value);
+  return out;
+}
+
+function coerceEnv(env, { t = tZh } = {}) {
+  const out = {};
+  for (const [key, value] of Object.entries(env ?? {})) {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) throw new Error(t('非法环境变量名: {key}', { key }));
+    out[key] = String(value);
+  }
+  return out;
+}
+
+function normalizeTransport(value, hasCommand = false) {
+  const raw = value ?? (hasCommand ? 'stdio' : 'streamable-http');
+  if (raw === 'streamableHttp' || raw === 'streamablehttp' || raw === 'http') return 'streamable-http';
+  if (raw === 'streamable-http' || raw === 'stdio' || raw === 'sse') return raw;
+  throw new Error(`unsupported transport: ${raw}`);
+}
+
+function normalizeHttpEndpoint(rawUrl, allowInsecurePrivateNetwork) {
+  const approved = allowInsecurePrivateNetwork === true;
+  const url = assertConnectionUrl(rawUrl, { allowInsecurePrivateNetwork: approved });
+  return {
+    url: url.toString(),
+    ...(approved && url.protocol === 'http:' && isPrivateNetworkHost(url.hostname)
+      ? { allowInsecurePrivateNetwork: true }
+      : {}),
+  };
+}
+
+function stdioRecord(name, cfg, { t = tZh } = {}) {
+  const command = String(cfg.command ?? '').trim();
+  if (!command) return null;
+  if (cfg.args !== undefined && !Array.isArray(cfg.args)) throw new Error(t('{name}: args 必须是字符串数组', { name }));
+  const serverName = slugServerName(cfg.serverName ?? name);
+  return {
+    key: `json-${serverName}`,
+    connectorId: JSON_CONNECTOR_ID,
+    kind: 'json',
+    name: cfg.name ?? name,
+    transport: 'stdio',
+    command,
+    args: (cfg.args ?? []).map((value) => String(value)),
+    env: coerceEnv(cfg.env, { t }),
+    cwd: String(cfg.cwd ?? '').trim(),
+    serverName,
+    headers: {},
+    auth: undefined,
+    enabled: cfg.enabled !== false,
+    injectionMode: normalizeInjectionMode(cfg.injectionMode),
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+}
+
+/** 静态 headers 中的 Authorization: Bearer ... 提升为 auth.bearer，其余保留为静态头 */
+function extractAuth(headers) {
+  const h = coerceHeaders(headers);
+  const authKey = Object.keys(h).find((k) => k.toLowerCase() === 'authorization');
+  if (authKey && /^Bearer\s+(.+)$/i.test(h[authKey])) {
+    const token = h[authKey].replace(/^Bearer\s+/i, '');
+    delete h[authKey];
+    return { auth: { mode: 'bearer', bearerToken: token }, headers: h };
+  }
+  return { auth: undefined, headers: h };
+}
+
+function authFromFields(item) {
+  const authMode = item.authMode ?? 'none';
+  if (authMode === 'bearer') {
+    return { mode: 'bearer', bearerToken: String(item.bearerToken ?? '') };
+  }
+  if (authMode === 'api-key') {
+    return {
+      mode: 'api-key',
+      apiKeyHeader: assertSafeHeaderName(item.apiKeyHeader ?? 'X-Api-Key'),
+      apiKeyValue: String(item.apiKeyValue ?? ''),
+    };
+  }
+  if (authMode === 'none') return undefined;
+  throw new Error(`unsupported authMode: ${authMode}`);
+}
+
+/**
+ * @param {string|object} input
+ * @returns {{ records: object[], skipped: string[] }}
+ */
+export function normalizeJsonImport(input, { t = tZh } = {}) {
+  const obj = parseInput(input, { t });
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error(t('JSON 顶层必须是对象'));
+
+  const unresolved = unresolvedRedactions(obj);
+  if (unresolved.length) {
+    const preview = unresolved.slice(0, 3).join(t('、'));
+    throw new Error(t('脱敏导出仍有 {count} 个待补值（{preview}{ellipsis}），请在本机重填后再导入', { count: unresolved.length, preview, ellipsis: unresolved.length > 3 ? '…' : '' }));
+  }
+
+  const records = [];
+  const skipped = [];
+  for (const item of Array.isArray(obj.oauthConnections) ? obj.oauthConnections : []) {
+    skipped.push(t('{name}(需从市场重新授权)', { name: item?.name || item?.connectorId || t('OAuth 连接') }));
+  }
+
+  if (obj.mcpServers && typeof obj.mcpServers === 'object') {
+    for (const [name, cfg] of Object.entries(obj.mcpServers)) {
+      if (!cfg || typeof cfg !== 'object') {
+        skipped.push(t('{name}(非法条目)', { name }));
+        continue;
+      }
+      const transport = normalizeTransport(cfg.transport ?? cfg.type, Boolean(cfg.command));
+      if (transport === 'stdio') {
+        const record = stdioRecord(name, cfg, { t });
+        if (record) records.push(record);
+        else skipped.push(t('{name}(stdio 缺 command)', { name }));
+        continue;
+      }
+      if (!cfg.url) {
+        skipped.push(t('{name}(缺 url)', { name }));
+        continue;
+      }
+      const { auth, headers } = extractAuth(cfg.headers ?? cfg.httpHeaders);
+      const endpoint = normalizeHttpEndpoint(cfg.url, cfg.allowInsecurePrivateNetwork);
+      records.push({
+        key: `json-${slugServerName(cfg.serverName ?? name)}`,
+        connectorId: JSON_CONNECTOR_ID,
+        kind: 'json',
+        name: cfg.name ?? name,
+        transport,
+        ...endpoint,
+        serverName: slugServerName(cfg.serverName ?? name),
+        headers,
+        auth,
+        authDetection: 'auto',
+        enabled: cfg.enabled !== false,
+        injectionMode: normalizeInjectionMode(cfg.injectionMode),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    }
+  } else if (Array.isArray(obj.connections)) {
+    for (const item of obj.connections) {
+      if (!item || typeof item !== 'object') {
+        skipped.push(t('(非法条目)'));
+        continue;
+      }
+      const name = String(item.name ?? item.serverName ?? '');
+      if (!name) {
+        skipped.push(t('(缺 name/serverName)'));
+        continue;
+      }
+      const transport = normalizeTransport(item.transport, Boolean(item.command));
+      if (transport === 'stdio') {
+        const record = stdioRecord(name, item, { t });
+        if (record) records.push(record);
+        else skipped.push(t('{name}(stdio 缺 command)', { name }));
+        continue;
+      }
+      if (!item.url) {
+        skipped.push(t('{name}(缺 url)', { name }));
+        continue;
+      }
+      const endpoint = normalizeHttpEndpoint(item.url, item.allowInsecurePrivateNetwork);
+      records.push({
+        key: `json-${slugServerName(item.serverName ?? name)}`,
+        connectorId: JSON_CONNECTOR_ID,
+        kind: 'json',
+        name,
+        transport,
+        ...endpoint,
+        serverName: slugServerName(item.serverName ?? name),
+        headers: coerceHeaders(item.headers),
+        auth: authFromFields(item),
+        authDetection: 'auto',
+        enabled: item.enabled !== false,
+        injectionMode: normalizeInjectionMode(item.injectionMode),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    }
+  } else {
+    throw new Error(t('不支持的 JSON 格式：期望 { mcpServers: {...} } 或 { connections: [...] }'));
+  }
+
+  if (records.length === 0) {
+    throw new Error(t('没有可导入的连接{skipped}', { skipped: skipped.length ? t('（跳过：{items}）', { items: skipped.join(t('、')) }) : '' }));
+  }
+  return { records, skipped };
+}

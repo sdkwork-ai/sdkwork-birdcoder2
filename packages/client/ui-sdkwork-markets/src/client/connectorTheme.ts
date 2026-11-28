@@ -1,32 +1,26 @@
 /**
  * The Connectors tab's host-theme projection into the embedded connector panel.
  *
- * The panel is another package's page (`dsh-mcp-connector`, linked as a
- * submodule and mounted by the web bundle), served same-origin and framed by
- * this page. Its palette is the panel's own: an indigo accent family declared on
- * its document root as `--accent`, `--accent-hover` and `--accent-light`, which
- * every button, chip, tab and badge inside the frame reads. Framed next to the
- * application's own chrome that indigo is the one surface that does not paint
- * the host brand.
+ * The panel is another document (the first-party SDKWork MCP connector plugin
+ * under `plugins/`, mounted by the web bundle and framed here), so it does not
+ * inherit the application's stylesheet. Its own stylesheet is token-first: every
+ * surface, ink, accent, radius and elevation reads a `--dsw-*` alias with a
+ * standalone fallback, and this module is what supplies those tokens when the
+ * page is framed by the application.
  *
- * The plugin ships its built page and this repository does not edit it, so the
- * frame's owner is the only place that can align it: this module appends one
- * style element to the panel document that re-points those three variables at
- * the host brand ramp — the same static DeepSeek steps the SDKWork store
- * surfaces project in `sdkwork-appstore`'s shell. The hover step follows
- * `THEME_DARKMODE_SPEC`: step 600 on a light panel, step 400 on a dark one, so
- * the injected media query mirrors the panel's own `prefers-color-scheme` rule
- * (its scheme, not this page's — a frame is themed by what it actually draws).
+ * Two facts are projected:
  *
- * Only the accent family is projected. Status colours (`--ok`/`--warn`/`--bad`),
- * neutral surfaces and ink stay the panel's own: they already carry the
- * application's semantic roles, and rewriting them would claim a wider contract
- * than the tab needs.
+ * - **The resolved color scheme.** The panel's fallbacks use `light-dark()`, and
+ *   it declares `color-scheme: light dark`; inside the frame the application's
+ *   resolved theme decides, not the OS (`color-scheme` is set on the frame root).
+ * - **The host token values.** The alias values are read from the host document's
+ *   computed style, so an OEM theme, a light/dark switch and a future token change
+ *   all reach the panel without a second palette here.
  *
- * The three variable names are a soft contract with the shipped artifact, like
- * the panel key and the frame protocol: `packages/bundle/web-app/tests/
- * built-in-mcp-connector.spec.ts` reads `ui/index.html` and fails when an
- * upstream rename drops one, so the panel can never go quietly indigo again.
+ * The accent family (`--accent`, `--accent-hover`, `--accent-light`) stays an
+ * explicit part of the contract: the bundle acceptance spec pins those three
+ * names in the shipped page, and they are also what a host without the business
+ * tokens falls back to.
  *
  * @module @deepseek-ai/dsh-client-ui-sdkwork-markets/connectorTheme
  */
@@ -39,6 +33,49 @@ export const CONNECTOR_THEME_STYLE_ID = 'dsh-connector-host-theme'
  * They are the panel's names, not ours; the bundle acceptance spec pins them.
  */
 export const CONNECTOR_THEME_VARIABLES = ['--accent', '--accent-hover', '--accent-light'] as const
+
+/**
+ * The `--dsw-*` aliases the panel's stylesheet consumes. Reading them from the
+ * host document (rather than restating values) is what keeps the framed panel on
+ * the application's palette, radii and elevation.
+ */
+export const CONNECTOR_THEME_TOKENS = [
+  '--dsw-alias-bg-base',
+  '--dsw-alias-bg-layer-1',
+  '--dsw-alias-card-fill',
+  '--dsw-alias-card-fill-hover',
+  '--dsw-alias-border-l1',
+  '--dsw-alias-border-l2',
+  '--dsw-alias-label-primary',
+  '--dsw-alias-label-secondary',
+  '--dsw-alias-label-tertiary',
+  '--dsw-alias-label-primary-foreground',
+  '--dsw-alias-brand-primary',
+  '--dsw-alias-brand-text',
+  '--dsw-alias-button-primary-fill',
+  '--dsw-alias-button-primary-hover',
+  '--dsw-alias-interactive-bg-hover',
+  '--dsw-alias-interactive-bg-active',
+  '--dsw-alias-state-business-primary',
+  '--dsw-alias-state-business-tertiary',
+  '--dsw-alias-state-success-primary',
+  '--dsw-alias-state-success-tertiary',
+  '--dsw-alias-state-warn-primary',
+  '--dsw-alias-state-warn-tertiary',
+  '--dsw-alias-state-error-primary',
+  '--dsw-alias-bg-mask-1',
+  '--dsw-alias-scrollbar-bg-l2',
+  '--dsw-alias-scrollbar-hover-l2',
+  '--dsw-radius-xs',
+  '--dsw-radius-sm',
+  '--dsw-radius-md',
+  '--dsw-radius-lg',
+  '--dsw-radius-xl',
+  '--dsw-radius-panel',
+  '--dsw-elevation-prominent',
+  '--dsw-font-family',
+  '--dsw-focus-ring-width',
+] as const
 
 /**
  * Brand ramp steps, matching `ui-theme`'s static DeepSeek ramp. They are the
@@ -57,6 +94,16 @@ export interface ConnectorBrandTokens {
   readonly hoverOnLight: string
   /** Hover on a dark panel: one step lighter than the fill. */
   readonly hoverOnDark: string
+}
+
+/** The resolved theme the frame is drawn with. */
+export interface ConnectorTheme {
+  /** The application's resolved light/dark scheme. */
+  readonly scheme: 'light' | 'dark'
+  /** The brand ramp the accent family is derived from. */
+  readonly brand: ConnectorBrandTokens
+  /** Host `--dsw-*` values, empty when the host declares none. */
+  readonly tokens: Readonly<Record<string, string>>
 }
 
 /** The host document face this module reads tokens through. */
@@ -86,50 +133,66 @@ function token(host: ConnectorThemeHost, name: string): string {
  */
 export function readConnectorBrandTokens(host: ConnectorThemeHost): ConnectorBrandTokens {
   return {
-    base: token(host, '--dsw-static-deepseek-500') || FALLBACK_BRAND_BASE,
+    base: token(host, '--dsw-alias-state-business-primary')
+      || token(host, '--dsw-alias-brand-primary')
+      || token(host, '--dsw-static-deepseek-500')
+      || FALLBACK_BRAND_BASE,
     hoverOnLight: token(host, '--dsw-static-deepseek-600') || FALLBACK_BRAND_HOVER_LIGHT,
     hoverOnDark: token(host, '--dsw-static-deepseek-400') || FALLBACK_BRAND_HOVER_DARK,
   }
 }
 
 /**
- * The stylesheet that re-points the panel's accent family at the host brand.
+ * Read the whole host theme the frame is drawn with.
+ * @param host - the host window face, usually `globalThis` in the browser.
+ * @param scheme - the application's resolved color scheme.
+ * @returns the scheme, brand ramp and every alias the panel consumes.
+ */
+export function readConnectorTheme(host: ConnectorThemeHost, scheme: 'light' | 'dark'): ConnectorTheme {
+  const tokens: Record<string, string> = {}
+  for (const name of CONNECTOR_THEME_TOKENS) {
+    const value = token(host, name)
+    if (value !== '') tokens[name] = value
+  }
+  return { scheme, brand: readConnectorBrandTokens(host), tokens }
+}
+
+/**
+ * The stylesheet that re-points the panel's tokens at the host theme.
  *
- * `--accent-light` is mixed against the panel's own `--card` so the tinted fill
- * follows whichever mode the panel draws, instead of baking one mode's surface
- * into the token.
- * @param tokens - the resolved brand values.
+ * `--accent-light` is the host's brand tint when it declares one; otherwise it is
+ * mixed against the host base so the tinted fill follows whichever mode the
+ * application draws.
+ * @param theme - the resolved theme.
  * @returns the stylesheet text for the panel document.
  */
-export function connectorThemeCss(tokens: ConnectorBrandTokens): string {
-  return [
+export function connectorThemeCss(theme: ConnectorTheme): string {
+  const { scheme, brand, tokens } = theme
+  const lines = [
     ':root {',
-    `  --accent: ${tokens.base};`,
-    `  --accent-hover: ${tokens.hoverOnLight};`,
-    `  --accent-light: color-mix(in oklab, ${tokens.base} 12%, var(--card));`,
-    '}',
-    '@media (prefers-color-scheme: dark) {',
-    '  :root {',
-    `    --accent-hover: ${tokens.hoverOnDark};`,
-    `    --accent-light: color-mix(in oklab, ${tokens.base} 18%, var(--card));`,
-    '  }',
-    '}',
-  ].join('\n')
+    `  color-scheme: ${scheme};`,
+    `  --accent: ${brand.base};`,
+    `  --accent-hover: ${scheme === 'dark' ? brand.hoverOnDark : brand.hoverOnLight};`,
+    `  --accent-light: ${tokens['--dsw-alias-state-business-tertiary'] ?? `color-mix(in oklab, ${brand.base} 12%, var(--dsw-alias-bg-base, var(--card)))`};`,
+  ]
+  for (const [name, value] of Object.entries(tokens)) lines.push(`  ${name}: ${value};`)
+  lines.push('}')
+  return lines.join('\n')
 }
 
 /**
  * Apply the host theme to a mounted connector panel.
  *
- * Idempotent: the style element is created once and rewritten on a later load,
- * so a panel that reloads itself does not collect copies. A frame without a
- * readable document (a panel that never loaded, or a browser that blocks it) is
- * left alone rather than failing the tab.
+ * Idempotent: the style element is created once and rewritten on a later load or
+ * theme change, so a panel that reloads itself does not collect copies. A frame
+ * without a readable document (a panel that never loaded, or a browser that
+ * blocks it) is left alone rather than failing the tab.
  * @param frame - the connector iframe, or null while it is not drawn.
- * @param tokens - the resolved brand values.
+ * @param theme - the resolved host theme.
  */
 export function applyConnectorTheme(
   frame: Pick<HTMLIFrameElement, 'contentDocument'> | null,
-  tokens: ConnectorBrandTokens,
+  theme: ConnectorTheme,
 ): void {
   const doc = frame?.contentDocument
   if (doc === null || doc === undefined) return
@@ -142,5 +205,5 @@ export function applyConnectorTheme(
     style.id = CONNECTOR_THEME_STYLE_ID
     parent.append(style)
   }
-  style.textContent = connectorThemeCss(tokens)
+  style.textContent = connectorThemeCss(theme)
 }

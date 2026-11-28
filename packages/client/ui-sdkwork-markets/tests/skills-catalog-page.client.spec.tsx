@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react'
 import {
   type PageInfo,
@@ -17,6 +17,36 @@ import {
   type SkillsCatalogActions,
   type SkillsCatalogPageProps,
 } from '../src/client/SkillsCatalogPage.tsx'
+
+// The Host installer routes are mocked: the page only speaks their JSON
+// contract, and these cases assert which call each gesture makes.
+vi.mock('../src/client/skillsInstaller.ts', () => ({
+  SkillInstallerError: class SkillInstallerError extends Error {
+    constructor(readonly code: string, message: string) {
+      super(message)
+      this.name = 'SkillInstallerError'
+    }
+  },
+  listInstalledSkills: vi.fn(async () => []),
+  installSkill: vi.fn(),
+  uninstallSkill: vi.fn(async () => ({ removed: true })),
+  setSkillEnabled: vi.fn(),
+  fetchSkillDetail: vi.fn(),
+}))
+
+import {
+  fetchSkillDetail,
+  installSkill as installLocalSkill,
+  listInstalledSkills,
+  setSkillEnabled,
+  uninstallSkill,
+} from '../src/client/skillsInstaller.ts'
+
+const listInstalled = vi.mocked(listInstalledSkills)
+const installLocal = vi.mocked(installLocalSkill)
+const fetchDetail = vi.mocked(fetchSkillDetail)
+const uninstallLocal = vi.mocked(uninstallSkill)
+const setEnabled = vi.mocked(setSkillEnabled)
 
 const t: SkillsCatalogPageProps['t'] = key => key
 
@@ -80,6 +110,9 @@ function category(overrides: Partial<SkillCategoryRecord> = {}): SkillCategoryRe
     name: 'Design',
     sortWeight: 10,
     permissionCode: 'skills.read',
+    iconRef: null,
+    tags: [],
+    attributes: {},
     visible: true,
     status: 1,
     version: '1',
@@ -144,14 +177,17 @@ function catalogClient() {
     .mockResolvedValue(artifactsPage([artifact()]))
   const createInstallation = vi.fn<SkillsCatalogActions['createInstallation']>()
     .mockResolvedValue(installation())
+  const listFeaturedShelves = vi.fn<NonNullable<SkillsCatalogActions['listFeaturedShelves']>>()
+    .mockResolvedValue({ items: [] })
   const actions: SkillsCatalogActions = {
     listMarketplace: marketplace,
     listCategories: categories,
     listInstallations: installations,
     listArtifacts: artifacts,
     createInstallation,
+    listFeaturedShelves,
   }
-  return { actions, marketplace, categories, installations, artifacts, createInstallation }
+  return { actions, marketplace, categories, installations, artifacts, createInstallation, listFeaturedShelves }
 }
 
 function catalogProps(
@@ -186,6 +222,44 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+beforeEach(() => {
+  listInstalled.mockReset()
+  listInstalled.mockResolvedValue([])
+  installLocal.mockReset()
+  fetchDetail.mockReset()
+  uninstallLocal.mockReset()
+  uninstallLocal.mockResolvedValue({ removed: true })
+  setEnabled.mockReset()
+})
+
+/** One local installation as the Host ledger reports it. */
+function installedSkill(overrides: Partial<import('@deepseek-ai/dsh-sdkwork-skillhub/shared').SkillhubInstalledSkill> = {}) {
+  return {
+    id: 'demo--example',
+    namespace: 'demo',
+    slug: 'example',
+    packageKey: 'skillhub.demo/example',
+    version: '1.0.0',
+    enabled: true,
+    directory: '/tmp/skills/demo--example',
+    files: 2,
+    bytes: 12,
+    installedAt: '2026-01-01T00:00:00Z',
+    ...overrides,
+  }
+}
+
+/** A mirrored catalog record: it carries its upstream install coordinate as a tag. */
+function mirroredSkill(overrides: Partial<SkillRecord> = {}) {
+  return skill({
+    id: 'skill-demo',
+    name: 'Demo',
+    packageId: 'package-demo',
+    tags: ['office', 'skillhub:demo/example'],
+    ...overrides,
+  })
+}
+
 describe('SkillsCatalogPage', () => {
   it('loads every marketplace page and hides inactive categories', async () => {
     const mocks = catalogClient()
@@ -209,7 +283,7 @@ describe('SkillsCatalogPage', () => {
     expect(view.queryByRole('button', { name: 'Collection' })).toBeNull()
     expect(recommended(view).getByRole('button', { name: 'Gamma' })).toBeTruthy()
     const featured = view.getByRole('heading', { name: 'skills.catalog.featured' }).closest('section')
-    expect(featured?.querySelectorAll('[data-skill-card]')).toHaveLength(1)
+    expect(featured?.querySelectorAll('[data-featured-shelf]')).toHaveLength(1)
   })
 
   it('sends debounced search and category filters to the server', async () => {
@@ -308,6 +382,56 @@ describe('SkillsCatalogPage', () => {
     expect(onClearSearch).toHaveBeenCalledTimes(1)
   })
 
+
+  it('renders a curated collection and adds only the members it owns', async () => {
+    const mocks = catalogClient()
+    mocks.marketplace.mockResolvedValue(skillsPage([
+      skill({ id: 'skill-1', packageId: 'agents-storyboard', name: '叙事短片导演分镜', featured: true }),
+    ]))
+    mocks.listFeaturedShelves.mockResolvedValue({
+      items: [
+        {
+          id: '1',
+          uuid: 'featured.skills.video-starter',
+          shelfCode: 'video-starter',
+          scope: 'skill',
+          kind: 'collection',
+          title: '短视频创作三件套',
+          description: '从分镜到成片：三个高频视频技能一次装齐。',
+          sortOrder: 10,
+          items: [
+            { itemKey: 'agents-storyboard', sortOrder: 10, installWithCollection: true },
+            {
+              itemKey: 'agents-image-to-film',
+              sortOrder: 20,
+              installWithCollection: true,
+              displayName: '一图成片导演',
+              displayDescription: '基于参考图片生成电影短片。',
+            },
+          ],
+        },
+      ],
+    })
+    const view = render(<SkillsCatalogPage {...catalogProps(mocks)} />)
+    await waitForCards(view)
+
+    const featuredSection = view.getByRole('heading', { name: 'skills.catalog.featured' }).closest('section')!
+    const shelves = featuredSection.querySelectorAll('[data-featured-shelf]')
+    expect(shelves).toHaveLength(1)
+    expect(shelves[0].getAttribute('data-featured-kind')).toBe('collection')
+
+    mocks.createInstallation.mockClear()
+    fireEvent.click(view.getByRole('button', { name: 'skills.shelf.openCollection' }))
+    const rows = document.querySelectorAll('[data-featured-item]')
+    expect(rows).toHaveLength(2)
+    expect(rows[1].hasAttribute('data-featured-owned')).toBe(false)
+
+    fireEvent.click(view.getByRole('button', { name: 'skills.shelf.installAll' }))
+    await waitFor(() => {
+      expect(mocks.createInstallation).toHaveBeenCalledTimes(1)
+    })
+  })
+
   it('draws one featured batch and advances it on request', async () => {
     const mocks = catalogClient()
     mocks.marketplace.mockResolvedValue(skillsPage(
@@ -322,16 +446,17 @@ describe('SkillsCatalogPage', () => {
     await waitForCards(view)
 
     const featuredSection = view.getByRole('heading', { name: 'skills.catalog.featured' }).closest('section')!
-    expect(featuredSection.querySelectorAll('[data-skill-card]')).toHaveLength(5)
+    // One single-entry shelf per featured record in the batch.
+    expect(featuredSection.querySelectorAll('[data-featured-shelf]')).toHaveLength(5)
     // The recommendation grid still lists every record.
     expect(recommended(view).getAllByRole('button', { name: /^Featured/ })).toHaveLength(7)
 
     fireEvent.click(view.getByRole('button', { name: 'skills.catalog.refreshFeatured' }))
-    const nextBatch = Array.from(featuredSection.querySelectorAll('[data-skill-card]'))
-      .map(card => card.getAttribute('data-skill-card'))
+    const nextBatch = Array.from(featuredSection.querySelectorAll('[data-featured-shelf]'))
+      .map(shelf => shelf.getAttribute('data-featured-shelf'))
     expect(nextBatch).toHaveLength(5)
-    expect(nextBatch[0]).toBe('featured-5')
-    expect(nextBatch[4]).toBe('featured-2')
+    expect(nextBatch[0]).toBe('entry.featured-5')
+    expect(nextBatch[4]).toBe('entry.featured-2')
   })
 
   it('keeps categories and installed state while a filtered reload is pending', async () => {
@@ -442,5 +567,86 @@ describe('SkillsCatalogPage', () => {
     expect(within(dialog).getByText('office')).toBeTruthy()
     fireEvent.click(within(dialog).getAllByRole('button', { name: 'dialog.close' })[0])
     await waitFor(() => { expect(view.queryByRole('dialog')).toBeNull() })
+  })
+
+  it('installs a mirrored skill through the Host installer and reflects the ledger', async () => {
+    const mocks = catalogClient()
+    const onInstalledCountChange = vi.fn()
+    mocks.marketplace.mockResolvedValue(skillsPage([mirroredSkill()]))
+    listInstalled.mockResolvedValueOnce([]).mockResolvedValue([installedSkill()])
+    installLocal.mockResolvedValue({ skill: installedSkill(), restartRequired: true })
+    const view = render(<SkillsCatalogPage {...catalogProps(mocks, { onInstalledCountChange })} />)
+    await waitForCards(view)
+
+    // The card's add action installs the real skill, not a cloud-library record.
+    fireEvent.click(recommended(view).getByRole('button', { name: 'skills.catalog.addAria' }))
+    await waitFor(() => { expect(installLocal).toHaveBeenCalledWith('skillhub.demo/example', undefined) })
+    await waitFor(() => {
+      expect(recommended(view).getByRole('button', { name: 'skills.catalog.added' }).hasAttribute('disabled')).toBe(true)
+    })
+    await waitFor(() => { expect(onInstalledCountChange).toHaveBeenLastCalledWith(1) })
+    expect(view.container.querySelector('[data-install-notice]')!.textContent).toContain('skills.catalog.installDone')
+    expect(mocks.createInstallation).not.toHaveBeenCalled()
+  })
+
+  it('loads upstream versions in the drawer and manages the installed skill', async () => {
+    const mocks = catalogClient()
+    mocks.marketplace.mockResolvedValue(skillsPage([mirroredSkill()]))
+    listInstalled.mockResolvedValue([installedSkill()])
+    fetchDetail.mockResolvedValue({
+      namespace: 'demo',
+      slug: 'example',
+      name: 'Demo',
+      summary: 'summary',
+      version: '2.0.0',
+      files: [
+        { path: 'SKILL.md', size: 10, sha256: 'a' },
+        { path: 'refs/a.md', size: 2, sha256: 'b' },
+      ],
+      versions: [
+        {
+          version: '2.0.0',
+          changelog: 'new',
+          createdAt: '2026-01-01T00:00:00Z',
+          security: [{ vendor: 'keen', status: 'benign', statusText: 'safe' }],
+        },
+        {
+          version: '1.0.0',
+          changelog: 'old',
+          createdAt: '2025-01-01T00:00:00Z',
+          security: [],
+        },
+      ],
+    })
+    setEnabled.mockResolvedValue({ skill: installedSkill({ enabled: false }) })
+    const view = render(<SkillsCatalogPage {...catalogProps(mocks)} />)
+    await waitForCards(view)
+
+    fireEvent.click(recommended(view).getByRole('button', { name: 'Demo' }))
+    const dialog = await view.findByRole('dialog')
+    await waitFor(() => { expect(within(dialog).getAllByText('2.0.0').length).toBeGreaterThan(0) })
+    expect(fetchDetail).toHaveBeenCalledWith('skillhub.demo/example')
+    expect(within(dialog).getByText('skills.catalog.securitySafe')).toBeTruthy()
+
+    // Installed state comes from the Host ledger and is what the drawer manages.
+    expect(within(dialog).getByText(/skills\.catalog\.installedVersion/)).toBeTruthy()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'skills.catalog.disable' }))
+    await waitFor(() => { expect(setEnabled).toHaveBeenCalledWith('skillhub.demo/example', false) })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'skills.catalog.uninstall' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: 'skills.catalog.confirmUninstall' }))
+    await waitFor(() => { expect(uninstallLocal).toHaveBeenCalledWith('skillhub.demo/example') })
+  })
+
+  it('reports an install failure beside the catalog', async () => {
+    const mocks = catalogClient()
+    mocks.marketplace.mockResolvedValue(skillsPage([mirroredSkill()]))
+    const { SkillInstallerError } = await import('../src/client/skillsInstaller.ts')
+    installLocal.mockRejectedValue(new SkillInstallerError('checksum', 'tampered'))
+    const view = render(<SkillsCatalogPage {...catalogProps(mocks)} />)
+    await waitForCards(view)
+
+    fireEvent.click(recommended(view).getByRole('button', { name: 'skills.catalog.addAria' }))
+    await waitFor(() => { expect(view.getByRole('alert').textContent).toBe('skills.catalog.installFailed') })
+    expect(recommended(view).getByRole('button', { name: 'skills.catalog.addAria' }).hasAttribute('disabled')).toBe(false)
   })
 })

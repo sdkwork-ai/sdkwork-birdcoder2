@@ -1,0 +1,118 @@
+/**
+ * Loopback 回调服务器（OAuth Native/Desktop 场景）
+ * 监听 127.0.0.1:{随机端口}/callback，接收授权页回跳的 code + state。
+ * 约束：先启动监听再打开授权页；收到回调后先校验 state；code 只使用一次。
+ */
+import { createServer } from 'node:http';
+import { DEFAULT_LOCALE, createTranslator } from './i18n/index.js';
+
+/** 缺省译文：中文（既有调用点与测试无需改动）。 */
+const tZh = createTranslator(DEFAULT_LOCALE);
+
+export class CallbackTimeoutError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'CallbackTimeoutError';
+  }
+}
+
+/** 转义插值到 HTML 的文案，避免译文里的 `<`/`&` 破坏页面结构。 */
+function escapeHtml(text) {
+  // 用 replaceAll + 字符串而不是含引号的正则字面量：等价，且避免词法扫描器
+  // 把 `/"/` 里的引号当成字符串起点（见 scripts/i18n-scan.mjs 的已知限制）。
+  return String(text)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
+
+/**
+ * 启动 loopback 回调监听。
+ * @returns {Promise<{port:number, url:string, waitForCallback:()=>Promise<{code:string,state:string}>, close:()=>Promise<void>}>}
+ */
+export async function startCallbackServer({ path = '/callback', port = 0, host = '127.0.0.1', timeoutMs = 300_000, signal, t = tZh } = {}) {
+  if (!path.startsWith('/')) path = `/${path}`;
+
+  let resolveCallback;
+  let rejectCallback;
+  const callbackPromise = new Promise((resolve, reject) => {
+    resolveCallback = resolve;
+    rejectCallback = reject;
+  });
+  callbackPromise.catch(() => {});
+
+  const onAbort = () => rejectCallback(new CallbackTimeoutError('callback wait aborted'));
+  if (signal) {
+    if (signal.aborted) onAbort();
+    else signal.addEventListener('abort', onAbort, { once: true });
+  }
+
+  const timer = setTimeout(() => {
+    rejectCallback(new CallbackTimeoutError(`no callback received within ${timeoutMs}ms`));
+  }, timeoutMs);
+
+  const server = createServer((req, res) => {
+    const requestUrl = new URL(req.url, `http://${host}:${port}`);
+    if (requestUrl.pathname === path) {
+      const code = requestUrl.searchParams.get('code');
+      const state = requestUrl.searchParams.get('state');
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      // 页面文案随界面语言；HTML 结构、doctype 与 charset 保持不变。
+      // 文案先取出再插值，避免把中文留在拼接的 HTML 字面量里。
+      const successHtml = [
+        '<!doctype html><html><head><meta charset="utf-8"><title>',
+        escapeHtml(t('MCP 连接器授权')),
+        '</title></head><body style="font-family:system-ui;text-align:center;padding-top:80px">',
+        '<h2>\u2705 ',
+        escapeHtml(t('授权成功')),
+        '</h2><p>',
+        escapeHtml(t('外部 MCP 已连接，可以关闭此页面并返回 DeepSeek Harness。')),
+        '</p></body></html>',
+      ].join('');
+      res.end(successHtml);
+      if (code !== null && state !== null) {
+        resolveCallback({ code, state });
+      } else {
+        rejectCallback(new Error('callback missing code or state'));
+      }
+      return;
+    }
+    if (requestUrl.pathname === '/' || requestUrl.pathname === '/health') {
+      res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('mcp-connector callback server is running');
+      return;
+    }
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('not found');
+  });
+
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(port, host, () => resolve());
+  });
+
+  const actualPort = server.address().port;
+  const url = `http://${host}:${actualPort}${path}`;
+
+  let closed = false;
+  const close = () => {
+    if (closed) return Promise.resolve();
+    closed = true;
+    return new Promise((resolve) => {
+      clearTimeout(timer);
+      if (signal) signal.removeEventListener('abort', onAbort);
+      server.close(() => resolve());
+    });
+  };
+
+  const waitForCallback = async () => {
+    try {
+      return await callbackPromise;
+    } finally {
+      await close();
+    }
+  };
+
+  return { port: actualPort, url, waitForCallback, close };
+}

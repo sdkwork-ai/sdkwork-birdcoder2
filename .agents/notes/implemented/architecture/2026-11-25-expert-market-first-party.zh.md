@@ -30,7 +30,7 @@ Status: implemented
 - 专家市场的构建、类型检查与测试现在都在本仓库运行。`packages/client/ui-sdkwork-experts` 产出 `lib/index.js`、`lib/remote.js` 与 `lib/client.js`；其 README 记录了提示词分节与十个工具的 model/token/KV-cache 影响。
 - 本仓库不再依赖 MichengAI 仓库及其发布节奏。修复随本仓库发布，而不是靠一次 pin 更新。
 - 专家数据面从「子模块边界」变成普通的功能缺口：名册、分类与专家团由 `sdkwork-specs` 初始化、由 `sdkwork-agents` 拥有。Host 半边可以经 `agencyAgents` Remote（`syncSdkworkCatalog`、`syncSdkworkPersonas`）接收目录覆盖，替换包内名册、专家团与人格，包内资产保留为离线回退。市场页现在会在网关与 IAM 会话就绪后从 Agents App API 拉取目录并推入该覆盖层；只挂载本包而没有该页面的组合仍读取包内名册。
-- 市场 UI 不因本笔记改变；参考画廊设计（精选集合、分类导轨、使用统计、专家团兄弟 tab）是另一项改动。
+- 市场 UI 不因本笔记改变；它推迟的参考画廊设计现在是[专家 tab 收敛为一份云端专家目录](../feature/2026-11-28-expert-market-one-cloud-catalog.zh.md)：精选货架、专家 / 专家团切换与统计数据都从 sdkwork-agents 目录读取，因此专家 tab 不再内嵌本包的面板（其侧边栏行仍被抑制，面板 key 仍标识该注册）。
 
 ## Verification
 

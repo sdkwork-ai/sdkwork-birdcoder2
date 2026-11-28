@@ -1,12 +1,12 @@
-// Web e2e: the built-in expert market renders inside the Experts tab of the
-// shipped web-app composition. This is the real-composition guard for the
-// product-visible gallery: it boots the shipped bundle patches in a real
-// chromium, opens 插件·专家·技能·连接器 → 专家 → 专家市场, and asserts the
-// reference gallery's browsing affordances over the 331-expert roster.
+// Web e2e: the Experts tab of the shipped web-app composition lands on its one
+// cloud catalog. This is the real-composition guard for the merged tab: it boots
+// the shipped bundle patches in a real chromium, opens
+// 插件·专家·技能·连接器 → 专家, and asserts the retired sub-tab split is gone and
+// that the tab always draws an actionable face.
 //
-// Keyless: no model calls and no SDKWork sign-in. The appstore surface also
-// fetches its cloud catalog from api.birdcoder.com; this harness has no network,
-// so its CORS failures are ignored while real page errors stay fatal.
+// Keyless: no model calls and no SDKWork sign-in. The catalog fetches its cloud
+// data from api.birdcoder.com; this harness has no network, so its CORS
+// failures are ignored while real page errors stay fatal.
 import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
@@ -55,7 +55,7 @@ describe('web e2e: the built-in expert market gallery', () => {
     await scaffold?.close()
   })
 
-  it('opens the expert market inside the Experts tab', async () => {
+  it('lands the Experts tab on the single cloud catalog', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-expert-market-gallery'))
     const market = page.getByRole('button', { name: /插件·专家·技能·连接器/u }).first()
     await market.waitFor({ timeout: 15_000 })
@@ -64,25 +64,30 @@ describe('web e2e: the built-in expert market gallery', () => {
     const tab = page.locator('[role="tab"], button').filter({ hasText: /^专家$/u }).first()
     await tab.waitFor({ timeout: 10_000 })
     await tab.click()
-    await page.waitForTimeout(2000)
-    const builtIn = page.locator('button, [role="tab"], a').filter({ hasText: /^专家市场$/u }).first()
-    await builtIn.waitFor({ timeout: 10_000 })
-    await builtIn.click()
     await page.waitForTimeout(3000)
 
     const panel = await page.evaluate(() => ({
       body: (document.body.innerText || '').slice(0, 2000),
-      chips: [...document.querySelectorAll('.aag-chip')].map(el => (el.textContent || '').trim()),
-      cards: document.querySelectorAll('[data-expert-index]').length,
+      // The two retired sub-tabs: the tab used to split into an App Store
+      // catalog and the built-in package's roster panel.
+      retiredChips: [...document.querySelectorAll('button, [role="tab"]')]
+        .map(node => (node.textContent || '').trim())
+        .filter(text => text === '专家市场' || text === '云端目录'),
+      catalogs: document.querySelectorAll('[data-experts-catalog]').length,
+      signIn: document.querySelectorAll('[data-markets-auth-required]').length,
+      unconfigured: document.querySelectorAll('[data-markets-empty]').length,
+      mine: document.querySelectorAll('[data-mine-experts-entry]').length,
+      subtabStrips: document.querySelectorAll('[data-experts-subtabs]').length,
     }))
-    // The reference gallery's category chip rail, sort control and roster tabs.
-    expect(panel.chips).toContain('全部分类')
-    expect(panel.chips).toContain('综合')
-    expect(panel.chips).toContain('启用优先')
-    expect(panel.chips).toContain('名称')
-    expect(panel.body).toContain('专家团')
-    expect(panel.body).toContain('331')
-    expect(panel.cards).toBeGreaterThan(0)
+    // One view, no split: the retired chips and their strip are gone.
+    expect(panel.retiredChips).toEqual([])
+    expect(panel.subtabStrips).toBe(0)
+    // The tab always lands on something actionable: the cloud catalog when the
+    // gateway and session are ready, otherwise the shared gate or the
+    // unconfigured notice — never a blank column.
+    expect(panel.catalogs + panel.signIn + panel.unconfigured).toBeGreaterThan(0)
+    // The my-experts entry belongs to this tab whichever face it shows.
+    expect(panel.mine).toBeGreaterThan(0)
     // CORS/network failures from the cloud catalog are expected offline; any
     // other page error remains fatal.
     const realErrors = tripwire.pageErrors.filter(error => !/api\.birdcoder\.com|net::ERR_FAILED|CORS/u.test(error))

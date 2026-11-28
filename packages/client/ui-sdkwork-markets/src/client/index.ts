@@ -46,7 +46,7 @@
  * catalog and shows the market chip's unavailable notice
  * ([expertMarketPanel.ts](./expertMarketPanel.ts)).
  *
- * The Connectors tab is the same arrangement for the `dsh-mcp-connector`
+ * The Connectors tab is the same arrangement for the SDKWork MCP connector
  * plugin, except that its panel is a page its Host half serves: this plugin
  * frames that page, answers the page's two host questions (the Workspace scope
  * and the conversation an example Prompt opens), and suppresses the plugin's
@@ -101,6 +101,9 @@ export type { OfficialItem } from './configItems.ts'
 import { MarketsAction, type MarketsActionInjected } from './MarketsAction.tsx'
 import { pluginSettingsPrompt } from './skillPrompts.ts'
 import { MarketsPage, type MarketsPageInjected } from './MarketsPage.tsx'
+import type {
+  ExpertRecord, ExpertsCatalogActions, ExpertTeamRecord,
+} from './ExpertsCatalogPage.tsx'
 export { MarketplaceTabs } from './MarketplaceTabs.tsx'
 export type { MarketplaceTab, MarketplaceTabsProps } from './MarketplaceTabs.tsx'
 import { configLedgerSource } from './configItems.ts'
@@ -108,29 +111,32 @@ import { createConfigForms, isServed, namespaceOfEntry } from './settingsForms.t
 import { createPluginStore } from './pluginStore.ts'
 import { createPluginNavigation } from './plugin-navigation.ts'
 import { SKILL_MARKET_PANEL_ID } from './skillMarketPanel.ts'
-import { createExpertMarketPanelSource, EXPERT_MARKET_PANEL_ID } from './expertMarketPanel.ts'
+import { EXPERT_LIBRARY_PANEL_ID } from './expertUsage.ts'
 import { createMcpConnectorPanelSource, MCP_CONNECTOR_PANEL_ID } from './mcpConnectorPanel.ts'
 import { createMcpConnectorBridge } from './connectorBridge.ts'
 import { en, zh, type MarketsKey } from './locales.ts'
+import {
+  enableExpert, enableTeam, expertMention, teamMention,
+  type AgencyExpertsRemote,
+} from './expertUsage.ts'
 import { createSkillsToastSource, SkillsToast } from './SkillsToast.tsx'
 
 export type {
   MarketsActionInjected, MarketsActionProps,
 } from './MarketsAction.tsx'
 export type {
-  MarketsPageInjected, MarketsPageProps, ExpertsSubTab, PluginsSubTab,
+  MarketsPageInjected, MarketsPageProps, PluginsSubTab,
 } from './MarketsPage.tsx'
 export type { SkillsCatalogActions, SkillsCatalogPageProps } from './SkillsCatalogPage.tsx'
+export type {
+  ExpertRecord, ExpertsCatalogActions, ExpertsCatalogPageProps,
+} from './ExpertsCatalogPage.tsx'
 export type {
   SkillMarketSurfaceProps,
 } from './SkillMarketSurface.tsx'
 export type {
   SkillMarketPanel, SkillMarketPanelLedger, SkillMarketPanelSource,
 } from './skillMarketPanel.ts'
-export type {
-  ExpertMarketPanel, ExpertMarketPanelLedger, ExpertMarketPanelSource,
-} from './expertMarketPanel.ts'
-export type { ExpertMarketSurfaceProps } from './ExpertMarketSurface.tsx'
 export type {
   McpConnectorPanel, McpConnectorPanelLedger, McpConnectorPanelSource, McpConnectorWorkspace,
 } from './mcpConnectorPanel.ts'
@@ -316,17 +322,52 @@ export function apply(ctx: ClientContext): void {
   // upstream's Plugins page provided (see the registration below).
   const pluginNavigation = createPluginNavigation()
 
-  // The expert market is the built-in experts package's own roster panel,
-  // registered under the `agency-agents` `main` key while its entry is enabled
-  // (the web-app row pins `entryLocation: both`). The Experts tab renders that
-  // component in place, so the same live ledger read applies: the plugin may
-  // activate after this page, and a deployment without its row — or one whose
-  // plugin entry is switched to settings-only — swaps the tab to the
-  // unavailable notice without a reload.
-  const expertMarketPanel = createExpertMarketPanelSource(ctx.slots)
-  ctx.effect(() => () => { expertMarketPanel.dispose() }, 'ui-sdkwork-markets: expert market panel')
+  // The cloud expert catalog: the Experts tab's only view reads the SDKWork
+  // Agents expert catalog API through the shared App SDK client. The tab used
+  // to split into an embedded App Store catalog and the built-in expert
+  // package's roster panel; one cloud shelf now answers both questions, and the
+  // package's panel stays where it still owns behavior — the plugin's settings
+  // page, the composer's @ picker and the summon tools.
+  const expertsCatalog: ExpertsCatalogActions = {
+    listDivisions: (...args) => getAgentsAppSdkClient().ai.experts.divisions.list(...args),
+    listExperts: (...args) => getAgentsAppSdkClient().ai.experts.list(...args),
+    // The team endpoint localizes server-side and only accepts the two catalog
+    // locales, so the surface's UI locale narrows here rather than in the page.
+    listTeams: (params, options) => getAgentsAppSdkClient().ai.expertTeams.list({
+      ...params,
+      locale: params.locale === 'en-US' ? 'en-US' : 'zh-CN',
+    }, options),
+    listCollections: (...args) => getAgentsAppSdkClient().ai.expertCollections.list(...args),
+  }
 
-  // The MCP connector is the third-party `dsh-mcp-connector` plugin's own
+  // "Use this expert" enables the expert in the built-in package and starts a
+  // conversation that mentions it. The mention text is the package's own
+  // contract (`@<display name>` + a no-break space), so a conversation started
+  // here reads exactly like one started from the composer's @ picker.
+  const useExpert = (expert: ExpertRecord): void => {
+    void (async () => {
+      try {
+        const remote = ctx.get('remote.agencyAgents') as AgencyExpertsRemote | undefined
+        if (remote !== undefined) await enableExpert(remote, expert.slug)
+      } catch (error) {
+        console.warn('[markets] could not enable the catalog expert:', error)
+      }
+      dispatchPrompt(expertMention(expert.name))
+    })()
+  }
+  const useTeam = (team: ExpertTeamRecord): void => {
+    void (async () => {
+      try {
+        const remote = ctx.get('remote.agencyAgents') as AgencyExpertsRemote | undefined
+        if (remote !== undefined) await enableTeam(remote, team.teamId)
+      } catch (error) {
+        console.warn('[markets] could not enable the catalog team:', error)
+      }
+      dispatchPrompt(teamMention(team.name))
+    })()
+  }
+
+  // The MCP connector is the first-party SDKWork MCP connector plugin's own
   // surface: a keyed `main` panel whose page the plugin's Host half serves at
   // `/mcp-connector/ui/`. The Connectors tab embeds that page, so the panel's
   // presence is all this page needs from the ledger — the same live read the
@@ -382,11 +423,14 @@ export function apply(ctx: ClientContext): void {
       () => scope.sdkworkSidebar.suppressPanel(MCP_CONNECTOR_PANEL_ID),
       'ui-sdkwork-markets: embedded MCP connector sidebar row',
     )
-    // And the expert market's row: the Experts tab is its navigation entry, so
-    // the plugin's own `sidebar.panellist` row would be the second one.
+    // And the expert library panel's row: the Experts tab is the expert
+    // navigation entry, so the built-in expert package's own sidebar row would
+    // be the second one. The key is that package's `main` registration key; it
+    // is the only string these two packages share, and the bundle acceptance
+    // test pins it against both rows.
     scope.effect(
-      () => scope.sdkworkSidebar.suppressPanel(EXPERT_MARKET_PANEL_ID),
-      'ui-sdkwork-markets: embedded expert market sidebar row',
+      () => scope.sdkworkSidebar.suppressPanel(EXPERT_LIBRARY_PANEL_ID),
+      'ui-sdkwork-markets: expert library sidebar row',
     )
   })
 
@@ -490,7 +534,9 @@ export function apply(ctx: ClientContext): void {
         onConfigure,
         bundleRequest: pluginNavigation.hooks.bundleRequest,
         onBundleRequestHandled: () => { pluginNavigation.handled() },
-        expertMarketPanel,
+        expertsCatalog,
+        onUseExpert: useExpert,
+        onUseTeam: useTeam,
         mcpConnectorPanel,
         connectorBridge,
         hooks: adapter.hooks,

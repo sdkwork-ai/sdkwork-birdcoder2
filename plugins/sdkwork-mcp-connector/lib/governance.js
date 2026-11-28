@@ -1,0 +1,428 @@
+/**
+ * MCP 连接治理：连接器、Server、Tool 三层策略与 DSH Host 强制执行。
+ *
+ * 策略按“越具体优先级越高”解析：Tool > Server > Connection > 默认允许。
+ * 连接记录的 lifecycle disabled 是物理下线状态，任何 allow 规则都不能覆盖。
+ */
+import { createHash } from 'node:crypto';
+import { DEFAULT_LOCALE, createTranslator } from './i18n/index.js';
+import { readHostToolNames, supportsHostToolNames } from './host-tool-names.js';
+
+export const GOVERNANCE_HISTORY_LIMIT = 20;
+/** 缺省译文：中文（既有调用点与测试无需改动）。 */
+const tZh = createTranslator(DEFAULT_LOCALE);
+
+export const GOVERNANCE_SCOPES = ['connection', 'server', 'tool'];
+export const GOVERNANCE_EFFECTS = ['allow', 'deny'];
+
+/** 策略来源枚举 → 中文标签（msgid）。枚举值本身不翻译，只翻译展示标签。 */
+const SOURCE_MSGIDS = {
+  default: '默认策略',
+  connection: '连接策略',
+  server: 'Server 策略',
+  tool: 'Tool 策略',
+  lifecycle: '连接已停用',
+};
+
+/**
+ * 取策略来源标签。
+ * @param {(msgid: string) => string} t translator
+ * @param {string} source 策略来源枚举
+ */
+export function governanceSourceLabel(t, source) {
+  return t(SOURCE_MSGIDS[source] ?? SOURCE_MSGIDS.default);
+}
+
+/**
+ * @deepseek-ai/dsh-mcp-client 0.1.1-rc.2 的公开命名契约兼容实现。
+ * 该版本 types/tools.d.ts 公开了函数声明和算法，但包根运行时遗漏导出；
+ * 保持算法集中并由契约测试锁定，避免从 public name 反推 raw name。
+ */
+export function publicToolName(serverName, rawName) {
+  const joined = `mcp__${serverName}__${rawName}`;
+  const normalized = joined.replace(/[^A-Za-z0-9_-]/g, '_');
+  if (normalized === joined && normalized.length <= 64) return normalized;
+  const hash = createHash('sha256').update(`${serverName}\0${rawName}`).digest('hex').slice(0, 12);
+  return `${normalized.slice(0, 51)}_${hash}`;
+}
+
+function requiredText(value, label, { t = tZh } = {}) {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!text) throw new Error(t('{label} 必填', { label }));
+  return text;
+}
+
+function cloneRules(rules) {
+  return rules.map((rule) => ({ ...rule }));
+}
+
+function targetParts(rule) {
+  if (rule.scope === 'connection') return [rule.scope, rule.connectorId];
+  if (rule.scope === 'server') return [rule.scope, rule.connectorId, rule.serverName];
+  return [rule.scope, rule.connectorId, rule.serverName, rule.toolName];
+}
+
+export function governanceRuleId(rule) {
+  return targetParts(rule).map((part) => encodeURIComponent(part)).join(':');
+}
+
+export function normalizeGovernanceMutation(input, { t = tZh } = {}) {
+  const scope = requiredText(input?.scope, 'scope', { t });
+  if (!GOVERNANCE_SCOPES.includes(scope)) throw new Error(t('不支持的策略层级: {scope}', { scope }));
+  const effect = requiredText(input?.effect, 'effect', { t });
+  if (![...GOVERNANCE_EFFECTS, 'inherit'].includes(effect)) throw new Error(t('不支持的策略效果: {effect}', { effect }));
+  const connectorId = requiredText(input?.connectorId, 'connectorId', { t });
+  const normalized = { scope, effect, connectorId };
+  if (scope === 'server' || scope === 'tool') normalized.serverName = requiredText(input?.serverName, 'serverName', { t });
+  if (scope === 'tool') {
+    normalized.toolName = requiredText(input?.toolName, 'toolName', { t });
+    normalized.publicName = typeof input?.publicName === 'string' && input.publicName.trim()
+      ? input.publicName.trim()
+      : publicToolName(normalized.serverName, normalized.toolName);
+  }
+  return normalized;
+}
+
+export function normalizeGovernanceRule(input, { t = tZh } = {}) {
+  const rule = normalizeGovernanceMutation(input, { t });
+  if (rule.effect === 'inherit') throw new Error(t('持久化规则不能使用 inherit'));
+  return { ...rule, id: governanceRuleId(rule) };
+}
+
+function normalizeRuleList(input, { t = tZh } = {}) {
+  const byId = new Map();
+  for (const raw of Array.isArray(input) ? input : []) {
+    try {
+      const rule = normalizeGovernanceRule(raw, { t });
+      byId.set(rule.id, rule);
+    } catch {
+      // 损坏或未来版本规则 fail closed 于“不生效”，避免误禁用无关工具。
+    }
+  }
+  return [...byId.values()].sort((a, b) => a.id.localeCompare(b.id));
+}
+
+export function normalizeGovernanceDocument(input, { t = tZh } = {}) {
+  const revision = Number.isInteger(input?.revision) && input.revision >= 0 ? input.revision : 0;
+  const history = [];
+  for (const item of Array.isArray(input?.history) ? input.history : []) {
+    if (!Number.isInteger(item?.revision) || item.revision < 0) continue;
+    history.push({
+      revision: item.revision,
+      createdAt: Number.isFinite(item.createdAt) ? item.createdAt : 0,
+      rules: normalizeRuleList(item.rules, { t }),
+    });
+  }
+  return {
+    key: 'active',
+    version: 1,
+    revision,
+    updatedAt: Number.isFinite(input?.updatedAt) ? input.updatedAt : 0,
+    rules: normalizeRuleList(input?.rules, { t }),
+    history: history.slice(-GOVERNANCE_HISTORY_LIMIT),
+  };
+}
+
+export function mutateGovernanceRules(rules, input, { t = tZh } = {}) {
+  const mutation = normalizeGovernanceMutation(input, { t });
+  const targetId = governanceRuleId(mutation);
+  const next = normalizeRuleList(rules, { t }).filter((rule) => rule.id !== targetId);
+  if (mutation.effect !== 'inherit') next.push(normalizeGovernanceRule(mutation, { t }));
+  next.sort((a, b) => a.id.localeCompare(b.id));
+  return next;
+}
+
+function matchingRule(rules, scope, target) {
+  return rules.find((rule) => (
+    rule.scope === scope
+    && rule.connectorId === target.connectorId
+    && (scope === 'connection' || rule.serverName === target.serverName)
+    && (scope !== 'tool' || (
+      target.toolName
+        ? rule.toolName === target.toolName
+        : target.publicName && (rule.publicName || publicToolName(rule.serverName, rule.toolName)) === target.publicName
+    ))
+  ));
+}
+
+/**
+ * @param {object} target 连接/工具目标
+ * @param {object[]} inputRules 已持久化的规则
+ * @param {{ t?: (msgid: string) => string }} [options] 当前 translator
+ */
+export function resolveGovernancePolicy(target, inputRules, { t = createTranslator(DEFAULT_LOCALE) } = {}) {
+  if (target.connectionEnabled === false) {
+    return { effect: 'deny', source: 'lifecycle', sourceLabel: governanceSourceLabel(t, 'lifecycle'), ruleId: null };
+  }
+  const rules = normalizeRuleList(inputRules, { t });
+  for (const scope of ['tool', 'server', 'connection']) {
+    const rule = matchingRule(rules, scope, target);
+    if (rule) return { effect: rule.effect, source: scope, sourceLabel: governanceSourceLabel(t, scope), ruleId: rule.id };
+  }
+  return { effect: 'allow', source: 'default', sourceLabel: governanceSourceLabel(t, 'default'), ruleId: null };
+}
+
+export function inspectGovernanceRules(rules, records, inventories = new Map(), { t = createTranslator(DEFAULT_LOCALE) } = {}) {
+  return normalizeRuleList(rules, { t }).map((rule) => {
+    const matchingRecords = records.filter((record) => (
+      record.connectorId === rule.connectorId
+      && (rule.scope === 'connection' || record.serverName === rule.serverName)
+    ));
+    let status = matchingRecords.length > 0 ? 'active' : 'orphaned';
+    if (rule.scope === 'tool' && matchingRecords.length > 0) {
+      const inventory = inventories.get(rule.serverName);
+      if (!inventory?.observed) status = 'unobserved';
+      else if (!inventory.tools.has(rule.toolName)) status = 'stale';
+    }
+    return {
+      ...rule,
+      status,
+      statusLabel: status === 'active'
+        ? t('已生效')
+        : status === 'stale'
+          ? t('工具已失效或重命名')
+          : status === 'orphaned'
+            ? t('目标连接不存在')
+            : t('尚未观察到工具清单'),
+    };
+  });
+}
+
+export class GovernancePolicyService {
+  constructor(store, { now = () => Date.now(), historyLimit = GOVERNANCE_HISTORY_LIMIT, t = tZh } = {}) {
+    this.store = store;
+    this.now = now;
+    this.historyLimit = historyLimit;
+    this.t = t;
+    this.document = normalizeGovernanceDocument(null, { t: this.t });
+  }
+
+  async load() {
+    this.document = normalizeGovernanceDocument(await this.store.get().catch(() => null), { t: this.t });
+    return this.snapshot();
+  }
+
+  snapshot() {
+    return {
+      ...this.document,
+      rules: cloneRules(this.document.rules),
+      history: this.document.history.map((item) => ({ ...item, rules: cloneRules(item.rules) })),
+    };
+  }
+
+  preview(input) {
+    const mutation = normalizeGovernanceMutation(input, { t: this.t });
+    const rules = mutateGovernanceRules(this.document.rules, mutation, { t: this.t });
+    return {
+      baseRevision: this.document.revision,
+      mutation,
+      currentRules: cloneRules(this.document.rules),
+      rules,
+      changed: JSON.stringify(rules) !== JSON.stringify(this.document.rules),
+    };
+  }
+
+  async apply(input, { expectedRevision } = {}) {
+    if (expectedRevision !== undefined && expectedRevision !== this.document.revision) {
+      throw new Error(this.t('策略已变化（当前 revision={revision}），请重新预览', { revision: this.document.revision }));
+    }
+    const preview = this.preview(input);
+    if (!preview.changed) return { changed: false, previousRevision: this.document.revision, document: this.snapshot() };
+    const now = this.now();
+    const previousRevision = this.document.revision;
+    const history = [...this.document.history, {
+      revision: previousRevision,
+      createdAt: now,
+      rules: cloneRules(this.document.rules),
+    }].slice(-this.historyLimit);
+    const nextDocument = normalizeGovernanceDocument({
+      ...this.document,
+      revision: previousRevision + 1,
+      updatedAt: now,
+      rules: preview.rules,
+      history,
+    }, { t: this.t });
+    await this.store.put(nextDocument);
+    this.document = nextDocument;
+    return { changed: true, previousRevision, document: this.snapshot() };
+  }
+
+  async rollback(targetRevision, { expectedRevision } = {}) {
+    if (!Number.isInteger(targetRevision) || targetRevision < 0) throw new Error(this.t('rollbackRevision 必须是非负整数'));
+    if (expectedRevision !== undefined && expectedRevision !== this.document.revision) {
+      throw new Error(this.t('策略已变化（当前 revision={revision}），请重新读取', { revision: this.document.revision }));
+    }
+    const target = targetRevision === this.document.revision
+      ? { revision: targetRevision, rules: this.document.rules }
+      : this.document.history.find((item) => item.revision === targetRevision);
+    if (!target) throw new Error(this.t('找不到可回滚的 revision={revision}', { revision: targetRevision }));
+    if (targetRevision === this.document.revision) return { changed: false, previousRevision: targetRevision, document: this.snapshot() };
+    const now = this.now();
+    const previousRevision = this.document.revision;
+    const history = [...this.document.history, {
+      revision: previousRevision,
+      createdAt: now,
+      rules: cloneRules(this.document.rules),
+    }].slice(-this.historyLimit);
+    const nextDocument = normalizeGovernanceDocument({
+      ...this.document,
+      revision: previousRevision + 1,
+      updatedAt: now,
+      rules: target.rules,
+      history,
+    }, { t: this.t });
+    await this.store.put(nextDocument);
+    this.document = nextDocument;
+    return { changed: true, previousRevision, restoredRevision: targetRevision, document: this.snapshot() };
+  }
+}
+
+function sameNames(left, right) {
+  return left.length === right.length && left.every((name, index) => name === right[index]);
+}
+
+/**
+ * 用公开的 ToolRuntime guard/restrict 接口强制执行策略。
+ * guard 是全局最终拒绝，restrict 为每个 Agent 同时收窄 schema、lookup 与 dispatch。
+ */
+export function createHostGovernanceController(ctx, {
+  getRules,
+  getRecords,
+  logger,
+  t = createTranslator(DEFAULT_LOCALE),
+} = {}) {
+  let disposed = false;
+  let agentsMounted = false;
+  let mountedAgentCtx = null;
+  let agentMountDispose = null;
+  const agentRestrictions = new Map();
+
+  const records = () => [...(getRecords?.() ?? [])];
+  const rules = () => [...(getRules?.() ?? [])];
+
+  function targetForPublicName(name) {
+    if (typeof name !== 'string' || !name.startsWith('mcp__')) return null;
+    const record = records()
+      .filter((candidate) => name.startsWith(`mcp__${candidate.serverName}__`))
+      .sort((a, b) => b.serverName.length - a.serverName.length)[0];
+    if (!record) return null;
+    return {
+      connectorId: record.connectorId,
+      serverName: record.serverName,
+      publicName: name,
+      connectionEnabled: record.enabled !== false,
+    };
+  }
+
+  function inspect(name, overrideRules = rules()) {
+    const target = targetForPublicName(name);
+    return target ? { target, policy: resolveGovernancePolicy(target, overrideRules, { t }) } : null;
+  }
+
+  const disposeGuard = typeof ctx.tools?.guard === 'function'
+    ? ctx.tools.guard((execution) => {
+        const resolved = inspect(execution.name);
+        if (resolved?.policy.effect !== 'deny') return undefined;
+        return t('MCP 工具 {name} 已被{source}拒绝', { name: execution.name, source: resolved.policy.sourceLabel });
+      })
+    : null;
+
+  function observedPublicNames() {
+    try {
+      return readHostToolNames(ctx.tools, { t })
+        .filter((name) => typeof name === 'string' && targetForPublicName(name))
+        .sort();
+    } catch (error) {
+      logger?.warn?.(`governance read Host tools failed: ${error.message}`);
+      return null;
+    }
+  }
+
+  function deniedObservedNames() {
+    // The default policy cannot deny anything. Avoid deep-cloning every Host
+    // schema just to prove that the resulting restriction would be empty.
+    // Disabled connections still require enforcement even without a deny rule.
+    if (!records().some((record) => record.enabled === false)
+        && !rules().some((rule) => rule.effect === 'deny')) return [];
+    return observedPublicNames()?.filter((name) => inspect(name)?.policy.effect === 'deny') ?? null;
+  }
+
+  function installRestriction(agent, denied) {
+    const current = agentRestrictions.get(agent);
+    if (current && sameNames(current.denied, denied)) return;
+    if (denied.length === 0) {
+      current?.dispose?.();
+      agentRestrictions.delete(agent);
+      return;
+    }
+    try {
+      const dispose = agent.ctx.tools.restrict({ deny: denied });
+      agentRestrictions.set(agent, { denied, dispose });
+      current?.dispose?.();
+    } catch (error) {
+      logger?.warn?.(`governance restrict agent "${agent.id ?? 'unknown'}" failed: ${error.message}`);
+    }
+  }
+
+  let syncing = false;
+  function syncRestrictions() {
+    if (disposed || !agentsMounted) return;
+    // Restriction installation may synchronously notify the same controller.
+    // Name-only reads below do not materialize schemas; delayed notifications
+    // are harmless rechecks and identical deny sets do not reinstall a mask.
+    if (syncing) return;
+    syncing = true;
+    try {
+      const live = new Set(mountedAgentCtx?.agents?.list?.() ?? []);
+      const denied = live.size ? deniedObservedNames() : [];
+      if (denied === null) return;
+      for (const agent of live) installRestriction(agent, denied);
+      for (const agent of agentRestrictions.keys()) {
+        if (!live.has(agent)) agentRestrictions.delete(agent);
+      }
+    } finally {
+      syncing = false;
+    }
+  }
+
+  function mountAgents(agentCtx) {
+    agentMountDispose?.();
+    agentsMounted = true;
+    mountedAgentCtx = agentCtx;
+    const stopCreated = agentCtx.on?.('agent/created', syncRestrictions);
+    const stopDisposed = agentCtx.on?.('agent/disposed', ({ agent }) => agentRestrictions.delete(agent));
+    const stopToolsChange = agentCtx.on?.('tools/change', syncRestrictions);
+    syncRestrictions();
+    agentMountDispose = () => {
+      agentsMounted = false;
+      mountedAgentCtx = null;
+      stopCreated?.();
+      stopDisposed?.();
+      stopToolsChange?.();
+      for (const entry of agentRestrictions.values()) entry.dispose?.();
+      agentRestrictions.clear();
+      agentMountDispose = null;
+    };
+    return agentMountDispose;
+  }
+
+  return {
+    inspect,
+    refresh: syncRestrictions,
+    mountAgents,
+    capabilities() {
+      return {
+        executionGuard: Boolean(disposeGuard),
+        visibilityRestriction: agentsMounted && typeof ctx.tools?.restrict === 'function' && supportsHostToolNames(ctx.tools),
+        activeAgents: mountedAgentCtx?.agents?.list?.().length ?? 0,
+        restrictedAgents: agentRestrictions.size,
+      };
+    },
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      agentMountDispose?.();
+      disposeGuard?.();
+    },
+  };
+}

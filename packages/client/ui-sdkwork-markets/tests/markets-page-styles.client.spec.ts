@@ -56,6 +56,14 @@ describe('MarketsPage Plugins catalog styles', () => {
     expect(rule('.marketScroll, .pluginMarketplace, .pluginMarketplace :global(main)')).toContain('position: static')
   })
 
+  it('keeps the SDKWork catalog scrollport inside its layout containment boundary', () => {
+    expect(rule('.pluginMarketplace')).toContain('height: 100%')
+    expect(rule('.pluginMarketplace')).toContain('min-height: 0')
+    expect(rule('.pluginMarketplace')).toContain('overflow-y: auto')
+    expect(rule('.pluginMarketplace')).toContain('scrollbar-gutter: stable')
+    expect(rule('.pluginMarketViewport')).toContain('scrollbar-gutter: auto')
+  })
+
   it('uses the compact control and content scale', () => {
     expect(rule('.pluginMarketplace :global(main > nav button)')).toContain('min-height: 26px')
     // The category strip's overflow toggle is an icon control, not a chip.

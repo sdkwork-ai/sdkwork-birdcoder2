@@ -30,7 +30,7 @@ The expert market is now the first-party package `packages/client/ui-sdkwork-exp
 - The expert market's build, typecheck and test now run here. `packages/client/ui-sdkwork-experts` builds `lib/index.js`, `lib/remote.js` and `lib/client.js`; its `README` records the model/token/KV-cache effects of the prompt section and the ten tools.
 - The repository no longer depends on the MichengAI repository or its release cadence. A fix ships with this repository's release instead of a pin bump.
 - The expert data plane is now a normal feature gap rather than a submodule boundary: the roster, categories and teams are initialized from `sdkwork-specs` and owned by `sdkwork-agents`. The Host half accepts an ingested catalog overlay over the `agencyAgents` Remote (`syncSdkworkCatalog`, `syncSdkworkPersonas`), which replaces the bundled roster, teams and personas while the bundled assets stay the offline fallback. The market page now fetches the catalog from the Agents App API and pushes it into that overlay once its gateway and IAM session are ready; a composition that mounts the package without that page keeps the bundled roster.
-- The market UI is unchanged by this note; the reference gallery design (featured collections, category rail, usage statistics, an 专家团 sibling tab) remains a separate change.
+- The market UI was unchanged by this note; the reference gallery design it deferred is now [one cloud expert catalog for the Experts tab](../feature/2026-11-28-expert-market-one-cloud-catalog.md), which draws the shelf, the 专家 / 专家团 switch and the statistics from the sdkwork-agents catalog, so the Experts tab no longer embeds this package's panel (its sidebar row stays suppressed, and the panel key still identifies the registration).
 
 ## Verification
 

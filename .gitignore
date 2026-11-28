@@ -41,6 +41,10 @@ lib/
 !bin/lib/
 # ...except SDKWork Dart package sources, which APP_FLUTTER_UI_SPEC.md places under lib/.
 !apps/sdkwork-birdcoder2-flutter-mobile/packages/*/lib/
+# ...except a committed in-tree plugin build: `plugins/<name>/lib/` is source for a
+# plugin that is not a git submodule, exactly as the git-linked plugins ship theirs
+# from their own repositories.
+!plugins/*/lib/
 *.tsbuildinfo
 pnpm-debug.log
 .pnpm-store/

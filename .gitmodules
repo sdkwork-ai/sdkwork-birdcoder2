@@ -15,14 +15,6 @@
 	# which follows this branch; the committed gitlink stays the release pin
 	# (currently the v2.0.7 tag, whose built `lib/` artifacts ship as committed).
 	branch = main
-[submodule "plugins/dsh-mcp-connector"]
-	path = plugins/dsh-mcp-connector
-	url = https://github.com/duhu2000/dsh-mcp-connector.git
-	# Advance the pin with `git submodule update --remote plugins/dsh-mcp-connector`,
-	# which follows this branch; the committed gitlink stays the release pin
-	# (currently the v0.2.117 tag, whose built `lib/` artifacts and `ui/` panel
-	# ship as committed).
-	branch = main
 [submodule "plugins/dsh-ui-usage-billing"]
 	path = plugins/dsh-ui-usage-billing
 	# SDKWork fork of kenz1117/dsh-ui-usage-billing. This fork OWNS the plugin:

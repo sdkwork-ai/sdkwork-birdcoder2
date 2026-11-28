@@ -35,6 +35,7 @@ kind: "package-group"
 | [`open-in-app/`](open-in-app/README.zh.md) | 在已安装应用中打开 workspace 目录的应用探测、图标与启动路由 | 消费 `ctx.webServer` |
 | [`plugin-inventory/`](plugin-inventory/README.zh.md) | 当前 Loader 条目的只读投影 | Remote `pluginInventory/list` |
 | [`product-telemetry-otel/`](product-telemetry-otel/README.zh.md) | 通过 OTLP/HTTP 显式上报产品使用事件 | `ctx.productTelemetry` |
+| [`sdkwork-skillhub/`](sdkwork-skillhub/README.zh.md) | 技能页背后的 SkillHub 目录代理与本机技能安装器 | 消费 `ctx.webServer` |
 
 -----
 

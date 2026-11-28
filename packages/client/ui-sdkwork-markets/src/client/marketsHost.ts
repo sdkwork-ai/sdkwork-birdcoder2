@@ -39,6 +39,12 @@ import type { PluginStore } from './pluginStore.ts'
 import type { MarketsKey } from './locales.ts'
 import { SkillsCatalogPage, type SkillsCatalogActions } from './SkillsCatalogPage.tsx'
 import {
+  ExpertsCatalogPage,
+  type ExpertRecord,
+  type ExpertsCatalogActions,
+  type ExpertTeamRecord,
+} from './ExpertsCatalogPage.tsx'
+import {
   catalogPackageName, catalogVersion, findInstallation, installTargetOf,
   type MarketplaceInstallation,
 } from './pluginInstallation.ts'
@@ -177,6 +183,12 @@ export interface MarketsHostRenderSnapshot {
   apiBaseUrl: string
   accessToken: string
   locale: string
+  /**
+   * The application's resolved light/dark scheme. Embedded surfaces are separate
+   * documents, so this is what makes a framed panel follow the running theme
+   * instead of the operating system's preference.
+   */
+  colorScheme: 'light' | 'dark'
   session: MarketsHostSessionSnapshot | null
   /**
    * Whether the embedded surface holds credentials to call app-api: an IAM
@@ -504,6 +516,7 @@ class MarketsHostRuntimeImpl implements MarketsHostRuntime {
   private offEnvironment: (() => void) | undefined
   private offIam: (() => void) | undefined
   private offLocale: (() => void) | undefined
+  private offTheme: (() => void) | undefined
   private disposed = false
   private pluginsClient: SdkworkPluginsAppClient | undefined
   private pluginsClientBaseUrl: string | undefined
@@ -525,6 +538,7 @@ class MarketsHostRuntimeImpl implements MarketsHostRuntime {
     listInstallations: (...args) => this.getSkillsCatalogClient().skills.skillInstallations.list(...args),
     listArtifacts: (...args) => this.getSkillsCatalogClient().skills.skillPackages.artifacts.list(...args),
     createInstallation: (...args) => this.getSkillsCatalogClient().skills.skillPackages.installations.create(...args),
+    listFeaturedShelves: (...args) => this.getSkillsCatalogClient().skills.featuredShelves.list(...args),
   }
 
   constructor(private readonly options: ConfigureMarketsHostOptions) {}
@@ -537,6 +551,7 @@ class MarketsHostRuntimeImpl implements MarketsHostRuntime {
     })
     this.offIam = this.options.iam.controller.subscribe(() => { this.publish() })
     this.offLocale = this.options.locale.subscribe(() => { this.publish() })
+    this.offTheme = this.options.theme.subscribe(() => { this.publish() })
     return () => { this.dispose() }
   }
 
@@ -577,6 +592,7 @@ class MarketsHostRuntimeImpl implements MarketsHostRuntime {
     const session = this.readHostSession()
     const accessToken = iamSession?.accessToken?.trim() ? '' : staticAccessToken
     const locale = this.resolveHostLanguage()
+    const colorScheme = this.options.theme.getColorScheme()
     const identityKey = this.getIdentityKey()
     const cached = this.cachedSnapshot
     if (
@@ -586,6 +602,7 @@ class MarketsHostRuntimeImpl implements MarketsHostRuntime {
       && cached.apiBaseUrl === apiBaseUrl
       && cached.accessToken === accessToken
       && cached.locale === locale
+      && cached.colorScheme === colorScheme
       && hostSessionsEqual(cached.session, session)
     ) {
       return cached
@@ -596,6 +613,7 @@ class MarketsHostRuntimeImpl implements MarketsHostRuntime {
       apiBaseUrl,
       accessToken,
       locale,
+      colorScheme,
       session,
       authenticated: session !== null,
     }
@@ -785,9 +803,11 @@ class MarketsHostRuntimeImpl implements MarketsHostRuntime {
     this.offEnvironment?.()
     this.offIam?.()
     this.offLocale?.()
+    this.offTheme?.()
     this.offEnvironment = undefined
     this.offIam = undefined
     this.offLocale = undefined
+    this.offTheme = undefined
     this.pluginsClient = undefined
     this.pluginsClientBaseUrl = undefined
     this.skillsClient = undefined
@@ -976,6 +996,51 @@ export function SkillsCatalogSurface({
     onInstalledCountChange,
     onAdded,
     onAddFailed,
+  })
+}
+
+/** Props for the BirdCoder cloud expert catalog. */
+export interface ExpertsCatalogSurfaceProps {
+  snapshot: MarketsHostRenderSnapshot
+  actions: ExpertsCatalogActions
+  requestSignIn: () => void
+  onClearSearch?: () => void
+  /** Hand one catalog expert to the conversation, enabling it first. */
+  onUseExpert: (expert: ExpertRecord) => void
+  /** Assemble one catalog team in a fresh conversation. */
+  onUseTeam: (team: ExpertTeamRecord) => void
+  searchQuery?: string
+  t: TranslateNS<'markets'>
+}
+
+/**
+ * Render the cloud expert catalog from its framework-bound host snapshot.
+ *
+ * The Experts tab has one view, so this is the whole tab: no sub-tab decides
+ * between a cloud shelf and a local roster, and the sign-in and unconfigured
+ * gates are the same ones every other cloud catalog in this page uses.
+ */
+export function ExpertsCatalogSurface({
+  snapshot,
+  actions,
+  requestSignIn,
+  onClearSearch,
+  onUseExpert,
+  onUseTeam,
+  searchQuery,
+  t,
+}: ExpertsCatalogSurfaceProps): ReactNode {
+  if (snapshot.apiBaseUrl === '') return createElement(MarketsEmptySurface, { t })
+  if (!snapshot.authenticated) return createElement(MarketsAuthSurface, { t, onSignIn: requestSignIn })
+  return createElement(ExpertsCatalogPage, {
+    key: `${snapshot.environmentRevision}:${snapshot.identityKey}`,
+    actions,
+    ...(searchQuery === undefined ? {} : { searchQuery }),
+    locale: snapshot.locale,
+    t,
+    ...(onClearSearch === undefined ? {} : { onClearSearch }),
+    onUseExpert,
+    onUseTeam,
   })
 }
 

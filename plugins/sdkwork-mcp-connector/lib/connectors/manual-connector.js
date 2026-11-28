@@ -1,0 +1,128 @@
+/**
+ * 通道二：自定义配置连接（表单式填 transport/url/serverName/鉴权）。
+ */
+import { CUSTOM_CONNECTOR_ID } from '../constants.js';
+import { assertConnectionUrl, assertSafeHeaderName, isPrivateNetworkHost, slugServerName } from '../util.js';
+import { normalizeInjectionMode } from '../session-injection.js';
+import { DEFAULT_LOCALE, createTranslator } from '../i18n/index.js';
+
+/** 缺省译文：中文（既有调用点与测试无需改动）。 */
+const tZh = createTranslator(DEFAULT_LOCALE);
+
+function parseHeadersJson(headersJson, { t = tZh } = {}) {
+  if (headersJson === undefined || headersJson === null || headersJson === '') return {};
+  let obj;
+  if (typeof headersJson === 'string') {
+    try {
+      obj = JSON.parse(headersJson);
+    } catch {
+      throw new Error(t('headersJson 不是合法 JSON'));
+    }
+  } else {
+    obj = headersJson;
+  }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error(t('headersJson 必须是 JSON 对象'));
+  const out = {};
+  for (const [key, value] of Object.entries(obj)) out[assertSafeHeaderName(key)] = String(value);
+  return out;
+}
+
+function parseEnvJson(envJson, { t = tZh } = {}) {
+  if (envJson === undefined || envJson === null || envJson === '') return {};
+  let obj;
+  if (typeof envJson === 'string') {
+    try {
+      obj = JSON.parse(envJson);
+    } catch {
+      throw new Error(t('envJson 不是合法 JSON'));
+    }
+  } else {
+    obj = envJson;
+  }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error(t('envJson 必须是 JSON 对象'));
+  const out = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) throw new Error(t('非法环境变量名: {key}', { key }));
+    out[key] = String(value);
+  }
+  return out;
+}
+
+/**
+ * @param {object} params { name, url, transport?, serverName?, authMode?, bearerToken?, apiKeyHeader?, apiKeyValue?, headersJson?, allowInsecurePrivateNetwork? }
+ */
+export function buildManualRecord(params = {}, { t = tZh } = {}) {
+  const name = String(params.name ?? '').trim();
+  if (!name) throw new Error(t('name 必填'));
+  const serverName = slugServerName(params.serverName ?? name);
+  const rawTransport = params.transport ?? 'streamable-http';
+  const transport = rawTransport;
+  if (!['streamable-http', 'sse', 'stdio'].includes(transport)) throw new Error(`unsupported transport: ${rawTransport}`);
+
+  if (transport === 'stdio') {
+    const command = String(params.command ?? '').trim();
+    if (!command) throw new Error(t('transport=stdio 时 command 必填'));
+    if (params.authMode && params.authMode !== 'none' && params.authMode !== 'auto') throw new Error(t('stdio 鉴权请通过 envJson 传入环境变量'));
+    if (params.args !== undefined && !Array.isArray(params.args)) throw new Error(t('args 必须是字符串数组'));
+    const args = (params.args ?? []).map((value) => String(value));
+    const env = parseEnvJson(params.envJson ?? params.env, { t });
+    return {
+      key: `custom-${serverName}`,
+      connectorId: CUSTOM_CONNECTOR_ID,
+      kind: 'manual',
+      name,
+      transport,
+      command,
+      args,
+      env,
+      cwd: String(params.cwd ?? '').trim(),
+      serverName,
+      headers: {},
+      auth: undefined,
+      enabled: true,
+      injectionMode: normalizeInjectionMode(params.injectionMode),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+  }
+
+  const parsedUrl = assertConnectionUrl(params.url, {
+    allowInsecurePrivateNetwork: params.allowInsecurePrivateNetwork === true,
+  });
+  const url = parsedUrl.toString();
+  const allowInsecurePrivateNetwork = parsedUrl.protocol === 'http:'
+    && isPrivateNetworkHost(parsedUrl.hostname)
+    && params.allowInsecurePrivateNetwork === true;
+  const headers = parseHeadersJson(params.headersJson, { t });
+
+  const authMode = params.authMode ?? 'auto';
+  let auth;
+  if (authMode === 'bearer') {
+    if (!params.bearerToken) throw new Error(t('authMode=bearer 时 bearerToken 必填'));
+    auth = { mode: 'bearer', bearerToken: String(params.bearerToken) };
+  } else if (authMode === 'api-key') {
+    const apiKeyHeader = assertSafeHeaderName(params.apiKeyHeader ?? 'X-Api-Key');
+    if (params.apiKeyValue === undefined || params.apiKeyValue === '') throw new Error(t('authMode=api-key 时 apiKeyValue 必填'));
+    auth = { mode: 'api-key', apiKeyHeader, apiKeyValue: String(params.apiKeyValue) };
+  } else if (authMode !== 'none' && authMode !== 'auto') {
+    throw new Error(`unsupported authMode: ${authMode}`);
+  }
+
+  return {
+    key: `custom-${serverName}`,
+    connectorId: CUSTOM_CONNECTOR_ID,
+    kind: 'manual',
+    name,
+    transport,
+    url,
+    ...(allowInsecurePrivateNetwork ? { allowInsecurePrivateNetwork: true } : {}),
+    serverName,
+    headers,
+    auth,
+    authDetection: authMode === 'auto' ? 'auto' : 'none',
+    enabled: true,
+    injectionMode: normalizeInjectionMode(params.injectionMode),
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+}

@@ -541,9 +541,9 @@ async function main(): Promise<void> {
  * install executes, so the shebang is normalized to the form that runs there.
  *
  * The executable set is the plugin's `bin/*` files plus every path the
- * manifest's `bin` field names (string or map form): `dsh-mcp-connector`
- * declares its entry at `scripts/probe-connector.mjs`, outside `bin/`, and the
- * 0.2.2-alpha.4 Windows lanes failed on exactly that file.
+ * manifest's `bin` field names (string or map form): a plugin that declares its
+ * entry outside `bin/` (a `scripts/*.mjs` probe, say) otherwise keeps a CRLF
+ * shebang through packing, and the Windows lanes failed on exactly that file.
  * @param directory - absolute plugin directory about to be packed.
  */
 function normalizePackedPluginShebangs(directory: string): void {

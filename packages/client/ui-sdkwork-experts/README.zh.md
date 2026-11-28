@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## Summary
 
-本包就是 SDKWork 专家市场。它随包提供 The Agency 名册的 331 位领域专家与 5 个内置专家团，把专家作为可召唤的专家子代理暴露给模型，并绘制用户浏览、管理专家所用的市场表面：
+本包就是 SDKWork 专家能力的实现。它随包提供 The Agency 名册的 331 位领域专家与 5 个内置专家团，把专家作为可召唤的专家子代理暴露给模型，并绘制这些专家与专家团的库表面（市场 tab 的云端目录由 `ui-sdkwork-markets` 绘制，读的是同一份 `sdkwork-agents` 目录）：
 
 - **Host 半边** —— 读取包内人设资产（`assets/agency-agents`、`assets/agency-agents-zh`），发布专家库与专家团库，注册 `list_experts`、`summon_expert`、`summon_experts`、`list_expert_teams`、`get_expert_team`、`summon_expert_team` 六个工具，`propose_custom_expert` / `propose_expert_team` 起草工具及其打开编辑器的工具，`## Agency expert mode` 提示词分节，以及保存已启用名册、自定义专家与自定义专家团的 `agency-agents` 设置命名空间。
 - **Browser 半边** —— 注册带 key 的 `agency-agents` `main` 面板（含分类分组的专家画廊、专家团、AI 创建入口与启停管理）、侧边栏行、设置 → 专家页、composer `@` 选择器与任务推荐条。
@@ -70,7 +70,7 @@ kind: "package-reference"
 
 ## Known Limitations and Deferred Work
 
-- **数据面正在接入。** 名册、分类与专家团由 `sdkwork-specs` 初始化、由 `sdkwork-agents` 拥有（每位专家一条受管 agent 记录，另加专家团与人格表）。Host 半边现在可以经 `agencyAgents` Remote（`syncSdkworkCatalog`、`syncSdkworkPersonas`）接收浏览器半边推送的目录覆盖：一旦推送，专家、专家团与人格就替换包内名册，包内资产只作离线回退。市场页现在会在 SDKWork 网关与 IAM 会话就绪后自动拉取并推送；只挂载本包而没有该页面的组合仍读取包内名册。
-- **画廊覆盖了参考布局的浏览能力，而不是它的编辑数据。** 面板现在具备参考画廊的分类 chip 导轨、排序（综合 / 启用优先 / 名称）与专家 / 专家团分页，卡片网格保留头像、分类、简介与逐卡管理。参考设计中的精选集合与每位专家的使用统计不属于数据库拥有的专家目录，因此本包不会编造。
+- **数据面归 `sdkwork-agents` 所有。** 名册、分类、专家团、精选场景与每位专家的展示统计都由 `sdkwork-specs` 初始化、由 `sdkwork-agents` 拥有（每位专家一条受管 agent 记录，另加专家团、人格、展示画像与场景集合表）。Host 半边经 `agencyAgents` Remote（`syncSdkworkCatalog`、`syncSdkworkPersonas`）接收市场页推送的目录覆盖：一旦推送，专家、专家团与人格就替换包内名册，包内资产只作离线回退；没有市场页的组合仍读取包内名册。
+- **市场 tab 的画廊已不在本包。** 专家 tab 的云端目录（精选场景、专家 / 专家团、分类 chip、综合 / 最热 / 最新排序与卡片网格）由 `ui-sdkwork-markets` 的 `ExpertsCatalogPage` 绘制，读同一份目录；本包保留 `@` 选择器、六个召唤工具、专家团引擎、设置 → 专家页与 `main` 面板。参考设计中的精选集合与使用统计现在由 `sdkwork-agents` 的目录数据提供，因此本包不再需要为它们编造数据。
 - **上游运营方链接已中性化。** 设置页的「查看项目/反馈」按钮指向 SDKWork 站点而不是第三方仓库，因为本包是市场的 SDKWork 实现。
 - **专家卡封面未生成。** 专家卡使用包内画像池，而不是为每位专家生成美术图。

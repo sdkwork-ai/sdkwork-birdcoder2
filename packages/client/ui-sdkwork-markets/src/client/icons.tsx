@@ -42,6 +42,15 @@ export const ExpertsIcon = ({ size = 24, className }: ModeIconProps) => (
   </svg>
 )
 
+/** Expert teams: a group of three, the team switch and the team cards. */
+export const TeamsIcon = ({ size = 24, className }: ModeIconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="9" cy="9.2" r="3.1" stroke="currentColor" strokeWidth="1.7" />
+    <path d="M3.6 19.1c.5-2.8 2.7-4.6 5.4-4.6s4.9 1.8 5.4 4.6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    <path d="M15.6 6.4a2.7 2.7 0 1 1 0 5.4M17.2 14.8c1.9.4 3.2 1.9 3.6 4.1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+  </svg>
+)
+
 /** Skills tab: lab flask. */
 export const SkillsIcon = ({ size = 24, className }: ModeIconProps) => (
   <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

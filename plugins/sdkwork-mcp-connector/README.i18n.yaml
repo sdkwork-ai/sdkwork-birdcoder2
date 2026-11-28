@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write plugins/sdkwork-mcp-connector/README.md
+/:
+  en: e6c043ec0cef09b6
+  zh: 803850f56614b3d4
+/sdkwork-dsh-mcp-connector:
+  en: 7f5740cb63f58733
+  zh: aab99e105a1803bc
+/sdkwork-dsh-mcp-connector/summary:
+  en: 1233d497c3da34e0
+  zh: fa3c72edff1c1793
+/sdkwork-dsh-mcp-connector/table-of-contents:
+  en: dcda7fcc80b64d62
+  zh: 62e3d1d39534e1da
+/sdkwork-dsh-mcp-connector/cloud-catalog:
+  en: ef786dbffa14fcc9
+  zh: f6185354e426a30e
+/sdkwork-dsh-mcp-connector/runtime-requirements:
+  en: 5996778850be258b
+  zh: 32b51b800fddbb36
+/sdkwork-dsh-mcp-connector/panel-integration:
+  en: 75cb4641122e93fb
+  zh: bd83858bfd8d8ad0
+/sdkwork-dsh-mcp-connector/model-experience:
+  en: 72f9d88e8e37f423
+  zh: c705bb7cd6172720
+/sdkwork-dsh-mcp-connector/model-experience/kv-cache-effect:
+  en: 02372aaa8b2bcba4
+  zh: edbe4014b5f431c4
+/sdkwork-dsh-mcp-connector/known-limitations-and-deferred-work:
+  en: d3260a06dc6a563e
+  zh: 74c46c20464b88d0
+/sdkwork-dsh-mcp-connector/fork-provenance:
+  en: 21c77992f29cebf8
+  zh: a369b4bee15f8df5

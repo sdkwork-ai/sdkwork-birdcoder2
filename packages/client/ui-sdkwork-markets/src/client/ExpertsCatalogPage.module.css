@@ -1,0 +1,632 @@
+/* The cloud expert catalog: one shelf — curated collections, the 专家 / 专家团
+   switch, the sort capsule, the division chips and the card grid. The page
+   header owns the search field, so this surface starts at its first section.
+
+   The grid is five columns at a wide window with 16px gutters, matching the
+   skills catalog beside it; the container queries drop it to four, three, two
+   and one column as the panel narrows. Cards carry no action row: the whole
+   body opens the detail dialog and the one primary action sits on the trailing
+   edge of the footer. */
+
+.catalog {
+  container-type: inline-size;
+  min-height: 100%;
+  padding: 8px 16px 40px;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-base);
+}
+
+.section + .section {
+  margin-top: 28px;
+}
+
+.collectionSection {
+  margin-bottom: 24px;
+}
+
+/* ── Curated collections ─────────────────────────────────────────────── */
+
+.collectionRow {
+  display: flex;
+  gap: 12px;
+  padding-bottom: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.collectionRow::-webkit-scrollbar {
+  display: none;
+}
+
+.collectionCard {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 14px;
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.collectionCover {
+  display: flex;
+  height: 66px;
+  align-items: center;
+  justify-content: center;
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* Six covers from the theme's state tints: a decorative wash, never a signal. */
+.collectionCard[data-cover='ecommerce'] .collectionCover {
+  background: linear-gradient(120deg, var(--dsw-alias-state-business-tertiary), var(--dsw-alias-bg-layer-2));
+}
+
+.collectionCard[data-cover='content'] .collectionCover {
+  background: linear-gradient(120deg, var(--dsw-alias-state-warn-tertiary), var(--dsw-alias-bg-layer-2));
+}
+
+.collectionCard[data-cover='investment'] .collectionCover {
+  background: linear-gradient(120deg, var(--dsw-alias-state-success-tertiary), var(--dsw-alias-bg-layer-2));
+}
+
+.collectionCard[data-cover='legal'] .collectionCover {
+  background: linear-gradient(120deg, var(--dsw-alias-state-error-tertiary), var(--dsw-alias-bg-layer-2));
+}
+
+.collectionCard[data-cover='smallbusiness'] .collectionCover {
+  background: linear-gradient(210deg, var(--dsw-alias-state-success-tertiary), var(--dsw-alias-bg-layer-2));
+}
+
+.collectionCard[data-cover='data'] .collectionCover {
+  background: linear-gradient(210deg, var(--dsw-alias-state-business-tertiary), var(--dsw-alias-bg-layer-2));
+}
+
+.collectionCoverMark {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--dsw-alias-label-primary);
+  opacity: 0.55;
+}
+
+.collectionTitle {
+  margin: 10px 12px 6px;
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collectionList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0 8px 10px;
+  list-style: none;
+}
+
+.collectionLink {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 4px 4px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.collectionLink:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.collectionLink:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.collectionLink > :first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collectionArrow {
+  flex: none;
+  font-size: 11px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* ── Section heading and sort ────────────────────────────────────────── */
+
+/* The reference sorts with three plain labels rather than a capsule: the
+   selected one takes the primary label colour and medium weight. */
+.sort {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 16px;
+}
+
+.sortTab {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+
+.sortTab:hover {
+  color: var(--dsw-alias-label-primary);
+}
+
+.sortTab[aria-selected='true'] {
+  color: var(--dsw-alias-label-primary);
+  font-weight: 600;
+}
+
+/* ── 专家 / 专家团 switch ────────────────────────────────────────────── */
+
+.viewRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.viewTabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.viewTab {
+  display: inline-flex;
+  height: 30px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.viewTab:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.viewTabActive,
+.viewTabActive:hover {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* ── Division chips ──────────────────────────────────────────────────── */
+
+.categories {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.categories::-webkit-scrollbar {
+  display: none;
+}
+
+.category {
+  display: inline-flex;
+  flex: none;
+  height: 30px;
+  align-items: center;
+  gap: 5px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 18px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.category:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.categoryActive,
+.categoryActive:hover {
+  border-color: var(--dsw-alias-border-l3);
+  background: var(--dsw-alias-bg-layer-3);
+  color: var(--dsw-alias-label-primary);
+  font-weight: 500;
+}
+
+/* ── Card grid ───────────────────────────────────────────────────────── */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+@container (max-width: 1180px) {
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@container (max-width: 920px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container (max-width: 660px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container (max-width: 400px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 14px;
+  background: var(--dsw-alias-bg-base);
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.card:hover {
+  border-color: var(--dsw-alias-border-l3);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.cardOpen {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  padding: 14px 14px 8px;
+  border: 0;
+  border-radius: 14px 14px 0 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cardHeader {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  display: flex;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 50%;
+  background: var(--dsw-alias-bg-layer-2);
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* Decorative tints, one per hash tone: the reference gives each expert tile a
+   colour of its own without the catalog carrying presentation data. */
+.avatar[data-tone='0'] { background: var(--dsw-alias-state-business-tertiary); }
+.avatar[data-tone='1'] { background: var(--dsw-alias-state-warn-tertiary); }
+.avatar[data-tone='2'] { background: var(--dsw-alias-state-success-tertiary); }
+.avatar[data-tone='3'] { background: var(--dsw-alias-state-error-tertiary); }
+.avatar[data-tone='4'] { background: var(--dsw-alias-interactive-bg-hover); }
+.avatar[data-tone='5'] { background: var(--dsw-alias-bg-layer-3); }
+
+.cardTitle {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.cardName {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 21px;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  flex: none;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.cardDescription {
+  display: -webkit-box;
+  margin-top: 10px;
+  overflow: hidden;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12.5px;
+  line-height: 19px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.tag {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 17px;
+  white-space: nowrap;
+}
+
+.cardFooter {
+  display: flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 10px 8px 14px;
+}
+
+.usage {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11.5px;
+  line-height: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.useButton {
+  flex: none;
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-link);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+  cursor: pointer;
+  /* The reference card keeps its footer to the metric alone; the action joins
+     it on hover or keyboard focus so the grid stays quiet without hiding the
+     one-click action from anyone who interacts. */
+  opacity: 0;
+  transition: opacity 120ms ease, background 120ms ease;
+}
+
+.card:hover .useButton,
+.card:focus-within .useButton,
+.useButton:focus-visible {
+  opacity: 1;
+}
+
+.useButton:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.useButton:focus-visible,
+.sortTab:focus-visible,
+.viewTab:focus-visible,
+.category:focus-visible,
+.collectionLink:focus-visible,
+.cardOpen:focus-visible {
+  outline: 2px solid var(--dsw-alias-link);
+  outline-offset: 2px;
+}
+
+/* ── States ──────────────────────────────────────────────────────────── */
+
+.statePanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 56px 16px;
+  text-align: center;
+}
+
+.stateIcon {
+  display: flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.stateTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 22px;
+}
+
+.stateDescription {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12.5px;
+  line-height: 19px;
+}
+
+.skeletonCard {
+  display: flex;
+  min-height: 132px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 14px;
+}
+
+.skeletonAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.skeletonLine {
+  height: 10px;
+  border-radius: 4px;
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.skeletonShort {
+  width: 55%;
+}
+
+/* ── Detail dialogs ──────────────────────────────────────────────────── */
+
+.detailBody {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.detailDescription {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 21px;
+}
+
+.detailMeta {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.detailMeta > div {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+}
+
+.detailMeta dt {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.detailMeta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 12.5px;
+  line-height: 18px;
+}
+
+.memberList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.memberRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.memberName {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.memberDuty {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detailActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

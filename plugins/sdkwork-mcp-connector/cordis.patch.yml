@@ -1,0 +1,20 @@
+# SDKWork MCP 连接器 插件（DSH Bundle patch）
+# 作为 bundle 被合入 profile 时，自动插入本插件行。
+# 插件负责连接器目录（由 sdkwork-mcp 云端数据库提供）、三通道连接、凭证存储与
+# mcp-client 条目动态配置。
+- insert:
+    - id: sdkwork-mcp-connector
+      name: '@sdkwork/dsh-mcp-connector'
+      config:
+        persistSecrets: true
+        entryPrefix: 'mcp'
+        refreshSkewMs: 300000
+        openBrowser: true
+        showSidebarEntry: true
+        # true：仅注册发现与会话两个管理入口；完整连接配置仍在界面操作。
+        # 保持 false 兼容已有对话/自动化；更改后重载插件。
+        compactManagementTools: false
+        # 面板 CSP frame-ancestors 白名单：默认仅同源可嵌入。
+        # 桌面壳（Tauri/Electron）内嵌面板时需显式追加外壳源，
+        # 例如 ['self', 'http://tauri.localhost', 'tauri://localhost']。
+        frameAncestors: ['self']

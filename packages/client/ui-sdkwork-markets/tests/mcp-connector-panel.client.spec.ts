@@ -1,6 +1,6 @@
 /**
  * mcpConnectorPanel: the source the Connectors tab binds to the
- * `dsh-mcp-connector` plugin's own `main` panel. The plugin publishes no
+ * SDKWork MCP connector plugin's own `main` panel. The plugin publishes no
  * client control service, so the only fact this page may read is its
  * registration; the constants below are the two strings the two packages
  * share, and the bundle acceptance spec pins the same ones against the shipped
@@ -61,7 +61,7 @@ function ledger(keys: readonly string[] = []): McpConnectorPanelLedger & {
 }
 
 describe('mcpConnectorPanel', () => {
-  it('pins the panel key and panel page the dsh-mcp-connector plugin registers', () => {
+  it('pins the panel key and panel page the SDKWork MCP connector plugin registers', () => {
     // The bundle acceptance spec reads the shipped plugin artifacts and pins
     // these same strings; this assertion is where a rename lands first.
     expect(MCP_CONNECTOR_PANEL_ID).toBe('mcp-connector')
@@ -70,14 +70,22 @@ describe('mcpConnectorPanel', () => {
 
   it('pins the frame protocol the plugin\'s panel page speaks', () => {
     // Both halves are the plugin's constants. The surface trusts them for the
-    // workspace scope and for the example-Prompt hand-off, so a renamed type
-    // must break a spec rather than silently stop one of them.
+    // workspace scope, the example-Prompt hand-off and the host-owned toolbar,
+    // so a renamed type must break a spec rather than silently stop one of them.
     expect(MCP_CONNECTOR_FRAME_TYPES).toEqual({
       workspaceContextRequest: 'mcp-connector:workspace-context-request',
       workspaceContext: 'mcp-connector:workspace-context',
       startSession: 'mcp-connector:start-session',
       startSessionResult: 'mcp-connector:start-session-result',
       detailState: 'mcp-connector:detail-state',
+      hostToolbar: 'mcp-connector:host-toolbar',
+      hostView: 'mcp-connector:host-view',
+      hostSearch: 'mcp-connector:host-search',
+      hostAdd: 'mcp-connector:host-add',
+      hostRefresh: 'mcp-connector:host-refresh',
+      hostState: 'mcp-connector:host-state',
+      hostLocaleRequest: 'mcp-connector:host-locale-request',
+      hostLocale: 'mcp-connector:host-locale',
     })
   })
 

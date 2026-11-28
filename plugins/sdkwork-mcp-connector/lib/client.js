@@ -1,0 +1,3206 @@
+window.__ModuleLoader__.load({
+	id: "@sdkwork/dsh-mcp-connector",
+	factory: (require) => {
+		var module = { exports: {} };
+		var exports = module.exports;
+		Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
+		let react_jsx_runtime = require("react/jsx-runtime");
+		let react = require("react");
+		let react_dom = require("react-dom");
+
+		/** 客户端所需服务：槽位、工作区、会话及对话输入机。 */
+		const inject = [
+			"slots",
+			"sessions",
+			"workspaces",
+			"conversation"
+		];
+
+		/**
+		 * 客户端文案国际化。契约与 `lib/i18n` 完全一致：**msgid 就是中文原文**。
+		 * 中文路径不查表，msgid 原样返回，因此默认中文界面逐字不变；缺译文时也
+		 * 回退中文原文，不会出现空白或英文 key 漏到界面上。
+		 *
+		 * 客户端 bundle 是预编译产物，不能可靠地 import 服务器侧模块，所以这里
+		 * 内置一份映射；`lib/i18n/locales/en/client.js` 保存同一批 msgid，让共享
+		 * 英文词典保持完备（两份清单一一对应）。
+		 */
+		const MESSAGES_EN = Object.freeze({
+  "插件版本检查 API 不可用": "Plugin version API is unavailable",
+  "{prefix}（HTTP 401）：请重新登录 DSH 后重试": "{prefix} (HTTP 401): sign in to DSH again and retry",
+  "{prefix}（HTTP 403）：请检查 DSH 可信访问地址及反向代理 Host/Origin 配置，不要关闭安全校验": "{prefix} (HTTP 403): check DSH trusted addresses and reverse-proxy Host/Origin settings; do not disable security checks",
+  "{prefix}（HTTP 404）：请检查插件路由是否加载，以及反向代理是否转发 /mcp-connector/api": "{prefix} (HTTP 404): check that plugin routes are loaded and the proxy forwards /mcp-connector/api",
+  "{prefix}（HTTP {status}）：请检查 DSH 服务和反向代理日志": "{prefix} (HTTP {status}): check DSH service and reverse-proxy logs",
+  "{prefix}：响应格式不正确，请检查登录状态、反向代理和插件版本兼容性": "{prefix}: invalid response format; check sign-in status, proxy settings, and plugin compatibility",
+  "插件版本检查 API 请求失败：请检查网络、DSH 服务和反向代理连接": "Plugin version API request failed: check the network, DSH service, and reverse-proxy connection",
+			"MCP连接器": "MCP Connector",
+			"控制侧边栏入口和快捷打开方式。": "Control how the MCP Connector is opened.",
+			"控制入口在哪里出现，以及快捷打开方式。": "Control where the entry appears and how it opens.",
+			"入口展示位置": "Entry placement",
+			"至少保留一处入口，避免面板变得无法打开。": "Keep at least one entry so the panel never becomes unreachable.",
+			"两边显示": "Both",
+			"仅侧边栏": "Sidebar only",
+			"仅设置": "Settings only",
+			"在侧边栏显示 MCP连接器": "Show MCP Connector in the sidebar",
+			"关闭后只隐藏入口，不影响已连接的 MCP Server 和工具。": "Turning this off only hides the shortcut. Connected MCP servers and tools remain available.",
+			"侧边栏入口当前显示。": "The sidebar shortcut is visible.",
+			"入口已隐藏，仍可从这里打开 MCP连接器。": "The shortcut is hidden. You can still open MCP Connector here.",
+			"当前设置页只读。": "This settings page is read-only.",
+			"正在保存…": "Saving…",
+			"设置未保存，请重试。": "The setting was not saved. Please try again.",
+			"恢复默认": "Reset",
+			"打开 MCP连接器": "Open MCP Connector",
+			"展开 MCP连接器设置": "Expand MCP Connector settings",
+			"收起 MCP连接器设置": "Collapse MCP Connector settings",
+			"{label} 更新接口版本不兼容": "{label} update API version is incompatible",
+			"{label} 未返回更新任务编号": "{label} did not return an update operation id",
+			"{label} 不支持回滚": "{label} does not support rollback",
+			"{label} 不支持重启": "{label} does not support restart",
+			"更新任务排队中…": "Update queued…",
+			"正在更新 {percent}%": "Updating {percent}%",
+			"正在更新：{phase}": "Updating: {phase}",
+			"正在更新…": "Updating…",
+			"有任务正在运行，请结束后重试": "A task is still running. Try again once it finishes.",
+			"插件市场正在处理其他任务": "The plugin marketplace is busy with another task.",
+			"新版本处于发布安全等待期（约 24 小时）": "The new release is in its 24-hour safety hold.",
+			"镜像尚未同步完整安装包": "The mirror has not synced the complete package yet.",
+			"下载后版本未变化": "The version did not change after download.",
+			"已阻止版本降级": "The downgrade was blocked.",
+			"下载版本与预期不一致": "The downloaded version does not match the expected version.",
+			"更新服务未返回有效版本": "The update service did not return a valid version.",
+			"更新超时": "The update timed out.",
+			"更新请求被拒绝": "The update request was rejected.",
+			"无法执行本次更新": "This update could not be performed.",
+			"更新失败": "Update failed",
+			"更新服务报告成功，但未返回有效的已安装版本": "The update service reported success but returned no valid installed version.",
+			"更新服务将插件从 v{before} 降级到 v{installed}": "The update service downgraded the plugin from v{before} to v{installed}.",
+			"预期安装 v{expected}，更新服务实际安装了 v{installed}": "Expected v{expected}, but the update service installed v{installed}.",
+			"Prompt 不能为空": "Prompt cannot be empty",
+			"请先选择一个工作空间，再使用示例 Prompt": "Select a workspace before using a sample prompt",
+			"当前 DSH 版本没有可用的工作区会话创建能力，请升级 DSH 后重试": "This DSH version cannot create workspace sessions. Upgrade DSH and try again.",
+			"DSH 对话服务尚未就绪，请稍后重试": "The DSH conversation service is not ready yet. Try again shortly.",
+			"当前 DSH 版本没有可用的草稿或会话导航能力，请升级 DSH 后重试": "This DSH version cannot prepare drafts or navigate sessions. Upgrade DSH and try again.",
+			"会话跳转已取消，请重试": "Session navigation was cancelled. Try again.",
+			"草稿暂时无法写入，请稍后重试": "The draft cannot be prepared right now. Try again shortly.",
+			"无效的 Prompt 请求": "Invalid prompt request",
+			"已带入新会话": "Added to a new session",
+			"正在启动更新…": "Starting the update…",
+			"暂时无法读取进度，正在重试": "Progress is temporarily unavailable. Retrying…",
+			"立即更新（跳过等待）": "Update now (skip the wait)",
+			"强制重试": "Force retry",
+			"重试更新": "Retry update",
+			"检测到异常版本，正在自动回滚…": "An unexpected version was detected. Rolling back automatically…",
+			"查看更新方式": "See update options",
+			"当前版本 v{current}，发现新版本 v{target}": "Current version v{current}, new version v{target}",
+			"暂时无法确认 MCP 连接器是否有新版本。": "Could not check whether a new MCP Connector version is available.",
+			"重新检查失败，显示上次发现的版本。": "The check failed. Showing the previously found version.",
+			"重新检查": "Check again",
+			"查看手动升级命令": "View manual upgrade command",
+			"去插件页更新": "Update on plugin page",
+
+			"npm 尚未确认此版本，暂时无法提供升级命令。": "An upgrade command will be available once npm confirms this version.",
+			"从插件页更新": "Update from the plugin page",
+			"请打开侧栏“插件” → “已安装” → dsh-mcp-connector，查看当前可用的更新。": "Open Plugins in the sidebar, select Installed, and choose dsh-mcp-connector to see available updates.",
+			"未能打开插件详情页。": "Could not open the plugin details page. ",
+			"请打开侧栏“插件” → “已安装” → dsh-mcp-connector，然后点击“更新到 v{version}”。": "Open Plugins in the sidebar, select Installed, choose dsh-mcp-connector, then click Update to v{version}.",
+			"已回滚": "Rolled back",
+			"已阻止异常版本并回滚": "Blocked the unexpected version and rolled back",
+			"已安装 v{version}": "Installed v{version}",
+			"回滚失败": "Rollback failed",
+			"正在重启…": "Restarting…",
+			"正在等待 DSH 重启…": "Waiting for DSH to restart…",
+			"还没确认 DSH 已完成重启，可以点『重新连接』再试一次。": "We can’t yet confirm that DSH has restarted. Select “Reconnect” to try again.",
+			"重新连接": "Reconnect",
+			"立即重启": "Restart now",
+			"重启由 {managedBy} 管理": "Restart is managed by {managedBy}",
+			"宿主": "the Host",
+			"请重启 DSH Desktop": "Restart DSH Desktop",
+			"请重启 DSH": "Restart DSH",
+			"刷新生效": "Refresh to apply",
+			"正在回滚…": "Rolling back…",
+			"重试回滚": "Retry rollback",
+			"回滚": "Roll back",
+			"更新服务调用失败": "The update service call failed",
+			"正在准备更新…": "Preparing the update…",
+			"由 {provider} 安全更新到 v{version}": "Update safely to v{version} via {provider}",
+			"更新服务": "the update service",
+			"更新到 v{version}": "Update to v{version}",
+			"更新到提交 {commit}": "Update to commit {commit}",
+			"使用 Web 启动时的终端": "Use the terminal where you started the Web app",
+			"查看升级方式": "View upgrade methods",
+			"暂时无法确认能否直接更新": "Could not confirm whether direct updating is available.",
+			"仍未能确认能否直接更新": "Still unable to confirm whether direct updating is available.",
+			"当前 Web 环境需要手动升级": "This Web environment requires a manual upgrade.",
+			"请在原来的插件目录更新文件，然后重启 DSH 加载新版本。": "Update the files in the original plugin directory, then restart DSH to load the new version.",
+			"请通过宿主的插件管理器更新此插件。": "Update this plugin using the host's plugin manager.",
+			"当前插件需通过本地目录升级": "Update this plugin from its local checkout.",
+			"当前插件由宿主管理": "This plugin is managed by the host.",
+			"上次检查时，v{version} 可以直接更新。": "Direct updating to v{version} was available at the last successful check.",
+			"手动升级方式": "Manual upgrade instructions",
+			"重试": "Retry",
+			"正在确认能否直接更新…": "Checking whether direct updating is available…",
+			"正在校验安装条件…": "Checking installation requirements…",
+			"收起升级方式": "Hide upgrade methods",
+			"一键更新到 v{version}": "Update to v{version}",
+			"v{version} 已安装，重启后生效": "v{version} is installed and takes effect after a restart",
+			"已复制": "Copied",
+			"复制升级命令": "Copy upgrade command",
+			"无法写入剪贴板，请点击上方命令全选后手动复制": "Could not write to the clipboard. Click the command above to select it, then copy it manually.",
+			"查看 npm": "View on npm",
+			"宿主未提供 profile 信息": "The host did not provide profile information.",
+			"读取当前 profile 失败": "Could not read the current profile.",
+			"宿主未返回有效的 profile 名称": "The host did not return a valid profile name.",
+			"已读取的 profile：{name}": "Detected profile: {name}",
+			"该 profile 名称为保留名称，不能自动生成升级命令": "This profile name is reserved, so an upgrade command cannot be generated automatically.",
+			"该 profile 名称含首尾空白，不能自动生成升级命令": "This profile name has leading or trailing whitespace, so an upgrade command cannot be generated automatically.",
+			"该 profile 名称不符合命令规则：须以字母或数字开头，且仅包含字母、数字、点、下划线或短横线": "To generate a command, the profile name must start with a letter or digit and contain only letters, digits, dots, underscores or hyphens.",
+			"未取得有效的目标版本，请点击“检查更新”后重试": "No valid target version was received. Click Check for updates and try again.",
+			"默认安装方式": "Default installation type",
+			"请选择安装方式": "Select an installation type",
+			"默认 Web（web）": "Default Web (web)",
+			"默认 Desktop（desktop）": "Default Desktop (desktop)",
+			"仅适用于默认安装；自定义部署请使用实际 profile": "For default installations only; custom deployments must use their actual profile.",
+			"查看更新说明": "View update instructions",
+			"正在检查插件版本": "Checking the plugin version",
+			"当前版本 v{version}": "Current version v{version}",
+			"上次检查：{time}": "Last checked: {time}",
+			"尚未完成版本检查": "No version check has run yet",
+			"正在检查更新…": "Checking for updates…",
+			"检查更新": "Check for updates",
+			"插件 API 不可用，请检查 DSH 宿主兼容性或服务日志": "The plugin API is unavailable. Check DSH host compatibility or the service log.",
+			"暂时无法确认 npm 最新版本，请重试": "Cannot confirm the latest npm version right now. Please try again.",
+			"GitHub Release 已发布，等待 npm 同步后即可更新": "The GitHub release is published. Updating becomes available once npm syncs.",
+			"v{version} 正在同步": "Syncing v{version}",
+			"返回会话": "Back to session",
+			"关闭 MCP连接器": "Close MCP Connector",
+		});
+		const DEFAULT_LOCALE = "zh-CN";
+		/** 当前生效语言：可选宿主服务驱动，缺省中文。 */
+		let activeLocale = DEFAULT_LOCALE;
+		const localeListeners = new Set();
+		const localeSnapshot = () => activeLocale;
+		const subscribeLocale = (listener) => {
+			localeListeners.add(listener);
+			return () => localeListeners.delete(listener);
+		};
+		function setActiveLocale(locale) {
+			if (locale === activeLocale) return;
+			activeLocale = locale;
+			for (const listener of localeListeners) listener();
+		}
+		function useLocale() {
+			return (0, react.useSyncExternalStore)(subscribeLocale, localeSnapshot, localeSnapshot);
+		}
+
+		/**
+		 * 归一化语言标签：`zh` / `zh_CN` / `zh-Hans-CN` → `'zh-CN'`，
+		 * `en` / `en-US` / `EN` → `'en'`；其它一律返回 undefined（由调用方回退）。
+		 *
+		 * @param {unknown} value 待归一化的标签
+		 * @returns {"zh-CN"|"en"|undefined} 支持的语言 id
+		 */
+		function normalizeLocale(value) {
+			if (typeof value !== "string") return undefined;
+			const tag = value.trim().toLowerCase();
+			if (tag === "") return undefined;
+			const [primary] = tag.split(/[-_]/);
+			if (primary === "zh") return "zh-CN";
+			if (primary === "en") return "en";
+			return undefined;
+		}
+
+		/**
+		 * `{name}` 占位符插值，行为与 `lib/i18n` 的 `interpolate()` 一致：只替换
+		 * 调用方显式提供的字段，缺失的占位符保持字面量，便于测试断言漏传参数。
+		 *
+		 * @param {string} template 含 `{name}` 的模板
+		 * @param {Record<string, unknown>} [params] 插值字段
+		 * @returns {string} 插值结果
+		 */
+		function interpolate(template, params) {
+			if (typeof template !== "string" || template === "") return "";
+			if (params === void 0 || params === null || typeof params !== "object") return template;
+			return template.replace(/\{([A-Za-z][A-Za-z0-9_]*)\}/g, (token, name) => {
+				const value = params[name];
+				return value === void 0 || value === null ? token : String(value);
+			});
+		}
+
+		/**
+		 * 翻译函数。
+		 *
+		 * @param {string} msgid 中文原文
+		 * @param {Record<string, unknown>} [params] `{name}` 插值字段
+		 * @returns {string} 当前语言文案；缺译文回退中文原文
+		 */
+		function t(msgid, params) {
+			const key = typeof msgid === "string" ? msgid : String(msgid ?? "");
+			const template = activeLocale === DEFAULT_LOCALE
+				? key
+				: Object.hasOwn(MESSAGES_EN, key) ? MESSAGES_EN[key] : key;
+			return interpolate(template, params);
+		}
+
+		/**
+		 * 读取 DSH 的 `locale` 服务。该服务是**可选**依赖（见
+		 * docs/DESIGN-issue-63-sidebar-visibility.md §6.6）：缺失或抛错时返回
+		 * undefined，插件照常加载并回退中文，绝不把本地化变成硬依赖。
+		 *
+		 * @param {any} ctx 客户端上下文
+		 * @returns {"zh-CN"|"en"|undefined} 服务报告的语言
+		 */
+		function localeFromService(ctx) {
+			try {
+				// Public optional-service lookup: never read an uninjected ctx.locale property.
+				const service = ctx?.get?.("locale");
+				const active = typeof service?.getSnapshot === "function" ? service.getSnapshot()?.active
+					: typeof service?.getLocale === "function" ? service.getLocale()?.active : undefined;
+				return normalizeLocale(active);
+			} catch (error) {
+				console.warn("[mcp-connector] locale service unavailable:", error);
+				return undefined;
+			}
+		}
+
+		/**
+		 * 生效语言：只认宿主语言服务。服务缺失或抛错时回退中文默认——本地化
+		 * 能力不能成为 bundle 的硬依赖（docs/DESIGN-issue-63-sidebar-visibility.md §6.6）。
+		 * 面板 URL 始终携带客户端默认语言，避免旧的 Host 启动快照覆盖当前选择：
+		 * `/mcp-connector/ui/?locale=zh-CN` 或 `?locale=en`。
+		 *
+		 * @param {any} ctx 客户端上下文
+		 * @returns {"zh-CN"|"en"} 生效语言
+		 */
+		function resolveLocaleId(ctx) {
+			return localeFromService(ctx) ?? DEFAULT_LOCALE;
+		}
+
+		/**
+		 * 面板 URL：中英文均追加 `?locale=`；这只是默认值，不覆盖面板主动选择。
+		 * 服务不可用时面板自身回退中文。
+		 *
+		 * @param {unknown} locale 语言（可传未归一化的标签）
+		 * @returns {string} iframe 地址
+		 */
+		function marketIframeSrc(locale) {
+			const base = window.location.origin + "/mcp-connector/ui/";
+			const normalized = normalizeLocale(locale);
+			return `${base}?locale=${encodeURIComponent(normalized ?? DEFAULT_LOCALE)}`;
+		}
+
+		const PROMPT_REQUEST_TYPE = "mcp-connector:start-session";
+		const PROMPT_RESULT_TYPE = "mcp-connector:start-session-result";
+		const WORKSPACE_CONTEXT_REQUEST_TYPE = "mcp-connector:workspace-context-request";
+		const WORKSPACE_CONTEXT_RESULT_TYPE = "mcp-connector:workspace-context";
+		const HOST_LOCALE_REQUEST_TYPE = "mcp-connector:host-locale-request";
+		const HOST_LOCALE_TYPE = "mcp-connector:host-locale";
+		const VERSION_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1e3;
+		const VERSION_CHECK_RETRY_MS = 5 * 60 * 1e3;
+		const WEB_OFFER_REUSE_MS = 60 * 1e3;
+		const NPM_PACKAGE_URL = "https://www.npmjs.com/package/@sdkwork/dsh-mcp-connector";
+		const PLUGIN_UPDATE_GUIDE_URL = "";
+		const PLUGIN_PACKAGE_NAME = "@sdkwork/dsh-mcp-connector";
+		const CONNECTOR_SETTINGS_NAMESPACE = "mcp-connector";
+		const SHOW_SIDEBAR_ENTRY_FIELD = "showSidebarEntry";
+		const ENTRY_LOCATION_FIELD = "entryLocation";
+		const ENTRY_LOCATIONS = Object.freeze(["both", "sidebar", "settings"]);
+		/** 全新安装默认档位：与旧 showSidebarEntry=true 的实际行为一致。 */
+		const DEFAULT_ENTRY_LOCATION = "both";
+		const CONNECTOR_MODAL_Z_INDEX = 1100;
+		const UPDATE_PROVIDER_OPERATION_POLL_MS = 1e3;
+		// Session storage is per origin and tab. Only carry a user-initiated update across a shell reload.
+		const WEB_RETURN_KEY = "dsh-mcp-connector:update-return:v1";
+		const WEB_RETURN_TTL = 15 * 60 * 1000;
+		function readWebUpdateReturn() {
+			if (window.dshDesktop) return null;
+			try {
+				const value = JSON.parse(window.sessionStorage?.getItem(WEB_RETURN_KEY) ?? "null");
+				const age = Date.now() - value?.at;
+				if (age >= 0 && age < WEB_RETURN_TTL && ["panel", "modal"].includes(value.surface)
+					&& ["install", "restart", "return"].includes(value.phase)) return value;
+			} catch { /* Storage can be unavailable in an embedded browser. */ }
+			return null;
+		}
+		function writeWebUpdateReturn(value) {
+			try {
+				if (!window.sessionStorage) return false;
+				if (value) window.sessionStorage.setItem(WEB_RETURN_KEY, JSON.stringify({ ...value, at: Date.now() }));
+				else window.sessionStorage.removeItem(WEB_RETURN_KEY);
+				return true;
+			} catch { return false; }
+		}
+		const UPDATE_PROVIDER_ADAPTERS = Object.freeze([
+			createHttpUpdateProviderAdapter({
+				id: "dsh-market-v1",
+				label: "DSH Market",
+				schema: "dsh-market/update-api/v1",
+				apiVersion: 1,
+				capabilitiesUrl: "/dsh-market/api/v1/capabilities"
+			})
+		]);
+
+		/**
+		 * DSH 0.1.x 的 sidebar.footer.action 兼容入口样式。新版宿主使用
+		 * sidebar.panellist 原生行，不会安装本段 CSS。兼容适配器只样式化
+		 * 本插件节点，不改写公共槽位或其它插件子项（#124）。
+		 */
+		const SIDEBAR_STYLE_ID = "dsh-mcp-connector-sidebar";
+		const sidebarCss = `
+.mcpConnectorLauncher {
+	flex: none;
+	display: flex;
+	align-items: center;
+	box-sizing: border-box;
+	width: 100%;
+	height: 42px;
+	margin: 4px 0;
+	padding: 0 var(--dsh-sidebar-inline-padding, 12px);
+	gap: 8px;
+	justify-content: flex-start;
+	overflow: hidden;
+	border: 0;
+	border-radius: 12px;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.mcpConnectorLauncher[data-placement="footer"] {
+	flex: 1 1 0;
+	width: auto;
+	min-width: 0;
+	max-width: 100%;
+}
+
+.mcpConnectorLauncher:hover {
+	background: rgba(127, 127, 127, 0.12);
+	outline: none;
+}
+
+.mcpConnectorLauncher:focus-visible {
+	background: rgba(127, 127, 127, 0.12);
+	outline: 2px solid currentColor;
+	outline-offset: -2px;
+}
+
+.mcpConnectorLauncherIcon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 20px;
+	width: 20px;
+	height: 20px;
+	color: inherit;
+}
+
+.mcpConnectorLauncherIcon > svg {
+	display: block;
+	width: 18px;
+	height: 18px;
+}
+
+.mcpConnectorLauncherLabel {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.mcpConnectorLauncher[data-wide="false"] {
+	flex: none;
+	width: 36px;
+	height: 36px;
+	margin: 8px 0 10px;
+	padding: 0;
+	justify-content: center;
+	border-radius: 50%;
+}
+
+.mcpConnectorTopMount {
+	flex: none;
+	min-width: 0;
+	width: 100%;
+}
+
+.mcpConnectorTopEntry {
+	box-sizing: border-box;
+	width: 100%;
+	padding-right: var(--dsh-sidebar-inline-padding, 12px);
+}
+
+.mcpConnectorTopEntry .mcpConnectorLauncher {
+	width: 100%;
+	margin: 0 0 8px;
+}
+
+.mcpConnectorTopEntry[data-wide="false"] {
+	width: 36px;
+	padding-right: 0;
+}
+
+.mcpConnectorTopEntry[data-wide="false"] .mcpConnectorLauncher {
+	margin: 0 0 8px;
+}
+`;
+		const OVERLAY_STYLE_ID = "dsh-mcp-connector-overlay";
+		const overlayCss = `
+
+.mcpConnectorMarketPanel { background: #ffffff; color: #111827; }
+.mcpConnectorMarketHeader { border-color: #e5e7eb; }
+.mcpConnectorMarketTitle { color: #111827; }
+.mcpConnectorMarketIcon {
+	display: inline-flex;
+	align-items: center;
+	color: inherit;
+}
+.mcpConnectorMarketIcon > svg {
+	display: block;
+	width: 18px;
+	height: 18px;
+}
+.mcpConnectorVersion {
+	color: #6b7280;
+	background: #f3f4f6;
+	border-radius: 999px;
+	padding: 2px 8px;
+	font-size: 12px;
+	font-weight: 600;
+}
+.mcpConnectorUpdateButton {
+	color: #4338ca;
+	background: #eef2ff;
+	border: 1px solid #c7d2fe;
+	border-radius: 8px;
+	padding: 5px 9px;
+	font: inherit;
+	font-size: 12px;
+	font-weight: 600;
+	cursor: pointer;
+}
+.mcpConnectorUpdateButton:hover,
+.mcpConnectorUpdateButton:focus-visible {
+	background: #e0e7ff;
+	outline: 2px solid #6366f1;
+	outline-offset: 1px;
+}
+.mcpConnectorUpdateButton:disabled {
+	opacity: 0.65;
+	cursor: wait;
+}
+.mcpConnectorUpdateControls {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+}
+.mcpConnectorManualUpdate {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+	flex: 1 1 360px;
+}
+.mcpConnectorUpdateGroup, .mcpConnectorUpdateFallback {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	max-width: 100%;
+	min-width: 0;
+}
+.mcpConnectorUpdateGroup .mcpConnectorVersion { overflow-wrap: anywhere; min-width: 0; }
+.mcpConnectorUpdateGroup > button { flex-shrink: 0; }
+.mcpConnectorUpdateFallback {
+	align-items: flex-start;
+	flex-direction: column;
+	align-self: stretch;
+	max-height: 35%;
+	overflow: auto;
+	margin: 8px 16px;
+	padding: 8px 12px;
+	border-inline-start: 3px solid #a5a8e8;
+	background: rgba(120, 120, 155, 0.08);
+	font-size: 13px;
+}
+.mcpConnectorUpdateFallback .mcpConnectorManualUpdate { flex: initial; }
+.mcpConnectorWebNotice {
+	align-items: stretch;
+	flex-shrink: 0;
+}
+.mcpConnectorWebNotice[data-tone="unconfirmed"] {
+	border-color: #b18c47;
+	background: rgba(170, 139, 74, 0.09);
+}
+.mcpConnectorWebNoticeRow, .mcpConnectorWebNoticeActions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px 12px;
+}
+.mcpConnectorWebNoticeText { flex: 1 1 200px; }
+.mcpConnectorWebNoticeText small { display: block; font-size: 12px; margin-top: 2px; }
+.mcpConnectorUpdateButton.mcpConnectorUpdatePrimary { color: white; background: #5143ce; border-color: #5143ce; }
+.mcpConnectorUpdateLink { font: inherit; color: inherit; background: none; border: 0; text-decoration: underline; cursor: pointer; }
+.mcpConnectorUpdateHint {
+	flex-basis: 100%;
+	font-size: 12px;
+	line-height: 1.5;
+	overflow-wrap: anywhere;
+}
+.mcpConnectorProfileChoice {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+.mcpConnectorManualCommand {
+	box-sizing: border-box;
+	min-width: 0;
+	max-width: 430px;
+	overflow-x: auto;
+	padding: 5px 8px;
+	color: #374151;
+	background: #f9fafb;
+	border: 1px solid #d1d5db;
+	border-radius: 8px;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-size: 11px;
+	line-height: 1.35;
+	white-space: nowrap;
+	user-select: text;
+}
+.mcpConnectorUpdateStatus {
+	max-width: 240px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: #166534;
+	background: #f0fdf4;
+	border-radius: 999px;
+	padding: 3px 8px;
+	font-size: 12px;
+	font-weight: 600;
+}
+.mcpConnectorUpdateStatus[data-tone="error"] {
+	color: #b91c1c;
+	background: #fef2f2;
+}
+.mcpConnectorUpdateSecondary {
+	color: #4b5563;
+	background: transparent;
+	border-color: #d1d5db;
+}
+.mcpConnectorMarketClose { color: #6b7280; }
+.mcpConnectorMarketClose:hover,
+.mcpConnectorMarketClose:focus-visible {
+	background: #f3f4f6 !important;
+	color: #111827;
+	outline: 2px solid #6366f1;
+	outline-offset: 1px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.mcpConnectorMarketPanel { background: #1b1e25; color: #f3f4f6; }
+	.mcpConnectorMarketHeader { border-color: #30343d; }
+	.mcpConnectorMarketTitle { color: #f3f4f6; }
+	.mcpConnectorVersion { color: #d1d5db; background: #30343d; }
+	.mcpConnectorUpdateButton { color: #c7d2fe; background: #312e81; border-color: #4f46e5; }
+	.mcpConnectorUpdateButton:hover,
+	.mcpConnectorUpdateButton:focus-visible { background: #3730a3; }
+	.mcpConnectorUpdateStatus { color: #bbf7d0; background: #14532d; }
+	.mcpConnectorUpdateStatus[data-tone="error"] { color: #fecaca; background: #7f1d1d; }
+	.mcpConnectorManualCommand { color: #e5e7eb; background: #111827; border-color: #4b5563; }
+	.mcpConnectorUpdateSecondary { color: #d1d5db; background: transparent; border-color: #4b5563; }
+	.mcpConnectorMarketClose { color: #c4c8d0; }
+	.mcpConnectorMarketClose:hover,
+	.mcpConnectorMarketClose:focus-visible { background: #30343d !important; color: #ffffff; }
+}
+`;
+		const SETTINGS_STYLE_ID = "dsh-mcp-connector-settings";
+		const settingsCss = `
+.mcpConnectorSettingsCard {
+	border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28));
+	background: var(--dsw-alias-bg-layer-3, transparent);
+	border-radius: 12px;
+	list-style: none;
+}
+.mcpConnectorSettingsCard[data-open="true"] {
+	background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.06));
+	border-color: var(--dsw-alias-label-dimmed, rgba(127, 127, 127, 0.5));
+}
+.mcpConnectorSettingsHeader {
+	appearance: none;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	width: 100%;
+	padding: 14px 16px;
+	border: 0;
+	border-radius: 12px;
+	color: inherit;
+	background: transparent;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+.mcpConnectorSettingsHeader:focus-visible,
+.mcpConnectorSettingsButton:focus-visible,
+.mcpConnectorSettingsSwitch:focus-visible {
+	outline: 2px solid var(--dsw-alias-brand-primary, currentColor);
+	outline-offset: 2px;
+}
+.mcpConnectorSettingsHeadText {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+.mcpConnectorSettingsName {
+	color: var(--dsw-alias-label-primary, inherit);
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.4;
+}
+.mcpConnectorSettingsDescription,
+.mcpConnectorSettingsHint,
+.mcpConnectorSettingsState {
+	color: var(--dsw-alias-label-tertiary, rgba(127, 127, 127, 0.9));
+	font-size: 13px;
+	line-height: 1.5;
+}
+.mcpConnectorSettingsChevron {
+	flex: none;
+	color: var(--dsw-alias-label-tertiary, currentColor);
+	font-size: 16px;
+	transition: transform 0.16s;
+}
+.mcpConnectorSettingsCard[data-open="true"] .mcpConnectorSettingsChevron {
+	transform: rotate(180deg);
+}
+.mcpConnectorSettingsBody {
+	margin: 0 16px;
+	padding: 14px 0 10px;
+	border-top: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28));
+}
+.mcpConnectorSettingsRow {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 18px;
+}
+.mcpConnectorSettingsLabel {
+	display: block;
+	color: var(--dsw-alias-label-primary, inherit);
+	font-size: 14px;
+	font-weight: 600;
+}
+.mcpConnectorSettingsHint {
+	display: block;
+	margin-top: 5px;
+}
+.mcpConnectorSettingsSegments {
+	display: inline-flex;
+	flex: none;
+	gap: 2px;
+	padding: 3px;
+	border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28));
+	border-radius: 9px;
+	background: var(--dsw-alias-fill-secondary, rgba(127, 127, 127, 0.14));
+}
+.mcpConnectorSettingsSegment {
+	appearance: none;
+	padding: 4px 12px;
+	border: 0;
+	border-radius: 7px;
+	color: var(--dsw-alias-label-secondary, inherit);
+	background: transparent;
+	font: inherit;
+	font-size: 12.5px;
+	line-height: 18px;
+	white-space: nowrap;
+	cursor: pointer;
+	transition: background 0.16s, color 0.16s;
+}
+.mcpConnectorSettingsSegment[data-active="true"] {
+	color: var(--dsw-alias-label-primary, inherit);
+	background: var(--dsw-alias-bg-layer-3, rgba(127, 127, 127, 0.22));
+	font-weight: 600;
+}
+.mcpConnectorSettingsSegment:disabled { cursor: default; opacity: 0.55; }
+.mcpConnectorSettingsSegment:focus-visible {
+	outline: 2px solid var(--dsw-alias-brand-primary, currentColor);
+	outline-offset: 1px;
+}
+.mcpConnectorSettingsFooter {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 14px;
+	padding-top: 12px;
+	border-top: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28));
+}
+.mcpConnectorSettingsState {
+	flex: 1 1 210px;
+	margin: 0;
+}
+.mcpConnectorSettingsState[data-tone="error"] {
+	color: var(--dsw-alias-label-error, #b91c1c);
+}
+.mcpConnectorSettingsButton {
+	appearance: none;
+	padding: 6px 12px;
+	border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28));
+	border-radius: 8px;
+	color: var(--dsw-alias-label-secondary, inherit);
+	background: transparent;
+	font: inherit;
+	font-size: 13px;
+	cursor: pointer;
+}
+.mcpConnectorSettingsButton[data-primary="true"] {
+	border-color: transparent;
+	color: var(--dsw-alias-bg-layer-3, #ffffff);
+	background: var(--dsw-alias-label-primary, #111827);
+}
+.mcpConnectorSettingsButton:disabled {
+	cursor: default;
+	opacity: 0.45;
+}
+@media (max-width: 520px) {
+	.mcpConnectorSettingsRow { grid-template-columns: 1fr; }
+	.mcpConnectorSettingsFooter .mcpConnectorSettingsButton { flex: 1 1 140px; }
+}
+`;
+		const SIDEBAR_WORKSPACES_SELECTOR = '[data-slot="sidebar.workspaces"]';
+		const TOP_MOUNT_SELECTOR = '[data-mcp-connector-top-mount="true"]';
+
+		function installStyles(id, css) {
+			if (document.querySelector(`style[data-plugin="${id}"]`) !== null) return () => {};
+			const style = document.createElement("style");
+			style.dataset.plugin = id;
+			style.textContent = css;
+			document.head.append(style);
+			return () => { style.remove(); };
+		}
+
+		function installSidebarStyles() {
+			return installStyles(SIDEBAR_STYLE_ID, sidebarCss);
+		}
+
+		function installOverlayStyles() {
+			return installStyles(OVERLAY_STYLE_ID, overlayCss);
+		}
+
+		function installSettingsStyles() {
+			return installStyles(SETTINGS_STYLE_ID, settingsCss);
+		}
+
+		/**
+		 * DSH rc.7 没有公开的「新会话与工作区之间」插槽。插件仍注册在公开的
+		 * footer list slot 中保证生命周期与降级可用，再把实际按钮 Portal 到
+		 * sidebar.workspaces 前。只依赖稳定的 data-slot，不依赖构建生成的 CSS 类名。
+		 */
+		function ensureTopLauncherMount() {
+			const workspaceSlot = document.querySelector(SIDEBAR_WORKSPACES_SELECTOR);
+			const parent = workspaceSlot?.parentElement;
+			if (workspaceSlot === null || parent === null || parent === void 0) return null;
+			let mount = parent.querySelector(TOP_MOUNT_SELECTOR);
+			if (mount === null) {
+				mount = document.createElement("div");
+				mount.dataset.mcpConnectorTopMount = "true";
+				mount.className = "mcpConnectorTopMount";
+			}
+			if (mount.nextSibling !== workspaceSlot) parent.insertBefore(mount, workspaceSlot);
+			return mount;
+		}
+
+		function versionApiFailureMessage(status) {
+			const prefix = t("插件版本检查 API 不可用");
+			if (status === 401) return t("{prefix}（HTTP 401）：请重新登录 DSH 后重试", { prefix });
+			if (status === 403) return t("{prefix}（HTTP 403）：请检查 DSH 可信访问地址及反向代理 Host/Origin 配置，不要关闭安全校验", { prefix });
+			if (status === 404) return t("{prefix}（HTTP 404）：请检查插件路由是否加载，以及反向代理是否转发 /mcp-connector/api", { prefix });
+			if (Number.isInteger(status) && status >= 400 && status <= 599) return t("{prefix}（HTTP {status}）：请检查 DSH 服务和反向代理日志", { prefix, status });
+			return t("{prefix}：响应格式不正确，请检查登录状态、反向代理和插件版本兼容性", { prefix });
+		}
+
+		async function fetchVersionStatus(force = false, signal) {
+			const response = await window.fetch("/mcp-connector/api", {
+				method: "POST",
+				signal,
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify({ method: "versionStatus", params: { force } })
+			});
+			// Classify HTTP errors before parsing: a proxy may return an HTML login/error page.
+			if (!response.ok) throw new Error(versionApiFailureMessage(response.status));
+			let result;
+			try { result = await response.json(); }
+			catch { throw new Error(versionApiFailureMessage()); }
+			if (result?.ok !== true || !result.detail || typeof result.detail !== "object" || Array.isArray(result.detail)) {
+				throw new Error(versionApiFailureMessage());
+			}
+			return result.detail;
+		}
+
+		/**
+		 * 更新 Provider 只能广告当前 DSH 页面的同源端点。这个边界既避免
+		 * Connector 跨域传递安装指令，也使后续市场适配器可复用同一客户端。
+		 */
+		function sameOriginProviderEndpoint(value) {
+			if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) return null;
+			try {
+				const url = new URL(value, window.location.origin);
+				if (url.origin !== window.location.origin || url.search !== "" || url.hash !== "") return null;
+				return url.pathname;
+			} catch {
+				return null;
+			}
+		}
+
+		/**
+		 * 把一个版本化的同源 HTTP 更新协议适配为 Connector 内部通用能力。
+		 * UI 不接触供应商路由或响应封装；新市场只需新增适配器。
+		 */
+		function createHttpUpdateProviderAdapter(options) {
+			const { id, label, schema, apiVersion, capabilitiesUrl } = options;
+			async function readResponse(response) {
+				let result;
+				try {
+					result = await response.json();
+				} catch {
+					result = null;
+				}
+				if (!response.ok) {
+					const error = new Error(result?.error ?? result?.failure?.message ?? `HTTP ${response.status}`);
+					error.code = result?.failure?.code ?? `HTTP_${response.status}`;
+					error.retryable = result?.failure?.retryable === true;
+					throw error;
+				}
+				if (result?.schema !== schema) throw new Error(t("{label} 更新接口版本不兼容", { label }));
+				return result;
+			}
+
+			async function post(path, body) {
+				return readResponse(await window.fetch(path, {
+					method: "POST",
+					headers: { accept: "application/json", "content-type": "application/json" },
+					body: JSON.stringify(body)
+				}));
+			}
+
+			return Object.freeze({
+				id,
+				label,
+				async probe(signal) {
+					const response = await window.fetch(capabilitiesUrl, { headers: { accept: "application/json" }, cache: "no-store", signal });
+					if (response.status === 404) return null;
+					const result = await readResponse(response);
+					const incompatible = () => new Error(t("{label} 更新接口版本不兼容", { label }));
+					if (result.apiVersion !== apiVersion || typeof result.features?.update !== "boolean") throw incompatible();
+					if (!result.features.update) return null;
+					const endpoints = {
+						updates: sameOriginProviderEndpoint(result.endpoints?.updates),
+						operations: sameOriginProviderEndpoint(result.endpoints?.operations),
+						rollback: sameOriginProviderEndpoint(result.endpoints?.rollback),
+						restart: sameOriginProviderEndpoint(result.endpoints?.restart)
+					};
+					if (endpoints.updates === null || endpoints.operations === null) throw incompatible();
+					if (result.features?.rollback === true && endpoints.rollback === null) throw incompatible();
+					if (result.restart?.supported === true && endpoints.restart === null) throw incompatible();
+					return {
+						providerId: id,
+						providerLabel: label,
+						bootId: typeof result.bootId === "string" ? result.bootId : null,
+						runtime: result.runtime,
+						features: result.features,
+						restart: result.restart,
+						endpoints
+					};
+				},
+				async check(capabilities, packageName, force = false) {
+					const query = new URLSearchParams({ name: packageName });
+					if (force) query.set("force", "1");
+					const result = await readResponse(await window.fetch(`${capabilities.endpoints.updates}?${query}`, {
+						headers: { accept: "application/json" }
+					}));
+					return result.package;
+				},
+				async start(capabilities, packageName, force = false) {
+					const result = await post(capabilities.endpoints.updates, {
+						packageName,
+						...(force ? { force: true } : {})
+					});
+					if (typeof result.operation?.operationId !== "string") {
+						throw new Error(t("{label} 未返回更新任务编号", { label }));
+					}
+					return result.operation;
+				},
+				async operation(capabilities, operationId) {
+					const query = new URLSearchParams({ operationId });
+					const result = await readResponse(await window.fetch(`${capabilities.endpoints.operations}?${query}`, {
+						headers: { accept: "application/json" }
+					}));
+					return result.operation;
+				},
+				async rollback(capabilities, operationId) {
+					if (capabilities.endpoints.rollback === null) throw new Error(t("{label} 不支持回滚", { label }));
+					const result = await post(capabilities.endpoints.rollback, { operationId });
+					return result.operation;
+				},
+				async restart(capabilities) {
+					if (capabilities.endpoints.restart === null) throw new Error(t("{label} 不支持重启", { label }));
+					return post(capabilities.endpoints.restart, {});
+				}
+			});
+		}
+
+		// Market's Git-source protocol identifies the installable target by its full object ID.
+		function providerGitCommit(update) {
+			return update?.source === "github" && typeof update.latestVersion === "string"
+				&& /^[0-9a-f]{40}(?:[0-9a-f]{24})?$/i.test(update.latestVersion) ? update.latestVersion : null;
+		}
+
+		function offerAlreadyRunning(offer, runningVersion) {
+			if (offer?.updateAvailable !== true) return false;
+			const difference = compareClientVersions(offer.latestVersion, runningVersion);
+			return difference !== null && difference <= 0;
+		}
+
+		async function discoverUpdateProvider(packageName, force = false) {
+			let unconfirmed = null;
+			for (const provider of UPDATE_PROVIDER_ADAPTERS) {
+				try {
+					const capabilities = await provider.probe();
+					if (capabilities === null) continue;
+					const update = await provider.check(capabilities, packageName, force);
+					const installed = parseClientVersion(update?.installedVersion);
+					const latest = parseClientVersion(update?.latestVersion);
+					const commit = providerGitCommit(update);
+					const matchesPackage = update?.name === undefined || update.name === packageName;
+					// The v1 start endpoint cannot restore a linked checkout or update a host-managed generation.
+					if (!window.dshDesktop && matchesPackage && typeof update?.updateAvailable === "boolean"
+						&& (update.source === "linked" || update.source === "generation") && (!update.updateAvailable || latest)) {
+						return { state: update.source, provider, capabilities, update };
+					}
+					if (!matchesPackage || typeof update?.updateAvailable !== "boolean" || (!latest && !commit) ||
+						(update.updateAvailable && latest && installed && compareClientVersions(latest.normalized, installed.normalized) <= 0)) {
+						// Market can return 200 with a null latest version when its package lookup fails.
+						// A readable installed version still lets the host report a pending restart.
+						unconfirmed = { state: "unconfirmed", provider, capabilities,
+							update: matchesPackage && update?.updateAvailable === false && installed ? update : null };
+						continue;
+					}
+					return { provider, capabilities, update };
+				} catch (error) {
+					console.warn(`[mcp-connector] ${provider.id} update provider unavailable:`, error);
+					unconfirmed ??= { state: "unconfirmed" };
+				}
+			}
+			return unconfirmed;
+		}
+
+		function updateProgressLabel(operation) {
+			if (operation?.state === "queued") return t("更新任务排队中…");
+			const percent = operation?.progress?.percent;
+			if (typeof percent === "number") return t("正在更新 {percent}%", { percent });
+			const phase = operation?.progress?.phase;
+			if (typeof phase === "string" && phase !== "") return t("正在更新：{phase}", { phase });
+			return t("正在更新…");
+		}
+
+		function updateFailureLabel(failure) {
+			const labels = {
+				AGENTS_RUNNING: t("有任务正在运行，请结束后重试"),
+				OPERATION_BUSY: t("插件市场正在处理其他任务"),
+				RELEASE_TOO_FRESH: t("新版本处于发布安全等待期（约 24 小时）"),
+				MIRROR_SYNC_PENDING: t("镜像尚未同步完整安装包"),
+				VERSION_UNCHANGED: t("下载后版本未变化"),
+				DOWNGRADE_DETECTED: t("已阻止版本降级"),
+				RESOLVED_VERSION_MISMATCH: t("下载版本与预期不一致"),
+				INVALID_UPDATE_RESULT: t("更新服务未返回有效版本"),
+				UPDATE_TIMEOUT: t("更新超时"),
+				UPDATE_FORBIDDEN: t("更新请求被拒绝"),
+				UPDATE_REJECTED: t("无法执行本次更新")
+			};
+			return labels[failure?.code] ?? failure?.message ?? t("更新失败");
+		}
+
+		function profileNameIssue(name) {
+			if (typeof name !== "string" || name === "") return "invalid-value";
+			if (name === "node_modules") return "reserved-name";
+			if (name !== name.trim()) return "name-whitespace";
+			return /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name) ? null : "name-characters";
+		}
+
+		function clientProfileInfo(status) {
+			const info = status?.profileInfo;
+			const hasInfo = info !== null && typeof info === "object" && !Array.isArray(info);
+			const name = hasInfo ? info.detectedName : status?.profileName;
+			const issue = profileNameIssue(name);
+			if (typeof name === "string" && name !== "") {
+				return { detectedName: name, status: issue === null ? "ready" : "unsupported-name", issue };
+			}
+			const reason = hasInfo && ["unavailable", "read-error", "invalid-value"].includes(info.status)
+				? info.status : name == null ? "unavailable" : "invalid-value";
+			return { detectedName: typeof name === "string" ? name : null, status: reason, issue };
+		}
+
+		function profileFailureLabel(info) {
+			const labels = {
+				unavailable: t("宿主未提供 profile 信息"),
+				"read-error": t("读取当前 profile 失败"),
+				"invalid-value": t("宿主未返回有效的 profile 名称"),
+				"reserved-name": t("该 profile 名称为保留名称，不能自动生成升级命令"),
+				"name-whitespace": t("该 profile 名称含首尾空白，不能自动生成升级命令"),
+				"name-characters": t("该 profile 名称不符合命令规则：须以字母或数字开头，且仅包含字母、数字、点、下划线或短横线")
+			};
+			return labels[info.status === "unsupported-name" ? info.issue : info.status];
+		}
+
+		function displayProfileName(name) {
+			return JSON.stringify(name).replace(/[\s\u007f-\u009f]/g, (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`);
+		}
+
+		function manualUpgradeCommand(version, profileName) {
+			const parsed = parseClientVersion(version);
+			if (parsed === null || profileNameIssue(profileName) !== null) return null;
+			return `dsh plugin --profile ${profileName} add --config.minimumReleaseAge=0 ${PLUGIN_PACKAGE_NAME}@${parsed.normalized}`;
+		}
+
+		/** 尝试写入剪贴板；失败时调用方把命令展示在页面内，不退回原生 prompt。 */
+		async function copyManualUpgradeCommand(command) {
+			const clipboard = window.navigator?.clipboard;
+			if (typeof clipboard?.writeText !== "function") return false;
+			try {
+				await clipboard.writeText(command);
+				return true;
+			} catch (error) {
+				// 桌面壳里原生弹窗关闭后不会把键盘焦点还给页面，所以这里只记录失败，
+				// 由调用方改用页面内提示 + 可一键选中的命令。
+				console.warn("[mcp-connector] clipboard write failed:", error);
+				return false;
+			}
+		}
+
+		function parseClientVersion(value) {
+			if (typeof value !== "string") return null;
+			const normalized = value.trim().replace(/^v/i, "");
+			if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(normalized)) return null;
+			const [withoutBuild] = normalized.split("+");
+			const [core, prerelease] = withoutBuild.split("-", 2);
+			return { normalized, core: core.split(".").map(Number), prerelease: prerelease?.split(".") ?? [] };
+		}
+
+		function compareClientVersions(left, right) {
+			const a = parseClientVersion(left);
+			const b = parseClientVersion(right);
+			if (a === null || b === null) return null;
+			for (let index = 0; index < 3; index += 1) {
+				if (a.core[index] !== b.core[index]) return a.core[index] - b.core[index];
+			}
+			if (a.prerelease.length === 0 && b.prerelease.length > 0) return 1;
+			if (a.prerelease.length > 0 && b.prerelease.length === 0) return -1;
+			const length = Math.max(a.prerelease.length, b.prerelease.length);
+			for (let index = 0; index < length; index += 1) {
+				const aPart = a.prerelease[index];
+				const bPart = b.prerelease[index];
+				if (aPart === void 0) return -1;
+				if (bPart === void 0) return 1;
+				if (aPart === bPart) continue;
+				const aNumeric = /^\d+$/.test(aPart);
+				const bNumeric = /^\d+$/.test(bPart);
+				if (aNumeric && bNumeric) return Number(aPart) - Number(bPart);
+				if (aNumeric) return -1;
+				if (bNumeric) return 1;
+				return aPart.localeCompare(bPart);
+			}
+			return 0;
+		}
+
+		/**
+		 * Provider 读取 profile 磁盘版本，versionStatus 来自当前运行中的插件进程。
+		 * 当磁盘版本更高且 Provider 已无后续更新时，说明安装已经完成、只差重启激活。
+		 */
+		function pendingActivationVersion(versionStatus, providerUpdateCheck) {
+			if (providerUpdateCheck?.updateAvailable !== false) return null;
+			const running = parseClientVersion(versionStatus?.installedVersion);
+			const installed = parseClientVersion(providerUpdateCheck?.installedVersion);
+			if (running === null || installed === null) return null;
+			return compareClientVersions(installed.normalized, running.normalized) > 0
+				? installed.normalized
+				: null;
+		}
+
+		/** Independently verify a provider's terminal success before asking the user to restart. */
+		function completedUpdateIntegrityFailure(operation, expectedVersion) {
+			if (operation?.state !== "succeeded") return null;
+			const installed = parseClientVersion(operation.installedVersion);
+			if (installed === null) {
+				return {
+					code: "INVALID_UPDATE_RESULT",
+					message: t("更新服务报告成功，但未返回有效的已安装版本"),
+					retryable: false
+				};
+			}
+			const before = parseClientVersion(operation.beforeVersion);
+			if (before !== null && compareClientVersions(installed.normalized, before.normalized) < 0) {
+				return {
+					code: "DOWNGRADE_DETECTED",
+					message: t("更新服务将插件从 v{before} 降级到 v{installed}", { before: before.normalized, installed: installed.normalized }),
+					retryable: false
+				};
+			}
+			const expected = parseClientVersion(expectedVersion);
+			if (expected !== null && compareClientVersions(installed.normalized, expected.normalized) !== 0) {
+				return {
+					code: "RESOLVED_VERSION_MISMATCH",
+					message: t("预期安装 v{expected}，更新服务实际安装了 v{installed}", { expected: expected.normalized, installed: installed.normalized }),
+					retryable: true
+				};
+			}
+			return null;
+		}
+
+		/**
+		 * DSH 暂未公开“打开指定设置分区”服务：只依赖稳定的 sidebar.settings
+		 * slot 和可访问文本打开插件市场。Desktop 可能根本没有市场分区，
+		 * 轮询结束后必须回退到 npm 安装说明，不能把用户留在普通设置页。
+		 */
+		function openDshPluginMarket(actions) {
+			const settingsHost = document.querySelector('[data-slot="sidebar.settings"]');
+			const settingsTrigger = settingsHost?.querySelector?.('button[aria-haspopup="dialog"]');
+			if (settingsTrigger === null || settingsTrigger === void 0) {
+				window.open(NPM_PACKAGE_URL, "_blank", "noopener,noreferrer");
+				return;
+			}
+			actions.close();
+			window.setTimeout(() => {
+				settingsTrigger.click();
+				let attempts = 0;
+				const selectMarket = () => {
+					const marketButton = [...document.querySelectorAll('[role="dialog"] nav button')].find((button) => {
+						const label = button.textContent?.trim() ?? "";
+						return /^(\u63d2\u4ef6\u5e02\u573a|Plugin Market|Plugin Marketplace)$/i.test(label);
+					});
+					if (marketButton !== void 0) {
+						marketButton.click();
+						return;
+					}
+					attempts += 1;
+					if (attempts < 20) {
+						window.setTimeout(selectMarket, 50);
+						return;
+					}
+					window.open(NPM_PACKAGE_URL, "_blank", "noopener,noreferrer");
+				};
+				window.requestAnimationFrame(selectMarket);
+			}, 0);
+		}
+
+		/**
+		 * 创建符合 DSH Slot Store contract 的本地状态句柄。
+		 * 只依赖 getSnapshot/subscribe/actions，避免不同 Host 版本的 Store
+		 * 包名或客户端模块到达顺序让整个 Desktop 进入 Safe Mode。
+		 */
+		function createMarketViewStore(openOnLoad = false) {
+			let sidebarVisible = true;
+			const liveActions = new Set();
+			const visibilityListeners = new Set();
+			const spec = {
+				init: () => ({ open: openOnLoad, detailOpen: false, sidebarVisible }),
+				actions: {
+					open: (draft) => { draft.open = true; },
+					close: (draft) => { draft.open = false; draft.detailOpen = false; },
+					detailOpened: (draft) => { draft.detailOpen = true; },
+					detailClosed: (draft) => { draft.detailOpen = false; },
+					setSidebarVisible: (draft, visible) => { draft.sidebarVisible = visible !== false; }
+				}
+			};
+			return {
+				spec,
+				getSidebarVisible() {
+					return sidebarVisible;
+				},
+				subscribeSidebarVisible(listener) {
+					visibilityListeners.add(listener);
+					return () => { visibilityListeners.delete(listener); };
+				},
+				syncSidebarVisible(visible) {
+					const next = visible !== false;
+					if (sidebarVisible === next) return;
+					sidebarVisible = next;
+					for (const actions of liveActions) actions.setSidebarVisible(sidebarVisible);
+					for (const listener of visibilityListeners) listener(sidebarVisible);
+				},
+				create() {
+					let state = spec.init();
+					const listeners = new Set();
+					const actions = {};
+					for (const [name, mutate] of Object.entries(spec.actions)) {
+						actions[name] = (...params) => {
+							const draft = { ...state };
+							mutate(draft, ...params);
+							state = draft;
+							for (const listener of listeners) listener();
+						};
+					}
+					liveActions.add(actions);
+					return {
+						actions,
+						getSnapshot: () => state,
+						subscribe(listener) {
+							listeners.add(listener);
+							return () => { listeners.delete(listener); };
+						},
+						clearPersisted() {
+							liveActions.delete(actions);
+							listeners.clear();
+						}
+					};
+				}
+			};
+		}
+
+		/**
+		 * 归一化入口展示位置；非法值回退 `sidebar`，绝不抛错。
+		 *
+		 * @param {unknown} value 设置值或配置值
+		 * @returns {"both"|"sidebar"|"settings"}
+		 */
+		function normalizeEntryLocation(value) {
+			return ENTRY_LOCATIONS.includes(value) ? value : DEFAULT_ENTRY_LOCATION;
+		}
+
+		/**
+		 * 把旧版布尔开关翻译成新枚举。
+		 *
+		 * 旧版 `showSidebarEntry: false` 的实际效果是「侧栏不显示」，对应新版的
+		 * `settings`；`true` 对应 `sidebar`。没有这层映射的话，曾经隐藏过入口的用户
+		 * 升级后会突然重新看到侧栏图标。
+		 *
+		 * @param {unknown} value 旧版布尔值
+		 * @returns {"sidebar"|"settings"|undefined}
+		 */
+		/**
+		 * 旧布尔开关 → 新档位。
+		 *
+		 * 旧版 true 的实际行为是「侧栏可见 **且** 设置卡片提供打开按钮」，
+		 * 对应 both；false 是「只在设置页打开」，对应 settings。
+		 * 把 true 映射成 sidebar 会悄悄删掉设置页那个现存入口。
+		 *
+		 * @param {unknown} value 旧布尔值
+		 * @returns {"both"|"settings"|undefined}
+		 */
+		function entryLocationFromLegacyFlag(value) {
+			if (value === false) return "settings";
+			if (value === true) return "both";
+			return void 0;
+		}
+
+		/** 从一层设置里读旧布尔值。 */
+		function readLegacyFlag(source) {
+			if (typeof source !== "object" || source === null || Array.isArray(source)) return void 0;
+			return source[SHOW_SIDEBAR_ENTRY_FIELD];
+		}
+
+		/** 从一层设置里读合法的新字段。 */
+		function readEntryLocation(source) {
+			if (typeof source !== "object" || source === null || Array.isArray(source)) return void 0;
+			const value = source[ENTRY_LOCATION_FIELD];
+			return ENTRY_LOCATIONS.includes(value) ? value : void 0;
+		}
+
+		/**
+		 * 当前生效的入口展示位置。
+		 *
+		 * 解析顺序：新字段 → 旧布尔开关 → `sidebar`。第二步是升级兼容的关键，
+		 * 只认新字段会让「曾经隐藏侧栏」的历史用户重新看到入口。
+		 *
+		 * 设置未就绪时 fail-open 回退 `sidebar`，入口继续可见。
+		 *
+		 * @param {any} snapshot settingsScope 快照
+		 * @returns {"both"|"sidebar"|"settings"}
+		 */
+		/**
+		 * 当前生效的入口展示位置（分层解析）。
+		 *
+		 * 优先级：用户显式 entryLocation → 用户旧布尔覆盖 → 基线 entryLocation
+		 * → 基线旧布尔 → 默认档位。
+		 *
+		 * **必须看 user/base 而不是只看 value**：value 是三层合并结果，其中的
+		 * entryLocation 可能由 base 或 schema 默认值合成，无法证明用户选过。
+		 * 只读 value 会让「用户旧覆盖 + 基线新字段」时旧覆盖被盖掉。
+		 *
+		 * 设置未就绪时 fail-open 回退默认档位，入口继续可见。
+		 *
+		 * @param {any} snapshot settingsScope 快照
+		 * @returns {"both"|"sidebar"|"settings"}
+		 */
+		function resolveEntryLocation(snapshot) {
+			if (snapshot?.status !== "ready") return DEFAULT_ENTRY_LOCATION;
+
+			const userLocation = readEntryLocation(snapshot.user);
+			if (userLocation !== void 0) return userLocation;
+
+			const userLegacy = entryLocationFromLegacyFlag(readLegacyFlag(snapshot.user));
+			if (userLegacy !== void 0) return userLegacy;
+
+			const baseLocation = readEntryLocation(snapshot.base);
+			if (baseLocation !== void 0) return baseLocation;
+
+			const baseLegacy = entryLocationFromLegacyFlag(readLegacyFlag(snapshot.base));
+			if (baseLegacy !== void 0) return baseLegacy;
+
+			// 没有分层信息时（旧宿主/精简快照）退回合并值。
+			// 这里同样要先认新字段、再翻译旧布尔，最后才用默认值：
+			// 只读 entryLocation 会让「只有旧布尔」的 ready 快照错误回退到默认档位，
+			// 把原本隐藏的侧栏重新显示出来。
+			const mergedLocation = readEntryLocation(snapshot.value);
+			if (mergedLocation !== void 0) return mergedLocation;
+
+			const mergedLegacyLocation = entryLocationFromLegacyFlag(readLegacyFlag(snapshot.value));
+			if (mergedLegacyLocation !== void 0) return mergedLegacyLocation;
+
+			return DEFAULT_ENTRY_LOCATION;
+		}
+
+		/**
+		 * 侧栏图标是否显示：由入口展示位置派生。
+		 *
+		 * 只有 `settings` 档隐藏图标；`both` 与 `sidebar` 都保留。
+		 *
+		 * @param {any} snapshot settingsScope 快照
+		 * @returns {boolean}
+		 */
+		function resolveSidebarVisible(snapshot) {
+			return resolveEntryLocation(snapshot) !== "settings";
+		}
+
+		/**
+		 * 设置页的「打开 MCP连接器」快捷按钮是否可用。
+		 *
+		 * `sidebar` 档的承诺是「侧栏是唯一快捷入口」，所以设置页不再提供第二个
+		 * 打开方式；`both` 与 `settings` 都需要这个按钮。配置卡片本身在所有档位
+		 * 都保留，否则用户无法改回偏好。
+		 *
+		 * @param {string} location 当前入口展示位置
+		 * @returns {boolean}
+		 */
+		function resolveSettingsQuickOpen(location) {
+			return normalizeEntryLocation(location) !== "sidebar";
+		}
+
+		/** 设置卡片文案：中英文都来自同一份 msgid 词典。 */
+		function connectorSettingsCopy() {
+			return {
+				title: t("MCP连接器"),
+				description: t("控制入口在哪里出现，以及快捷打开方式。"),
+				location: t("入口展示位置"),
+				locationHint: t("至少保留一处入口，避免面板变得无法打开。"),
+				both: t("两边显示"),
+				sidebarOnly: t("仅侧边栏"),
+				settingsOnly: t("仅设置"),
+				show: t("在侧边栏显示 MCP连接器"),
+				hint: t("关闭后只隐藏入口，不影响已连接的 MCP Server 和工具。"),
+				visible: t("侧边栏入口当前显示。"),
+				hidden: t("入口已隐藏，仍可从这里打开 MCP连接器。"),
+				readOnly: t("当前设置页只读。"),
+				saving: t("正在保存…"),
+				failed: t("设置未保存，请重试。"),
+				reset: t("恢复默认"),
+				open: t("打开 MCP连接器"),
+				expand: t("展开 MCP连接器设置"),
+				collapse: t("收起 MCP连接器设置")
+			};
+		}
+
+		function ConnectorSettingsCard(props) {
+			useLocale();
+			const { settingsScope, actions, configForm = false } = props;
+			const copy = connectorSettingsCopy();
+			const snapshot = (0, react.useSyncExternalStore)(
+				(listener) => settingsScope.subscribe(listener),
+				() => settingsScope.getSnapshot()
+			);
+			const [open, setOpen] = (0, react.useState)(false);
+			const [saving, setSaving] = (0, react.useState)(false);
+			const [failed, setFailed] = (0, react.useState)(false);
+			if (snapshot.status !== "ready") return null;
+			const location = resolveEntryLocation(snapshot);
+			const visible = resolveSidebarVisible(snapshot);
+			const quickOpen = resolveSettingsQuickOpen(location);
+			const writable = snapshot.writable === true;
+			// 「恢复默认」要覆盖两种情况：用户选过新字段，或只留了旧布尔覆盖。
+			const hasUserOverride = (source) => source !== null
+				&& typeof source === "object"
+				&& (Object.prototype.hasOwnProperty.call(source, ENTRY_LOCATION_FIELD)
+					|| Object.prototype.hasOwnProperty.call(source, SHOW_SIDEBAR_ENTRY_FIELD));
+			const overridden = hasUserOverride(snapshot.user);
+			const options = [
+				{ value: "both", label: copy.both },
+				{ value: "sidebar", label: copy.sidebarOnly },
+				{ value: "settings", label: copy.settingsOnly }
+			];
+
+			const save = async (next) => {
+				if (saving || next === location) return;
+				setSaving(true);
+				setFailed(false);
+				try {
+					const accepted = await settingsScope.set(ENTRY_LOCATION_FIELD, next);
+					const confirmed = settingsScope.getSnapshot();
+					setFailed(accepted === false || confirmed.status !== "ready" || resolveEntryLocation(confirmed) !== next);
+				} catch (error) {
+					console.error("[mcp-connector] entry location update failed:", error);
+					setFailed(true);
+				} finally {
+					setSaving(false);
+				}
+			};
+
+			/**
+			 * 清掉入口展示位置的全部用户覆盖。
+			 *
+			 * 老版 settingsScope（如 @deepseek-ai/dsh-client-ui-settings@0.1.1-rc.2）
+			 * 只暴露单字段 set/unset，没有 mutate。那种 scope 上直接调 mutate 会抛
+			 * `settingsScope.mutate is not a function`，一个键都清不掉。
+			 *
+			 * @param {any} scope settingsScope 实例
+			 * @returns {Promise<boolean|void>}
+			 */
+			async function resetEntryPreferences(scope) {
+				const supportsAtomicReset = typeof scope?.mutate === "function";
+				if (supportsAtomicReset) {
+					// 新宿主：一次原子写，两个键要么都清、要么都不动。
+					return scope.mutate([
+						{ op: "unset", path: [ENTRY_LOCATION_FIELD] },
+						{ op: "unset", path: [SHOW_SIDEBAR_ENTRY_FIELD] },
+					]);
+				}
+
+				// 老宿主只有单字段 set/unset，无法原子提交，只能逐键清。
+				if (typeof scope?.unset !== "function") {
+					throw new Error("settingsScope exposes neither mutate nor unset");
+				}
+
+				// 只清用户文档里真实存在的键：对「只有 showSidebarEntry」的 profile，
+				// 再补一次 unset(entryLocation) 是纯多余写入，老宿主上还会多一次落盘。
+				const user = scope.getSnapshot()?.user;
+				const hasUserKey = (field) => user !== null
+					&& typeof user === "object"
+					&& Object.prototype.hasOwnProperty.call(user, field);
+
+				// 顺序：先清旧布尔，让解析继续停在用户显式选的 entryLocation 上；
+				// 最后再清新字段，回到部署基线。反过来会让旧值在中间态复活，侧栏闪一下。
+				if (hasUserKey(SHOW_SIDEBAR_ENTRY_FIELD)) await scope.unset(SHOW_SIDEBAR_ENTRY_FIELD);
+				if (hasUserKey(ENTRY_LOCATION_FIELD)) await scope.unset(ENTRY_LOCATION_FIELD);
+			}
+
+			const reset = async () => {
+				setSaving(true);
+				setFailed(false);
+				try {
+					const accepted = await resetEntryPreferences(settingsScope);
+					const confirmed = settingsScope.getSnapshot();
+					// configForms persists a complete entry config. Other edits can keep
+					// inherited fields in user even after the Host accepted both clears.
+					const restored = configForm
+						? resolveEntryLocation(confirmed) === resolveEntryLocation({ status: "ready", base: confirmed.base })
+						: !hasUserOverride(confirmed.user);
+					setFailed(accepted === false || confirmed.status !== "ready" || !restored);
+				} catch (error) {
+					console.error("[mcp-connector] entry location reset failed:", error);
+					setFailed(true);
+				} finally {
+					setSaving(false);
+				}
+			};
+
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("li", {
+				className: "mcpConnectorSettingsCard",
+				"data-open": open,
+				children: [
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+						type: "button",
+						className: "mcpConnectorSettingsHeader",
+						"aria-expanded": open,
+						"aria-label": open ? copy.collapse : copy.expand,
+						onClick: () => { setOpen(!open); },
+						children: [
+							/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+								className: "mcpConnectorSettingsHeadText",
+								children: [
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { className: "mcpConnectorSettingsName", children: copy.title }),
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { className: "mcpConnectorSettingsDescription", children: copy.description })
+								]
+							}),
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { className: "mcpConnectorSettingsChevron", "aria-hidden": true, children: "⌄" })
+						]
+					}),
+					open ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: "mcpConnectorSettingsBody",
+						children: [
+							/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+								className: "mcpConnectorSettingsRow",
+								children: [
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+										children: [
+											/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { className: "mcpConnectorSettingsLabel", children: copy.location }),
+											/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { className: "mcpConnectorSettingsHint", children: copy.locationHint })
+										]
+									}),
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+										className: "mcpConnectorSettingsSegments",
+										role: "radiogroup",
+										"aria-label": copy.location,
+										children: options.map((option) => (0, react_jsx_runtime.jsx)("button", {
+											type: "button",
+											className: "mcpConnectorSettingsSegment",
+											role: "radio",
+											"aria-checked": location === option.value,
+											"data-active": location === option.value ? "true" : "false",
+											disabled: !writable || saving,
+											onClick: () => { void save(option.value); },
+											children: option.label
+										}, option.value))
+									})
+								]
+							}),
+							/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+								className: "mcpConnectorSettingsFooter",
+								children: [
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+										className: "mcpConnectorSettingsState",
+										"data-tone": failed ? "error" : "normal",
+										role: failed ? "alert" : "status",
+										children: failed ? copy.failed : saving ? copy.saving : !writable ? copy.readOnly : visible ? copy.visible : copy.hidden
+									}),
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+										type: "button",
+										className: "mcpConnectorSettingsButton",
+										disabled: !writable || saving || !overridden,
+										onClick: () => { void reset(); },
+										children: copy.reset
+									}),
+									quickOpen ? (
+										/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+											type: "button",
+											className: "mcpConnectorSettingsButton",
+											"data-primary": true,
+											"aria-haspopup": "dialog",
+											onClick: () => { actions.open(); },
+											children: copy.open
+										})
+									) : null
+								]
+							})
+						]
+					}) : null
+				]
+			});
+		}
+
+		function ConnectorSettingsSection(props) {
+			return (0, react_jsx_runtime.jsx)("ul", {
+				style: { listStyle: "none", margin: 0, padding: 0 },
+				children: (0, react_jsx_runtime.jsx)(ConnectorSettingsCard, props)
+			});
+		}
+
+		function installClientSettings(ctx, marketView) {
+			if (typeof ctx.inject !== "function") return;
+			const slots = new Set();
+			let modern;
+			let legacy;
+
+			function sync() {
+				// Prefer the new form once it is ready. A compatibility provider can
+				// remain usable while the modern Host loads or withdraws its form.
+				const scope = modern?.getSnapshot()?.status === "ready" ? modern
+					: legacy?.getSnapshot()?.status === "ready" ? legacy : undefined;
+				for (const update of slots) update(scope);
+				marketView.syncSidebarVisible(!slots.size || resolveSidebarVisible(scope?.getSnapshot()));
+			}
+
+			function registerCard(name, options, component) {
+				ctx.slots.inject(name, () => {
+					let current;
+					let disposeCard;
+					const update = (scope) => {
+						if (current === scope) return;
+						disposeCard?.();
+						current = scope;
+						disposeCard = scope && ctx.slots.register({
+							...options, name, store: marketView,
+							inject: () => ({ settingsScope: scope, configForm: scope === modern })
+						}, component);
+					};
+					slots.add(update);
+					sync();
+					return () => {
+						slots.delete(update);
+						update(undefined);
+						sync();
+					};
+				});
+			}
+
+			function observe(providerCtx, scope, isModern) {
+				if (typeof scope?.getSnapshot !== "function" || typeof scope.subscribe !== "function") return;
+				providerCtx.effect(() => {
+					const unsubscribe = scope.subscribe(sync);
+					if (isModern) modern = scope;
+					else legacy = scope;
+					sync();
+					return () => {
+						unsubscribe();
+						if (isModern) modern = undefined;
+						else legacy = undefined;
+						sync();
+					};
+				}, "mcp-connector: settings provider");
+			}
+
+			ctx.effect(installSettingsStyles, "mcp-connector: settings styles");
+			registerCard("settings.section", { id: CONNECTOR_SETTINGS_NAMESPACE, order: 80, label: t("MCP连接器") }, ConnectorSettingsSection);
+			registerCard("settings.plugin.item", { key: CONNECTOR_SETTINGS_NAMESPACE }, ConnectorSettingsCard);
+			ctx.inject(["configForms"], (settingsCtx) => {
+				if (typeof settingsCtx.configForms?.get !== "function") return;
+				const scope = settingsCtx.configForms.get(CONNECTOR_SETTINGS_NAMESPACE);
+				observe(settingsCtx, scope, true);
+			});
+			ctx.inject(["settingsScope"], (settingsCtx) => {
+				if (typeof settingsCtx.settingsScope?.bind !== "function") return;
+				const scope = settingsCtx.settingsScope.bind({
+					namespace: CONNECTOR_SETTINGS_NAMESPACE,
+					decode(value) {
+						if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
+						const decoded = {};
+						if (typeof value[ENTRY_LOCATION_FIELD] === "string") decoded[ENTRY_LOCATION_FIELD] = value[ENTRY_LOCATION_FIELD];
+						if (typeof value[SHOW_SIDEBAR_ENTRY_FIELD] === "boolean") decoded[SHOW_SIDEBAR_ENTRY_FIELD] = value[SHOW_SIDEBAR_ENTRY_FIELD];
+						return Object.keys(decoded).length > 0 ? decoded : undefined;
+					}
+				});
+				observe(settingsCtx, scope, false);
+			});
+		}
+
+		/** 从主视图持有的会话解析工作区，兼容仍提供旧选择字段的 Host。 */
+		function currentWorkspaceContext(ctx) {
+			const workspace = ctx.workspaces.list.getSnapshot();
+			const sessions = ctx.sessions.list.getSnapshot();
+			if (!Array.isArray(workspace?.items) || !sessions || workspace.phase === "pending" || sessions.phase === "pending") return null;
+			const main = Object.values(sessions.byId ?? {}).find((item) => (item?.retainedBy?.mainView ?? 0) > 0);
+			const current = main?.id ?? sessions.current;
+			const selected = current === void 0
+				? void 0
+				: workspace.items.find((item) => item.sessionIds?.includes(current));
+			const target = selected ?? workspace.items.find((item) => item.workspaceId === workspace.recentWorkspaceId);
+			return typeof target?.workspaceId !== "string" || target.workspaceId === "" ? null : {
+				workspaceId: target.workspaceId,
+				title: target.title ?? target.workspaceId
+			};
+		}
+
+		function availableWorkspaceContexts(ctx) {
+			const items = ctx.workspaces.list.getSnapshot()?.items;
+			if (!Array.isArray(items)) return [];
+			const workspaces = new Map();
+			for (const item of items) {
+				if (typeof item?.workspaceId !== "string" || item.workspaceId === "") continue;
+				workspaces.set(item.workspaceId, {
+					workspaceId: item.workspaceId,
+					title: item.title ?? String(item.workspaceId)
+				});
+			}
+			return [...workspaces.values()];
+		}
+
+		async function startPromptSession(ctx, promptText) {
+			if (typeof promptText !== "string" || promptText.trim() === "") {
+				throw new Error(t("Prompt 不能为空"));
+			}
+			const targetWorkspaceId = currentWorkspaceContext(ctx)?.workspaceId;
+			if (targetWorkspaceId === void 0) {
+				throw new Error(t("请先选择一个工作空间，再使用示例 Prompt"));
+			}
+			const uiWorkspace = typeof ctx.get === "function"
+				? ctx.get("uiWorkspace")
+				: ctx.uiWorkspace;
+			const conversation = typeof ctx.get === "function" ? ctx.get("conversation") : ctx.conversation;
+			if (!conversation?.input) {
+				throw new Error(t("DSH 对话服务尚未就绪，请稍后重试"));
+			}
+			if (typeof ctx.sessions.create !== "function") {
+				throw new Error(t("当前 DSH 版本没有可用的工作区会话创建能力，请升级 DSH 后重试"));
+			}
+			const modern = typeof conversation.input.requestDraftInitialization === "function";
+			if (modern
+				? typeof ctx.sessions.retain !== "function" || typeof uiWorkspace?.openSession !== "function"
+				: typeof conversation.input.shell !== "function" || typeof ctx.sessions.open !== "function") {
+				throw new Error(t("当前 DSH 版本没有可用的草稿或会话导航能力，请升级 DSH 后重试"));
+			}
+			const layout = typeof ctx.get === "function" ? ctx.get("layout") : ctx.layout;
+			const signal = layout?.beginNavigation?.();
+			const checkNavigation = () => {
+				if (signal?.aborted) throw new Error(t("会话跳转已取消，请重试"));
+			};
+			checkNavigation();
+			if (!modern) {
+				// 旧输入机无法可靠检查已有文字和附件，只写入全新身份的会话。
+				const sessionId = await ctx.sessions.create({ workspaceId: targetWorkspaceId });
+				checkNavigation();
+				const input = conversation.input.shell(sessionId);
+				if (typeof input?.setDraft !== "function") {
+					throw new Error(t("DSH 对话服务尚未就绪，请稍后重试"));
+				}
+				input.setDraft(promptText);
+				checkNavigation();
+				ctx.sessions.open(sessionId);
+				return sessionId;
+			}
+			const prepare = async (sessionId) => {
+				checkNavigation();
+				const reference = ctx.sessions.retain(sessionId, { source: "controllerOperation", ...(signal ? { signal } : {}) });
+				try {
+					try {
+						await reference.ready;
+					} catch (error) {
+						checkNavigation();
+						throw error;
+					}
+					checkNavigation();
+					const result = conversation.input.requestDraftInitialization(reference.binding, {
+						prompt: promptText,
+						whenDraftExists: "keep"
+					});
+					if (result === "preserved") return false;
+					if (result !== "applied") throw new Error(t("草稿暂时无法写入，请稍后重试"));
+					checkNavigation();
+					// openSession 同步持有 mainView 引用后，才可释放临时引用。
+					uiWorkspace.openSession(sessionId);
+					return true;
+				} finally {
+					reference.release();
+				}
+			};
+			const sessionId = typeof uiWorkspace.connectWorkspace === "function"
+				? await uiWorkspace.connectWorkspace(targetWorkspaceId)
+				: await ctx.sessions.create({ workspaceId: targetWorkspaceId });
+			if (await prepare(sessionId)) return sessionId;
+			checkNavigation();
+			const freshId = await ctx.sessions.create({ workspaceId: targetWorkspaceId });
+			if (await prepare(freshId)) return freshId;
+			throw new Error(t("草稿暂时无法写入，请稍后重试"));
+		}
+
+		/** 市场主体：原生 main 面板与设置页快捷弹框共用。 */
+		function MarketOverlay(props) {
+			const hostLocale = useLocale();
+			const {
+				wide,
+				useStore,
+				actions,
+				presentation = "modal",
+				closePanel = null,
+				getUpdateNavigation,
+				sidebarUpdateMemory,
+				startPromptSession: launchPromptSession,
+				workspaceContext = () => null,
+				workspaceOptions = () => [],
+				iframeLocale = DEFAULT_LOCALE
+			} = props;
+			const modalOpen = useStore((state) => state.open);
+			const open = presentation === "panel" || modalOpen;
+			const closeView = () => {
+				if (readWebUpdateReturn()?.surface === presentation) writeWebUpdateReturn(null);
+				if (presentation === "panel") closePanel?.();
+				else actions.close();
+			};
+			const detailOpen = useStore((state) => state.detailOpen);
+			const localUpdateMemory = (0, react.useRef)({});
+			const webMemory = window.dshDesktop ? null : (sidebarUpdateMemory ?? localUpdateMemory.current);
+			const lastWebOffer = webMemory?.offer;
+			const initialReturn = (0, react.useRef)(undefined);
+			if (initialReturn.current === undefined) {
+				const saved = readWebUpdateReturn();
+				initialReturn.current = saved?.surface === presentation ? saved : null;
+			}
+			const resumed = initialReturn.current;
+			const offerAge = Date.now() - webMemory?.checkedAt;
+			const recentSelection = offerAge >= 0 && offerAge < WEB_OFFER_REUSE_MS ? webMemory?.selection : null;
+			const installAttempt = (0, react.useRef)(null);
+			const [versionStatus, setVersionStatus] = (0, react.useState)(sidebarUpdateMemory?.desktopVersion ?? null);
+			const [providerState, setUpdateProviderState] = (0, react.useState)(recentSelection ? "ready" : "checking");
+			const [updateProviderSelection, setUpdateProviderSelection] = (0, react.useState)(recentSelection ?? null);
+			const [providerUpdateCheck, setProviderUpdateCheck] = (0, react.useState)(recentSelection?.update ?? sidebarUpdateMemory?.providerCheck ?? null);
+			const [expectedUpdateVersion, setExpectedUpdateVersion] = (0, react.useState)(resumed?.target ?? null);
+			const [updateOperation, setUpdateOperation] = (0, react.useState)(resumed?.phase === "install" && resumed.operationId
+				? { operationId: resumed.operationId, state: "queued" } : null);
+			const [updateError, setUpdateError] = (0, react.useState)(null);
+			const [updateStarting, setUpdateStarting] = (0, react.useState)(false);
+			const [rollbackRunning, setRollbackRunning] = (0, react.useState)(false);
+			const [restarting, setRestarting] = (0, react.useState)(false);
+			const [reconnect, setReconnect] = (0, react.useState)(resumed?.phase === "restart" ? resumed : null);
+			const [reconnectTimedOut, setReconnectTimedOut] = (0, react.useState)(false);
+			const [restartError, setRestartError] = (0, react.useState)(null);
+			const restartRequest = (0, react.useRef)(null);
+			const [manualCommandCopied, setManualCommandCopied] = (0, react.useState)(false);
+			const [manualCommandVisible, setManualCommandVisible] = (0, react.useState)(false);
+			const [versionCheckRequest, setVersionCheckRequest] = (0, react.useState)(0);
+			const [providerRetryRequest, setProviderRetryRequest] = (0, react.useState)(0);
+			const [versionCheckBusy, setVersionCheckBusy] = (0, react.useState)(false);
+			const [versionCheckFailed, setVersionCheckFailed] = (0, react.useState)(false);
+			const [manualProfileChoice, setManualProfileChoice] = (0, react.useState)(null);
+			const [otherMethodsOpen, setOtherMethodsOpen] = (0, react.useState)(false);
+			const [showNavigationHint, setShowNavigationHint] = (0, react.useState)(false);
+			const frameRef = (0, react.useRef)(null);
+			const closeRef = (0, react.useRef)(null);
+			const iframeSrcRef = (0, react.useRef)(null);
+			// The iframe owns safe adoption (and explicit choices). Do not navigate it
+			// from React while a form may contain unsaved input.
+			if (!open) iframeSrcRef.current = null;
+			else if (iframeSrcRef.current === null) {
+				iframeSrcRef.current = marketIframeSrc(typeof iframeLocale === "function" ? iframeLocale() : iframeLocale);
+			}
+			const profileInfo = clientProfileInfo(versionStatus);
+			const desktopUpdate = window.dshDesktop?.protocolVersion === 1
+				&& ["win32", "darwin"].includes(document.documentElement?.dataset?.platform);
+			const webUpdate = !window.dshDesktop;
+			const updateProviderState = providerState === "closed" ? (recentSelection ? "ready" : "checking") : providerState;
+			const compactHeader = desktopUpdate || webUpdate;
+			const npmTarget = versionStatus?.latestVersion;
+			const providerTarget = desktopUpdate && providerUpdateCheck?.updateAvailable
+				? parseClientVersion(providerUpdateCheck.latestVersion)?.normalized : null;
+			const providerAhead = providerTarget && (!versionStatus?.updateAvailable || compareClientVersions(providerTarget, npmTarget) > 0);
+			const rememberedOffer = webUpdate && ["checking", "unconfirmed"].includes(updateProviderState) ? lastWebOffer : null;
+			const rememberedTarget = rememberedOffer?.latestVersion;
+			const webCommit = webUpdate && providerGitCommit(providerUpdateCheck?.updateAvailable ? providerUpdateCheck : rememberedOffer);
+			const publishedTarget = webUpdate && !versionStatus?.updateAvailable
+				? rememberedTarget ?? versionStatus?.lastConfirmedUpdateVersion ?? npmTarget : npmTarget;
+			const targetVersion = webUpdate && providerUpdateCheck?.updateAvailable
+				? providerUpdateCheck.latestVersion : providerAhead ? providerTarget : publishedTarget;
+			// A remembered Market offer may differ from npm's current result. Never issue a CLI command for another version.
+			const managedSource = updateProviderState === "linked" || updateProviderState === "generation";
+			const manualTarget = versionStatus?.updateAvailable && !managedSource && !(desktopUpdate && (providerAhead || versionCheckFailed || versionStatus.displayOnly))
+				? npmTarget : null;
+			const manualProfileContext = JSON.stringify([open, targetVersion, profileInfo]);
+			const needsManualProfileChoice = ["unavailable", "read-error", "invalid-value"].includes(profileInfo.status);
+			const selectedProfile = manualProfileChoice?.context === manualProfileContext ? manualProfileChoice.name : null;
+			const commandProfile = profileInfo.status === "ready" ? profileInfo.detectedName
+				: needsManualProfileChoice ? selectedProfile : null;
+			const manualCommandKey = JSON.stringify([manualProfileContext, selectedProfile, manualTarget]);
+			const manualCommandRef = (0, react.useRef)(null);
+			if (manualCommandRef.current?.key !== manualCommandKey) {
+				manualCommandRef.current = {
+					key: manualCommandKey,
+					command: open ? manualUpgradeCommand(manualTarget, commandProfile) : null
+				};
+			}
+			const manualCommandState = manualCommandRef.current;
+			const sendHostLocale = () => frameRef.current?.contentWindow?.postMessage({
+				type: HOST_LOCALE_TYPE, locale: activeLocale
+			}, window.location.origin);
+			(0, react.useEffect)(() => {
+				if (open) sendHostLocale();
+			}, [hostLocale, open]);
+			(0, react.useEffect)(() => {
+				const sendWorkspaceContext = () => {
+					frameRef.current?.contentWindow?.postMessage({
+						type: WORKSPACE_CONTEXT_RESULT_TYPE,
+						workspace: workspaceContext(),
+						workspaces: workspaceOptions()
+					}, window.location.origin);
+				};
+				const onMessage = (event) => {
+					if (event.origin !== window.location.origin) return;
+					if (event.source !== frameRef.current?.contentWindow) return;
+					if (event.data?.type === HOST_LOCALE_REQUEST_TYPE) {
+						sendHostLocale();
+						return;
+					}
+					if (event.data?.type === "mcp-connector:detail-state") {
+						if (event.data.open === true) actions.detailOpened();
+						else actions.detailClosed();
+						return;
+					}
+					if (event.data?.type === WORKSPACE_CONTEXT_REQUEST_TYPE) {
+						sendWorkspaceContext();
+						return;
+					}
+					if (event.data?.type !== PROMPT_REQUEST_TYPE) return;
+					const requestId = typeof event.data.requestId === "string" ? event.data.requestId : "";
+					const prompt = event.data.prompt;
+					const reply = (ok, message) => {
+						frameRef.current?.contentWindow?.postMessage({
+							type: PROMPT_RESULT_TYPE,
+							requestId,
+							ok,
+							message
+						}, window.location.origin);
+					};
+					if (requestId === "" || typeof prompt !== "string") {
+						reply(false, t("无效的 Prompt 请求"));
+						return;
+					}
+					Promise.resolve().then(() => launchPromptSession(prompt)).then(() => {
+						reply(true, t("已带入新会话"));
+						window.requestAnimationFrame(closeView);
+					}, (error) => {
+						const message = error instanceof Error ? error.message : String(error);
+						console.error("[mcp-connector] start prompt session failed:", error);
+						reply(false, message);
+					});
+				};
+				window.addEventListener("message", onMessage);
+				return () => { window.removeEventListener("message", onMessage); };
+			}, [actions, closePanel, launchPromptSession, presentation, workspaceContext]);
+			(0, react.useEffect)(() => {
+				if (!open) return void 0;
+				let disposed = false;
+				let pollTimer;
+				const schedule = (delayMs) => {
+					window.clearTimeout(pollTimer);
+					pollTimer = window.setTimeout(check, Math.max(1e3, delayMs));
+				};
+				const check = (force = false) => {
+					setVersionCheckBusy(true);
+					fetchVersionStatus(force).then((status) => {
+						if (disposed) return;
+						if (webMemory && parseClientVersion(status.installedVersion)) {
+							webMemory.runningVersion = status.installedVersion;
+							if (offerAlreadyRunning(webMemory.offer, status.installedVersion)) {
+								webMemory.offer = null;
+								webMemory.selection = null;
+								setProviderUpdateCheck(null);
+							}
+						}
+						setVersionStatus(previous => {
+							if (status.sources?.npm?.ok || status.lastConfirmedUpdateVersion
+								|| previous?.installedVersion !== status.installedVersion) return status;
+							const lastTarget = previous?.updateAvailable ? previous.latestVersion : previous?.lastConfirmedUpdateVersion;
+							return lastTarget ? { ...status, lastConfirmedUpdateVersion: lastTarget } : status;
+						});
+						setVersionCheckBusy(status.checking === true);
+						setVersionCheckFailed(!status.checking && status.sources?.npm?.ok !== true ? "npm" : false);
+						if (status.checking) {
+							schedule(1e3);
+							return;
+						}
+						const nextCheckAt = Date.parse(status.nextCheckAt ?? "");
+						const delay = Number.isFinite(nextCheckAt)
+							? Math.min(VERSION_CHECK_INTERVAL_MS, nextCheckAt - Date.now())
+							: VERSION_CHECK_INTERVAL_MS;
+						schedule(delay);
+					}, (error) => {
+						console.warn("[mcp-connector] plugin update check failed:", error);
+						if (!disposed) {
+							setVersionCheckBusy(false);
+							// Only expose our fixed diagnostic text; never echo proxy bodies or URLs/tokens.
+							setVersionCheckFailed(error instanceof Error && error.message.startsWith(t("插件版本检查 API 不可用"))
+								? error.message : t("插件版本检查 API 请求失败：请检查网络、DSH 服务和反向代理连接"));
+							schedule(VERSION_CHECK_RETRY_MS);
+						}
+					});
+				};
+				if (recentSelection) check();
+				else check(true);
+				return () => {
+					disposed = true;
+					window.clearTimeout(pollTimer);
+				};
+			}, [open, versionCheckRequest]);
+			(0, react.useEffect)(() => {
+				if (!sidebarUpdateMemory || !desktopUpdate || !versionStatus || versionStatus.displayOnly) return;
+				// Seed only the header on remount. Manual commands require a live npm target.
+				sidebarUpdateMemory.desktopVersion = {
+					displayOnly: true,
+					installedVersion: versionStatus.installedVersion,
+					latestVersion: versionStatus.latestVersion,
+					updateAvailable: versionStatus.updateAvailable,
+					lastConfirmedUpdateVersion: versionStatus.lastConfirmedUpdateVersion,
+					sources: { npm: { ok: versionStatus.sources?.npm?.ok === true } }
+				};
+			}, [sidebarUpdateMemory, desktopUpdate, versionStatus]);
+			(0, react.useEffect)(() => {
+				setManualProfileChoice(null);
+				setOtherMethodsOpen(false);
+			}, [manualProfileContext]);
+			(0, react.useEffect)(() => {
+				// All versions use the same bundle details page. Retry navigation on the next visit.
+				setShowNavigationHint(false);
+			}, [open]);
+			(0, react.useEffect)(() => {
+				setManualCommandCopied(false);
+				setManualCommandVisible(false);
+			}, [manualCommandState]);
+			const applyProviderSelection = (selection, retried = false) => {
+				// Version and market requests settle independently. An old market response must not
+				// restore an offer that the host is already running or start that update on click.
+				if (webMemory && offerAlreadyRunning(selection?.update, webMemory.runningVersion)) {
+					selection = { ...selection, update: { ...selection.update, updateAvailable: false } };
+				}
+				const state = selection?.state ?? (selection ? "ready" : "unavailable");
+				if (webMemory) {
+					webMemory.retried = retried;
+					webMemory.selection = state === "ready" && selection.update?.updateAvailable === true ? selection : null;
+					if (state !== "unconfirmed") webMemory.offer = webMemory.selection?.update ?? null;
+					webMemory.checkedAt = Date.now();
+				}
+				setUpdateProviderSelection(selection?.provider ? selection : null);
+				setProviderUpdateCheck(selection?.update ?? null);
+				setUpdateProviderState(state);
+				return selection;
+			};
+			const previousCheck = (0, react.useRef)({ versionCheckRequest, providerRetryRequest });
+			(0, react.useEffect)(() => {
+				if (!open) {
+					if (webUpdate) setUpdateProviderState("closed");
+					return;
+				}
+				const retried = previousCheck.current.providerRetryRequest !== providerRetryRequest;
+				const explicit = retried || previousCheck.current.versionCheckRequest !== versionCheckRequest;
+				previousCheck.current = { versionCheckRequest, providerRetryRequest };
+				let disposed = false;
+				if (recentSelection && !explicit) {
+					setUpdateProviderSelection(recentSelection);
+					setProviderUpdateCheck(recentSelection.update);
+					setUpdateProviderState("ready");
+				} else {
+					setUpdateProviderState("checking");
+					discoverUpdateProvider(PLUGIN_PACKAGE_NAME, true).then((selection) => {
+						if (!disposed) applyProviderSelection(selection, retried);
+					}, () => {
+						if (!disposed) applyProviderSelection(webUpdate ? { state: "unconfirmed" } : null, retried);
+					});
+				}
+				return () => {
+					disposed = true;
+					if (installAttempt.current && !installAttempt.current.submitted) {
+						installAttempt.current = null;
+						setUpdateStarting(false);
+					}
+				};
+			}, [open, versionCheckRequest, providerRetryRequest]);
+			(0, react.useEffect)(() => {
+				if (!sidebarUpdateMemory || !desktopUpdate || updateProviderState === "checking") return;
+				sidebarUpdateMemory.providerCheck = updateProviderState === "ready" && providerUpdateCheck && !updateStarting && !updateOperation
+					? {
+						updateAvailable: providerUpdateCheck.updateAvailable,
+						installedVersion: providerUpdateCheck.installedVersion,
+						latestVersion: providerUpdateCheck.latestVersion
+					}
+					: null;
+			}, [sidebarUpdateMemory, desktopUpdate, updateProviderState, providerUpdateCheck, updateStarting, updateOperation]);
+			(0, react.useEffect)(() => {
+				if (!open || !reconnect) return;
+				let disposed = false;
+				let pollTimer;
+				const controller = new AbortController();
+				const stopTimer = window.setTimeout(() => {
+					disposed = true;
+					controller.abort();
+					window.clearTimeout(pollTimer);
+					setReconnectTimedOut(true);
+				}, 60000);
+				const provider = UPDATE_PROVIDER_ADAPTERS.find(item => item.id === reconnect.providerId);
+				const probe = async () => {
+					try {
+						const capabilities = await provider?.probe(controller.signal);
+						// The old process can still answer HTTP after accepting the restart.
+						const newBoot = capabilities?.bootId && capabilities.bootId !== reconnect.bootId;
+						if (capabilities && (reconnect.bootId ? newBoot : reconnect.before !== reconnect.target)) {
+							const status = await fetchVersionStatus(false, controller.signal);
+							if (!disposed && parseClientVersion(status.installedVersion)?.normalized === reconnect.target) {
+								disposed = true;
+								window.clearTimeout(stopTimer);
+								if (writeWebUpdateReturn({ phase: "return", surface: presentation })) window.location.reload();
+								else {
+									setVersionStatus(status);
+									setUpdateOperation(null);
+									setReconnect(null);
+									setRestarting(false);
+									restartRequest.current = null;
+									setVersionCheckRequest(value => value + 1);
+								}
+								return;
+							}
+						}
+					} catch { /* Connection loss is expected while the old listener exits. */ }
+					if (!disposed) pollTimer = window.setTimeout(probe, 1000);
+				};
+				probe();
+				return () => {
+					disposed = true;
+					controller.abort();
+					window.clearTimeout(stopTimer);
+					window.clearTimeout(pollTimer);
+				};
+			}, [open, reconnect, presentation]);
+			(0, react.useEffect)(() => {
+				const operationId = updateOperation?.operationId;
+				const provider = updateProviderSelection?.provider;
+				const capabilities = updateProviderSelection?.capabilities;
+				if (!open || provider === void 0 || capabilities === void 0
+					|| typeof operationId !== "string" || !["queued", "running"].includes(updateOperation.state)) {
+					return void 0;
+				}
+				let disposed = false;
+				let timer;
+				const poll = () => {
+					if (resumed?.operationId === operationId && resumed.bootId && capabilities.bootId && capabilities.bootId !== resumed.bootId) {
+						writeWebUpdateReturn(null);
+						setUpdateOperation(null);
+						return;
+					}
+					provider.operation(capabilities, operationId).then((operation) => {
+						if (disposed) return;
+						setUpdateError(null);
+						const integrityFailure = completedUpdateIntegrityFailure(operation, expectedUpdateVersion);
+						if (integrityFailure !== null) {
+							if (webUpdate) writeWebUpdateReturn(null);
+							const failedOperation = { ...operation, state: "failed", failure: integrityFailure };
+							setUpdateOperation(failedOperation);
+							const canRollback = capabilities.features?.rollback === true
+								&& operation.outcome?.rollback?.available === true
+								&& capabilities.endpoints.rollback !== null;
+							if (!canRollback) return;
+							setRollbackRunning(true);
+							provider.rollback(capabilities, operationId).then((rolledBackOperation) => {
+								if (disposed) return;
+								setRollbackRunning(false);
+								setUpdateOperation({ ...rolledBackOperation, integrityFailure });
+							}, (error) => {
+								console.error("[mcp-connector] automatic rollback failed:", error);
+								if (disposed) return;
+								const detail = error instanceof Error ? error.message : String(error);
+								setRollbackRunning(false);
+								setUpdateOperation({
+									...failedOperation,
+									outcome: {
+										...failedOperation.outcome,
+										rollback: { available: true, state: "failed", detail }
+									}
+								});
+							});
+							return;
+						}
+						setUpdateOperation(operation);
+						if (["queued", "running"].includes(operation.state)) {
+							timer = window.setTimeout(poll, UPDATE_PROVIDER_OPERATION_POLL_MS);
+							return;
+						}
+						if (operation.state === "succeeded") {
+							provider.check(capabilities, PLUGIN_PACKAGE_NAME, true).then(setProviderUpdateCheck, () => {});
+						}
+						if (webUpdate && (operation.state !== "succeeded" || !operation.outcome?.restartRequired)) writeWebUpdateReturn(null);
+					}, (error) => {
+						console.warn("[mcp-connector] update operation polling failed:", error);
+						if (disposed) return;
+						if (resumed?.operationId === operationId && error.code === "HTTP_404") {
+							writeWebUpdateReturn(null);
+							setUpdateOperation(null);
+							return;
+						}
+						setUpdateError(error instanceof Error ? error.message : String(error));
+						timer = window.setTimeout(poll, UPDATE_PROVIDER_OPERATION_POLL_MS * 2);
+					});
+				};
+				timer = window.setTimeout(poll, UPDATE_PROVIDER_OPERATION_POLL_MS);
+				return () => {
+					disposed = true;
+					window.clearTimeout(timer);
+				};
+			}, [open, updateOperation?.operationId, updateProviderSelection?.provider?.id, expectedUpdateVersion]);
+			(0, react.useEffect)(() => {
+				if (!open || presentation === "panel") return void 0;
+				const opener = document.activeElement;
+				closeRef.current?.focus?.();
+				const onKeyDown = (event) => {
+					if (event.key !== "Escape") return;
+					event.preventDefault();
+					event.stopPropagation();
+					closeView();
+				};
+				// Capture at window before the underlying Settings dialog receives
+				// Escape on document; only the topmost connector dialog should close.
+				window.addEventListener("keydown", onKeyDown, true);
+				return () => {
+					window.removeEventListener("keydown", onKeyDown, true);
+					if (opener?.isConnected !== false) opener?.focus?.();
+				};
+			}, [open, actions, closePanel, presentation]);
+			if (!open) return null;
+			const updateRunning = updateStarting || updateOperation !== null && ["queued", "running"].includes(updateOperation.state);
+			const startUpdate = async (force = false) => {
+				let selection = updateProviderSelection;
+				if (updateRunning || installAttempt.current || !selection?.provider || !selection.capabilities) return;
+				const attempt = { submitted: false };
+				installAttempt.current = attempt;
+				setUpdateError(null);
+				const expected = providerUpdateCheck?.latestVersion ?? versionStatus?.latestVersion ?? null;
+				try {
+					if (webUpdate && !updateOperation) {
+						setUpdateStarting("verifying");
+						const discovered = await discoverUpdateProvider(PLUGIN_PACKAGE_NAME, true);
+						if (installAttempt.current !== attempt) return;
+						const checked = applyProviderSelection(discovered);
+						if (!checked || checked.state || !checked.update?.updateAvailable
+							|| checked.provider.id !== selection.provider.id || checked.update.latestVersion !== expected
+							|| checked.update.installedVersion !== providerUpdateCheck?.installedVersion) return;
+						selection = checked;
+					}
+					if (webMemory) {
+						webMemory.selection = null;
+						webMemory.offer = null;
+					}
+					setUpdateStarting(true);
+					setExpectedUpdateVersion(expected);
+					attempt.submitted = true;
+					const { provider, capabilities } = selection;
+					const handoff = { phase: "install", surface: presentation, target: expected, bootId: capabilities.bootId };
+					if (webUpdate) writeWebUpdateReturn(handoff);
+					const operation = await provider.start(capabilities, PLUGIN_PACKAGE_NAME, force);
+					if (installAttempt.current !== attempt) return;
+					if (webUpdate) writeWebUpdateReturn({ ...handoff, operationId: operation.operationId });
+					setUpdateOperation(operation);
+				} catch (error) {
+					if (installAttempt.current !== attempt) return;
+					if (webUpdate) writeWebUpdateReturn(null);
+					console.error("[mcp-connector] update start failed:", error);
+					if (error?.retryable === true) {
+						setUpdateOperation({
+							state: "failed",
+							failure: {
+								code: error.code ?? "UPDATE_FAILED",
+								message: error instanceof Error ? error.message : String(error),
+								retryable: true
+							},
+							outcome: { rollback: { available: false, state: "unavailable" } }
+						});
+					} else {
+						setUpdateError(error instanceof Error ? error.message : String(error));
+					}
+				} finally {
+					if (installAttempt.current === attempt) {
+						installAttempt.current = null;
+						setUpdateStarting(false);
+					}
+				}
+			};
+			const rollbackUpdate = () => {
+				const provider = updateProviderSelection?.provider;
+				const capabilities = updateProviderSelection?.capabilities;
+				if (rollbackRunning || provider === void 0 || capabilities === void 0
+					|| typeof updateOperation?.operationId !== "string") return;
+				setUpdateError(null);
+				setRollbackRunning(true);
+				provider.rollback(capabilities, updateOperation.operationId).then((operation) => {
+					setRollbackRunning(false);
+					setUpdateOperation(operation);
+				}, (error) => {
+					console.error("[mcp-connector] rollback failed:", error);
+					setRollbackRunning(false);
+					setUpdateError(error instanceof Error ? error.message : String(error));
+				});
+			};
+			const restartHost = () => {
+				const provider = updateProviderSelection?.provider;
+				const capabilities = updateProviderSelection?.capabilities;
+				if (restarting || reconnect || restartRequest.current || provider === void 0 || capabilities === void 0) return;
+				const target = parseClientVersion(updateOperation?.installedVersion ?? activationPendingVersion)?.normalized;
+				const handoff = webUpdate && target ? { phase: "restart", surface: presentation, target,
+					before: versionStatus?.installedVersion, bootId: capabilities.bootId, providerId: provider.id } : null;
+				restartRequest.current = handoff ?? true;
+				setRestarting(true);
+				setRestartError(null);
+				setUpdateError(null);
+				if (handoff) {
+					writeWebUpdateReturn(handoff);
+					setReconnectTimedOut(false);
+					setReconnect(handoff);
+				}
+				provider.restart(capabilities).catch((error) => {
+					// A lost response may mean the host already exited. Continue read-only checks.
+					if (handoff && error instanceof TypeError) return;
+					console.error("[mcp-connector] restart failed:", error);
+					if (handoff) writeWebUpdateReturn(null);
+					restartRequest.current = null;
+					setReconnect(null);
+					setRestarting(false);
+					setRestartError(error instanceof Error ? error.message : String(error));
+				});
+			};
+			const activationPendingVersion = pendingActivationVersion(versionStatus, providerUpdateCheck);
+			const hasOffer = versionStatus?.updateAvailable || providerUpdateCheck?.updateAvailable || Boolean(rememberedTarget);
+			const previousTarget = versionStatus?.lastConfirmedUpdateVersion;
+			const badgeVersion = webCommit ? (versionStatus?.updateAvailable ? npmTarget : previousTarget)
+				: hasOffer ? targetVersion : previousTarget;
+			const badgeTarget = compactHeader && !activationPendingVersion && !updateOperation
+				? parseClientVersion(badgeVersion)?.normalized : null;
+			const hasWebTarget = webUpdate && Boolean(badgeTarget || webCommit);
+			const checking = (webUpdate && updateProviderState === "checking")
+				|| (!hasWebTarget && (versionCheckBusy || (!versionStatus && !versionCheckFailed)));
+			const invalidOffer = hasOffer && !webCommit && !parseClientVersion(targetVersion);
+			const showCheckError = (versionCheckFailed || invalidOffer) && !checking && !activationPendingVersion
+				&& !hasWebTarget && !providerUpdateCheck?.updateAvailable && !updateOperation;
+			const drawerId = "mcp-connector-upgrade-details-" + presentation;
+			const renderUpdateControls = () => {
+				if (restartError) return { action: (0, react_jsx_runtime.jsxs)("div", {
+					className: "mcpConnectorUpdateControls", children: [
+						(0, react_jsx_runtime.jsx)("span", { role: "status", children: restartError }),
+						(0, react_jsx_runtime.jsx)("button", { type: "button", className: "mcpConnectorUpdateButton",
+							onClick: restartHost, children: t("立即重启") })
+					]
+				}) };
+				if (reconnect) return { action: (0, react_jsx_runtime.jsxs)("div", {
+					className: "mcpConnectorUpdateControls",
+					children: [
+						(0, react_jsx_runtime.jsx)("span", { role: "status", children: reconnectTimedOut
+							? t("还没确认 DSH 已完成重启，可以点『重新连接』再试一次。") : t("正在等待 DSH 重启…") }),
+						reconnectTimedOut && (0, react_jsx_runtime.jsx)("button", {
+							type: "button", className: "mcpConnectorUpdateButton mcpConnectorUpdatePrimary",
+							children: t("重新连接"), onClick: () => { setReconnectTimedOut(false); setReconnect({ ...reconnect }); }
+						})
+					]
+				}) };
+				if (!versionStatus?.updateAvailable
+					&& !(compactHeader && badgeTarget) && !webCommit
+					&& !(updateProviderState === "ready" && providerUpdateCheck?.updateAvailable === true)
+					&& activationPendingVersion === null
+					&& updateOperation === null && updateError === null) return {};
+				if (updateStarting === "verifying") {
+					return { action: (0, react_jsx_runtime.jsx)("span", { role: "status", children: t("正在校验安装条件…") }) };
+				}
+				if (updateRunning) {
+					return { action: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: "mcpConnectorUpdateControls",
+						children: [
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								className: "mcpConnectorUpdateButton",
+								disabled: true,
+								children: updateStarting ? t("正在启动更新…") : updateProgressLabel(updateOperation)
+							}),
+							updateError !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: "mcpConnectorUpdateStatus",
+								"data-tone": "error",
+								title: updateError,
+								children: t("暂时无法读取进度，正在重试")
+							})
+						]
+					}) };
+				}
+				if (updateOperation?.state === "failed") {
+					const force = ["RELEASE_TOO_FRESH", "VERSION_UNCHANGED"].includes(updateOperation.failure?.code);
+					return { action: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: "mcpConnectorUpdateControls",
+						children: [
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: "mcpConnectorUpdateStatus",
+								"data-tone": "error",
+								title: updateOperation.failure?.message ?? t("更新失败"),
+								children: updateFailureLabel(updateOperation.failure)
+							}),
+							updateOperation.failure?.retryable && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								className: "mcpConnectorUpdateButton",
+								onClick: () => startUpdate(force),
+								children: updateOperation.failure?.code === "RELEASE_TOO_FRESH"
+									? t("立即更新（跳过等待）")
+									: force ? t("强制重试") : t("重试更新")
+										}),
+							rollbackRunning && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: "mcpConnectorUpdateStatus",
+								children: t("检测到异常版本，正在自动回滚…")
+							}),
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								className: "mcpConnectorUpdateButton mcpConnectorUpdateSecondary",
+								onClick: () => openDshPluginMarket(actions),
+								children: t("查看更新方式")
+							})
+						]
+					}) };
+				}
+				if (["succeeded", "rolled-back"].includes(updateOperation?.state)) {
+					const rolledBack = updateOperation.state === "rolled-back";
+					const restartRequired = updateOperation.outcome?.restartRequired === true;
+					const refreshRequired = updateOperation.outcome?.refreshRequired === true;
+					const rollbackFailed = updateOperation.outcome?.rollback?.state === "failed";
+					return { action: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: "mcpConnectorUpdateControls",
+						children: [
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: "mcpConnectorUpdateStatus",
+								children: rolledBack
+									? updateOperation.integrityFailure === void 0 ? t("已回滚") : t("已阻止异常版本并回滚")
+									: t("已安装 v{version}", { version: updateOperation.installedVersion ?? versionStatus?.latestVersion })
+							}),
+							rollbackFailed && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: "mcpConnectorUpdateStatus",
+								"data-tone": "error",
+								title: updateOperation.outcome.rollback.detail ?? t("回滚失败"),
+								children: t("回滚失败")
+							}),
+						restartRequired && updateProviderSelection?.capabilities?.restart?.supported === true && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								className: compactHeader ? "mcpConnectorUpdateButton mcpConnectorUpdatePrimary" : "mcpConnectorUpdateButton",
+								disabled: restarting,
+								onClick: restartHost,
+								children: restarting ? t("正在重启…") : t("立即重启")
+							}),
+						restartRequired && updateProviderSelection?.capabilities?.restart?.supported !== true && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: "mcpConnectorUpdateStatus",
+							title: t("重启由 {managedBy} 管理", { managedBy: updateProviderSelection?.capabilities?.restart?.managedBy ?? t("宿主") }),
+							children: updateProviderSelection?.capabilities?.runtime === "desktop" ? t("请重启 DSH Desktop") : t("请重启 DSH")
+							}),
+							!restartRequired && refreshRequired && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								className: "mcpConnectorUpdateButton",
+								onClick: () => window.location.reload(),
+								children: t("刷新生效")
+							}),
+							updateOperation.outcome?.rollback?.available === true && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								className: "mcpConnectorUpdateButton mcpConnectorUpdateSecondary",
+								disabled: rollbackRunning,
+								onClick: rollbackUpdate,
+								children: rollbackRunning ? t("正在回滚…") : rollbackFailed ? t("重试回滚") : t("回滚")
+							})
+						]
+					}) };
+				}
+				if (updateError !== null) {
+					return { action: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: "mcpConnectorUpdateControls",
+						children: [
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: "mcpConnectorUpdateStatus",
+								"data-tone": "error",
+								title: updateError,
+								children: t("更新服务调用失败")
+							}),
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								className: "mcpConnectorUpdateButton mcpConnectorUpdateSecondary",
+								onClick: () => openDshPluginMarket(actions),
+								children: t("查看更新方式")
+							})
+						]
+					}) };
+				}
+				if (!desktopUpdate && updateProviderState === "checking" && !activationPendingVersion) {
+					if (webUpdate) return {};
+					return { action: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+						type: "button",
+						className: "mcpConnectorUpdateButton",
+						disabled: true,
+						children: t("正在准备更新…")
+					}) };
+				}
+				if (!desktopUpdate && updateProviderState === "ready" && providerUpdateCheck?.updateAvailable === true) {
+					const commit = providerGitCommit(providerUpdateCheck);
+					return { action: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+						type: "button",
+						className: webUpdate ? "mcpConnectorUpdateButton mcpConnectorUpdatePrimary" : "mcpConnectorUpdateButton",
+						title: commit ? t("更新到提交 {commit}", { commit }) : t("由 {provider} 安全更新到 v{version}", {
+							provider: updateProviderSelection?.provider?.label ?? t("更新服务"),
+							version: providerUpdateCheck.latestVersion
+						}),
+						onClick: () => startUpdate(false),
+						children: commit ? t("更新到提交 {commit}", { commit: commit.slice(0, 8) })
+							: webUpdate ? t("更新到 v{version}", { version: providerUpdateCheck.latestVersion })
+							: t("一键更新到 v{version}", { version: providerUpdateCheck.latestVersion })
+					}) };
+				}
+				if (activationPendingVersion !== null) {
+					const canRestart = updateProviderSelection?.capabilities?.restart?.supported === true;
+					return { action: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: "mcpConnectorUpdateControls",
+						children: [
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: "mcpConnectorUpdateStatus",
+								// 两条分支同源：中文走 msgid 原样返回（不查表），英文走插值译文。
+								// 不再用 `activeLocale === DEFAULT_LOCALE` 预先把中文写死，避免出现
+								// 「英文界面里仍显示中文」的分支。
+								children: t("v{version} 已安装，重启后生效", { version: activationPendingVersion })
+							}),
+							canRestart
+								? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									className: compactHeader ? "mcpConnectorUpdateButton mcpConnectorUpdatePrimary" : "mcpConnectorUpdateButton",
+									disabled: restarting,
+									onClick: restartHost,
+									children: restarting ? t("正在重启…") : t("立即重启")
+								})
+								: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+									className: "mcpConnectorUpdateStatus",
+									title: t("重启由 {managedBy} 管理", { managedBy: updateProviderSelection?.capabilities?.restart?.managedBy ?? t("宿主") }),
+									children: updateProviderSelection?.capabilities?.runtime === "desktop"
+										? t("请重启 DSH Desktop")
+										: t("请重启 DSH")
+								})
+						]
+					}) };
+				}
+				const command = manualCommandState.command;
+				const parsedTarget = parseClientVersion(compactHeader ? badgeTarget : targetVersion);
+				const validTarget = parseClientVersion(manualTarget) !== null;
+				const showDiagnosis = !validTarget || profileInfo.status !== "ready";
+				const manualControls = (0, react_jsx_runtime.jsxs)("div", {
+					className: "mcpConnectorManualUpdate",
+					children: [
+						validTarget && profileInfo.status !== "ready" && profileInfo.detectedName !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: "mcpConnectorUpdateHint",
+							children: t("已读取的 profile：{name}", { name: displayProfileName(profileInfo.detectedName) })
+						}),
+						showDiagnosis && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: "mcpConnectorUpdateHint",
+							children: validTarget ? profileFailureLabel(profileInfo) : compactHeader
+								? t("npm 尚未确认此版本，暂时无法提供升级命令。")
+								: t("未取得有效的目标版本，请点击“检查更新”后重试")
+						}),
+						validTarget && needsManualProfileChoice && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("label", {
+							className: "mcpConnectorProfileChoice",
+							children: [
+								t("默认安装方式"),
+								/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("select", {
+									className: "mcpConnectorUpdateButton",
+									"aria-label": t("默认安装方式"),
+									value: selectedProfile ?? "",
+									onChange: (event) => {
+										const name = event.target.value;
+										setManualProfileChoice(["web", "desktop"].includes(name) ? { context: manualProfileContext, name } : null);
+									},
+									children: [
+										/* @__PURE__ */ (0, react_jsx_runtime.jsx)("option", { value: "", children: t("请选择安装方式") }),
+										/* @__PURE__ */ (0, react_jsx_runtime.jsx)("option", { value: "web", children: t("默认 Web（web）") }),
+										/* @__PURE__ */ (0, react_jsx_runtime.jsx)("option", { value: "desktop", children: t("默认 Desktop（desktop）") })
+									]
+								})
+							]
+						}),
+						validTarget && needsManualProfileChoice && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: "mcpConnectorUpdateHint",
+							children: t("仅适用于默认安装；自定义部署请使用实际 profile")
+						}),
+						command !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("code", {
+							className: "mcpConnectorManualCommand",
+							title: command,
+							onClick: (event) => window.getSelection?.()?.selectAllChildren?.(event.currentTarget),
+							children: command
+						}),
+						command !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+							type: "button",
+							className: "mcpConnectorUpdateButton",
+							onClick: () => {
+								copyManualUpgradeCommand(command).then((copied) => {
+									if (manualCommandRef.current !== manualCommandState) return;
+									setManualCommandCopied(copied);
+									setManualCommandVisible(!copied);
+								});
+							},
+							children: manualCommandCopied ? t("已复制") : t("复制升级命令")
+						}),
+						command !== null && manualCommandVisible && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: "mcpConnectorUpdateStatus",
+							"data-tone": "error",
+							children: t("无法写入剪贴板，请点击上方命令全选后手动复制")
+						}),
+						showDiagnosis && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+							type: "button",
+							className: "mcpConnectorUpdateButton",
+							onClick: () => window.open(PLUGIN_UPDATE_GUIDE_URL, "_blank", "noopener,noreferrer"),
+							children: t("查看更新说明")
+						}),
+						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+							type: "button",
+							className: "mcpConnectorUpdateButton mcpConnectorUpdateSecondary",
+							onClick: () => window.open(NPM_PACKAGE_URL, "_blank", "noopener,noreferrer"),
+							children: t("查看 npm")
+						})
+					]
+				});
+				if (compactHeader && parsedTarget === null && !webCommit) return {};
+				if (!compactHeader) return { action: manualControls };
+				if (webUpdate) {
+					const manualOnly = updateProviderState === "unavailable" || managedSource;
+					const managedHelp = updateProviderState === "linked" ? t("请在原来的插件目录更新文件，然后重启 DSH 加载新版本。")
+						: updateProviderState === "generation" ? t("请通过宿主的插件管理器更新此插件。") : null;
+					const retry = () => {
+						setOtherMethodsOpen(false);
+						setUpdateProviderState("checking");
+						setProviderRetryRequest(value => value + 1);
+					};
+					return {
+						drawer: (0, react_jsx_runtime.jsxs)("section", {
+							className: "mcpConnectorUpdateFallback mcpConnectorWebNotice", "data-tone": manualOnly ? "manual" : "unconfirmed",
+							children: [
+								(0, react_jsx_runtime.jsxs)("div", {
+									className: "mcpConnectorWebNoticeRow",
+									children: [
+										(0, react_jsx_runtime.jsxs)("div", {
+											className: "mcpConnectorWebNoticeText", role: "status",
+											children: [
+												(0, react_jsx_runtime.jsx)("strong", { children: updateProviderState === "linked" ? t("当前插件需通过本地目录升级")
+													: updateProviderState === "generation" ? t("当前插件由宿主管理") : manualOnly ? t("当前 Web 环境需要手动升级")
+													: webMemory?.retried ? t("仍未能确认能否直接更新") : t("暂时无法确认能否直接更新") }),
+												!manualOnly && parsedTarget && lastWebOffer?.latestVersion === parsedTarget.normalized &&
+													(0, react_jsx_runtime.jsx)("small", { children: t("上次检查时，v{version} 可以直接更新。", { version: parsedTarget.normalized }) })
+											]
+										}),
+										(0, react_jsx_runtime.jsxs)("div", {
+											className: "mcpConnectorWebNoticeActions",
+											children: [
+												!manualOnly && (0, react_jsx_runtime.jsx)("button", {
+													type: "button", className: "mcpConnectorUpdateButton mcpConnectorUpdatePrimary",
+													onClick: retry, children: t("重试")
+												}),
+												(0, react_jsx_runtime.jsx)("button", {
+													type: "button", className: manualOnly ? "mcpConnectorUpdateButton mcpConnectorUpdatePrimary" : "mcpConnectorUpdateLink",
+													"aria-expanded": otherMethodsOpen, "aria-controls": drawerId,
+													onClick: () => setOtherMethodsOpen(value => !value),
+													children: otherMethodsOpen ? t("收起升级方式") : manualOnly ? t("查看升级方式") : t("手动升级方式")
+												})
+											]
+										})
+									]
+								}),
+								otherMethodsOpen && (0, react_jsx_runtime.jsxs)("div", {
+									id: drawerId, "aria-label": t("查看升级方式"),
+									children: [(0, react_jsx_runtime.jsx)("span", { children: managedHelp ?? t("使用 Web 启动时的终端") }), !managedSource && manualControls]
+								})
+							]
+						})
+					};
+				}
+				const navigation = getUpdateNavigation?.();
+				if (navigation && !showNavigationHint) {
+					return { action: (0, react_jsx_runtime.jsx)("button", {
+						type: "button",
+						className: "mcpConnectorUpdateButton mcpConnectorUpdatePrimary",
+						onClick: async () => {
+							try {
+								await getUpdateNavigation().openBundle(PLUGIN_PACKAGE_NAME);
+							} catch {
+								setShowNavigationHint(true);
+								return;
+							}
+							if (presentation !== "panel") actions.close();
+						},
+						children: t("去插件页更新")
+					}) };
+				}
+				return { drawer: (0, react_jsx_runtime.jsxs)("section", {
+					className: "mcpConnectorUpdateFallback", "aria-label": t("从插件页更新"),
+					children: [
+						(0, react_jsx_runtime.jsx)("span", {
+							role: "status",
+							children: (showNavigationHint ? t("未能打开插件详情页。") : "") + (versionCheckFailed && !providerTarget
+								? t("请打开侧栏“插件” → “已安装” → dsh-mcp-connector，查看当前可用的更新。")
+								: t("请打开侧栏“插件” → “已安装” → dsh-mcp-connector，然后点击“更新到 v{version}”。", { version: parsedTarget.normalized }))
+						}),
+						(0, react_jsx_runtime.jsx)("button", {
+							type: "button", className: "mcpConnectorUpdateLink",
+							"aria-expanded": otherMethodsOpen, "aria-controls": drawerId,
+							onClick: () => setOtherMethodsOpen(value => !value),
+							children: t("查看手动升级命令")
+						}),
+						otherMethodsOpen && (0, react_jsx_runtime.jsx)("div", { id: drawerId, children: manualControls })
+					]
+				}) };
+			};
+			const { action: updateAction, drawer: updateDrawer } = renderUpdateControls();
+			const runningVersion = versionStatus?.installedVersion ?? parseClientVersion(providerUpdateCheck?.installedVersion ?? lastWebOffer?.installedVersion)?.normalized;
+			const versionLabel = badgeTarget && runningVersion
+				? t("当前版本 v{current}，发现新版本 v{target}", { current: runningVersion, target: badgeTarget })
+				: runningVersion ? t("当前版本 v{version}", { version: runningVersion }) : t("正在检查插件版本");
+			const versionBadge = (0, react_jsx_runtime.jsx)("span", {
+				className: "mcpConnectorVersion", title: versionLabel, "aria-label": versionLabel,
+				children: badgeTarget && runningVersion ? `v${runningVersion} → v${badgeTarget}`
+					: runningVersion ? `v${runningVersion}` : "v…"
+			});
+			const showChecking = checking && !reconnect && !(desktopUpdate && (badgeTarget || versionStatus?.sources?.npm?.ok));
+			const checkFeedback = showChecking && !activationPendingVersion && !updateRunning && !updateOperation
+				? (0, react_jsx_runtime.jsx)("span", { role: "status", children: hasWebTarget
+					? t("正在确认能否直接更新…") : t("正在检查更新…") })
+				: showCheckError && (0, react_jsx_runtime.jsxs)("div", {
+					className: "mcpConnectorUpdateControls",
+					children: [
+						(0, react_jsx_runtime.jsx)("span", {
+							role: "status", title: typeof versionCheckFailed === "string" && versionCheckFailed !== "npm" ? versionCheckFailed : undefined,
+							children: badgeTarget ? t("重新检查失败，显示上次发现的版本。") : t("暂时无法确认 MCP 连接器是否有新版本。")
+						}),
+						(0, react_jsx_runtime.jsx)("button", {
+							type: "button", className: "mcpConnectorUpdateLink",
+							onClick: () => setVersionCheckRequest(value => value + 1), children: t("重新检查")
+						})
+					]
+				});
+			const src = iframeSrcRef.current;
+			const titleId = presentation === "panel"
+				? "mcp-connector-native-title"
+				: "mcp-connector-modal-title";
+			const marketPanel = /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: "mcpConnectorMarketPanel",
+						role: presentation === "panel" ? "region" : "dialog",
+						"aria-modal": presentation === "panel" ? void 0 : true,
+						"aria-labelledby": titleId,
+						style: {
+							borderRadius: presentation === "panel" ? 0 : 16,
+							width: presentation === "panel" ? "100%" : "min(800px, 90%)",
+							height: presentation === "panel" ? "100%" : "min(800px, 85%)",
+							display: "flex",
+							flexDirection: "column",
+							boxShadow: presentation === "panel" ? "none" : "0 20px 60px rgba(0,0,0,0.15)",
+							overflow: "hidden"
+						},
+						children: [
+							/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+								className: "mcpConnectorMarketHeader",
+								style: {
+									display: "flex",
+									alignItems: "center",
+									justifyContent: "space-between",
+									padding: "20px 24px",
+									borderBottom: "1px solid",
+									flexShrink: 0,
+									filter: detailOpen ? "brightness(0.5)" : "none",
+									pointerEvents: detailOpen ? "none" : "auto",
+									transition: "filter 0.2s ease"
+								},
+								children: [
+									/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+									style: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", minWidth: 0, flex: 1 },
+										children: [
+											/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+												className: "mcpConnectorMarketIcon",
+												"aria-hidden": true,
+												children: (0, react_jsx_runtime.jsxs)("svg", {
+													viewBox: "0 0 16 16",
+													fill: "none",
+													"aria-hidden": "true",
+													children: [
+														(0, react_jsx_runtime.jsx)("path", { d: "M6 2V4.5", stroke: "currentColor", strokeLinecap: "round" }),
+														(0, react_jsx_runtime.jsx)("path", { d: "M10 2V4.5", stroke: "currentColor", strokeLinecap: "round" }),
+														(0, react_jsx_runtime.jsx)("path", { d: "M3.5 4.5H12.5V8.25C12.5 10.7353 10.4853 12.75 8 12.75C5.51472 12.75 3.5 10.7353 3.5 8.25V4.5Z", stroke: "currentColor", strokeLinejoin: "round" }),
+														(0, react_jsx_runtime.jsx)("path", { d: "M8 12.75V14.5", stroke: "currentColor", strokeLinecap: "round" })
+													]
+												})
+											}),
+										/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { id: titleId, className: "mcpConnectorMarketTitle", style: { fontSize: 18, fontWeight: 600 }, children: t("MCP连接器") }),
+											compactHeader ? (0, react_jsx_runtime.jsxs)("div", {
+												className: "mcpConnectorUpdateGroup",
+												children: [versionBadge, updateAction]
+											}) : versionBadge,
+											!compactHeader && updateAction,
+											compactHeader ? checkFeedback : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+												type: "button",
+												className: "mcpConnectorUpdateButton",
+												disabled: versionCheckBusy || updateRunning,
+												title: versionStatus?.checkedAt
+													? t("上次检查：{time}", { time: new Date(versionStatus.checkedAt).toLocaleString() })
+													: t("尚未完成版本检查"),
+													onClick: () => setVersionCheckRequest((value) => value + 1),
+												children: versionCheckBusy ? t("正在检查更新…") : t("检查更新")
+											}),
+											!compactHeader && versionCheckFailed && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+												className: "mcpConnectorUpdateStatus",
+												"data-tone": "error",
+												children: typeof versionCheckFailed === "string" && versionCheckFailed !== "npm" ? versionCheckFailed : t("暂时无法确认 npm 最新版本，请重试")
+											}),
+											versionStatus?.releasePending && (!compactHeader || (!badgeTarget && !activationPendingVersion && !updateOperation)) && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+												className: "mcpConnectorVersion",
+												title: t("GitHub Release 已发布，等待 npm 同步后即可更新"),
+												children: t("v{version} 正在同步", { version: versionStatus.release.version })
+											})
+										]
+									}),
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+										ref: closeRef,
+										className: "mcpConnectorMarketClose",
+										type: "button",
+										"aria-label": presentation === "panel" ? t("返回会话") : t("关闭 MCP连接器"),
+										onClick: closeView,
+										style: {
+											background: "transparent",
+											border: "none",
+											fontSize: 22,
+											cursor: "pointer",
+											padding: "4px 8px",
+											borderRadius: 6,
+											lineHeight: 1
+										},
+										children: "\u00D7"
+									})
+								]
+							}),
+							updateDrawer,
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("iframe", {
+								ref: frameRef,
+								src,
+								onLoad: () => {
+									sendHostLocale();
+									frameRef.current?.contentWindow?.postMessage({
+										type: WORKSPACE_CONTEXT_RESULT_TYPE,
+										workspace: workspaceContext(),
+										workspaces: workspaceOptions()
+									}, window.location.origin);
+								},
+								title: t("MCP连接器"),
+								style: {
+									flex: 1,
+									width: "100%",
+									border: "none",
+									background: "transparent",
+									colorScheme: "light dark"
+								}
+							})
+						]
+					});
+			if (presentation === "panel") return marketPanel;
+			const modal = /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+				style: {
+					position: "fixed",
+					inset: 0,
+					background: "rgba(0,0,0,0.4)",
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "center",
+					zIndex: CONNECTOR_MODAL_Z_INDEX
+				},
+				onClick: (event) => { if (event.target === event.currentTarget) closeView(); },
+				children: marketPanel
+			});
+			// shell.overlay lives inside a z-index:20 stacking context, while DSH
+			// Settings is a root-level z-index:1000 modal. Portal to body so the
+			// quick-open action can reliably place this dialog above Settings.
+			if (document.body !== null && document.body !== void 0
+				&& typeof react_dom.createPortal === "function") {
+				return react_dom.createPortal(modal, document.body);
+			}
+			return modal;
+		}
+
+		/** DSH 0.1.x 兼容入口：仅在原生面板席位不完整时挂载。 */
+		function LegacySidebarEntry(props) {
+			useLocale();
+			const { wide, useStore, actions } = props;
+			const open = useStore((state) => state.open);
+			const visible = useStore((state) => state.sidebarVisible !== false);
+			const [topMount, setTopMount] = (0, react.useState)(null);
+			(0, react.useEffect)(() => {
+				if (!visible) {
+					setTopMount(null);
+					return void 0;
+				}
+				const removeStyles = installSidebarStyles();
+				let disposed = false;
+				const ownedMounts = new Set();
+				const syncMount = () => {
+					if (disposed) return;
+					const mount = ensureTopLauncherMount();
+					if (mount !== null) ownedMounts.add(mount);
+					setTopMount((current) => current === mount ? current : mount);
+				};
+				syncMount();
+				let observer = null;
+				if (typeof window.MutationObserver === "function" && document.body !== null) {
+					observer = new window.MutationObserver(syncMount);
+					observer.observe(document.body, { childList: true, subtree: true });
+				}
+				return () => {
+					disposed = true;
+					observer?.disconnect();
+					for (const mount of ownedMounts) mount.remove();
+					removeStyles();
+				};
+			}, [visible]);
+			if (!visible) return null;
+			const launcher = /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+				type: "button",
+				className: "mcpConnectorLauncher",
+				"data-wide": wide,
+				"data-placement": topMount === null ? "footer" : "top",
+				"aria-label": t("MCP连接器"),
+				"aria-haspopup": "dialog",
+				"aria-expanded": open,
+				onClick: () => { try { actions.open(); } catch (error) { console.error('[mcp-connector] open failed:', error); } },
+				children: [
+					(0, react_jsx_runtime.jsx)("span", {
+						className: "mcpConnectorLauncherIcon",
+						"aria-hidden": true,
+						children: (0, react_jsx_runtime.jsxs)("svg", {
+							viewBox: "0 0 16 16",
+							fill: "none",
+							"aria-hidden": "true",
+							children: [
+								(0, react_jsx_runtime.jsx)("path", { d: "M6 2V4.5", stroke: "currentColor", strokeLinecap: "round" }),
+								(0, react_jsx_runtime.jsx)("path", { d: "M10 2V4.5", stroke: "currentColor", strokeLinecap: "round" }),
+								(0, react_jsx_runtime.jsx)("path", { d: "M3.5 4.5H12.5V8.25C12.5 10.7353 10.4853 12.75 8 12.75C5.51472 12.75 3.5 10.7353 3.5 8.25V4.5Z", stroke: "currentColor", strokeLinejoin: "round" }),
+								(0, react_jsx_runtime.jsx)("path", { d: "M8 12.75V14.5", stroke: "currentColor", strokeLinecap: "round" })
+							]
+						})
+					}),
+					wide ? (0, react_jsx_runtime.jsx)("span", { className: "mcpConnectorLauncherLabel", children: t("MCP连接器") }) : null
+				]
+			});
+			if (topMount === null || typeof react_dom.createPortal !== "function") return launcher;
+			return react_dom.createPortal(/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+				className: "mcpConnectorTopEntry",
+				"data-wide": wide,
+				children: launcher
+			}), topMount);
+		}
+
+		/** 新版 DSH 会渲染整行按钮；插件只提供随 size/currentColor 变化的字形。 */
+		function NativeSidebarIcon(props) {
+			const size = Number.isFinite(props?.size) ? props.size : 16;
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("svg", {
+				viewBox: "0 0 16 16",
+				width: size,
+				height: size,
+				fill: "none",
+				stroke: "currentColor",
+				"aria-hidden": "true",
+				style: { display: "block" },
+				children: [
+					(0, react_jsx_runtime.jsx)("path", { d: "M6 2V4.5", strokeLinecap: "round" }),
+					(0, react_jsx_runtime.jsx)("path", { d: "M10 2V4.5", strokeLinecap: "round" }),
+					(0, react_jsx_runtime.jsx)("path", { d: "M3.5 4.5H12.5V8.25C12.5 10.7353 10.4853 12.75 8 12.75C5.51472 12.75 3.5 10.7353 3.5 8.25V4.5Z", strokeLinejoin: "round" }),
+					(0, react_jsx_runtime.jsx)("path", { d: "M8 12.75V14.5", strokeLinecap: "round" })
+				]
+			});
+		}
+
+		/**
+		 * 面板宿主与设置弹框共用的运行时 props（含面板语言）。
+		 *
+		 * 语言取自 `apply()` 解析并随可选 `locale` 注入更新的模块状态，而不是在
+		 * 语言取自 `apply()` 解析并随可选注入更新的模块状态，不在这里重新读服务。
+		 */
+		function marketRuntimeProps(ctx) {
+			return {
+				getUpdateNavigation: () => {
+					try {
+						const navigation = ctx.get?.("pluginNavigation");
+						return typeof navigation?.openBundle === "function" ? navigation : null;
+					} catch {
+						return null;
+					}
+				},
+				startPromptSession: (promptText) => startPromptSession(ctx, promptText),
+				workspaceContext: () => currentWorkspaceContext(ctx),
+				workspaceOptions: () => availableWorkspaceContexts(ctx),
+				iframeLocale: () => activeLocale
+			};
+		}
+
+		/**
+		 * 原生 main + sidebar.panellist 优先；两个席位未同时就绪时才启用
+		 * DSH 0.1.x footer/Portal 兼容适配器。席位可以延迟声明，因此状态不依赖 DOM 探测。
+		 */
+		function installSidebarSlots(ctx, marketView, savedReturn) {
+			// The host unmounts the sidebar on exit. Desktop remembers display data, Web also reuses recent offers.
+			const sidebarUpdateMemory = {};
+			let mainReady = false;
+			let panelListReady = false;
+			let footerReady = false;
+			let nativeEntryDispose = null;
+			let fallbackEntryDispose = null;
+			let restorePanel = savedReturn?.surface === "panel";
+			let leavingForDisposal = false;
+
+			const layout = () => typeof ctx.get === "function" ? ctx.get("layout") ?? ctx.layout : ctx.layout;
+			const leaveNativePanel = () => {
+				const controller = layout();
+				try {
+					if (controller?.panelInfo?.getSnapshot?.().activePanelId === "mcp-connector") {
+						leavingForDisposal = true;
+						try { controller.selectPanel(null); }
+						finally { leavingForDisposal = false; }
+					}
+				} catch (error) {
+					console.warn("[mcp-connector] failed to leave native panel:", error);
+				}
+			};
+			const disposeNativeEntry = () => {
+				if (nativeEntryDispose === null) return;
+				leaveNativePanel();
+				nativeEntryDispose();
+				nativeEntryDispose = null;
+			};
+			const disposeFallbackEntry = () => {
+				if (fallbackEntryDispose === null) return;
+				fallbackEntryDispose();
+				fallbackEntryDispose = null;
+			};
+			const syncEntries = () => {
+				const visible = marketView.getSidebarVisible();
+				const nativeReady = mainReady && panelListReady;
+				if (nativeReady) {
+					disposeFallbackEntry();
+					if (visible && nativeEntryDispose === null) {
+						nativeEntryDispose = ctx.slots.register({
+							name: "sidebar.panellist",
+							id: "mcp-connector",
+							order: 40,
+							// 传函数而不是字符串：槽位在**每次投影**时重新读取，侧边栏文案
+							// 因此跟随当前语言，不必等重新注册（字符串会在注册时被固化，
+							// 语言晚于 apply 就绪时永远停在旧文案）。
+							label: () => t("MCP连接器")
+						}, NativeSidebarIcon);
+					} else if (!visible) {
+						disposeNativeEntry();
+					}
+					if (restorePanel) {
+						restorePanel = false;
+						layout()?.selectPanel?.("mcp-connector");
+						if (savedReturn.phase === "return") writeWebUpdateReturn(null);
+					}
+					return;
+				}
+				disposeNativeEntry();
+				if (footerReady && visible && fallbackEntryDispose === null) {
+					fallbackEntryDispose = ctx.slots.register({
+						name: "sidebar.footer.action",
+						id: "mcp-connector",
+						order: 0,
+						store: marketView
+					}, LegacySidebarEntry);
+				} else if (!visible) {
+					disposeFallbackEntry();
+				}
+			};
+
+			ctx.effect(() => {
+				const unsubscribe = marketView.subscribeSidebarVisible(syncEntries);
+				const panels = layout()?.panelInfo;
+				let previous = panels?.getSnapshot?.().activePanelId;
+				const unsubscribePanel = !window.dshDesktop && panels?.subscribe?.(() => {
+					const next = panels.getSnapshot().activePanelId;
+					if (!leavingForDisposal && previous === "mcp-connector" && next !== previous
+						&& readWebUpdateReturn()?.surface === "panel") writeWebUpdateReturn(null);
+					previous = next;
+				});
+				return () => {
+					unsubscribe();
+					if (typeof unsubscribePanel === "function") unsubscribePanel();
+					disposeNativeEntry();
+					disposeFallbackEntry();
+				};
+			}, "mcp-connector: sidebar entry visibility");
+
+			// main 必须先于 panellist 行就绪，否则宿主会拒绝选中缺页面的行。
+			ctx.slots.inject("main", () => {
+				const disposeMain = ctx.slots.register({
+					name: "main",
+					key: "mcp-connector",
+					store: marketView,
+					inject: () => ({
+						...marketRuntimeProps(ctx),
+						sidebarUpdateMemory,
+						presentation: "panel",
+						closePanel: () => layout()?.selectPanel?.(null)
+					})
+				}, MarketOverlay);
+				mainReady = true;
+				syncEntries();
+				return () => {
+					leaveNativePanel();
+					mainReady = false;
+					syncEntries();
+					disposeMain();
+				};
+			});
+
+			ctx.slots.inject("sidebar.panellist", () => {
+				panelListReady = true;
+				syncEntries();
+				return () => {
+					panelListReady = false;
+					syncEntries();
+				};
+			});
+
+			ctx.slots.inject("sidebar.footer.action", () => {
+				footerReady = true;
+				syncEntries();
+				return () => {
+					footerReady = false;
+					disposeFallbackEntry();
+				};
+			});
+		}
+
+		/**
+		 * 语言服务通过**可选嵌套注入**接入：宿主没有 `locale` 服务时不注册回调，
+		 * 插件照常加载并保持中文（§6.6）；服务晚于 apply 就绪时再切换。
+		 */
+		function installLocale(ctx) {
+			const attach = (localeCtx) => localeCtx.effect(() => {
+				let disposed = false;
+				let unsubscribe;
+				const syncLocale = () => {
+					if (!disposed) setActiveLocale(localeFromService(localeCtx) ?? DEFAULT_LOCALE);
+				};
+				try {
+					const service = localeCtx.get?.("locale");
+					if (typeof service?.subscribe === "function") unsubscribe = service.subscribe(syncLocale);
+					else if (typeof localeCtx.on === "function") unsubscribe = localeCtx.on("locale/change", syncLocale);
+				} catch (error) {
+					console.warn("[mcp-connector] locale subscription unavailable:", error);
+				}
+				syncLocale();
+				return () => {
+					disposed = true;
+					try { if (typeof unsubscribe === "function") unsubscribe(); }
+					finally { setActiveLocale(DEFAULT_LOCALE); }
+				};
+			}, "mcp-connector: locale subscription");
+			try {
+				if (typeof ctx.inject === "function") ctx.inject(["locale"], attach);
+				else attach(ctx);
+			} catch (error) {
+				console.warn("[mcp-connector] optional locale injection failed:", error);
+			}
+		}
+
+		function apply(ctx) {
+			console.log('[mcp-connector] client apply() called');
+			try {
+				const savedReturn = readWebUpdateReturn();
+				const restoreModal = savedReturn?.surface === "modal";
+				const marketView = createMarketViewStore(restoreModal);
+				if (restoreModal && savedReturn.phase === "return") writeWebUpdateReturn(null);
+				activeLocale = resolveLocaleId(ctx);
+				installLocale(ctx);
+				ctx.effect(() => installOverlayStyles(), "mcp-connector: overlay styles");
+				installClientSettings(ctx, marketView);
+
+				// 弹框：注册到 shell.overlay（类似社区插件市场）
+				ctx.slots.inject("shell.overlay", () => {
+					console.log('[mcp-connector] registering shell.overlay slot');
+					return ctx.slots.register({
+						name: "shell.overlay",
+						id: "mcp-connector",
+						order: 100,
+						store: marketView,
+						inject: () => marketRuntimeProps(ctx)
+					}, MarketOverlay);
+				});
+
+				installSidebarSlots(ctx, marketView, savedReturn);
+				console.log('[mcp-connector] client apply() completed');
+			} catch (error) {
+				console.error('[mcp-connector] client apply() failed:', error);
+			}
+		}
+
+		exports.apply = apply;
+		exports.inject = inject;
+		return module.exports;
+	}
+});

@@ -4,6 +4,8 @@ Status: implemented
 
 English | [中文](2026-11-01-built-in-mcp-connector.zh.md)
 
+> Superseded composition: [`2026-11-28-sdkwork-mcp-connector-migration`](2026-11-28-sdkwork-mcp-connector-migration.md) replaced the submodule with the first-party `@sdkwork/dsh-mcp-connector` plugin and its catalog source with the `sdkwork-mcp` App SDK. The frame-bridge rationale below still holds.
+
 ## Problem
 
 The Markets page's Connectors tab was the last of its four categories with nothing behind it. It drew the SDKWork cloud storefront's MCP catalog — a page with no content in a shipped build — plus an inert "My connectors" button, while the capability a person opens that tab for (connect an MCP server, authorize it, find its tools across connections, diagnose a broken one) lives in `dsh-mcp-connector`, a third-party Harness plugin. Reaching it meant finding the package, running `dsh plugin --profile web add dsh-mcp-connector`, and restarting the host.

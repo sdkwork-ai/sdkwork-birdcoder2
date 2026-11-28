@@ -270,90 +270,92 @@ already-installed skills stay — they are ordinary files under
 `$DSH_HOME/skills`, and the filesystem provider keeps serving them. The
 Skills tab's market chip explains the disabled state rather than breaking.
 
-## dsh-mcp-connector — the MCP connector market, connections and tool workbench
+## sdkwork-mcp-connector — the MCP connector market, connections and tool workbench
 
-[`dsh-mcp-connector`](https://github.com/duhu2000/dsh-mcp-connector) brings MCP
-server setup, authorization, cross-connection tool search and connection
-troubleshooting into one surface: a continuously updated catalog of connectors
-(the public registry plus the cards bundled with the package), the connection
-records and their OAuth 2.0 PKCE / API-key / `mcpServers`-JSON authorization,
-the tool workbench with per-connector diagnostics, connection scopes
-(project/global), three-level governance rules, and session-scoped tool
-injection. It is **mounted by default** as the `duhu2000-mcp-connector` row in
+`plugins/sdkwork-mcp-connector` brings MCP server setup, authorization,
+cross-connection tool search and connection troubleshooting into one surface:
+the connector market, the connection records and their OAuth 2.0 PKCE /
+API-key / `mcpServers`-JSON authorization, the tool workbench with
+per-connector diagnostics, connection scopes (project/global), three-level
+governance rules, and session-scoped tool injection. It is **mounted by
+default** as the `sdkwork-mcp-connector` row in
 `packages/bundle/web-app/cordis.patch.yml`, so a shipped build — and the desktop
 layer patched over it — offers the surface with no installer step.
 
-One row carries both halves. The host half owns the catalog, the connection
-records and OAuth grants (its own storage domain plus
-`$DSH_HOME/storages/mcp_connector_grants_v1`), the scopes and governance rules,
-and the managed `@deepseek-ai/dsh-mcp-client` loader entries a live connection
-becomes — the Host's own MCP client still owns the transport, the stdio
-subprocess, tool registration, execution and the approval chain. It also serves
-the whole connector interface as a same-origin page at `/mcp-connector/ui/`,
-whose CSP `frame-ancestors` follows the plugin's `frameAncestors` config
-(`['self']` by default). The browser half registers the `mcp-connector` main
-panel plus its sidebar row, and the panel draws that page in an iframe.
+Unlike the `dsh-*` entries above, this one is **first-party**: it is a fork of
+[`duhu2000/dsh-mcp-connector`](https://github.com/duhu2000/dsh-mcp-connector)
+(v0.2.120, MIT) taken in-tree and renamed with the `sdkwork` marker, and it is
+**not** a git submodule. Its `lib/` and `ui/` artifacts are committed here, the
+same way the third-party plugins ship theirs, so nothing pins it to an upstream
+repository and no submodule pointer has to advance.
+
+One row carries both halves. The host half owns the connection records and OAuth
+grants (its own storage domain), the scopes and governance rules, and the managed
+`@deepseek-ai/dsh-mcp-client` loader entries a live connection becomes — the
+Host's own MCP client still owns the transport, the stdio subprocess, tool
+registration, execution and the approval chain. It also loads the **connector
+market** from the `sdkwork-mcp` application: `lib/sdkwork-catalog.js` resolves the
+deployment environment (`ui-sdkwork-env` settings, then the SDKWork host
+environment variables, with `catalogApiBaseUrl` / `catalogAccessToken` overrides
+for ops), calls `mcp.listCatalogEntries` through that application's generated App
+SDK (`@sdkwork/mcp-app-sdk`), and maps the records onto connector descriptors.
+The plugin therefore ships **no bundled catalog and no CDN registry fallback**:
+the shelf is whatever the deployment's `sdkwork-mcp` service publishes, and the
+bundle acceptance spec fails if a `catalog/` directory ever comes back. The host
+half also serves the whole connector interface as a same-origin page at
+`/mcp-connector/ui/`, whose CSP `frame-ancestors` follows the plugin's
+`frameAncestors` config (`['self']` by default). The browser half registers the
+`mcp-connector` main panel plus its sidebar row, and the panel draws that page in
+an iframe. The panel page's stylesheet is token-first and flat (no card stroke,
+no card shadow, fill-only hover), reading `--dsw-*` aliases with `light-dark()`
+fallbacks; `ui-sdkwork-markets`' `connectorTheme.ts` projects the host's computed
+alias values and resolved `color-scheme` into the frame on load and on theme
+change, so the panel follows the application theme (OEM brand included) rather
+than the operating system's preference.
+
+**Header-owned toolbar.** The page ships its own toolbar (market / installed / tools views, search, add, refresh, language, quick start) for the stand-alone panel, but the tab does not show a second row: `ui-sdkwork-markets` draws those controls in its category header row — the Skills tab's arrangement — and drives the page through the frame protocol (`mcp-connector:host-view`, `host-search`, `host-add`, `host-refresh`, `host-locale`), while the page reports its view and counts back (`mcp-connector:host-state`). In that mode the page hides `.toolbar` (`html[data-host-toolbar='true']`) and keeps only the category rail.
 
 **Connectors tab integration.** The fork's market page
 (`packages/client/ui-sdkwork-markets`) embeds the connector as its Connectors
-tab: the tab frames the plugin's panel page and answers the two messages that
-page asks its host frame for — the Workspace scope a new connection defaults to,
-and the conversation an example Prompt opens (through the Workspace surface's
-own `uiWorkspace.startSession`) — and it declares the plugin's sidebar row
-embedded through `ctx.sdkworkSidebar`, so the connector keeps one navigation
-entry. The strings the two packages share (the `mcp-connector` panel key, the
+tab — the tab *is* the plugin's panel page, with no separate cloud-catalog chip
+in front of it: the tab frames the page and answers the two messages that page
+asks its host frame for — the Workspace scope a new connection defaults to, and
+the conversation an example Prompt opens (through the Workspace surface's own
+`uiWorkspace.startSession`) — and it declares the plugin's sidebar row embedded
+through `ctx.sdkworkSidebar`, so the connector keeps one navigation entry. The
+strings the two packages share (the `mcp-connector` panel key, the
 `/mcp-connector/ui/` page path, and the frame's message names) live in
 `packages/client/ui-sdkwork-markets/src/client/mcpConnectorPanel.ts`;
 `packages/bundle/web-app/tests/built-in-mcp-connector.spec.ts` fails if the
 shipped artifacts stop declaring any of them.
 
-**Pin.** The gitlink is `2057af5`, the `v0.2.94` release commit (also upstream
-`main`'s tip at pin time). Like `dsh-im` and `dsh-skill-market`, upstream commits
-`lib/`, so this repository runs the shipped artifacts rather than rebuilding
-them, and the pin must be a revision where `lib/`, `ui/` and the sources agree —
-a release tag is that point. Prefer a tag over a later `main` tip for exactly
-that reason.
-
 **Dependencies.** `pnpm install` links the workspace's own
 `@deepseek-ai/dsh-mcp-client`, `@deepseek-ai/dsh-storage-domain`,
-`@deepseek-ai/schemastery` and `@deepseek-ai/cordis` into
-`plugins/dsh-mcp-connector/node_modules`, and installs its three runtime
-dependencies (`cross-spawn`, `undici`, `zod`). Browsing the catalog needs
-network access to the registry the row's `catalogUrl` names; a deployment that
-wants the bundled cards only sets `catalogUrl: ''`. Connecting needs whatever
-the chosen provider requires, and its credentials never leave this machine.
-The row activates only in a profile that provides `tools`, `storageDomain`,
-`loader` and `workspaceRegistry`; the panel page exists only where the Host also
-serves `ctx.webServer`, so a pure-conversation deployment keeps the tools but
-has no page to frame.
+`@deepseek-ai/schemastery`, `@deepseek-ai/cordis` and the sibling
+`../sdkwork-mcp` checkout's `@sdkwork/mcp-app-sdk` into
+`plugins/sdkwork-mcp-connector/node_modules`, and installs its three runtime
+dependencies (`cross-spawn`, `undici`, `zod`). Browsing the market needs network
+access to the deployment's `sdkwork-mcp` service. Connecting needs whatever the
+chosen provider requires, and its credentials never leave this machine. The row
+activates only in a profile that provides `tools`, `storageDomain`, `loader` and
+`workspaceRegistry`; the panel page exists only where the Host also serves
+`ctx.webServer`, so a pure-conversation deployment keeps the tools but has no
+page to frame.
 
-**Update.**
+**Verification.**
 
 ```sh
-git submodule update --remote plugins/dsh-mcp-connector   # follows `branch = main`
-cd plugins/dsh-mcp-connector && git checkout vX.Y.Z       # prefer a release tag
-cd ../.. && pnpm install                                  # relink and refresh the lockfile
 pnpm exec vitest run packages/bundle/web-app/tests/built-in-mcp-connector.spec.ts
 pnpm exec vitest run packages/client/ui-sdkwork-markets/tests
 pnpm exec vitest run packages/test-support/client-runtime/tests/assembly-bundle-roster.client.spec.ts
 ```
 
-Then commit the new gitlink with the refreshed `pnpm-lock.yaml`, and boot
-`pnpm dsh web` once to confirm the row activates, `/mcp-connector/ui/` answers,
-and the Connectors tab frames it. Re-check upstream for a new release before
-each release of this fork: nothing here notices one, so an unreviewed pin
-silently ships the previous connector.
-
-**Verification.** `packages/bundle/web-app/tests/built-in-mcp-connector.spec.ts`
-asserts the composed row, the linked manifest's `dsh.client` web declaration and
-`dsh.bundle.patch`, all four shipped files (both entry artifacts, the route
-module and the panel page), the client's `mcp-connector` main-panel
-registration, the host half's four injected services and its
-`/mcp-connector/ui` route, and the frame protocol in both halves, and proves the
-check rejects each incomplete form.
+Then boot `pnpm dsh web` once to confirm the row activates, `/mcp-connector/ui/`
+answers, and the Connectors tab frames it with the market loaded from the
+deployment's `sdkwork-mcp` service.
 
 **Turning it off.** Disable the row from a later patch layer
-(`- id: duhu2000-mcp-connector` with `disabled: true`) or delete it from the
+(`- id: sdkwork-mcp-connector` with `disabled: true`) or delete it from the
 web-app patch. The connector market, its routes, the managed mcp-client entries
 and the panel page go with it, so the Connectors tab states that the connector is
 unavailable instead of framing a missing route. Existing connection records stay

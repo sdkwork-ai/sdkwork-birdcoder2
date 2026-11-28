@@ -1,16 +1,17 @@
 /**
- * The bridge to the `dsh-mcp-connector` plugin's connector panel.
+ * The bridge to the SDKWork MCP connector plugin's panel.
  *
- * The connector is a separate package (`dsh-mcp-connector`, linked into this
- * repository as the `plugins/dsh-mcp-connector` submodule and mounted by the
- * web-app bundle patch), not a page this plugin owns. It publishes no client
- * control service: its browser half registers a keyed `main` panel plus its
- * sidebar row, and its Host half serves the panel's whole interface as a
+ * The connector is a separate package (`@sdkwork/dsh-mcp-connector`,
+ * a first-party plugin under this repository's `plugins/` directory and mounted
+ * by the web-app bundle patch), not a page this plugin owns. It publishes no
+ * client control service: its browser half registers a keyed `main` panel plus
+ * its sidebar row, and its Host half serves the panel's whole interface as a
  * same-origin page at `/mcp-connector/ui/`. The plugin's own panel draws that
- * page in an iframe, so the Connectors tab does the same —the connector
- * market, the installed connections, the tool workbench, OAuth and API-key
- * authorization, JSON import, scopes, governance and the connection
- * diagnostics all stay the plugin's.
+ * page in an iframe, so the Connectors tab does the same —the connector market
+ * (whose entries are served by the `sdkwork-mcp` application's catalog), the
+ * installed connections, the tool workbench, OAuth and API-key authorization,
+ * JSON import, scopes, governance and the connection diagnostics all stay the
+ * plugin's.
  *
  * Two things cross that frame, and both are the plugin's own protocol, so they
  * are written here as explicit contracts rather than as strings in the render
@@ -38,7 +39,7 @@ import type { WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/clie
 import { watchPanelComponent, type MainPanelLedger } from './mainPanelWatch.ts'
 
 /**
- * The keyed `main` panel the `dsh-mcp-connector` plugin registers its
+ * The keyed `main` panel the SDKWork MCP connector plugin registers its
  * connector surface under. It is also the id of that plugin's
  * `sidebar.panellist` row, which this page's tab suppresses.
  */
@@ -50,19 +51,52 @@ export const MCP_CONNECTOR_SURFACE_PATH = '/mcp-connector/ui/'
 /**
  * The plugin's frame protocol. The names are its constants, not ours; a
  * rename upstream is what the bundle acceptance spec pins.
+ *
+ * The connector's own toolbar (view switch, search, add, language) moves into
+ * the application header when the page is framed — the Skills tab's arrangement
+ * — so the protocol carries both halves of that contract: the host sends
+ * toolbar state and commands down (`hostToolbar`, `hostView`, `hostSearch`,
+ * `hostAdd`, `hostLocale`) and the page reports what it shows (`hostState`).
  */
 export const MCP_CONNECTOR_FRAME_TYPES = {
-  /** Embedded page 鈫?host frame: send the workspace scope now. */
+  /** Embedded page → host frame: send the workspace scope now. */
   workspaceContextRequest: 'mcp-connector:workspace-context-request',
-  /** Host frame 鈫?embedded page: the workspace scope, on load and on request. */
+  /** Host frame → embedded page: the workspace scope, on load and on request. */
   workspaceContext: 'mcp-connector:workspace-context',
-  /** Embedded page 鈫?host frame: open a conversation pre-filled with `prompt`. */
+  /** Embedded page → host frame: open a conversation pre-filled with `prompt`. */
   startSession: 'mcp-connector:start-session',
-  /** Host frame 鈫?embedded page: the outcome of one `startSession` request. */
+  /** Host frame → embedded page: the outcome of one `startSession` request. */
   startSessionResult: 'mcp-connector:start-session-result',
-  /** Embedded page 鈫?host frame: the connector detail view opened or closed. */
+  /** Embedded page → host frame: the connector detail view opened or closed. */
   detailState: 'mcp-connector:detail-state',
+  /** Host frame → embedded page: the host header owns the toolbar. */
+  hostToolbar: 'mcp-connector:host-toolbar',
+  /** Host frame → embedded page: switch the visible view. */
+  hostView: 'mcp-connector:host-view',
+  /** Host frame → embedded page: apply the header search field's text. */
+  hostSearch: 'mcp-connector:host-search',
+  /** Host frame → embedded page: open the add-connection dialog. */
+  hostAdd: 'mcp-connector:host-add',
+  /** Host frame → embedded page: reload the shelf from the cloud catalog. */
+  hostRefresh: 'mcp-connector:host-refresh',
+  /** Embedded page → host frame: the active view and the two counts. */
+  hostState: 'mcp-connector:host-state',
+  /** Embedded page → host frame: what language is the application showing? */
+  hostLocaleRequest: 'mcp-connector:host-locale-request',
+  /** Host frame → embedded page: the application's locale. */
+  hostLocale: 'mcp-connector:host-locale',
 } as const
+
+/** The connector panel's three views, in the order the header lists them. */
+export type McpConnectorView = 'market' | 'installed' | 'tools'
+
+/** What the embedded page reports about what it is showing. */
+export interface McpConnectorHostState {
+  /** The visible view. */
+  readonly view: McpConnectorView
+  /** Row counts for the two list views, as the page counted them. */
+  readonly counts: { readonly market: number; readonly installed: number }
+}
 
 /** One Workspace the connector panel offers as a connection scope. */
 export interface McpConnectorWorkspace {

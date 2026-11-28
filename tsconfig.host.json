@@ -721,6 +721,7 @@
     { "path": "./packages/host/webserver" },
     { "path": "./packages/host/sdkwork-desktop-carrier" },
     { "path": "./packages/host/sdkwork-api-gateway" },
+    { "path": "./packages/host/sdkwork-skillhub" },
     { "path": "./packages/host/apiproxy" },
     { "path": "./packages/sdk/client" },
     { "path": "./packages/sdk/protocol" },

@@ -10,6 +10,9 @@
   ],
   "references": [
     {
+      "path": "../../host/sdkwork-skillhub"
+    },
+    {
       "path": "../locale/tsconfig.client.json"
     },
     {

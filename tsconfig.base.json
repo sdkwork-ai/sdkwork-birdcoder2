@@ -276,6 +276,8 @@
       "@deepseek-ai/dsh-host-product-telemetry-otel": ["./packages/host/product-telemetry-otel/src"],
       "@deepseek-ai/dsh-host-open-in-app": ["./packages/host/open-in-app/src"],
       "@deepseek-ai/dsh-host-open-in-app/shared": ["./packages/host/open-in-app/src/shared.ts"],
+      "@deepseek-ai/dsh-sdkwork-skillhub": ["./packages/host/sdkwork-skillhub/src"],
+      "@deepseek-ai/dsh-sdkwork-skillhub/shared": ["./packages/host/sdkwork-skillhub/src/shared.ts"],
       "@deepseek-ai/dsh-host-webserver": ["./packages/host/webserver/src"],
       "@deepseek-ai/dsh-host-apiproxy": ["./packages/host/apiproxy/src"],
       "@deepseek-ai/dsh-host-apiproxy/client": ["./packages/host/apiproxy/src/fetch/client.ts"],

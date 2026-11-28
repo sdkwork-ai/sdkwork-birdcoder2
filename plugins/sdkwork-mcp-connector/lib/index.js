@@ -1,0 +1,4164 @@
+/**
+ * MCP连接器插件（DeepSeek Harness / Cordis）
+ *
+ * 能力：
+ *   - 连接器目录（内置 + 远程 registry + config 注入 + 本地上下架覆盖）
+ *   - 三通道连接：通用 OAuth(PKCE) / 自定义配置 / 粘贴 JSON / URL 安装
+ *   - 连接记录与 OAuth grant 持久化，重启恢复与跨 Host Token 轮换
+ *   - 实时状态 SSE、最后成功工具缓存与渐进式工具搜索/详情
+ *   - 通过 ctx.loader 动态配置 @deepseek-ai/dsh-mcp-client 条目
+ *   - 对话工具：mcp_connector_catalog / connect / configure / import_json /
+ *     export_config / snapshots / install_from_url / status / rename / set_enabled /
+ *     disconnect / refresh_catalog / publish / tools_list / tool_search / tool_detail
+ */
+import { ConnectionStatistics, observeConnectionSuccess } from './connection-statistics.js';
+import { createToolInputGuard } from './tool-input-guard.js';
+import { prepareCustomConnections, customOAuthDescriptor } from './custom-oauth.js';
+import { randomUUID } from 'node:crypto';
+import z from '@deepseek-ai/schemastery';
+import {
+  DEFAULT_ACCOUNT,
+  DEFAULT_REQUEST_TIMEOUT_MS,
+  DEFAULT_STARTUP_TIMEOUT_MS,
+  DEFAULT_REFRESH_SKEW_MS,
+  DEFAULT_REFRESH_RETRY_BASE_MS,
+  DEFAULT_REFRESH_RETRY_MAX_MS,
+  DEFAULT_CATALOG_TTL_MS,
+} from './constants.js';
+import { defineConnectorDomain, ConnectionStore, GrantStore, CatalogStore, SnapshotStore, GovernanceStore, ConnectionScopeStore, ToolCatalogStore } from './stores.js';
+import { normalizeConnectorDescriptor, normalizeConnectionRecord } from './schema.js';
+import { publishedCatalogTemplateReferences, setPublishedCatalogSnapshot, visibleDynamicDescriptors, mergeCatalog, listCatalog, auditDescriptor, auditRawDescriptor, readLimitedJson } from './catalog.js';
+import { catalogEntryToDescriptor, fetchSdkworkCatalogEntries, readSdkworkCatalogSource } from './sdkwork-catalog.js';
+import { describeOAuthAuthorizationError, oauthAuthorize } from './connectors/oauth-connector.js';
+import { buildManualRecord } from './connectors/manual-connector.js';
+import { normalizeJsonImport } from './connectors/json-connector.js';
+import {
+  connectionConfigurationEditable,
+  editableConnectionConfiguration,
+  normalizeConnectionReconfiguration,
+} from './connection-editor.js';
+import { supportsLocalOverrides, editableLocalOverrides, normalizeLocalOverrides } from './local-overrides.js';
+import { discoverServerMetadata, refreshAccessToken, revokeRefreshToken, extractTokenResources } from './oauth.js';
+import { provision as provisionHost, disable as disableHost, remove as removeHost, entryIdFor } from './mcp-provision.js';
+import { detectLegacyConflicts, legacyClientOwnsEntry, legacyServerNames, pendingRestartConflict } from './legacy-plugin-conflict.js';
+import { classifyConnectionError, validateConnectionRecords } from './mcp-validation.js';
+import { listMcpTools, McpHttpError } from './mcp-http.js';
+import { registerTools } from './tools.js';
+import { injectWebRoutes } from './web.js';
+import { createVersionStatusService, readHostProfileInfo } from './version-status.js';
+import { assertSafeUrl, normalizeConnectionDisplayName, shortHash } from './util.js';
+import { readLegacyGrantCandidates, planLegacyMigration, toConnectorGrant, toConnectionRecords } from './migration.js';
+import { classifyRefreshFailure, refreshRetryDelay } from './grant-lifecycle.js';
+import { buildHealthSummary, diagnosticForRecord } from './diagnostics.js';
+import { DEFAULT_LOCALE, createTranslator, resolveLocale } from './i18n/index.js';
+import { EN_DICTIONARY } from './i18n/locales/en.js';
+import {
+  SNAPSHOT_LIMIT,
+  snapshotPublicSummary,
+  stringifyRedactedExport,
+} from './connection-backup.js';
+import {
+  GovernancePolicyService,
+  createHostGovernanceController,
+  inspectGovernanceRules,
+  normalizeGovernanceMutation,
+  publicToolName,
+  resolveGovernancePolicy,
+} from './governance.js';
+import {
+  ConnectionScopeService,
+  bindingForConnection,
+  connectionVisibleInWorkspace,
+  createHostScopeController,
+  normalizeScopeTarget,
+  scopeLabel,
+  scopeTargets,
+} from './connection-scopes.js';
+import { installConnectorSettings } from './settings.js';
+import { nextDiscovery, discoveryDue } from './discovery-policy.js';
+import {
+  connectionToolCacheSignature,
+  browseToolCatalog,
+  createToolCatalogRecord,
+  findToolDetails,
+  searchToolCatalog,
+  toolCatalogCacheView,
+} from './tool-catalog-cache.js';
+import { observeStatusEvents, StatusEventHub } from './status-events.js';
+import { createSessionToolInjectionController, normalizeInjectionMode } from './session-injection.js';
+import { createSmartModeProduction } from './smart-mode-production.js';
+
+export const name = 'mcp-connector';
+
+export const inject = ['tools', 'storageDomain', 'loader', 'workspaceRegistry'];
+
+function countConnectorTools(servers) {
+  const names = new Set();
+  let totalToolEntries = 0;
+  for (const server of servers) {
+    totalToolEntries += server.tools.length;
+    for (const tool of server.tools) {
+      if (typeof tool?.name === 'string' && tool.name.trim()) names.add(tool.name);
+    }
+  }
+  // totalTools is the historical per-server sum used by existing API clients.
+  return { uniqueToolCount: names.size, totalToolEntries, totalTools: totalToolEntries };
+}
+
+/**
+ * 读取用户在 DSH 里选择的界面语言。
+ *
+ * 语言偏好由 `@deepseek-ai/dsh-client-locale` 持有，它把用户的显式选择写进该插件
+ * 的 `preference` 配置；浏览器端 locale 服务读的也是同一个值。`locale` 是**仅浏览器
+ * 端**的服务，Host 上下文没有它，所以这里从 loader 的条目配置读取，而不是注入服务。
+ *
+ * 读不到（插件未安装、未设置偏好——未设置表示「跟随浏览器」，此时没有可用的单值）
+ * 时返回 `undefined`，插件回退中文。
+ *
+ * @param {import('@deepseek-ai/cordis').Context} ctx Host 上下文
+ * @returns {string|undefined} 形如 `en` / `zh` 的语言偏好
+ */
+function readHostLocalePreference(ctx) {
+  const LOCALE_PLUGIN = '@deepseek-ai/dsh-client-locale';
+  try {
+    if (typeof ctx.loader?.entries !== 'function') return undefined;
+    for (const entry of ctx.loader.entries()) {
+      const entryName = entry?.options?.name ?? entry?.name;
+      if (entryName !== LOCALE_PLUGIN) continue;
+      // 未显式设置偏好时，客户端按浏览器语言列表决定，Host 侧没有单值可用。
+      const preference = entry?.options?.config?.preference;
+      return typeof preference === 'string' && preference !== '' ? preference : undefined;
+    }
+  } catch {
+    // loader 不可用或条目形状变化：退回自动检测，绝不让插件装载失败。
+  }
+  return undefined;
+}
+
+// Config forms expose volatile fields. Older schemastery versions parse the
+// same fields as ordinary values for the settingsScope generation.
+function formField(schema) {
+  return typeof schema.volatile === 'function' ? schema.volatile() : schema;
+}
+
+export const Config = z.object({
+  /**
+   * 云端目录的显式覆盖（运维/测试用）。省略时依次取 `ui-sdkwork-env` 设置段里
+   * 当前环境的 profile，再回退到宿主进程的 SDKWork 环境变量。
+   */
+  catalogApiBaseUrl: z.string().default(''),
+  /** 云端目录的显式访问令牌覆盖；省略时与 `catalogApiBaseUrl` 用同一套回退顺序。 */
+  catalogAccessToken: z.string().default(''),
+  /** 目录缓存 TTL（ms）：TTL 内直接使用上次成功加载的云端目录 */
+  catalogTtlMs: z.number().default(DEFAULT_CATALOG_TTL_MS),
+  /** 额外注入的连接器描述（ops/测试用，优先级高于远程 registry） */
+  connectors: z.array(z.any()).default([]),
+  /** 是否把连接与凭证持久化（false = 仅内存） */
+  persistSecrets: z.boolean().default(true),
+  /** 受管 mcp-client 条目 id 前缀 */
+  entryPrefix: z.string().default('mcp'),
+  /** 等待 OAuth 回调超时（ms） */
+  callbackTimeoutMs: z.number().default(300_000),
+  /** 网络请求超时（ms） */
+  requestTimeoutMs: z.number().default(DEFAULT_REQUEST_TIMEOUT_MS),
+  /** 首次启动并完成 MCP initialize + tools/list 的超时（ms） */
+  startupTimeoutMs: z.number().default(DEFAULT_STARTUP_TIMEOUT_MS),
+  /** 提前刷新阈值（ms） */
+  refreshSkewMs: z.number().default(DEFAULT_REFRESH_SKEW_MS),
+  /** 刷新暂时失败后的首次重试间隔（ms） */
+  refreshRetryBaseMs: z.number().default(DEFAULT_REFRESH_RETRY_BASE_MS),
+  /** 刷新暂时失败后的最大重试间隔（ms） */
+  refreshRetryMaxMs: z.number().default(DEFAULT_REFRESH_RETRY_MAX_MS),
+  /** 是否自动打开浏览器（false = 仅打印授权 URL） */
+  openBrowser: z.boolean().default(true),
+  /** 授权账号标识（预留多账号） */
+  account: z.string().default(DEFAULT_ACCOUNT),
+  /** 是否在 DSH 主侧边栏显示 MCP连接器快捷入口（旧字段，保留兼容） */
+  showSidebarEntry: formField(z.boolean().default(true)),
+  /**
+   * 入口展示位置：`both` / `sidebar` / `settings`。
+   *
+   * **不给默认值**：省略表示「沿用旧 showSidebarEntry 表达的可见性」，
+   * 由 installConnectorSettings() 翻译成等价档位。若在这里写 default，
+   * 该值会提前注入 settings base，把用户的旧布尔覆盖盖掉。
+   * 传入非法值会被 schema 拒绝，与 README 的承诺一致。
+   */
+  entryLocation: formField(z.union(['both', 'sidebar', 'settings'].map((value) => z.const(value)))),
+  /** 精简对话管理工具为发现入口 + 会话入口；旧配置默认保留全量工具。修改后重载插件。 */
+  compactManagementTools: z.boolean().default(false),
+  /**
+   * 界面与对话工具文案语言。
+   *
+   * - `'auto'`（默认）：跟随用户在 DSH「设置 → Language」里的选择
+   *   （即 `@deepseek-ai/dsh-client-locale` 的 `preference`），读不到时回退中文；
+   * - `'zh-CN'` / `'en'`：强制指定，忽略用户设置。
+   *
+   * 默认必须是 `auto` 而不是写死中文：界面语言属于用户偏好，由用户选择决定，
+   * 插件不该覆盖它。中文用户什么都不做也仍是中文（中文是 DSH 的默认语言），
+   * 所以「中文界面零变化」依然成立，英文用户在 DSH 里选了英文就能得到英文。
+   */
+  locale: z.string().default('auto'),
+  /**
+   * 图形化市场面板（/mcp-connector/ui/）的 CSP `frame-ancestors` 白名单。
+   *
+   * 默认 `['self']`：只有同源页面能内嵌面板，保持既有行为不变。
+   * 桌面壳（Tauri/Electron）内嵌面板时，祖先源与面板自身不同源，浏览器会以
+   * `violates ... "frame-ancestors 'self'"` 拦截并导致面板白屏；此时需显式追加
+   * 外壳源，例如 `frameAncestors: ['self', 'http://tauri.localhost', 'tauri://localhost']`。
+   * 注意这是有意的安全取舍：加入白名单的源都能内嵌本面板，请只填你自己信任的源。
+   * 非法值（含 `;`/空格等注入尝试、非 host-source 关键字）会被丢弃，全部非法则回退 `['self']`。
+   */
+  frameAncestors: z.array(z.string()).default(['self']),
+});
+
+export async function apply(ctx, config) {
+  installConnectorSettings(ctx, config);
+  const logger = ctx.logger('mcp-connector');
+  // 文案语言：未配置时跟随用户自己的 DSH 界面语言，而不是写死中文。
+  // 详见 `docs/I18N.md`。
+  //
+  // 语言偏好的**真值**在 Host 一侧：`@deepseek-ai/dsh-client-locale` 把用户的
+  // 选择存在 profile 补丁的 `preference` 字段（浏览器端 locale 服务读的也是它）。
+  // `locale` 本身是**仅浏览器端**的服务，Host 侧根本没有（98 个 Host 服务里没有
+  // `locale`），所以不能用 `ctx.inject(['locale'])` 去等它——那样永远等不到，
+  // 会静默退回中文。也不能直接 `ctx.locale?.x`：Cordis 的上下文代理在访问未注入
+  // 的属性时会抛 `cannot get property "locale" without inject`，可选链拦不住，
+  // 插件会装载失败。
+  //
+  // 因此这里从 loader 读取该插件的 `preference` 配置；读不到时回退中文。
+  const hostLocale = readHostLocalePreference(ctx);
+  // Only an explicit DSH language preference may change the default UI.
+  // An English shell environment alone must not switch existing Chinese users.
+  const locale = resolveLocale(config.locale, { hostLocale, env: {} });
+  const t = createTranslator(locale, { en: EN_DICTIONARY });
+  const versionStatusService = createVersionStatusService({
+    timeoutMs: config.requestTimeoutMs,
+    logger,
+  });
+
+  const domain = await ctx.storageDomain.open(defineConnectorDomain());
+  ctx.effect(() => () => {
+    domain.close().catch((error) => logger.warn(`domain close: ${error.message}`));
+  });
+
+  const connectionStore = new ConnectionStore(domain);
+  const statisticTable = config.persistSecrets ? domain.tables.get('connection_statistics') : new Map();
+  const connectionStatistics = new ConnectionStatistics(config.persistSecrets ? statisticTable : {
+    entries: () => statisticTable.entries(), put: async (key, value) => statisticTable.set(key, value),
+  });
+  const statisticsError = () => logger.warn('Local connection statistics unavailable; connection behavior is unchanged');
+  try { await connectionStatistics.load(); }
+  catch { connectionStatistics.available = false; statisticsError(); }
+  const grantStore = new GrantStore(domain, {
+    // 只有真实持久化模式才启用跨进程 Grant journal。测试可通过内部字段
+    // 传入临时目录，不让 fake storage 触碰用户真实 $DSH_HOME。
+    journalDir: config.persistSecrets ? config.__grantJournalDir : null,
+    logger,
+  });
+  const catalogStore = new CatalogStore(domain);
+  const snapshotStore = new SnapshotStore(domain);
+  const toolCatalogStore = new ToolCatalogStore(domain);
+  const governanceStore = new GovernanceStore(domain);
+  const governancePolicies = new GovernancePolicyService(governanceStore);
+  await governancePolicies.load();
+  const connectionScopeStore = new ConnectionScopeStore(domain);
+  const connectionScopes = new ConnectionScopeService(connectionScopeStore);
+  await connectionScopes.load();
+
+  const state = {
+    merged: [],                 // 合并后的连接器目录（含上下架覆盖）
+    remoteConnectors: [],       // 云端（sdkwork-mcp）目录最新拉取结果
+    dynamic: new Map(),         // URL 安装的临时连接器
+    overrides: new Map(),       // id -> { published?, featured? }
+    connections: new Map(),     // key -> ConnectionRecord
+    grants: new Map(),          // grantKey -> { grant, timer, refreshPromise, needsReauth, refreshFailure* }
+    health: new Map(),          // connectorId -> 最近一次主动连通性检查摘要（不持久化）
+    oauthConnects: new Map(),   // sharingKey -> { promise, requestedConnectorIds }（防同 issuer 重复弹窗）
+    warnedLegacyConflicts: new Set(),
+    toolInventories: new Map(),  // serverName -> { observed, observedAt, tools: Set<rawName> }
+    toolCatalogCache: new Map(), // connection key -> 最近成功、安全裁剪后的工具元数据
+    toolViews: new Map(), // connection key -> last discovery outcome (memory only)
+  };
+  const statusEvents = new StatusEventHub();
+  const toolRequests = new Map();
+  const discoveryPlans = new Map();
+  const connectionChecks = new Map();
+  const explorerActions = new Map();
+  const explorerActionTimes = new Map();
+  let smartRuntime;
+
+  const hostGovernance = createHostGovernanceController(ctx, {
+    getRules: () => governancePolicies.snapshot().rules,
+    getRecords: () => state.connections.values(),
+    logger,
+  });
+  const hostScopes = createHostScopeController(ctx, {
+    getBindings: () => connectionScopes.snapshot().bindings,
+    getRecords: () => state.connections.values(),
+    workspaceIdForAgent,
+    logger,
+  });
+  const toolInputGuard = createToolInputGuard(ctx, {
+    isManagedTool: (name) => Boolean(hostGovernance.inspect(name)),
+    logger,
+  });
+  const hostSessionInjection = createSessionToolInjectionController(ctx, {
+    getRecords: () => state.connections.values(),
+    workspaceIdForAgent,
+    isRecordVisible: (record, agent) => connectionVisibleInWorkspace(
+      connectionScopes.binding(record.key),
+      workspaceIdForAgent(agent),
+    ),
+    isToolAllowed: (publicName) => hostGovernance.inspect(publicName)?.policy.effect !== 'deny',
+    logger,
+  });
+
+  function workspaceList() {
+    try {
+      return typeof ctx.workspaceRegistry?.list === 'function' ? ctx.workspaceRegistry.list() : [];
+    } catch (error) {
+      logger.warn(`workspace list unavailable: ${error.message}`);
+      return [];
+    }
+  }
+
+  function workspaceIdForAgent(agent) {
+    const workspaces = workspaceList();
+    const bySession = workspaces.find((workspace) => workspace.sessionIds?.includes?.(agent?.id));
+    if (bySession) return String(bySession.id);
+    const cwd = agent?.session?.header?.cwd;
+    if (!cwd) return undefined;
+    return String(workspaces.find((workspace) => workspace.path === cwd)?.id ?? '') || undefined;
+  }
+
+  function workspaceNames() {
+    return new Map(workspaceList().map((workspace) => [String(workspace.id), workspace.title || String(workspace.id)]));
+  }
+
+  function validateScopeTarget(input = {}) {
+    const target = normalizeScopeTarget({
+      scope: input.scope ?? 'global',
+      workspaceId: input.workspaceId,
+      workspaceIds: input.workspaceIds,
+    }, { t });
+    if (target.scope === 'project') {
+      if (!hostScopes.capabilities().executionGuard) {
+        throw new Error(t('当前 DSH Host 不支持 tools.guard，不能安全启用 project 作用域'));
+      }
+      for (const id of target.workspaceIds ?? [target.workspaceId]) {
+        const workspace = ctx.workspaceRegistry?.get?.(id);
+        if (!workspace) throw new Error(t('Workspace "{workspaceId}" 不存在，请重新选择项目', { workspaceId: id }));
+      }
+    }
+    return target;
+  }
+
+  /* ───────────────────── 目录加载（sdkwork-mcp 云端目录） ───────────────────── */
+
+  let catalogController;
+  let catalogBackgroundCache;
+  let catalogTimer;
+  let catalogDisposed = false;
+  let catalogWrite = Promise.resolve();
+
+  /** 缓存归属键：换网关后旧缓存不会被误当作新目录。 */
+  function catalogSourceKey(source) {
+    return `sdkwork-mcp:${source?.apiBaseUrl ?? ''}`;
+  }
+
+  /** 当前部署的云端目录来源（配置覆盖 → 设置段 → 宿主环境变量）。 */
+  function currentCatalogSource() {
+    return readSdkworkCatalogSource(ctx, {
+      apiBaseUrl: config.catalogApiBaseUrl,
+      accessToken: config.catalogAccessToken,
+    });
+  }
+
+  /**
+   * 从 sdkwork-mcp 应用重新加载整套目录。
+   *
+   * 目录只读：请求失败时保留上一次成功的结果（内存或磁盘缓存），并把失败原因交给
+   * 调用方；控制器保证同一时刻只有一个在途请求。
+   */
+  async function updateRemoteCatalog() {
+    catalogController?.abort();
+    const controller = new AbortController();
+    catalogController = controller;
+    const source = currentCatalogSource();
+    if (!source.apiBaseUrl) {
+      throw new Error(t('未配置 SDKWork 网关地址，无法加载云端 MCP 连接器目录'));
+    }
+    const entries = await fetchSdkworkCatalogEntries(source, {
+      timeoutMs: config.requestTimeoutMs,
+      signal: controller.signal,
+    });
+    controller.signal.throwIfAborted();
+    if (catalogDisposed) return;
+    // 单条记录有问题不应该让整个货架变空：跳过并记录，其余条目照常上架。
+    const connectors = [];
+    let skipped = 0;
+    for (const entry of entries) {
+      try {
+        connectors.push(auditDescriptor(normalizeConnectorDescriptor(catalogEntryToDescriptor(entry))));
+      } catch (error) {
+        skipped += 1;
+        logger.warn(`skip invalid cloud connector "${entry?.entry_key ?? '?'}": ${error.message}`);
+      }
+    }
+    if (skipped > 0) logger.warn(`cloud catalog: ${skipped}/${entries.length} entries skipped`);
+    state.remoteConnectors = connectors;
+    await recomputeMerged();
+    const sourceKey = catalogSourceKey(source);
+    catalogWrite = catalogWrite.then(async () => {
+      if (catalogDisposed || controller.signal.aborted) return;
+      await catalogStore.putRemote({ sourceKey, connectors });
+    }).catch(() => {});
+    await catalogWrite;
+  }
+
+  async function recomputeMerged() {
+    const configConnectors = (config.connectors ?? []).map((raw) => auditDescriptor(normalizeConnectorDescriptor(raw)));
+    const dynamic = visibleDynamicDescriptors(state.remoteConnectors, [...state.dynamic.values()]);
+    const sources = [state.remoteConnectors, configConnectors, dynamic];
+    state.merged = mergeCatalog(sources, state.overrides);
+    // 分享模板的信任根就是这份公开目录：它只随云端目录变化。
+    setPublishedCatalogSnapshot(state.remoteConnectors);
+  }
+
+  async function loadCatalog() {
+    const dynamicRec = await catalogStore.getDynamic().catch(() => null);
+    if (dynamicRec?.connectors) {
+      for (const raw of dynamicRec.connectors) {
+        try {
+          const descriptor = auditDescriptor(normalizeConnectorDescriptor(auditRawDescriptor(raw)));
+          state.dynamic.set(descriptor.id, descriptor);
+        } catch (error) {
+          logger.warn(`skip invalid locally installed connector: ${error.message}`);
+        }
+      }
+    }
+    // 本地覆盖
+    const overridesRec = await catalogStore.getOverrides().catch(() => null);
+    if (overridesRec?.connectors) {
+      const map = new Map();
+      for (const patch of overridesRec.connectors) {
+        if (patch && typeof patch === 'object' && patch.id) map.set(patch.id, patch);
+      }
+      state.overrides = map;
+    }
+    // 云端目录（sdkwork-mcp）及其磁盘缓存；缓存只在同一网关下有效。
+    {
+      const cached = await catalogStore.getRemote().catch(() => null);
+      const sourceKey = catalogSourceKey(currentCatalogSource());
+      let validCache;
+      try {
+        if (cached?.sourceKey === sourceKey && Array.isArray(cached.connectors)) {
+          const connectors = cached.connectors.map(raw => auditDescriptor(normalizeConnectorDescriptor(auditRawDescriptor(raw))));
+          validCache = { ...cached, connectors };
+          state.remoteConnectors = connectors;
+        }
+      } catch (error) {
+        logger.warn(`skip invalid cloud catalog cache: ${error.message}`);
+      }
+      if (validCache) {
+        const age = Date.now() - Number(validCache.updatedAt);
+        if (!(Number.isFinite(age) && age >= 0 && age < (config.catalogTtlMs ?? DEFAULT_CATALOG_TTL_MS))) {
+          catalogBackgroundCache = validCache;
+        }
+      } else {
+        try { await updateRemoteCatalog(); }
+        catch (error) { logger.warn(`cloud catalog fetch failed (using cached catalog when present): ${error.message}`); }
+      }
+    }
+    await recomputeMerged();
+  }
+
+  /* ───────────────────────── 旧 OAuth 插件冲突 ───────────────────────── */
+
+  function legacyConflictsForServers(servers) {
+    return detectLegacyConflicts(ctx.loader, servers, t);
+  }
+
+  function legacyConflictForRecord(record) {
+    return record ? legacyConflictsForServers([record])[0] ?? null : null;
+  }
+
+  function legacyConflictForConnector(connector) {
+    return legacyConflictsForServers(connector?.servers ?? [])[0] ?? null;
+  }
+
+  function legacyConflictError(record, conflict) {
+    return Object.assign(new Error(conflict.message), { legacyConflict: conflict, connectionRecord: record });
+  }
+
+  function legacyProvisionConflict(record) {
+    const runtime = state.grants.get(record.auth?.grantKey);
+    let conflict = legacyConflictForRecord(record);
+    if (!conflict && runtime?.grant.legacySource?.pending) {
+      const restart = pendingRestartConflict(runtime.grant.legacySource, record.serverName, t);
+      // A grant can cover several resources. Report a remaining legacy entry only
+      // when it belongs to the same grant and to its source package.
+      const bound = [...state.connections.values()].filter(item => item.auth?.grantKey === record.auth.grantKey);
+      conflict = legacyConflictsForServers(bound).find(item => item.pluginId === restart.pluginId) ?? restart;
+    }
+    if (!conflict) return null;
+    return { ...conflict, sourceUnreadable: runtime?.sourceUnreadable === true, persistent: config.persistSecrets, reauthRequired: Boolean(runtime?.needsReauth
+      || (runtime && !runtime.grant.refreshToken && runtime.grant.accessTokenExpiresAt <= Date.now())) };
+  }
+
+  function assertProvisionAllowed(record) {
+    if (record.enabled === false) return;
+    const conflict = legacyProvisionConflict(record);
+    if (conflict) throw legacyConflictError(record, conflict);
+  }
+
+  async function provision(ctx, config, record, grants, options) {
+    if (record.enabled === false && (legacyProvisionConflict(record) || legacyClientOwnsEntry(ctx.loader, entryIdFor(config, record), record.serverName))) {
+      return disable(ctx, config, record);
+    }
+    assertProvisionAllowed(record);
+    return provisionHost(ctx, config, record, grants, options);
+  }
+
+  async function disable(ctx, config, record) {
+    const id = entryIdFor(config, record);
+    if (legacyClientOwnsEntry(ctx.loader, id, record.serverName)) return id;
+    return disableHost(ctx, config, record);
+  }
+
+  async function remove(ctx, config, record) {
+    const id = entryIdFor(config, record);
+    if (legacyClientOwnsEntry(ctx.loader, id, record.serverName)) return id;
+    return removeHost(ctx, config, record);
+  }
+
+  function warnLegacyConflict(conflict) {
+    if (!conflict || state.warnedLegacyConflicts.has(conflict.pluginId)) return;
+    state.warnedLegacyConflicts.add(conflict.pluginId);
+    logger.warn(`legacy OAuth plugin conflict: ${conflict.message}`);
+  }
+
+  function detectLegacyPluginConflicts() {
+    const conflicts = legacyConflictsForServers(legacyServerNames);
+    for (const conflict of conflicts) warnLegacyConflict(conflict);
+    return conflicts;
+  }
+
+  /* ───────────────────────── grant 刷新 ───────────────────────── */
+
+  function summarizeLegacyConflicts(items, { reauthRequired = false } = {}) {
+    const byPlugin = new Map();
+    for (const item of items) {
+      const { pluginId, packageName, kind } = item;
+      if (!byPlugin.has(pluginId)) byPlugin.set(pluginId, {
+        pluginId, packageName, kind, entryIds: [], pluginEntryIds: [], serverNames: [], legacyServerNames: [], reauthRequired: false,
+      });
+      const group = byPlugin.get(pluginId);
+      if (kind === 'plugin' || group.kind === 'restart') group.kind = kind;
+      group.reauthRequired ||= item.reauthRequired === true;
+      if (item.sourceUnreadable) group.sourceUnreadable = true;
+      for (const field of ['entryIds', 'pluginEntryIds', 'serverNames', 'legacyServerNames']) {
+        for (const value of item[field] ?? []) if (!group[field].includes(value)) group[field].push(value);
+      }
+    }
+    const conflicts = [...byPlugin.values()];
+    return { pluginIds: [...byPlugin.keys()], serverNames: conflicts.flatMap((item) => item.serverNames),
+      conflicts, restartRequired: conflicts.length > 0, persistent: config.persistSecrets === true,
+      reauthRequired: reauthRequired || conflicts.some((item) => item.reauthRequired) };
+  }
+
+  function grantRuntime(grant) {
+    return {
+      grant,
+      timer: undefined,
+      refreshPromise: null,
+      needsReauth: false,
+      refreshFailureKind: null,
+      refreshFailureCount: 0,
+      lastRefreshError: null,
+      refreshRetryAt: null,
+    };
+  }
+
+  function grantMap() {
+    const map = new Map();
+    for (const [key, g] of state.grants) map.set(key, g.grant);
+    return map;
+  }
+
+  function legacyOwnsGrant(grantKey) {
+    if (state.grants.get(grantKey)?.grant.legacySource?.pending) return true;
+    return [...state.connections.values()].some((record) =>
+      record.auth?.grantKey === grantKey && legacyConflictForRecord(record));
+  }
+
+  function legacyMigrationNeedsReauth(record) {
+    if (record.enabled !== false || !/^(旧授权已失效，请重新连接|The legacy authorization is no longer valid; reconnect)/.test(record.lastError ?? '')) return false;
+    const entry = state.grants.get(record.auth?.grantKey);
+    return !entry || entry.needsReauth;
+  }
+
+  async function copyLegacyAuthorization(plan, hasConflicts) {
+    const candidate = plan.candidate;
+    const { issuer, clientId, scope } = candidate.grant;
+    const clientKey = grantStore.keyFor(config.account, issuer, clientId, scope);
+    const oldCopy = state.grants.get(clientKey)?.grant;
+    // Preserve the key used before migrations had source metadata. New copies
+    // are scoped to their legacy record: two grants may use the same client.
+    const grantKey = oldCopy?.legacySource?.candidateId === candidate.id
+      ? clientKey : `${clientKey}:legacy:${shortHash(candidate.id)}`;
+    return grantStore.withRefreshLock(grantKey, async () => {
+      const entry = state.grants.get(grantKey);
+      const stored = (config.persistSecrets && await grantStore.get(grantKey)) || entry?.grant;
+      const pending = hasConflicts || Boolean(stored?.legacySource?.pending) || Boolean(entry && legacyOwnsGrant(grantKey));
+      const connectorIds = [...new Set([...(stored?.connectorIds ?? []), plan.connector.id])];
+      const grant = stored
+        ? { ...stored, connectorIds, legacySource: { ...stored.legacySource, pending } }
+        : toConnectorGrant(candidate, { key: grantKey, account: config.account, connectorIds, pending });
+      const runtime = entry ?? grantRuntime(grant);
+      runtime.grant = config.persistSecrets ? await grantStore.put(grant) : grant;
+      state.grants.set(grantKey, runtime);
+      return runtime;
+    });
+  }
+
+  async function prepareLegacyHandoffs() {
+    const records = [...state.connections.values()].filter((record) =>
+      record.auth?.mode === 'oauth' && ['qcc-company', 'qcc-legal'].includes(record.connectorId));
+    const transfers = [];
+    for (const grantKey of new Set(records.map((record) => record.auth.grantKey))) {
+      const grant = state.grants.get(grantKey)?.grant;
+      // Native OAuth grants always record the endpoint auth method. Earlier
+      // copies from the legacy domain did not record that or the source ID.
+      if (!grant || (!grant.legacySource && grant.tokenEndpointAuthMethod)) continue;
+      const bound = records.filter((record) => record.auth.grantKey === grantKey);
+      const pending = bound.some((record) => legacyConflictForRecord(record));
+      if (!grant.legacySource || grant.legacySource.pending !== pending) transfers.push({ grantKey, bound, pending });
+    }
+    if (!transfers.length) return;
+    const { candidates, unreadable } = await readLegacyGrantCandidates(ctx.storageDomain, { openClosed: true, t });
+    for (const { grantKey, bound, pending } of transfers) {
+      const runtime = state.grants.get(grantKey);
+      const candidate = candidates.find((item) =>
+        (runtime.grant.legacySource ? item.id === runtime.grant.legacySource.candidateId : bound.some((record) => record.connectorId === item.connectorHint))
+        && item.grant.issuer === runtime.grant.issuer && item.grant.clientId === runtime.grant.clientId && item.grant.scope === runtime.grant.scope);
+      if (!candidate && !runtime.grant.legacySource) continue;
+      const sourceId = runtime.grant.legacySource?.candidateId;
+      if (!candidate && runtime.grant.legacySource?.pending && (unreadable.has(sourceId) || unreadable.has(sourceId.split(':')[0]))) {
+        runtime.sourceUnreadable = true;
+        continue;
+      }
+      await grantStore.withRefreshLock(grantKey, async () => {
+        const grant = (config.persistSecrets && await grantStore.get(grantKey)) || runtime.grant;
+        runtime.grant = grant;
+        const source = grant.legacySource;
+        // An older build has no source timestamp. Its last connector write is the
+        // fallback watermark, so an outdated legacy copy cannot undo a refresh.
+        const watermark = source?.updatedAt ?? grant.updatedAt;
+        const newerSource = candidate && (!source || (source.pending && source.candidateId === candidate.id))
+          && (candidate.grant.updatedAt > watermark || (source?.pending && candidate.grant.updatedAt === watermark
+            && candidate.grant.refreshToken !== grant.refreshToken));
+        const adopt = !pending && newerSource;
+        if (source && source.pending === pending && !adopt) return;
+        const next = adopt
+          ? toConnectorGrant(candidate, { key: grantKey, account: grant.account, connectorIds: grant.connectorIds })
+          : { ...grant, legacySource: { candidateId: source?.candidateId ?? candidate.id, updatedAt: watermark, pending } };
+        runtime.grant = config.persistSecrets ? await grantStore.put(next) : next;
+      }).catch(() => {
+        // Keep other connections usable if the journal lock or local storage
+        // is unavailable. This particular token must wait until a safe restart.
+        runtime.grant = { ...runtime.grant, legacySource: { candidateId: runtime.grant.legacySource?.candidateId ?? candidate.id,
+          updatedAt: runtime.grant.legacySource?.updatedAt ?? runtime.grant.updatedAt, pending: true } };
+        logger.warn('Legacy authorization transfer could not be persisted. Fully restart DSH when local storage is available.');
+      });
+    }
+  }
+
+  async function refreshGrant(grantKey) {
+    const entry = state.grants.get(grantKey);
+    if (entry && legacyOwnsGrant(grantKey)) return entry.grant;
+    if (!entry || !entry.grant.refreshToken) {
+      const error = new Error('no refresh token available');
+      error.code = 'missing_refresh_token';
+      throw error;
+    }
+    if (entry.grant.clientSecret && entry.grant.clientSecretExpiresAt > 0
+        && entry.grant.clientSecretExpiresAt * 1000 <= Date.now()) {
+      const error = new Error('OAuth dynamic client secret expired');
+      error.code = 'client_secret_expired';
+      throw error;
+    }
+    if (entry.refreshPromise) return entry.refreshPromise;
+    entry.refreshPromise = (async () => {
+      const metadata = await discoverServerMetadata(entry.grant.issuer, config.requestTimeoutMs);
+      if (legacyOwnsGrant(grantKey)) return entry.grant;
+      const token = await refreshAccessToken(metadata.tokenEndpoint, {
+        clientId: entry.grant.clientId,
+        clientSecret: entry.grant.clientSecret,
+        tokenEndpointAuthMethod: entry.grant.tokenEndpointAuthMethod ?? 'none',
+        refreshToken: entry.grant.refreshToken,
+        // 多资源共享 Grant 不应在刷新时被第一个 resource 意外收窄。
+        resource: entry.grant.authorizedResources.length === 1 ? entry.grant.authorizedResources[0] : undefined,
+        scope: entry.grant.scope,
+        timeoutMs: config.requestTimeoutMs,
+      });
+      const refreshedResources = extractTokenResources(token.accessToken);
+      const next = {
+        ...entry.grant,
+        accessToken: token.accessToken,
+        // 持久化真实过期时间；提前刷新只用于定时调度，不能冒充 Token 已过期。
+        accessTokenExpiresAt: Date.now() + token.expiresIn * 1000,
+        refreshToken: token.refreshToken ?? entry.grant.refreshToken,
+        authorizedResources: refreshedResources?.length ? refreshedResources : entry.grant.authorizedResources,
+        updatedAt: Date.now(),
+      };
+      entry.grant = next;
+      entry.needsReauth = false;
+      entry.refreshFailureKind = null;
+      entry.refreshFailureCount = 0;
+      entry.lastRefreshError = null;
+      entry.refreshRetryAt = null;
+      state.grants.set(grantKey, entry);
+      if (config.persistSecrets) await grantStore.put(next);
+      for (const [key, record] of state.connections) {
+        if (record.auth?.grantKey !== grantKey || record.enabled === false) continue;
+        const conflict = legacyConflictForRecord(record);
+        if (conflict) {
+          warnLegacyConflict(conflict);
+          continue;
+        }
+        await provision(ctx, config, record, grantMap()).catch((error) => {
+          logger.warn(`re-provision "${key}" after OAuth refresh failed: ${error.message}`);
+        });
+      }
+      scheduleRefresh(grantKey);
+      statusEvents.publish('status');
+      return next;
+    })();
+    try {
+      return await entry.refreshPromise;
+    } finally {
+      entry.refreshPromise = null;
+    }
+  }
+
+  function scheduleRefresh(grantKey, { delayMs } = {}) {
+    const entry = state.grants.get(grantKey);
+    if (!entry) return;
+    if (entry.timer) clearTimeout(entry.timer);
+    if (legacyOwnsGrant(grantKey)) return;
+    const tokenLifetime = Math.max(0, entry.grant.accessTokenExpiresAt - (entry.grant.updatedAt || Date.now()));
+    const effectiveSkew = Math.min(
+      Math.max(0, config.refreshSkewMs),
+      Math.max(1_000, Math.floor(tokenLifetime * 0.1)),
+    );
+    const delay = delayMs === undefined
+      ? Math.max(0, entry.grant.accessTokenExpiresAt - effectiveSkew - Date.now())
+      : Math.max(0, delayMs);
+    entry.timer = setTimeout(() => {
+      entry.timer = undefined;
+      refreshGrantWithRecovery(grantKey, 'scheduled').catch(() => {});
+    }, delay);
+    entry.timer.unref?.();
+  }
+
+  function recordRefreshFailure(grantKey, error, phase) {
+    const entry = state.grants.get(grantKey);
+    if (!entry) return classifyRefreshFailure(error);
+    const failure = classifyRefreshFailure(error);
+    entry.refreshFailureCount = (entry.refreshFailureCount ?? 0) + 1;
+    entry.refreshFailureKind = failure.kind;
+    entry.lastRefreshError = failure.message;
+    entry.needsReauth = failure.permanent;
+    entry.refreshRetryAt = null;
+
+    const status = failure.httpStatus ? ` http=${failure.httpStatus}` : '';
+    const action = failure.permanent ? 'reauthorization required' : 'automatic retry scheduled';
+    logger.warn(`OAuth grant refresh failed phase=${phase} grant=${grantKey} code=${failure.code}${status} classification=${failure.kind}: ${failure.message}; ${action}`);
+
+    if (!failure.permanent) {
+      const delay = refreshRetryDelay(
+        entry.refreshFailureCount,
+        config.refreshRetryBaseMs,
+        config.refreshRetryMaxMs,
+      );
+      entry.refreshRetryAt = Date.now() + delay;
+      scheduleRefresh(grantKey, { delayMs: delay });
+    }
+    statusEvents.publish('status');
+    return failure;
+  }
+
+  async function refreshGrantWithRecovery(grantKey, phase) {
+    const observed = state.grants.get(grantKey)?.grant;
+    if (observed && legacyOwnsGrant(grantKey)) return observed;
+    try {
+      return await grantStore.withRefreshLock(grantKey, async () => {
+        // 锁内必须从独立 journal 重读，不能依赖 DSH domain 的进程内缓存。
+        // 如果另一 Host 已完成轮换，直接采用新 Grant，避免再次消耗
+        // 一次性 Refresh Token。
+        const persisted = await grantStore.get(grantKey).catch(() => undefined);
+        const entry = state.grants.get(grantKey);
+        if (entry && persisted?.legacySource?.pending) {
+          entry.grant = persisted;
+          return persisted;
+        }
+        if (entry && persisted
+            && persisted.updatedAt > entry.grant.updatedAt
+            && persisted.refreshToken !== entry.grant.refreshToken) {
+          entry.grant = persisted;
+          entry.needsReauth = false;
+          entry.refreshFailureKind = null;
+          entry.lastRefreshError = null;
+          logger.info(`OAuth grant ${grantKey} adopted a newer cross-process journal token`);
+          if (persisted.accessTokenExpiresAt > Date.now()) {
+            scheduleRefresh(grantKey);
+            statusEvents.publish('status');
+            return persisted;
+          }
+        }
+        return refreshGrant(grantKey);
+      }, { timeoutMs: Math.max(30_000, config.requestTimeoutMs * 2) });
+    } catch (error) {
+      let finalError = error;
+      const initialFailure = classifyRefreshFailure(error);
+      // Refresh tokens are commonly rotated. If another DSH process refreshed
+      // the same persisted grant first, this process still holds the old token
+      // and receives invalid_grant. Re-read storage before declaring the user
+      // logged out; a newer token is authoritative and can be retried once.
+      if (config.persistSecrets && observed
+          && ['invalid_grant', 'invalid_token'].includes(initialFailure.code)) {
+        for (const delayMs of [0, 100, 250]) {
+          if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs));
+          const persisted = await grantStore.get(grantKey).catch(() => undefined);
+          const entry = state.grants.get(grantKey);
+          if (!entry || !persisted
+              || persisted.updatedAt <= observed.updatedAt
+              || persisted.refreshToken === observed.refreshToken) continue;
+          entry.grant = persisted;
+          entry.needsReauth = false;
+          entry.refreshFailureKind = null;
+          entry.lastRefreshError = null;
+          logger.info(`OAuth grant ${grantKey} adopted a newer persisted token after a concurrent rotation`);
+          try {
+            if (persisted.accessTokenExpiresAt > Date.now()) {
+              scheduleRefresh(grantKey);
+              statusEvents.publish('status');
+              return persisted;
+            }
+            return await grantStore.withRefreshLock(grantKey, () => refreshGrant(grantKey), {
+              timeoutMs: Math.max(30_000, config.requestTimeoutMs * 2),
+            });
+          } catch (retryError) {
+            finalError = retryError;
+          }
+          break;
+        }
+      }
+      // 多个调用方可能等待同一个 refreshPromise；同一次失败只能记一次并调度一个重试。
+      if (!finalError.refreshFailure) finalError.refreshFailure = recordRefreshFailure(grantKey, finalError, phase);
+      throw finalError;
+    }
+  }
+
+  async function retireGrantIfUnused(grantKey, { revoke = false } = {}) {
+    if ([...state.connections.values()].some((record) => record.auth?.grantKey === grantKey)) return false;
+    const entry = state.grants.get(grantKey);
+    if (!entry) return false;
+    if (revoke && entry.grant.refreshToken && !legacyOwnsGrant(grantKey)) {
+      try {
+        const metadata = await discoverServerMetadata(entry.grant.issuer, config.requestTimeoutMs);
+        if (metadata.revocationEndpoint) {
+          await revokeRefreshToken(metadata.revocationEndpoint, {
+            clientId: entry.grant.clientId,
+            clientSecret: entry.grant.clientSecret,
+            tokenEndpointAuthMethod: entry.grant.tokenEndpointAuthMethod ?? 'none',
+            refreshToken: entry.grant.refreshToken,
+            timeoutMs: config.requestTimeoutMs,
+          });
+        }
+      } catch (error) {
+        logger.warn(`retire unused grant ${grantKey}: revoke failed, removing local copy: ${error.message}`);
+      }
+    }
+    if (entry.timer) clearTimeout(entry.timer);
+    state.grants.delete(grantKey);
+    if (config.persistSecrets) await grantStore.delete(grantKey).catch(() => {});
+    return true;
+  }
+
+  async function pruneOrphanGrants({ revoke = false } = {}) {
+    let removed = 0;
+    for (const grantKey of [...state.grants.keys()]) {
+      if (await retireGrantIfUnused(grantKey, { revoke })) removed += 1;
+    }
+    return removed;
+  }
+
+  /* ───────────────────────── 连接记录落库 / 挂载 ───────────────────────── */
+
+  function clearRecordHealth(record) {
+    if (record?.connectorId) state.health.delete(record.connectorId);
+  }
+
+  function connectionDisplayNameEditable(record) {
+    return connectionConfigurationEditable(record);
+  }
+
+  async function persistRecord(record) {
+    // 存储成功后才更新内存，避免落盘失败却在当前进程显示为“已安装”。
+    if (config.persistSecrets) await connectionStore.put(record);
+    const previous = state.connections.get(record.key);
+    if (previous && (connectionToolCacheSignature(previous) !== connectionToolCacheSignature(record)
+        || JSON.stringify(previous.auth) !== JSON.stringify(record.auth)
+        || JSON.stringify(previous.headers) !== JSON.stringify(record.headers)
+        || JSON.stringify(previous.env) !== JSON.stringify(record.env))) {
+      await deleteLastSuccessfulTools(record.key);
+    }
+    state.connections.set(record.key, record);
+    smartRuntime?.recordsChanged();
+    clearRecordHealth(record);
+    hostSessionInjection.refresh();
+  }
+
+  async function deleteConnectionRecordAtomically(record) {
+    await remove(ctx, config, record);
+    try {
+      if (config.persistSecrets) await connectionStore.delete(record.key);
+    } catch (error) {
+      const rollbackErrors = [];
+      try {
+        await provision(ctx, config, record, grantMap(), { failOnStartupError: false });
+      } catch (rollbackError) {
+        rollbackErrors.push(rollbackError);
+        logger.error(`disconnect rollback "${record.key}" failed: ${rollbackError.message}`);
+      }
+      const wrapped = new Error(t('连接记录删除失败，Host 条目已回滚'), { cause: error });
+      wrapped.connectionRecord = record;
+      wrapped.rollbackErrors = rollbackErrors;
+      throw wrapped;
+    }
+    state.connections.delete(record.key);
+    smartRuntime?.recordsChanged();
+    hostSessionInjection.forgetConnection(record.key);
+    hostSessionInjection.refresh();
+    await deleteLastSuccessfulTools(record.key);
+    clearRecordHealth(record);
+  }
+
+  async function restorePersistedRecord(key, original) {
+    const current = state.connections.get(key);
+    if (config.persistSecrets) {
+      if (original) await connectionStore.put(original);
+      else await connectionStore.delete(key);
+    }
+    if (original) state.connections.set(key, original);
+    else state.connections.delete(key);
+    smartRuntime?.recordsChanged();
+    if (!original) hostSessionInjection.forgetConnection(key);
+    hostSessionInjection.refresh();
+    clearRecordHealth(current);
+    clearRecordHealth(original);
+  }
+
+  async function restoreProvisionedEntry(record, original) {
+    if (original) await provision(ctx, config, original, grantMap(), { failOnStartupError: false });
+    else await remove(ctx, config, record);
+  }
+
+  async function provisionUntilReady(record, original, { strictStartup = true } = {}) {
+    if (record.pendingAuthorization) return; // Draft only; never mount an unauthenticated Host entry.
+    if (record.localOverrides && !canEditLocalOverrides(record)) throw new Error(t('当前市场配置不再允许本地参数覆盖，请先清除覆盖'));
+    if (!strictStartup) {
+      return provision(ctx, config, record, grantMap(), { failOnStartupError: false });
+    }
+    const startupTimeoutMs = Math.max(1_000, Number(config.startupTimeoutMs) || DEFAULT_STARTUP_TIMEOUT_MS);
+    const timeoutError = Object.assign(
+      new Error(t('MCP Server 启动与工具同步超过 {seconds} 秒', { seconds: Math.ceil(startupTimeoutMs / 1000) })),
+      { code: 'ETIMEDOUT' },
+    );
+    let timer;
+    const task = provision(ctx, config, record, grantMap(), { failOnStartupError: true });
+    const deadline = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(timeoutError), startupTimeoutMs);
+      timer.unref?.();
+    });
+    try {
+      return await Promise.race([task, deadline]);
+    } catch (error) {
+      if (error === timeoutError) {
+        // loader 可能仍在等待 SDK 请求；它最终成功时必须恢复旧条目/移除新条目，绝不迟到落库。
+        task.then(
+          // A later disable, disconnect or edit may already own this key.
+          // Reconcile after queued mutations, using the record at execution time.
+          () => queueConnectionAction(record.key, () => restoreProvisionedEntry(record, state.connections.get(record.key))).catch((rollbackError) => {
+            logger.error(`late startup rollback "${record.key}" failed: ${rollbackError.message}`);
+          }),
+          () => {},
+        );
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function rollbackProvisionedRecords(records, originals) {
+    const failures = [];
+    for (const record of [...records].reverse()) {
+      try {
+        await restoreProvisionedEntry(record, originals.get(record.key));
+      } catch (error) {
+        failures.push(error);
+        logger.error(`connection rollback "${record.key}" failed: ${error.message}`);
+      }
+    }
+    return failures;
+  }
+
+  function canEditLocalOverrides(record) {
+    if (!supportsLocalOverrides(record)) return false;
+    const descriptor = state.merged.find((item) => item.id === record.connectorId);
+    const server = descriptor?.servers?.find((item) => item.serverKey === record.serverKey);
+    return descriptor?.auth?.mode === 'none' && server?.transport === 'stdio'
+      && !server.oauthTokenEnv && !Object.keys(server.credentialBindings ?? {}).length;
+  }
+
+  async function commitConnectionRecords(records, { strictStartup = true } = {}) {
+    const originals = new Map(records.map((record) => [record.key, state.connections.get(record.key)]));
+    const staged = records.map((record) => {
+      const existing = originals.get(record.key);
+      return existing ? { ...existing, ...record, updatedAt: Date.now() } : record;
+    });
+    const provisioned = [];
+    let activeRecord;
+    try {
+      for (const record of staged) {
+        activeRecord = record;
+        await provisionUntilReady(record, originals.get(record.key), { strictStartup });
+        provisioned.push(record);
+      }
+    } catch (error) {
+      const rollbackErrors = await rollbackProvisionedRecords(provisioned, originals);
+      const wrapped = new Error(t('MCP Server "{serverName}" 未完成启动', {
+        serverName: activeRecord?.serverName ?? activeRecord?.key ?? 'unknown',
+      }), { cause: error });
+      wrapped.connectionRecord = activeRecord;
+      wrapped.rollbackErrors = rollbackErrors;
+      throw wrapped;
+    }
+
+    try {
+      for (const record of staged) await persistRecord(record);
+    } catch (error) {
+      const rollbackErrors = await rollbackProvisionedRecords(provisioned, originals);
+      for (const record of staged) {
+        try {
+          await restorePersistedRecord(record.key, originals.get(record.key));
+        } catch (rollbackError) {
+          rollbackErrors.push(rollbackError);
+          logger.error(`connection storage rollback "${record.key}" failed: ${rollbackError.message}`);
+        }
+      }
+      const wrapped = new Error(
+        rollbackErrors.length
+          ? t('连接记录持久化失败，自动回滚未完成')
+          : t('连接记录持久化失败，已回滚 Host 条目'),
+        { cause: error },
+      );
+      wrapped.connectionRecord = activeRecord;
+      wrapped.rollbackErrors = rollbackErrors;
+      throw wrapped;
+    }
+    return staged;
+  }
+
+  async function captureConnectionSnapshot(reason, targetKeys) {
+    if (!config.persistSecrets) return null;
+    const keys = [...new Set(targetKeys.filter(Boolean).map(String))].sort();
+    const records = keys.map((key) => state.connections.get(key)).filter(Boolean);
+    const existingKeys = new Set(records.map((record) => record.key));
+    const createdAt = Date.now();
+    const snapshot = await snapshotStore.put({
+      key: `snapshot-${createdAt}-${randomUUID()}`,
+      createdAt,
+      updatedAt: createdAt,
+      reason,
+      targetKeys: keys,
+      records,
+      absentKeys: keys.filter((key) => !existingKeys.has(key)),
+    });
+    await snapshotStore.trim(SNAPSHOT_LIMIT);
+    return snapshot;
+  }
+
+  async function discardConnectionSnapshot(snapshot) {
+    if (snapshot) await snapshotStore.delete(snapshot.key).catch((error) => {
+      logger.warn(`discard snapshot "${snapshot.key}" failed: ${error.message}`);
+    });
+  }
+
+  async function commitWithSnapshot(records, reason, options) {
+    const snapshot = await captureConnectionSnapshot(reason, records.map((record) => record.key));
+    try {
+      const committed = await commitConnectionRecords(records, options);
+      return { committed, snapshot };
+    } catch (error) {
+      if (error.rollbackErrors?.length) {
+        // Do not destroy the last known configuration when recovery itself fails.
+        error.recoverySnapshotId = snapshot?.key ?? null;
+      } else {
+        await discardConnectionSnapshot(snapshot);
+      }
+      throw error;
+    }
+  }
+
+  function scopeConflicts(records, targetKeys = new Set(records.map((record) => record.key))) {
+    const conflicts = [];
+    for (const record of records) {
+      const duplicate = records.find((other) => other.key !== record.key && other.serverName === record.serverName);
+      if (duplicate) {
+        conflicts.push({
+          connectionKey: duplicate.key,
+          name: duplicate.name,
+          serverName: duplicate.serverName,
+          binding: bindingForConnection(connectionScopes.snapshot().bindings, duplicate.key),
+        });
+      }
+      for (const other of state.connections.values()) {
+        if (targetKeys.has(other.key) || other.serverName !== record.serverName) continue;
+        conflicts.push({
+          connectionKey: other.key,
+          name: other.name,
+          serverName: other.serverName,
+          binding: bindingForConnection(connectionScopes.snapshot().bindings, other.key),
+        });
+      }
+    }
+    return conflicts;
+  }
+
+  /**
+   * Scope metadata is committed before a new connection can become visible.
+   * A failed Host/storage commit restores the prior scope revision. The scope
+   * document contains no credentials, and OAuth Grant records are untouched.
+   */
+  async function commitScopedWithSnapshot(records, reason, {
+    scopeInput = {},
+    scopeKeys = records.map((record) => record.key),
+    ...commitOptions
+  } = {}) {
+    const target = validateScopeTarget(scopeInput);
+    const keys = new Set(records.map((record) => record.key));
+    const conflicts = scopeConflicts(records, keys);
+    if (conflicts.length > 0) {
+      throw new Error(t('同名 Server "{serverName}" 已由连接 "{name}" 管理；请复用该连接的作用域，不能静默覆盖', {
+        serverName: conflicts[0].serverName,
+        name: conflicts[0].name,
+      }));
+    }
+    // Calls from older clients do not carry an explicit scope. Preserve an
+    // existing binding during reauthorization/reconfiguration; a genuinely
+    // new record still inherits the backward-compatible global default.
+    const explicitScope = scopeInput?.scope !== undefined;
+    const keysToAssign = explicitScope
+      ? scopeKeys
+      : scopeKeys.filter((key) => !state.connections.has(key));
+    const beforeRevision = connectionScopes.snapshot().revision;
+    const scopeResult = await connectionScopes.assignMany(keysToAssign, target, { expectedRevision: beforeRevision });
+    hostScopes.refresh();
+    try {
+      const result = await commitWithSnapshot(records, reason, commitOptions);
+      return {
+        ...result,
+        scope: target,
+        scopeRevision: connectionScopes.snapshot().revision,
+        scopeRollbackRevision: scopeResult.changed ? scopeResult.previousRevision : null,
+      };
+    } catch (error) {
+      if (scopeResult.changed) {
+        try {
+          await connectionScopes.rollback(beforeRevision, { expectedRevision: connectionScopes.snapshot().revision });
+          hostScopes.refresh();
+        } catch (rollbackError) {
+          logger.error(`scope rollback revision=${beforeRevision} failed: ${rollbackError.message}`);
+          error.scopeRollbackError = rollbackError;
+        }
+      }
+      throw error;
+    }
+  }
+
+  async function rollbackRestoredHostEntries(provisioned, removed, originals) {
+    const failures = [];
+    for (const record of [...removed].reverse()) {
+      try {
+        await provision(ctx, config, record, grantMap(), { failOnStartupError: false });
+      } catch (error) {
+        failures.push(error);
+        logger.error(`snapshot removed-entry rollback "${record.key}" failed: ${error.message}`);
+      }
+    }
+    for (const record of [...provisioned].reverse()) {
+      try {
+        await restoreProvisionedEntry(record, originals.get(record.key));
+      } catch (error) {
+        failures.push(error);
+        logger.error(`snapshot provision rollback "${record.key}" failed: ${error.message}`);
+      }
+    }
+    return failures;
+  }
+
+  /** 把一组目标 key 原子替换成快照状态；目标之外的连接完全不受影响。 */
+  async function replaceConnectionSet(targetKeys, desiredRecords) {
+    const keys = [...new Set(targetKeys.map(String))].sort();
+    const keySet = new Set(keys);
+    const desiredMap = new Map();
+    for (const record of desiredRecords) {
+      if (!keySet.has(record.key)) throw new Error(t('快照包含目标范围外连接 "{key}"', { key: record.key }));
+      if (desiredMap.has(record.key)) throw new Error(t('快照包含重复连接 "{key}"', { key: record.key }));
+      desiredMap.set(record.key, { ...record, updatedAt: Date.now() });
+    }
+    const originals = new Map(keys.map((key) => [key, state.connections.get(key)]));
+    const staged = [...desiredMap.values()];
+    // Do not start a partial restore when one desired entry belongs to an active legacy plugin.
+    for (const record of staged) assertProvisionAllowed(record);
+    const provisioned = [];
+    const removed = [];
+    let activeRecord;
+
+    try {
+      for (const record of staged) {
+        activeRecord = record;
+        provisioned.push(record);
+        await provisionUntilReady(record, originals.get(record.key));
+      }
+      for (const key of keys) {
+        if (desiredMap.has(key)) continue;
+        const current = originals.get(key);
+        if (!current) continue;
+        activeRecord = current;
+        removed.push(current);
+        await remove(ctx, config, current);
+      }
+    } catch (error) {
+      const rollbackErrors = await rollbackRestoredHostEntries(provisioned, removed, originals);
+      const wrapped = new Error(t('快照恢复未完成，Host 条目已回滚: {error}', { error: error.message }), { cause: error });
+      wrapped.connectionRecord = activeRecord;
+      wrapped.rollbackErrors = rollbackErrors;
+      throw wrapped;
+    }
+
+    try {
+      for (const record of staged) await persistRecord(record);
+      for (const key of keys) {
+        if (!desiredMap.has(key)) await restorePersistedRecord(key, undefined);
+      }
+    } catch (error) {
+      const rollbackErrors = await rollbackRestoredHostEntries(provisioned, removed, originals);
+      for (const key of keys) {
+        try {
+          await restorePersistedRecord(key, originals.get(key));
+        } catch (rollbackError) {
+          rollbackErrors.push(rollbackError);
+          logger.error(`snapshot storage rollback "${key}" failed: ${rollbackError.message}`);
+        }
+      }
+      const wrapped = new Error(t('快照恢复持久化失败，连接与 Host 条目已回滚'), { cause: error });
+      wrapped.connectionRecord = activeRecord;
+      wrapped.rollbackErrors = rollbackErrors;
+      throw wrapped;
+    }
+    return staged;
+  }
+
+  async function upsertRecord(record, options) {
+    return (await commitConnectionRecords([record], options))[0];
+  }
+
+  function grantFailure(record) {
+    if (record.auth?.mode !== 'oauth') return null;
+    const legacyConflict = legacyProvisionConflict(record);
+    if (legacyConflict) {
+      warnLegacyConflict(legacyConflict);
+      return { ok: false, kind: 'conflict', serverKey: record.serverKey, serverName: record.serverName, message: legacyConflict.message, legacyConflict };
+    }
+    const grantKey = record.auth.grantKey;
+    const entry = grantKey ? state.grants.get(grantKey) : null;
+    if (!entry) return { ok: false, kind: 'auth', serverKey: record.serverKey, serverName: record.serverName, message: t('OAuth 授权缺失，请重新授权') };
+    const clientSecretExpired = entry.grant.clientSecret && entry.grant.clientSecretExpiresAt > 0
+      && entry.grant.clientSecretExpiresAt * 1000 <= Date.now();
+    if (entry.needsReauth || clientSecretExpired) {
+      return { ok: false, kind: 'auth', serverKey: record.serverKey, serverName: record.serverName, message: t('OAuth 授权已过期或刷新失败，请重新授权') };
+    }
+    if (entry.grant.accessTokenExpiresAt <= Date.now()) {
+      return {
+        ok: false,
+        kind: 'refresh',
+        serverKey: record.serverKey,
+        serverName: record.serverName,
+        message: entry.refreshPromise
+          ? t('OAuth Access Token 已到期，正在自动刷新')
+          : (entry.lastRefreshError
+            ? t('OAuth 刷新暂时失败，正在自动重试：{error}', { error: entry.lastRefreshError })
+            : t('OAuth 刷新暂时失败，正在自动重试')),
+      };
+    }
+    return null;
+  }
+
+  function registeredStdioTools(record) {
+    if (typeof ctx.tools?.schemas !== 'function') {
+      return { supported: false, tools: [] };
+    }
+    const prefix = `mcp__${record.serverName}__`;
+    try {
+      const tools = ctx.tools.schemas()
+        .filter((schema) => (
+          typeof schema?.name === 'string'
+          && schema.name.startsWith(prefix)
+          && hostGovernance.inspect(schema.name)?.target.serverName === record.serverName
+        ))
+        .map((schema) => ({
+          name: schema.name.slice(prefix.length),
+          publicName: schema.name,
+          title: schema.title || schema.name.slice(prefix.length),
+          description: schema.description || '',
+          inputSchema: schema.parameters ?? {},
+        }));
+      return { supported: true, tools };
+    } catch (error) {
+      logger.warn(`read registered tools for "${record.serverName}" failed: ${error.message}`);
+      return { supported: true, tools: [], error };
+    }
+  }
+
+  /**
+   * 等待 Host 侧注册这个 stdio server 的工具。
+   * 重建条目后 mcp-client 需要重新 spawn 并完成 initialize/tools-list；在此期间
+   * "没有工具" 与 "启动失败" 无法区分，所以这里只做有界的轮询，不把它当作失败。
+   */
+  async function waitForStdioToolRegistration(record, timeoutMs = 5_000) {
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+      const registered = registeredStdioTools(record);
+      if (registered.tools.length > 0) return registered.tools.length;
+      if (Date.now() >= deadline) return 0;
+      await new Promise((resolve) => { setTimeout(resolve, 250).unref?.(); });
+    }
+  }
+
+  async function cacheLastSuccessfulTools(record, tools) {
+    // A request may finish after disconnect/reconfigure. Never resurrect old metadata.
+    if (state.connections.get(record.key) !== record || record.enabled === false) return null;
+    const entry = createToolCatalogRecord(record, tools);
+    state.toolCatalogCache.set(record.key, entry);
+    if (config.persistSecrets) {
+      try {
+        state.toolCatalogCache.set(record.key, await toolCatalogStore.put(entry));
+      } catch (error) {
+        logger.warn(`persist tool catalog "${record.key}" failed: ${error.message}`);
+      }
+    }
+    return state.toolCatalogCache.get(record.key);
+  }
+
+  async function deleteLastSuccessfulTools(key) {
+    discoveryPlans.delete(key);
+    connectionChecks.delete(key);
+    state.toolViews.delete(key);
+    state.toolCatalogCache.delete(key);
+    if (config.persistSecrets) {
+      await toolCatalogStore.delete(key).catch((error) => {
+        logger.warn(`delete tool catalog "${key}" failed: ${error.message}`);
+      });
+    }
+  }
+
+  function cachedToolsForRecord(record) {
+    const entry = state.toolCatalogCache.get(record.key);
+    if (!entry
+        || entry.connectorId !== record.connectorId
+        || entry.serverName !== record.serverName
+        || entry.connectionSignature !== connectionToolCacheSignature(record)) return null;
+    return { entry, ...toolCatalogCacheView(entry) };
+  }
+
+  function visibleToolCatalogEntries(workspaceId, connectionKey) {
+    const entries = [];
+    for (const record of state.connections.values()) {
+      if (connectionKey && record.key !== connectionKey) continue;
+      if (record.enabled === false) continue;
+      if (workspaceId && !connectionVisibleInWorkspace(connectionScopes.binding(record.key), workspaceId)) continue;
+      const cached = cachedToolsForRecord(record);
+      if (cached) entries.push(cached.entry);
+    }
+    return entries;
+  }
+
+  function explorerRecords(workspaceId) {
+    // Unlike the legacy management overview, no Workspace means global-only.
+    return [...state.connections.values()].filter((record) => record.enabled !== false
+      && connectionVisibleInWorkspace(connectionScopes.binding(record.key), workspaceId));
+  }
+
+  function explorerConnection(record) {
+    const view = state.toolViews.get(record.key);
+    const server = view?.record === record ? view.server : null;
+    const cache = cachedToolsForRecord(record);
+    const plan = discoveryPlans.get(record.key);
+    const currentPlan = plan?.record === record ? plan : null;
+    const check = connectionChecks.get(record.key);
+    const failure = grantFailure(record);
+    const diagnostic = failure ? healthSummary(record.connectorId, [record], [failure]).diagnostic
+      : check?.record === record && !check.summary.diagnostic.legacyConflict ? check.summary.diagnostic : null;
+    const discoveryDiagnostic = server ? discoveryHealth(record.connectorId, [record], [server], view.at).diagnostic : null;
+    const status = !server ? 'pending' : server.unknown ? 'unknown' : server.ok ? 'success' : 'failed';
+    return {
+      connectionKey: record.key, connectionName: record.name, connectorId: record.connectorId,
+      connectorName: state.merged.find((item) => item.id === record.connectorId)?.name || record.name,
+      serverName: record.serverName, transport: record.transport, status,
+      checkedAt: view?.record === record ? view.at : null,
+      observedAt: cache?.observedAt || null, stale: cache?.stale || false,
+      toolCount: cache?.entry.tools.length || 0, cacheTruncated: cache?.entry.truncated === true,
+      diagnostic, discoveryDiagnostic, nextDiscoveryAt: currentPlan?.nextAt ?? null,
+      retryReason: currentPlan?.reason || null,
+    };
+  }
+
+  function readinessResults(records, validationResults = []) {
+    return records.map((record, index) => {
+      const validated = validationResults[index];
+      return {
+        ...(validated ?? {}),
+        ok: true,
+        kind: 'connected',
+        serverKey: record.serverKey,
+        serverName: record.serverName,
+        message: record.transport === 'stdio'
+          ? t('Host 已完成 stdio MCP 初始化与首次工具同步')
+          : validated?.message,
+      };
+    });
+  }
+
+  function connectionSetupFailure(error, prefix = t('连接失败'), outcome = t('未保存连接，请修正后重试')) {
+    const record = error?.connectionRecord;
+    const conflict = error?.legacyConflict ?? error?.cause?.legacyConflict;
+    if (conflict) return { ok: false, message: conflict.message, detail: { kind: 'plugin-conflict', pluginId: conflict.pluginId, serverName: conflict.serverName, legacyConflict: conflict } };
+    const classified = classifyConnectionError(error, { transport: record?.transport });
+    return {
+      ok: false,
+      message: t('{prefix}：{message}。{outcome}。', {
+        prefix,
+        message: classified.message,
+        outcome,
+      }),
+      detail: {
+        kind: classified.kind,
+        serverKey: record?.serverKey,
+        serverName: record?.serverName,
+        ...(classified.exitCode !== undefined ? { exitCode: classified.exitCode } : {}),
+      },
+    };
+  }
+
+  function healthSummary(connectorId, records, results, checkedAt = Date.now(), previous = state.health.get(connectorId) ?? null) {
+    const summary = buildHealthSummary({ connectorId, records, results, checkedAt, previous, t });
+    const first = summary.diagnostic.legacyConflict;
+    if (first && results.length > 1) {
+      const samePlugin = results.map((item) => item.legacyConflict).filter((conflict) => conflict?.pluginId === first.pluginId);
+      const [group] = summarizeLegacyConflicts(samePlugin).conflicts;
+      summary.diagnostic.legacyConflict = { ...first, ...group };
+    }
+    return summary;
+  }
+
+  function connectorHealth(connectorId) {
+    const records = [...state.connections.values()].filter((record) => record.connectorId === connectorId);
+    if (records.length === 0) return healthSummary(connectorId, records, [], null);
+    const inspectable = records.filter((record) => record.enabled !== false || legacyMigrationNeedsReauth(record));
+    if (!inspectable.length) return healthSummary(connectorId, records, [], null);
+    const immediateFailures = inspectable.map(grantFailure).filter(Boolean);
+    if (immediateFailures.length > 0) return healthSummary(connectorId, records, immediateFailures, Date.now());
+    const cached = state.health.get(connectorId);
+    if (cached?.diagnostic.legacyConflict) return observedHealth(connectorId, records);
+    return cached ?? healthSummary(connectorId, records, [], null);
+  }
+
+  function observedHealth(connectorId, records, previous = state.health.get(connectorId) ?? null) {
+    const enabled = records.filter((record) => record.enabled !== false);
+    const checks = enabled.map((record) => {
+      const check = connectionChecks.get(record.key);
+      return check?.record === record && !check.summary.diagnostic.legacyConflict ? check : null;
+    });
+    const results = enabled.map((record, index) => grantFailure(record) ?? checks[index]?.summary.results[0] ?? {
+      ok: true, kind: 'managed', code: 'not-checked', serverKey: record.serverKey, serverName: record.serverName,
+      message: t('已保存配置，但本进程尚未观察到可用性检查结果'),
+    });
+    const checkedAt = checks.some(Boolean) ? Math.max(...checks.filter(Boolean).map((check) => check.at)) : null;
+    return healthSummary(connectorId, records, results, checkedAt, previous);
+  }
+
+  function discoveryHealth(connectorId, records, servers, checkedAt = Date.now()) {
+    return buildHealthSummary({ connectorId, records, checkedAt, t, results: servers.map((server) => ({
+      ok: server.ok || server.unknown, kind: server.unknown ? 'managed' : server.ok ? 'connected' : server.errorKind ?? 'network',
+      serverKey: server.serverKey, serverName: server.serverName, code: server.diagnosticCode,
+      stage: server.errorStage === 'tool-discovery' || server.ok ? 'tool-discovery' : undefined, message: server.error, legacyConflict: server.legacyConflict,
+    })) });
+  }
+
+  function cacheHealth(connectorId, records, results) {
+    const now = Date.now();
+    const previous = state.health.get(connectorId) ?? null;
+    for (const record of records) {
+      if (state.connections.get(record.key) !== record || record.enabled === false) continue;
+      const result = results.find((item) => item.serverName === record.serverName)
+        ?? results.find((item) => item.serverKey === record.serverKey);
+      if (!result) continue;
+      const at = result.checkedAt ?? now;
+      const prior = connectionChecks.get(record.key);
+      // With millisecond clocks, a tied discovery observation must also yield to
+      // an explicit check already recorded while tools/list was in flight.
+      if (prior?.record === record && (prior.at > at || (prior.at === at && result.checkedAt !== undefined))) continue;
+      const summary = buildHealthSummary({
+        connectorId, records: [record], results: [result], checkedAt: at, t,
+        previous: prior?.record === record ? prior.summary : previous,
+      });
+      connectionChecks.set(record.key, { record, summary, at });
+    }
+    // Scoped checks merge only their records; other connections keep their own observations.
+    state.health.set(connectorId, observedHealth(connectorId, [...state.connections.values()].filter((record) => record.connectorId === connectorId), previous));
+    return observedHealth(connectorId, records, previous);
+  }
+
+  function resolveCredentialValues(connector, params = {}) {
+    const raw = params.credentialValues && typeof params.credentialValues === 'object' && !Array.isArray(params.credentialValues)
+      ? params.credentialValues
+      : {};
+    const values = {};
+    const fields = connector.auth.credentialFields ?? [];
+    for (const [index, field] of fields.entries()) {
+      let value = raw[field.key];
+      // 兼容旧调用方：单一/首个凭据仍可通过 bearerToken 或 apiKeyValue 传入。
+      if ((value === undefined || value === '') && (field.key === 'credential' || index === 0)) {
+        value = connector.auth.mode === 'bearer' ? params.bearerToken : params.apiKeyValue;
+      }
+      if (field.required && (value === undefined || String(value).trim() === '')) {
+        throw new Error(t('{label} 必填', { label: field.label }));
+      }
+      if (value !== undefined && String(value) !== '') values[field.key] = String(value);
+    }
+    return values;
+  }
+
+  function bindStdioCredentials(server, credentialValues) {
+    const env = { ...(server.env ?? {}) };
+    for (const [envName, credentialKey] of Object.entries(server.credentialBindings ?? {})) {
+      const value = credentialValues[credentialKey];
+      if (value !== undefined && value !== '') env[envName] = value;
+    }
+    return env;
+  }
+
+  function bindHeaderCredentials(server, values) {
+    const headers = { ...(server.headers ?? {}) };
+    for (const [name, key] of Object.entries(server.headerCredentialBindings ?? {})) {
+      const value = values[key];
+      if (value === undefined || value === '') continue;
+      // Reject before networking; never echo the supplied credential in an error.
+      if (/[^\x20-\x7e\x80-\xff]/.test(value)) throw new Error('Invalid credential header value');
+      headers[name] = value;
+    }
+    return headers;
+  }
+
+  /* ───────────────────────── OAuth Grant 共享 ───────────────────────── */
+
+  function canonicalIssuer(value) {
+    try {
+      const url = new URL(value);
+      return `${url.origin}${url.pathname.replace(/\/+$/, '')}`;
+    } catch {
+      return String(value ?? '').replace(/\/+$/, '');
+    }
+  }
+
+  function oauthResourceOrigins(connector) {
+    return [...new Set((connector.servers ?? []).map((server) => {
+      try { return new URL(server.oauthResource ?? server.url).origin; } catch { return ''; }
+    }).filter(Boolean))].sort();
+  }
+
+  function oauthSharingConnectors(connector) {
+    if (connector.auth?.grantSharing !== 'issuer' || !connector.auth.issuer) return [connector];
+    const issuer = canonicalIssuer(connector.auth.issuer);
+    const resourceOrigins = new Set(oauthResourceOrigins(connector));
+    const matches = state.merged.filter((candidate) => (
+      candidate.published !== false
+      && candidate.auth?.mode === 'oauth2-pkce'
+      && candidate.auth.grantSharing === 'issuer'
+      && canonicalIssuer(candidate.auth.issuer) === issuer
+      && candidate.auth.scope === connector.auth.scope
+      && candidate.auth.tokenEndpointAuthMethod === connector.auth.tokenEndpointAuthMethod
+      // 防止同 issuer 的第三方描述把共享 Bearer Token 聚合到其他资源域名。
+      && oauthResourceOrigins(candidate).every((origin) => resourceOrigins.has(origin))
+    ));
+    // 授权请求的 resource 必须优先使用用户点击的卡片；其余同组 Server 只用于识别共享范围。
+    return [connector, ...matches.filter((candidate) => candidate.id !== connector.id)];
+  }
+
+  function oauthSharingKey(connector) {
+    if (connector.auth?.grantSharing !== 'issuer' || !connector.auth.issuer) return `connector:${connector.id}`;
+    return `issuer:${config.account}:${canonicalIssuer(connector.auth.issuer)}:${connector.auth.scope}:${connector.auth.tokenEndpointAuthMethod}:${oauthResourceOrigins(connector).join(',')}`;
+  }
+
+  function oauthAuthorizationDescriptor(connector, sharingConnectors) {
+    if (sharingConnectors.length === 1) return connector;
+    const seen = new Set();
+    const servers = [];
+    for (const candidate of sharingConnectors) {
+      for (const server of candidate.servers) {
+        if (!server.url) continue;
+        if (seen.has(server.url)) continue;
+        seen.add(server.url);
+        servers.push({ ...server, serverKey: `${candidate.id}:${server.serverKey}` });
+      }
+    }
+    return { ...connector, servers };
+  }
+
+  function oauthRecordsFor(connectors, authorizedResources, grantKey) {
+    const granted = new Set(authorizedResources);
+    const now = Date.now();
+    const records = [];
+    for (const connector of connectors) {
+      for (const server of connector.servers.filter((candidate) => granted.has(candidate.oauthResource ?? candidate.url))) {
+        records.push({
+          key: `${connector.id}-${server.serverKey}`,
+          connectorId: connector.id,
+          kind: 'oauth',
+          name: connector.servers.length > 1 ? `${connector.name}·${server.serverKey}` : connector.name,
+          serverKey: server.serverKey,
+          transport: server.transport,
+          url: server.url,
+          command: server.command,
+          args: server.args,
+          env: server.env,
+          oauthTokenEnv: server.oauthTokenEnv,
+          cwd: server.cwd,
+          serverName: server.serverName,
+          headers: server.headers,
+          auth: { mode: 'oauth', grantKey },
+          enabled: true,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+    }
+    return records;
+  }
+
+  function ensureRequestedConnectorsAuthorized(requestedIds, records) {
+    const connectedIds = new Set(records.map((record) => record.connectorId));
+    const missing = [...requestedIds].filter((id) => !connectedIds.has(id));
+    if (missing.length === 0) return;
+    throw new Error(t('本次授权未包含连接器所需的 MCP 资源：{missing}', { missing: missing.join(', ') }));
+  }
+
+  async function findReusableSharedGrant(connector) {
+    if (connector.auth?.grantSharing !== 'issuer' || !connector.auth.issuer) return null;
+    const issuer = canonicalIssuer(connector.auth.issuer);
+    for (const [grantKey, entry] of state.grants) {
+      const grant = entry.grant;
+      if (entry.needsReauth || legacyOwnsGrant(grantKey)
+          || grant.account !== config.account
+          || grant.scope !== connector.auth.scope
+          || (grant.tokenEndpointAuthMethod ?? 'none') !== connector.auth.tokenEndpointAuthMethod
+          || canonicalIssuer(grant.issuer) !== issuer) continue;
+
+      if (grant.accessTokenExpiresAt <= Date.now()) {
+        try {
+          await refreshGrantWithRecovery(grantKey, 'shared-connect');
+        } catch (error) {
+          if (error.refreshFailure?.kind === 'transient') {
+            return { temporaryFailure: error.refreshFailure };
+          }
+          continue;
+        }
+      }
+      if (connector.servers.some((server) => entry.grant.authorizedResources.includes(server.oauthResource ?? server.url))) {
+        return { grantKey, entry };
+      }
+    }
+    return null;
+  }
+
+  async function attachConnectorsToGrant(grantKey, entry, connectors, requestedIds, scopeInput) {
+    const authorized = oauthRecordsFor(connectors, entry.grant.authorizedResources, grantKey);
+    const conflicts = new Map(legacyConflictsForServers(authorized).map(conflict => [conflict.serverName, conflict]));
+    for (const conflict of conflicts.values()) warnLegacyConflict(conflict);
+    const records = authorized.filter(record => !conflicts.has(record.serverName));
+    for (const id of requestedIds) {
+      if (records.some(record => record.connectorId === id)) continue;
+      const blocked = authorized.find(record => record.connectorId === id && conflicts.has(record.serverName));
+      if (blocked) throw legacyConflictError(blocked, conflicts.get(blocked.serverName));
+    }
+    ensureRequestedConnectorsAuthorized(requestedIds, records);
+    const connectedConnectorIds = [...new Set(records.map((record) => record.connectorId))];
+    const previous = entry.grant;
+    const next = {
+      ...previous,
+      connectorIds: [...new Set([...(previous.connectorIds ?? []), ...connectedConnectorIds])],
+      updatedAt: Date.now(),
+    };
+    entry.grant = next;
+    if (config.persistSecrets) await grantStore.put(next);
+    try {
+      const scoped = await commitScopedWithSnapshot(records, 'oauth-connect', {
+        scopeInput,
+        scopeKeys: records.filter((record) => requestedIds.has(record.connectorId)).map((record) => record.key),
+      });
+      const { committed, snapshot } = scoped;
+      for (const connector of connectors) {
+        const own = committed.filter((record) => record.connectorId === connector.id);
+        if (own.length > 0) cacheHealth(connector.id, own, readinessResults(own));
+      }
+      scheduleRefresh(grantKey);
+      return { ...scoped, committed, snapshot };
+    } catch (error) {
+      entry.grant = previous;
+      if (config.persistSecrets) await grantStore.put(previous).catch((rollbackError) => {
+        logger.error(`shared grant rollback ${grantKey} failed: ${rollbackError.message}`);
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * v0.2.22 及更早版本会让四张企查查卡片分别保存动态客户端和 Grant。
+   * 新版升级时把同 issuer、同资源域且授权范围完整的历史记录归并为一组，
+   * 这样启动只刷新一个 refresh token，之后任意一张卡片重新授权也会修复整组。
+   */
+  async function consolidatePersistedSharedGrants() {
+    const groups = new Map();
+    for (const record of state.connections.values()) {
+      if (record.auth?.mode !== 'oauth' || !record.auth.grantKey) continue;
+      const connector = state.merged.find((item) => item.id === record.connectorId);
+      if (connector?.auth?.grantSharing !== 'issuer') continue;
+      const groupKey = oauthSharingKey(connector);
+      const group = groups.get(groupKey) ?? { records: [], grantKeys: new Set() };
+      group.records.push(record);
+      group.grantKeys.add(record.auth.grantKey);
+      groups.set(groupKey, group);
+    }
+
+    let consolidated = 0;
+    for (const group of groups.values()) {
+      if (group.grantKeys.size <= 1 || [...group.grantKeys].some(legacyOwnsGrant)) continue;
+      const requiredResources = new Set(group.records.map((record) => record.url).filter(Boolean));
+      const candidates = [...group.grantKeys]
+        .map((key) => [key, state.grants.get(key)])
+        .filter(([, entry]) => entry
+          && [...requiredResources].every((resource) => entry.grant.authorizedResources.includes(resource)))
+        .sort((left, right) => (
+          (right[1].grant.updatedAt ?? 0) - (left[1].grant.updatedAt ?? 0)
+          || (right[1].grant.accessTokenExpiresAt ?? 0) - (left[1].grant.accessTokenExpiresAt ?? 0)
+        ));
+      if (candidates.length === 0) continue;
+
+      // Do not retire three recoverable historical grants in favour of a newer
+      // but already-revoked refresh token. Validate expired candidates in
+      // recency order and only consolidate after one grant is demonstrably
+      // usable. If none is usable, preserve every grant so one subsequent
+      // authorization can replace the group without destroying recovery data.
+      let winnerCandidate;
+      for (const candidate of candidates) {
+        const [candidateKey, candidateEntry] = candidate;
+        if (candidateEntry.needsReauth) continue;
+        if (candidateEntry.grant.accessTokenExpiresAt <= Date.now()) {
+          try {
+            await refreshGrantWithRecovery(candidateKey, 'startup-consolidation');
+          } catch {
+            continue;
+          }
+        }
+        winnerCandidate = candidate;
+        break;
+      }
+      if (winnerCandidate === undefined) {
+        logger.warn(`preserved ${group.grantKeys.size} historical issuer-shared OAuth grants because none could be refreshed`);
+        continue;
+      }
+
+      const [winnerKey, winnerEntry] = winnerCandidate;
+      const connectorIds = [...new Set([
+        ...(winnerEntry.grant.connectorIds ?? []),
+        ...group.records.map((record) => record.connectorId),
+      ])];
+      const winner = { ...winnerEntry.grant, connectorIds, updatedAt: Date.now() };
+      winnerEntry.grant = winner;
+      if (config.persistSecrets) await grantStore.put(winner);
+
+      for (const record of group.records) {
+        if (record.auth.grantKey === winnerKey) continue;
+        const next = { ...record, auth: { ...record.auth, grantKey: winnerKey }, updatedAt: Date.now() };
+        const persisted = config.persistSecrets ? await connectionStore.put(next) : next;
+        state.connections.set(record.key, persisted);
+      }
+      for (const losingKey of group.grantKeys) {
+        if (losingKey !== winnerKey) await retireGrantIfUnused(losingKey);
+      }
+      consolidated += group.grantKeys.size - 1;
+      logger.info(`consolidated ${group.grantKeys.size} issuer-shared OAuth grants into ${winnerKey}`);
+    }
+    return consolidated;
+  }
+
+  function hostPublicToolNames() {
+    if (typeof ctx.tools?.schemas !== 'function') return new Set();
+    try {
+      return new Set(ctx.tools.schemas().map((schema) => schema?.name).filter((toolName) => typeof toolName === 'string'));
+    } catch (error) {
+      logger.warn(`read Host tools for governance failed: ${error.message}`);
+      return new Set();
+    }
+  }
+
+  function policyTargetRecords(mutation) {
+    return [...state.connections.values()].filter((record) => (
+      record.connectorId === mutation.connectorId
+      && (mutation.scope === 'connection' || record.serverName === mutation.serverName)
+    ));
+  }
+
+  function validatePolicyMutation(input) {
+    const mutation = normalizeGovernanceMutation(input);
+    const records = policyTargetRecords(mutation);
+    if (records.length === 0) {
+      throw new Error(mutation.scope === 'connection'
+        ? t('连接 "{connectorId}" 不存在', { connectorId: mutation.connectorId })
+        : t('Server "{serverName}" 不存在或不属于连接 "{connectorId}"', {
+          serverName: mutation.serverName,
+          connectorId: mutation.connectorId,
+        }));
+    }
+    const capabilities = hostGovernance.capabilities();
+    if (mutation.effect === 'deny' && !capabilities.executionGuard) {
+      throw new Error(t('当前 DSH Host 不支持 tools.guard，拒绝保存仅隐藏 UI、无法真实拦截执行的 deny 策略；请升级 Host'));
+    }
+    return mutation;
+  }
+
+  function observedPolicyTargets() {
+    const names = hostPublicToolNames();
+    const targets = [];
+    for (const publicName of names) {
+      const resolved = hostGovernance.inspect(publicName);
+      if (resolved) targets.push(resolved.target);
+    }
+    return targets;
+  }
+
+  function policyImpact(beforeRules, afterRules) {
+    const targets = observedPolicyTargets();
+    const changes = [];
+    for (const target of targets) {
+      const before = resolveGovernancePolicy(target, beforeRules);
+      const after = resolveGovernancePolicy(target, afterRules);
+      if (before.effect === after.effect && before.source === after.source) continue;
+      changes.push({
+        connectorId: target.connectorId,
+        serverName: target.serverName,
+        publicName: target.publicName,
+        before: before.effect,
+        after: after.effect,
+        source: after.source,
+        sourceLabel: after.sourceLabel,
+      });
+    }
+    return {
+      observedToolCount: targets.length,
+      changedToolCount: changes.length,
+      newlyDenied: changes.filter((change) => change.before !== 'deny' && change.after === 'deny').length,
+      newlyAllowed: changes.filter((change) => change.before === 'deny' && change.after !== 'deny').length,
+      changes: changes.slice(0, 50),
+    };
+  }
+
+  function directPolicyEffect(scope, connectorId, serverName, toolName, publicName) {
+    return governancePolicies.snapshot().rules.find((rule) => (
+      rule.scope === scope
+      && rule.connectorId === connectorId
+      && (scope === 'connection' || rule.serverName === serverName)
+      && (scope !== 'tool' || rule.toolName === toolName || (publicName && rule.publicName === publicName))
+    ))?.effect ?? 'inherit';
+  }
+
+  function decorateToolPolicy(record, tool, observedNames = hostPublicToolNames()) {
+    const publicName = tool.publicName || publicToolName(record.serverName, tool.name);
+    const observed = observedNames.has(publicName);
+    const resolved = resolveGovernancePolicy({
+      connectorId: record.connectorId,
+      serverName: record.serverName,
+      toolName: tool.name,
+      publicName,
+      connectionEnabled: record.enabled !== false,
+    }, governancePolicies.snapshot().rules);
+    return {
+      ...tool,
+      publicName,
+      policy: {
+        configuredEffect: directPolicyEffect('tool', record.connectorId, record.serverName, tool.name, publicName),
+        desiredEffect: resolved.effect,
+        source: resolved.source,
+        sourceLabel: resolved.sourceLabel,
+        observed,
+        finalState: observed ? (resolved.effect === 'deny' ? 'denied' : 'allowed') : 'unknown',
+        enforced: observed && (resolved.effect !== 'deny' || hostGovernance.capabilities().executionGuard),
+      },
+    };
+  }
+
+  function serverPolicy(record) {
+    const resolved = resolveGovernancePolicy({
+      connectorId: record.connectorId,
+      serverName: record.serverName,
+      connectionEnabled: record.enabled !== false,
+    }, governancePolicies.snapshot().rules);
+    return {
+      configuredEffect: directPolicyEffect('server', record.connectorId, record.serverName),
+      desiredEffect: resolved.effect,
+      source: resolved.source,
+      sourceLabel: resolved.sourceLabel,
+      lifecycleEnabled: record.enabled !== false,
+    };
+  }
+
+  function governanceDetail() {
+    const document = governancePolicies.snapshot();
+    const records = [...state.connections.values()];
+    return {
+      version: document.version,
+      revision: document.revision,
+      updatedAt: document.updatedAt || null,
+      precedence: ['tool', 'server', 'connection', 'default'],
+      precedenceLabel: t('Tool > Server > Connection > 默认允许；连接停用不可被 allow 覆盖'),
+      rules: inspectGovernanceRules(document.rules, records, state.toolInventories),
+      history: document.history.map((item) => ({ revision: item.revision, createdAt: item.createdAt, ruleCount: item.rules.length })),
+      capabilities: hostGovernance.capabilities(),
+    };
+  }
+
+  function scopeDetail(record, workspaceId) {
+    const binding = bindingForConnection(connectionScopes.snapshot().bindings, record.key);
+    return {
+      binding,
+      targets: scopeTargets(binding),
+      label: scopeLabel(binding, workspaceNames()),
+      visibleInWorkspace: connectionVisibleInWorkspace(binding, workspaceId),
+    };
+  }
+
+  function scopeImpact(record) {
+    const inventory = state.toolInventories.get(record.serverName);
+    const connector = state.merged.find((item) => item.id === record.connectorId);
+    const snapshot = (connector?.toolsSnapshot ?? []).find((item) => (
+      item.serverKey === record.serverKey || item.serverName === record.serverName
+    ));
+    const tools = inventory?.observed
+      ? [...inventory.tools].sort()
+      : (snapshot?.tools ?? []).map((tool) => tool.name).sort();
+    return {
+      servers: [{
+        connectionKey: record.key,
+        serverKey: record.serverKey ?? record.key,
+        serverName: record.serverName,
+        toolSource: inventory?.observed ? 'observed' : snapshot ? 'snapshot' : 'unavailable',
+        tools,
+      }],
+      serverCount: 1,
+      toolCount: tools.length,
+    };
+  }
+
+  function scopeDocumentDetail(workspaceId) {
+    const document = connectionScopes.snapshot();
+    return {
+      version: document.version,
+      revision: document.revision,
+      updatedAt: document.updatedAt || null,
+      currentWorkspaceId: workspaceId || null,
+      workspaces: workspaceList().map((workspace) => ({
+        id: String(workspace.id),
+        title: workspace.title || String(workspace.id),
+      })),
+      history: document.history.map((item) => ({
+        revision: item.revision,
+        createdAt: item.createdAt,
+        bindingCount: item.bindings.length,
+      })),
+      precedenceLabel: t('project-only 仅当前 Workspace 可见；global 由所有 Workspace 继承'),
+      credentialsStoredInScopeDocument: false,
+      capabilities: hostScopes.capabilities(),
+    };
+  }
+
+  function scopeRollbackPreview(rollbackRevision) {
+    const document = connectionScopes.snapshot();
+    if (!Number.isInteger(rollbackRevision) || rollbackRevision < 0) {
+      throw new Error(t('rollbackRevision 必须是非负整数'));
+    }
+    const target = rollbackRevision === document.revision
+      ? document
+      : document.history.find((item) => item.revision === rollbackRevision);
+    if (!target) throw new Error(t('找不到可回滚的连接作用域 revision={rollbackRevision}', { rollbackRevision }));
+    const changes = [];
+    const servers = [];
+    for (const record of state.connections.values()) {
+      const current = bindingForConnection(document.bindings, record.key);
+      const next = bindingForConnection(target.bindings, record.key);
+      if (JSON.stringify(current) === JSON.stringify(next)) continue;
+      const impact = scopeImpact(record);
+      changes.push({ key: record.key, name: record.name, current, next });
+      servers.push(...impact.servers);
+    }
+    return {
+      baseRevision: document.revision,
+      rollbackRevision,
+      changed: rollbackRevision !== document.revision,
+      changes,
+      impact: {
+        servers,
+        serverCount: servers.length,
+        toolCount: servers.reduce((total, server) => total + server.tools.length, 0),
+      },
+      credentialsCopied: false,
+    };
+  }
+
+  /* ───────────────────────── api 门面 ───────────────────────── */
+
+  const customAuthorizations = new Map();
+  ctx.effect(() => () => { for (const controller of customAuthorizations.values()) controller.abort(); });
+  const api = {
+    async connectionStatistics() {
+      return { ok: true, detail: { ...connectionStatistics.snapshot(), persistent: config.persistSecrets === true }, message: t("本 profile 成功连接过的卡片数；不是连接次数或社区总量，不上传数据") };
+    },
+    async versionStatus(force = false) {
+      const profileInfo = readHostProfileInfo(ctx);
+      const detail = {
+        ...versionStatusService.status({ force }),
+        profileName: profileInfo.status === 'ready' ? profileInfo.detectedName : null,
+        profileInfo,
+      };
+      let message = t('当前版本 v{version}', { version: detail.installedVersion });
+      if (detail.checking) message += t('，正在检查更新');
+      else if (detail.updateAvailable) message += t('，可更新到 v{version}', { version: detail.latestVersion });
+      else if (detail.releasePending) message += t('，新版本正在同步到 npm');
+      else if (detail.status === 'unavailable') message += t('，暂时无法检查更新');
+      else message += t('，已是 npm 最新版');
+      return { ok: true, message, detail };
+    },
+
+    async governance() {
+      const detail = governanceDetail();
+      return {
+        ok: true,
+        message: t(`治理策略 revision={revision}，{count} 条规则；{precedence}`, { revision: detail.revision, count: detail.rules.length, precedence: detail.precedenceLabel }),
+        detail,
+      };
+    },
+
+    async scopeContext(workspaceId) {
+      const detail = scopeDocumentDetail(typeof workspaceId === 'string' ? workspaceId : undefined);
+      return {
+        ok: true,
+        message: t(`连接作用域 revision={revision}；{precedence}`, { revision: detail.revision, precedence: detail.precedenceLabel }),
+        detail,
+      };
+    },
+
+    async previewConnectionScope(input = {}) {
+      try {
+        const key = String(input.key ?? '').trim();
+        const record = state.connections.get(key);
+        if (!record) throw new Error(t('连接 "{key}" 不存在', { key }));
+        const target = validateScopeTarget({ scope: input.targetScope, workspaceId: input.targetWorkspaceId, workspaceIds: input.targetWorkspaceIds });
+        const mode = String(input.mode ?? 'move');
+        const preview = connectionScopes.preview({ connectionKey: key, mode, target });
+        const conflicts = scopeConflicts([record], new Set([record.key]));
+        const impact = scopeImpact(record);
+        return {
+          ok: true,
+          message: conflicts.length > 0
+            ? t('检测到 {count} 个同名 Server 冲突，不能应用', { count: conflicts.length })
+            : preview.changed
+              ? t('作用域预览：将影响 {serverCount} 个 Server、{toolCount} 个已知工具；凭据不会复制', { serverCount: impact.serverCount, toolCount: impact.toolCount })
+              : t('作用域预览：目标绑定没有变化'),
+          detail: {
+            baseRevision: preview.baseRevision,
+            key,
+            mode,
+            current: preview.current,
+            next: preview.next,
+            changed: preview.changed,
+            conflicts,
+            canApply: conflicts.length === 0,
+            impact,
+            credentialsCopied: false,
+          },
+        };
+      } catch (error) {
+        return { ok: false, message: t(`作用域预览失败: {error}`, { error: error.message }) };
+      }
+    },
+
+    async applyConnectionScope(input = {}) {
+      const previewResult = await this.previewConnectionScope(input);
+      if (!previewResult.ok) return previewResult;
+      if (!previewResult.detail.canApply) return { ...previewResult, ok: false };
+      try {
+        if (!Number.isInteger(input.expectedRevision) || input.expectedRevision < 0) {
+          throw new Error(t('必须使用作用域预览返回的 expectedRevision 提交'));
+        }
+        const target = validateScopeTarget({ scope: input.targetScope, workspaceId: input.targetWorkspaceId, workspaceIds: input.targetWorkspaceIds });
+        const result = await connectionScopes.apply({
+          connectionKey: previewResult.detail.key,
+          mode: previewResult.detail.mode,
+          target,
+        }, { expectedRevision: input.expectedRevision });
+        hostScopes.refresh();
+        const record = state.connections.get(previewResult.detail.key);
+        const detail = scopeDocumentDetail(target.scope === 'project' ? target.workspaceId : undefined);
+        return {
+          ok: true,
+          message: result.changed
+            ? t('连接作用域已更新（revision={revision}）；可回滚到 revision={previousRevision}', { revision: detail.revision, previousRevision: result.previousRevision })
+            : t('连接作用域没有变化'),
+          detail: {
+            ...detail,
+            changed: result.changed,
+            rollbackRevision: result.previousRevision,
+            connection: record ? scopeDetail(record, target.workspaceId) : null,
+            impact: previewResult.detail.impact,
+            credentialsCopied: false,
+          },
+        };
+      } catch (error) {
+        return { ok: false, message: t(`作用域应用失败: {error}`, { error: error.message }) };
+      }
+    },
+
+    async previewConnectionScopeRollback(rollbackRevision) {
+      try {
+        const detail = scopeRollbackPreview(rollbackRevision);
+        return {
+          ok: true,
+          message: detail.changed
+            ? t('作用域回滚预览：将影响 {serverCount} 个 Server、{toolCount} 个已知工具；凭据不受影响', { serverCount: detail.impact.serverCount, toolCount: detail.impact.toolCount })
+            : t('作用域回滚预览：当前已是目标 revision'),
+          detail,
+        };
+      } catch (error) {
+        return { ok: false, message: t(`作用域回滚预览失败: {error}`, { error: error.message }) };
+      }
+    },
+
+    async rollbackConnectionScope(rollbackRevision, expectedRevision) {
+      try {
+        if (!Number.isInteger(expectedRevision) || expectedRevision < 0) {
+          throw new Error(t('必须使用回滚预览返回的 expectedRevision 提交'));
+        }
+        const preview = scopeRollbackPreview(rollbackRevision);
+        if (expectedRevision !== undefined && expectedRevision !== preview.baseRevision) {
+          throw new Error(t('连接作用域已变化（当前 revision={revision}），请重新预览', { revision: preview.baseRevision }));
+        }
+        const result = await connectionScopes.rollback(rollbackRevision, { expectedRevision });
+        hostScopes.refresh();
+        const detail = scopeDocumentDetail();
+        return {
+          ok: true,
+          message: result.changed
+            ? t('已恢复 revision={rollbackRevision} 的作用域绑定，新 revision={revision}', { rollbackRevision, revision: detail.revision })
+            : t('当前已经是目标作用域内容'),
+          detail: { ...detail, changed: result.changed, rollbackRevision: result.previousRevision, impact: preview.impact, credentialsCopied: false },
+        };
+      } catch (error) {
+        return { ok: false, message: t(`作用域回滚失败: {error}`, { error: error.message }) };
+      }
+    },
+
+    async previewPolicy(input = {}) {
+      try {
+        const mutation = validatePolicyMutation(input);
+        const preview = governancePolicies.preview(mutation);
+        const impact = policyImpact(preview.currentRules, preview.rules);
+        return {
+          ok: true,
+          message: preview.changed
+            ? t('策略预览：将影响 {changed}/{observed} 个 Host 已观察工具（新增拒绝 {denied}，新增允许 {allowed}）', { changed: impact.changedToolCount, observed: impact.observedToolCount, denied: impact.newlyDenied, allowed: impact.newlyAllowed })
+            : t('策略预览：目标规则没有变化'),
+          detail: {
+            baseRevision: preview.baseRevision,
+            mutation,
+            changed: preview.changed,
+            impact,
+            capabilities: hostGovernance.capabilities(),
+          },
+        };
+      } catch (error) {
+        return { ok: false, message: t(`策略预览失败: {error}`, { error: error.message }) };
+      }
+    },
+
+    async applyPolicy(input = {}) {
+      try {
+        const mutation = validatePolicyMutation(input);
+        const preview = governancePolicies.preview(mutation);
+        const impact = policyImpact(preview.currentRules, preview.rules);
+        const result = await governancePolicies.apply(mutation, { expectedRevision: input.expectedRevision });
+        hostGovernance.refresh();
+        const detail = governanceDetail();
+        return {
+          ok: true,
+          message: result.changed
+            ? t('策略已应用（revision={revision}），{changed} 个已观察工具状态变化；可回滚到 revision={previousRevision}', { revision: detail.revision, changed: impact.changedToolCount, previousRevision: result.previousRevision })
+            : t('策略没有变化'),
+          detail: { ...detail, impact, changed: result.changed, rollbackRevision: result.previousRevision },
+        };
+      } catch (error) {
+        return { ok: false, message: t(`策略应用失败: {error}`, { error: error.message }) };
+      }
+    },
+
+    async rollbackPolicy(rollbackRevision, expectedRevision) {
+      try {
+        const document = governancePolicies.snapshot();
+        const target = rollbackRevision === document.revision
+          ? document
+          : document.history.find((item) => item.revision === rollbackRevision);
+        if (!target) throw new Error(t('找不到可回滚的 revision={rollbackRevision}', { rollbackRevision }));
+        if (target.rules.some((rule) => rule.effect === 'deny') && !hostGovernance.capabilities().executionGuard) {
+          throw new Error(t('当前 DSH Host 不支持 tools.guard，不能恢复包含 deny 的策略'));
+        }
+        const impact = policyImpact(document.rules, target.rules);
+        const result = await governancePolicies.rollback(rollbackRevision, { expectedRevision });
+        hostGovernance.refresh();
+        const detail = governanceDetail();
+        return {
+          ok: true,
+          message: result.changed
+            ? t('已恢复 revision={rollbackRevision} 的策略内容，新 revision={revision}', { rollbackRevision, revision: detail.revision })
+            : t('当前已经是目标策略内容'),
+          detail: { ...detail, impact, changed: result.changed, rollbackRevision: result.previousRevision },
+        };
+      } catch (error) {
+        return { ok: false, message: t(`策略回滚失败: {error}`, { error: error.message }) };
+      }
+    },
+
+    async templateCatalogReferences() {
+      try {
+        return { ok: true, detail: { items: publishedCatalogTemplateReferences() } };
+      } catch {
+        return { ok: false, message: t("云端公开目录不可用，未读取任何本机连接。") };
+      }
+    },
+
+    async catalog({ category, keyword, workspaceId } = {}) {
+      const items = listCatalog(state.merged, { category, keyword, publishedOnly: true }).map((d) => {
+        const health = connectorHealth(d.id);
+        const connectorRecords = [...state.connections.values()].filter((record) => record.connectorId === d.id);
+        const visibleRecords = workspaceId
+          ? connectorRecords.filter((record) => connectionVisibleInWorkspace(connectionScopes.binding(record.key), workspaceId))
+          : connectorRecords;
+        const missingServers = (d.servers ?? []).filter((server) => !visibleRecords.some((record) => (
+          record.serverKey === server.serverKey || record.serverName === server.serverName
+        ))).map((server) => ({
+          serverKey: server.serverKey,
+          serverName: server.serverName,
+          transport: server.transport,
+        }));
+        return ({
+        id: d.id,
+        name: d.name,
+        vendor: d.vendor,
+        icon: d.icon,
+        category: d.category,
+        summary: d.summary,
+        description: d.description,
+        tags: d.tags,
+        featured: d.featured,
+        homepage: d.homepage,
+        promptVariables: d.promptVariables ?? [],
+        authMode: d.auth.mode,
+        apiKeyHeader: d.auth.apiKeyHeader,
+        credentialName: d.auth.credentialName,
+        credentialPlaceholder: d.auth.credentialPlaceholder,
+        credentialDescription: d.auth.credentialDescription,
+        credentialHelpLabel: d.auth.credentialHelpLabel,
+        credentialHelpUrl: d.auth.credentialHelpUrl,
+        credentialFields: d.auth.credentialFields ?? [],
+        prompts: d.prompts ?? [],
+        probeStatus: d.probeStatus,
+        probeCheckedAt: d.probeCheckedAt,
+        probeReportUrl: d.probeReportUrl,
+        toolsSnapshot: d.toolsSnapshot ?? [],
+        connected: visibleRecords.map((record) => record.key),
+        connectionComplete: missingServers.length === 0,
+        missingServers,
+        connectedScopes: connectorRecords.map((record) => ({ key: record.key, ...scopeDetail(record, workspaceId) })),
+        connectionState: health.connectionState,
+        connectionLabel: health.label,
+        healthCheckedAt: health.checkedAt,
+        lastSuccessfulAt: health.lastSuccessfulAt,
+        diagnostic: health.diagnostic,
+        availableServers: health.availableServers,
+        failedServers: health.failedServers,
+        servers: (d.servers ?? []).map((s) => ({
+          serverKey: s.serverKey,
+          url: s.url,
+          command: s.command,
+          args: s.args,
+          credentialBindings: s.credentialBindings,
+          headerCredentialBindings: s.headerCredentialBindings,
+          oauthResource: s.oauthResource,
+          oauthTokenEnv: s.oauthTokenEnv,
+          transport: s.transport,
+          serverName: s.serverName,
+        })),
+        });
+      });
+      return {
+        ok: true,
+        message: t(`共 {count} 个已上架连接器`, { count: items.length }),
+        detail: { items },
+      };
+    },
+
+    async connect(connectorId, serverKey, signal, scopeInput = {}) {
+      const connector = state.merged.find((d) => d.id === connectorId);
+      if (!connector) return { ok: false, message: t(`连接器 "{connectorId}" 不存在（可先 mcp_connector_refresh_catalog 或 mcp_connector_catalog 查看）`, { connectorId: connectorId }) };
+      const hasLocalOverrides = scopeInput?.localOverrides !== undefined;
+      if (hasLocalOverrides && connector.auth.mode !== 'none') {
+        return { ok: false, message: t('本地参数仅支持无凭据的市场 stdio 连接，不可覆盖授权配置') };
+      }
+      let requestedScope;
+      const explicitScope = scopeInput?.scope !== undefined;
+      try {
+        requestedScope = validateScopeTarget(scopeInput);
+      } catch (error) {
+        return { ok: false, message: t(`连接失败: {error}`, { error: error.message }) };
+      }
+
+      if (connector.auth.mode === 'oauth2-pkce') {
+        const requestedServer = connector.servers.find(server => server.serverKey === serverKey);
+        const conflict = requestedServer ? legacyConflictForRecord(requestedServer) : legacyConflictForConnector(connector);
+        if (conflict) {
+          warnLegacyConflict(conflict);
+          const legacyConflict = { ...conflict, persistent: config.persistSecrets, reauthRequired: false };
+          return { ok: false, message: conflict.message, detail: { kind: 'plugin-conflict', pluginId: conflict.pluginId, serverName: conflict.serverName, legacyConflict } };
+        }
+
+        const scopeCommitInput = explicitScope ? requestedScope : {};
+        const scopeIntent = explicitScope ? `${requestedScope.scope}:${requestedScope.workspaceId ?? ''}` : 'preserve';
+        const sharingKey = `${oauthSharingKey(connector)}:scope:${scopeIntent}`;
+        const inFlight = state.oauthConnects.get(sharingKey);
+        if (inFlight) {
+          inFlight.requestedConnectorIds.add(connector.id);
+          return inFlight.promise;
+        }
+        const requestedConnectorIds = new Set([connector.id]);
+        const promise = (async () => {
+          try {
+            const sharingConnectors = oauthSharingConnectors(connector);
+            const reusable = await findReusableSharedGrant(connector);
+            if (reusable?.temporaryFailure) {
+              return {
+                ok: false,
+                message: t(`OAuth 授权刷新暂时失败（{code}），插件将自动重试，无需重新授权`, { code: reusable.temporaryFailure.code }),
+                detail: { kind: 'refresh-retry', retrying: true },
+              };
+            }
+            if (reusable?.entry) {
+              const requestedConnectors = sharingConnectors.filter((item) => requestedConnectorIds.has(item.id));
+              const { committed, snapshot, scopeRevision, scopeRollbackRevision } = await attachConnectorsToGrant(
+                reusable.grantKey,
+                reusable.entry,
+                requestedConnectors,
+                requestedConnectorIds,
+                scopeCommitInput,
+              );
+              const created = committed.map((record) => record.key);
+              return {
+                ok: true,
+                message: t(`已复用同账号 OAuth 授权连接 {count} 个连接器（{serverCount} 个 MCP server），无需再次授权`, { count: requestedConnectors.length, serverCount: created.length }),
+                detail: { keys: created, grantKey: reusable.grantKey, reusedGrant: true, retiredGrantCount: 0, snapshotId: snapshot?.key ?? null, scopeRevision, scopeRollbackRevision },
+              };
+            }
+
+            const sharingConnectorIds = new Set(sharingConnectors.map((item) => item.id));
+            const previousGrantKeys = new Set(
+              [...state.grants]
+                .filter(([, entry]) => entry.grant.connectorIds?.some((id) => sharingConnectorIds.has(id)))
+                .map(([key]) => key),
+            );
+            const authorizationConnector = oauthAuthorizationDescriptor(connector, sharingConnectors);
+            const authz = await oauthAuthorize({ connector: authorizationConnector, config, logger, signal });
+            const grantKey = grantStore.keyFor(config.account, authz.issuer, authz.clientId, authz.scope);
+            const entryResource = authz.entryResource;
+            const authorizedResources = authz.grantedResources?.length ? authz.grantedResources : [entryResource];
+            const alreadyConnectedIds = new Set(
+              [...state.connections.values()]
+                .filter((record) => sharingConnectorIds.has(record.connectorId))
+                .map((record) => record.connectorId),
+            );
+            const targetIds = new Set([...alreadyConnectedIds, ...requestedConnectorIds]);
+            const targetConnectors = sharingConnectors.filter((item) => targetIds.has(item.id));
+            const previewRecords = oauthRecordsFor(targetConnectors, authorizedResources, grantKey);
+            ensureRequestedConnectorsAuthorized(requestedConnectorIds, previewRecords);
+            const grantedConnectorIds = [...new Set(previewRecords.map((record) => record.connectorId))];
+            const grant = {
+              key: grantKey,
+              issuer: authz.issuer,
+              clientId: authz.clientId,
+              clientSecret: authz.clientSecret,
+              clientSecretExpiresAt: authz.clientSecretExpiresAt,
+              tokenEndpointAuthMethod: authz.tokenEndpointAuthMethod ?? 'none',
+              clientName: authz.clientName,
+              scope: authz.scope,
+              account: config.account,
+              accessToken: authz.token.accessToken,
+              accessTokenExpiresAt: Date.now() + authz.token.expiresIn * 1000,
+              refreshToken: authz.token.refreshToken ?? '',
+              authorizedResources,
+              connectorIds: grantedConnectorIds,
+              updatedAt: Date.now(),
+            };
+            const runtime = grantRuntime(grant);
+            state.grants.set(grantKey, runtime);
+            if (config.persistSecrets) await grantStore.put(grant);
+            const { committed, snapshot, scopeRevision, scopeRollbackRevision } = await attachConnectorsToGrant(
+              grantKey,
+              runtime,
+              targetConnectors,
+              requestedConnectorIds,
+              scopeCommitInput,
+            );
+            const created = committed.map((record) => record.key);
+            let retiredGrantCount = 0;
+            for (const previousKey of previousGrantKeys) {
+              if (previousKey !== grantKey && await retireGrantIfUnused(previousKey, { revoke: true })) retiredGrantCount += 1;
+            }
+            return {
+              ok: true,
+              message: sharingConnectors.length > 1
+                ? t('OAuth 授权成功；已为同一账号保存共享授权并连接 {connectorCount} 个连接器（{serverCount} 个 MCP server）', { connectorCount: targetConnectors.length, serverCount: created.length })
+                : t('已连接 "{name}"（{count} 个 MCP server），共 {count} 条', { name: connector.name, count: created.length }),
+              detail: { keys: created, grantKey, sharedGrant: sharingConnectors.length > 1, retiredGrantCount, snapshotId: snapshot?.key ?? null, scopeRevision, scopeRollbackRevision },
+            };
+          } catch (error) {
+            const failure = describeOAuthAuthorizationError(error);
+            logger.error(`oauth connect failed [${failure.detail.stage}/${failure.detail.code}]: ${failure.message}`);
+            await pruneOrphanGrants();
+            return error?.connectionRecord
+              ? connectionSetupFailure(error)
+              : { ok: false, message: t(`连接失败: {error}`, { error: failure.message }), detail: failure.detail };
+          }
+        })();
+        state.oauthConnects.set(sharingKey, { promise, requestedConnectorIds });
+        try {
+          return await promise;
+        } finally {
+          if (state.oauthConnects.get(sharingKey)?.promise === promise) state.oauthConnects.delete(sharingKey);
+        }
+      }
+
+      if (connector.auth.mode === 'none') {
+        const server = connector.servers.find((item) => item.serverKey === serverKey) ?? connector.servers[0];
+        const record = {
+          key: `${connector.id}-${server.serverKey}`,
+          connectorId: connector.id,
+          kind: 'manual',
+          name: connector.name,
+          serverKey: server.serverKey,
+          transport: server.transport,
+          url: server.url,
+          command: server.command,
+          args: server.args,
+          env: server.env,
+          cwd: server.cwd,
+          serverName: server.serverName,
+          headers: server.headers,
+          auth: undefined,
+          enabled: true,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+        if (hasLocalOverrides) {
+          if (!canEditLocalOverrides(record)) return { ok: false, message: t('当前连接不支持本地参数覆盖') };
+          try {
+            const existing = state.connections.get(record.key);
+            record.localOverrides = normalizeLocalOverrides({ ...record, localOverrides: existing?.localOverrides }, scopeInput.localOverrides);
+          } catch (error) {
+            return { ok: false, message: error.message };
+          }
+        }
+        const validation = await validateConnectionRecords([record], { timeoutMs: config.requestTimeoutMs });
+        if (!validation.ok) return { ...validation, detail: { connectorId: connector.id, ...validation.detail } };
+        try {
+          const { committed: [committed], snapshot, scopeRevision, scopeRollbackRevision } = await commitScopedWithSnapshot([record], 'connect', { scopeInput: requestedScope });
+          cacheHealth(connector.id, [committed], readinessResults([committed], validation.detail.results));
+          return { ok: true, message: t(`已连接 "{name}"（{scope}）`, { name: connector.name, scope: scopeLabel(connectionScopes.binding(committed.key), workspaceNames()) }), detail: { key: committed.key, snapshotId: snapshot?.key ?? null, scopeRevision, scopeRollbackRevision } };
+        } catch (error) {
+          if (hasLocalOverrides) return { ok: false, message: t('连接启动或保存失败，已尝试恢复原配置；请检查本机 Host 日志与连接状态后重试') };
+          return connectionSetupFailure(error);
+        }
+      }
+
+      // bearer / api-key 型：目录不含密钥，引导自定义配置
+      return {
+        ok: false,
+        message:
+          t(`连接器 "{name}" 需要凭据（{mode}），目录不含密钥。`, { name: connector.name, mode: connector.auth.mode }) +
+          t('请用 mcp_connector_configure 在本机填写目录声明的凭据字段。'),
+        detail: {
+          transport: connector.servers[0].transport,
+          url: connector.servers[0].url,
+          command: connector.servers[0].command,
+          serverName: connector.servers[0].serverName,
+          credentialFields: connector.auth.credentialFields ?? [],
+        },
+      };
+    },
+
+    async configure(params) {
+      try {
+        const connectorId = String(params?.connectorId ?? '').trim();
+        if (connectorId) {
+          const connector = state.merged.find((item) => item.id === connectorId);
+          if (!connector) throw new Error(t('连接器 "{connectorId}" 不存在', { connectorId }));
+          if (!['bearer', 'api-key'].includes(connector.auth.mode)) {
+            throw new Error(t('连接器 "{name}" 不是 Bearer/API Key 凭据型', { name: connector.name }));
+          }
+          const records = [];
+          const credentialValues = resolveCredentialValues(connector, params);
+          const primaryCredential = credentialValues[connector.auth.credentialFields?.[0]?.key ?? 'credential'];
+          for (const server of connector.servers) {
+            const record = buildManualRecord({
+              name: connector.servers.length > 1 ? `${connector.name}·${server.serverKey}` : connector.name,
+              url: server.url,
+              serverName: server.serverName,
+              transport: server.transport,
+              command: server.command,
+              args: server.args,
+              envJson: server.transport === 'stdio' ? bindStdioCredentials(server, credentialValues) : undefined,
+              cwd: server.cwd,
+              headersJson: bindHeaderCredentials(server, credentialValues),
+              authMode: server.transport === 'stdio' || Object.keys(server.headerCredentialBindings ?? {}).length ? 'none' : connector.auth.mode,
+              bearerToken: params.bearerToken ?? primaryCredential,
+              apiKeyHeader: params.apiKeyHeader || connector.auth.apiKeyHeader,
+              apiKeyValue: params.apiKeyValue ?? primaryCredential,
+            });
+            record.key = `${connector.id}-${server.serverKey}`;
+            record.connectorId = connector.id;
+            record.serverKey = server.serverKey;
+            records.push(record);
+          }
+          const validation = await validateConnectionRecords(records, { timeoutMs: config.requestTimeoutMs });
+          if (!validation.ok) return { ...validation, detail: { connectorId: connector.id, ...validation.detail } };
+
+          const { committed, snapshot, scopeRevision, scopeRollbackRevision } = await commitScopedWithSnapshot(records, 'configure', { scopeInput: params });
+          const created = committed.map((record) => record.key);
+          cacheHealth(connector.id, committed, readinessResults(committed, validation.detail.results));
+          return {
+            ok: true,
+            message: t(`已配置并连接 "{name}"（{count} 个 MCP Server）`, { name: connector.name, count: created.length }),
+            detail: { connectorId: connector.id, keys: created, snapshotId: snapshot?.key ?? null, scopeRevision, scopeRollbackRevision },
+          };
+        }
+        const candidate = buildManualRecord(params);
+        const validation = await prepareCustomConnections([candidate], { timeoutMs: config.requestTimeoutMs, t });
+        if (!validation.ok) return { ok: false, message: validation.message, detail: validation.detail };
+        const [record] = validation.records;
+        if (record.pendingAuthorization && state.connections.has(record.key)) return { ok: false, message: t('同名连接已存在，请先断开旧连接或使用不同名称') };
+        const { committed: [committed], snapshot, scopeRevision, scopeRollbackRevision } = await commitScopedWithSnapshot([record], 'configure', { scopeInput: params });
+        if (committed.pendingAuthorization) return { ok: true, message: t('配置已保存，请在已安装页点击进行身份验证'), detail: { key: committed.key, pendingAuthorization: true } };
+        cacheHealth(committed.connectorId, [committed], readinessResults([committed], validation.detail.results));
+        return { ok: true, message: t(`已配置并连接 "{name}"（serverName={serverName}，{scope}）`, { name: committed.name, serverName: committed.serverName, scope: scopeLabel(connectionScopes.binding(committed.key), workspaceNames()) }), detail: { key: committed.key, serverName: committed.serverName, snapshotId: snapshot?.key ?? null, scopeRevision, scopeRollbackRevision } };
+      } catch (error) {
+        return error?.connectionRecord
+          ? connectionSetupFailure(error, t('配置失败'))
+          : { ok: false, message: t(`配置失败: {error}`, { error: error.message }) };
+      }
+    },
+
+    async authorizeCustom(key) {
+      const record = state.connections.get(key);
+      if (!record?.oauthDiscovery) return { ok: false, message: t('此连接没有待处理的 OAuth 授权') };
+      if (customAuthorizations.has(key)) return { ok: false, message: t('授权正在进行，请完成或取消当前授权') };
+      const controller = new AbortController();
+      customAuthorizations.set(key, controller);
+      let grantKey;
+      try {
+        const authz = await oauthAuthorize({ connector: customOAuthDescriptor(record), config, logger, signal: controller.signal, expectedDiscovery: record.oauthDiscovery });
+        if (controller.signal.aborted || state.connections.get(key) !== record) throw new Error(t('连接配置已变化，请重新检查后重试'));
+        const grant = {
+          key: `${grantStore.keyFor(config.account, authz.issuer, authz.clientId, authz.scope)}:custom:${record.key}:${randomUUID()}`,
+          issuer: authz.issuer, clientId: authz.clientId, clientSecret: authz.clientSecret,
+          clientSecretExpiresAt: authz.clientSecretExpiresAt, tokenEndpointAuthMethod: authz.tokenEndpointAuthMethod ?? 'none',
+          clientName: authz.clientName, scope: authz.scope, account: config.account,
+          accessToken: authz.token.accessToken, accessTokenExpiresAt: Date.now() + authz.token.expiresIn * 1000,
+          refreshToken: authz.token.refreshToken ?? '', authorizedResources: [record.oauthDiscovery.resource],
+          connectorIds: [], updatedAt: Date.now(),
+        };
+        grantKey = grant.key;
+        state.grants.set(grantKey, grantRuntime(grant));
+        if (config.persistSecrets) await grantStore.put(grant);
+        const next = { ...record, pendingAuthorization: false, enabled: true, auth: { mode: 'oauth', grantKey } };
+        const validation = await validateConnectionRecords([next], { timeoutMs: config.requestTimeoutMs, grants: grantMap() });
+        if (!validation.ok) throw new Error(validation.message);
+        await queueConnectionAction(key, async () => {
+          if (controller.signal.aborted || state.connections.get(key) !== record) throw new Error(t('连接配置已变化，请重新检查后重试'));
+          const { committed: [committed] } = await commitScopedWithSnapshot([next], 'custom-oauth');
+          cacheHealth(committed.connectorId, [committed], readinessResults([committed], validation.detail.results));
+        });
+        scheduleRefresh(grantKey);
+        if (record.auth?.grantKey && record.auth.grantKey !== grantKey) await retireGrantIfUnused(record.auth.grantKey, { revoke: true });
+        return { ok: true, message: t('身份验证与工具同步已完成'), detail: { key } };
+      } catch (error) {
+        if (grantKey) await retireGrantIfUnused(grantKey, { revoke: true }).catch(() => {});
+        return { ok: false, message: controller.signal.aborted ? t('已取消授权，配置已保留') : describeOAuthAuthorizationError(error).message };
+      } finally { customAuthorizations.delete(key); }
+    },
+    async cancelCustomAuthorization(key) {
+      customAuthorizations.get(key)?.abort();
+      return { ok: true, message: t('已取消授权，配置已保留') };
+    },
+
+    async importJson(json, scopeInput = {}) {
+      try {
+        const { records: candidates, skipped } = normalizeJsonImport(json);
+        const validation = await prepareCustomConnections(candidates, { timeoutMs: config.requestTimeoutMs, t });
+        if (!validation.ok) return { ok: false, message: validation.message, detail: validation.detail };
+        const records = validation.records;
+        if (records.some(record => record.pendingAuthorization && state.connections.has(record.key))) return { ok: false, message: t('同名连接已存在，请先断开旧连接或使用不同名称') };
+        const { committed, snapshot, scopeRevision, scopeRollbackRevision } = await commitScopedWithSnapshot(records, 'import', { scopeInput });
+        const keys = committed.map((record) => record.key);
+        const grouped = new Map();
+        for (const record of committed) {
+          if (record.pendingAuthorization) continue;
+          if (!grouped.has(record.connectorId)) grouped.set(record.connectorId, []);
+          grouped.get(record.connectorId).push(record);
+        }
+        for (const [connectorId, connectorRecords] of grouped) {
+          const results = connectorRecords.map((record) => {
+            const index = committed.findIndex((item) => item.key === record.key);
+            return readinessResults([record], [validation.detail.results[index]])[0];
+          });
+          cacheHealth(connectorId, connectorRecords, results);
+        }
+        const extra = skipped.length ? t('；跳过：{skipped}', { skipped: skipped.join(t('、')) }) : '';
+        return {
+          ok: true,
+          message: committed.some(record => record.pendingAuthorization)
+            ? t('已保存 {count} 条配置，其中 {pending} 条待身份验证；请在已安装页逐项授权', { count: keys.length, pending: committed.filter(record => record.pendingAuthorization).length })
+            : t(`已导入并连接 {count} 个 MCP{extra}；JSON 导入属于本机连接，不会自动上架市场`, { count: keys.length, extra: extra }),
+          detail: { keys, skipped, snapshotId: snapshot?.key ?? null, scopeRevision, scopeRollbackRevision },
+        };
+      } catch (error) {
+        return error?.connectionRecord
+          ? connectionSetupFailure(error, t('导入失败'))
+          : { ok: false, message: t(`导入失败: {error}`, { error: error.message }) };
+      }
+    },
+
+    async installFromUrl(url, scopeInput = {}) {
+      try {
+        assertSafeUrl(url);
+        const response = await fetch(url, { signal: AbortSignal.timeout(config.requestTimeoutMs) });
+        assertSafeUrl(response.url || url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await readLimitedJson(response);
+        const list = Array.isArray(data) ? data : Array.isArray(data?.connectors) ? data.connectors : [data];
+        const normalized = list.map((raw) => auditDescriptor(normalizeConnectorDescriptor(auditRawDescriptor(raw))));
+        for (const d of normalized) state.dynamic.set(d.id, d);
+        await catalogStore.putDynamic([...state.dynamic.values()]);
+        await recomputeMerged();
+        if (normalized.length === 1) {
+          const one = normalized[0];
+          if (one.auth.mode === 'none' || one.auth.mode === 'oauth2-pkce') {
+            return api.connect(one.id, undefined, undefined, scopeInput);
+          }
+          return { ok: true, message: t(`已安装连接器 "{name}"（需凭据，请用 mcp_connector_configure）`, { name: one.name }), detail: { connectorId: one.id } };
+        }
+        return { ok: true, message: t(`已安装 {count} 个连接器，可在目录中连接`, { count: normalized.length }), detail: { ids: normalized.map((d) => d.id) } };
+      } catch (error) {
+        return { ok: false, message: t(`URL 安装失败: {error}`, { error: error.message }) };
+      }
+    },
+
+    async exportConfig() {
+      const records = [...state.connections.values()];
+      const json = stringifyRedactedExport(records);
+      const oauthConnectionCount = records.filter((record) => record.auth?.mode === 'oauth').length;
+      return {
+        ok: true,
+        message: t(`已生成 {count} 条连接的脱敏配置；{oauthCount} 条 OAuth 连接需在目标设备重新授权`, { count: records.length, oauthCount: oauthConnectionCount }),
+        detail: {
+          json,
+          connectionCount: records.length,
+          portableConnectionCount: records.length - oauthConnectionCount,
+          oauthConnectionCount,
+          redacted: true,
+        },
+      };
+    },
+
+    async listSnapshots() {
+      if (!config.persistSecrets) {
+        return { ok: true, message: t('当前为不持久化模式，不保存配置快照'), detail: { items: [], persistenceEnabled: false } };
+      }
+      const entries = await snapshotStore.entries();
+      const items = entries
+        .map(([, snapshot]) => snapshotPublicSummary(snapshot, state.grants))
+        .sort((a, b) => b.createdAt - a.createdAt || b.id.localeCompare(a.id));
+      return { ok: true, message: t(`共 {count} 个本机配置快照（最多保留 {limit} 个）`, { count: items.length, limit: SNAPSHOT_LIMIT }), detail: { items, persistenceEnabled: true } };
+    },
+
+    async createSnapshot(label) {
+      if (!config.persistSecrets) return { ok: false, message: t('当前为不持久化模式，不能保存包含本机凭据的配置快照') };
+      const cleanLabel = String(label ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 80);
+      const reason = cleanLabel ? `manual:${cleanLabel}` : 'manual';
+      const snapshot = await captureConnectionSnapshot(reason, [...state.connections.keys()]);
+      return {
+        ok: true,
+        message: t(`已创建本机配置快照（{count} 条连接）`, { count: snapshot.records.length }),
+        detail: snapshotPublicSummary(snapshot, state.grants),
+      };
+    },
+
+    async previewSnapshot(snapshotId) {
+      const snapshot = await snapshotStore.get(String(snapshotId ?? ''));
+      if (!snapshot) return { ok: false, message: t(`配置快照 "{snapshotId}" 不存在`, { snapshotId: snapshotId }) };
+      const summary = snapshotPublicSummary(snapshot, state.grants);
+      const removeKeys = snapshot.absentKeys.filter((key) => state.connections.has(key));
+      const oauthRemovalCount = removeKeys.filter((key) => state.connections.get(key)?.auth?.mode === 'oauth').length;
+      return {
+        ok: true,
+        message: summary.restorable
+          ? t('快照可恢复：将恢复 {restoreCount} 条、移除 {removeCount} 条变更后新增连接{oauthNote}', {
+            restoreCount: summary.existingCount,
+            removeCount: removeKeys.length,
+            oauthNote: oauthRemovalCount
+              ? t('；其中 {count} 条 OAuth 连接的未共享授权将撤销', { count: oauthRemovalCount })
+              : '',
+          })
+          : t('快照含已撤销或失效的 OAuth 授权，不能伪恢复；请先从市场重新授权'),
+        detail: {
+          ...summary,
+          restoreKeys: snapshot.records.map((record) => record.key),
+          removeKeys,
+          oauthRemovalCount,
+        },
+      };
+    },
+
+    async restoreSnapshot(snapshotId) {
+      const snapshot = await snapshotStore.get(String(snapshotId ?? ''));
+      if (!snapshot) return { ok: false, message: t(`配置快照 "{snapshotId}" 不存在`, { snapshotId: snapshotId }) };
+      const summary = snapshotPublicSummary(snapshot, state.grants);
+      if (!summary.restorable) {
+        return {
+          ok: false,
+          message: t('该快照引用的 OAuth Grant 已撤销、缺失或需重新授权；本机快照不能恢复服务端授权，请从市场重新连接'),
+          detail: summary,
+        };
+      }
+      const describedKeys = new Set([...snapshot.records.map((record) => record.key), ...snapshot.absentKeys]);
+      if (describedKeys.size !== snapshot.targetKeys.length || snapshot.targetKeys.some((key) => !describedKeys.has(key))) {
+        return { ok: false, message: t('配置快照目标范围不完整，已拒绝恢复') };
+      }
+      try {
+        const previousGrantKeys = new Set(snapshot.targetKeys
+          .map((key) => state.connections.get(key)?.auth?.grantKey)
+          .filter(Boolean));
+        const restored = await replaceConnectionSet(snapshot.targetKeys, snapshot.records);
+        for (const key of snapshot.targetKeys) await deleteLastSuccessfulTools(key);
+        let retiredGrantCount = 0;
+        for (const grantKey of previousGrantKeys) {
+          if (await retireGrantIfUnused(grantKey, { revoke: true })) retiredGrantCount += 1;
+        }
+        return {
+          ok: true,
+          message: t(`已从快照恢复 {count} 条连接；重复执行结果保持一致`, { count: restored.length }),
+          detail: { ...snapshotPublicSummary(snapshot, state.grants), restoredKeys: restored.map((record) => record.key), retiredGrantCount },
+        };
+      } catch (error) {
+        return error?.connectionRecord
+          ? connectionSetupFailure(error, t('快照恢复失败'), t('已保留恢复前配置，请修正后重试'))
+          : { ok: false, message: t(`快照恢复失败: {error}`, { error: error.message }) };
+      }
+    },
+
+    async status({ workspaceId } = {}) {
+      const items = [];
+      for (const [key, record] of state.connections) {
+        const check = connectionChecks.get(key);
+        const failure = grantFailure(record);
+        const health = failure ? healthSummary(record.connectorId, [record], [failure])
+          : check?.record === record && !check.summary.diagnostic.legacyConflict ? check.summary : observedHealth(record.connectorId, [record]);
+        const recordHealth = health?.results?.find((result) => result.serverKey === record.serverKey || result.serverName === record.serverName);
+        const diagnostic = diagnosticForRecord(health, recordHealth);
+        let grantInfo = null;
+        if (record.auth?.grantKey) {
+          const g = state.grants.get(record.auth.grantKey);
+          grantInfo = g
+            ? {
+                grantKey: record.auth.grantKey,
+                accessTokenExpiresAt: g.grant.accessTokenExpiresAt,
+                needsReauth: !!g.needsReauth,
+                refreshFailureKind: g.refreshFailureKind,
+                lastRefreshError: g.lastRefreshError,
+                refreshRetryAt: g.refreshRetryAt,
+              }
+            : { grantKey: record.auth.grantKey, missing: true };
+        }
+        items.push({
+          key,
+          name: record.name,
+          connectorId: record.connectorId,
+          kind: record.kind,
+          canRename: connectionDisplayNameEditable(record),
+          canEditConfiguration: connectionConfigurationEditable(record),
+          canEditLocalOverrides: canEditLocalOverrides(record),
+          hasLocalOverrides: Boolean(record.localOverrides),
+          serverName: record.serverName,
+          url: record.url,
+          transport: record.transport,
+          endpoint: record.transport === 'stdio' ? `stdio · ${record.command}` : record.url,
+          insecurePrivateNetwork: record.allowInsecurePrivateNetwork === true,
+          enabled: record.enabled !== false,
+          injectionMode: normalizeInjectionMode(record.injectionMode),
+          injectionLabel: normalizeInjectionMode(record.injectionMode) === 'session' ? t('按会话启用（实验）') : t('始终注入'),
+          authMode: record.oauthDiscovery ? 'oauth' : record.auth?.mode ?? 'none',
+          customOAuth: Boolean(record.oauthDiscovery),
+          pendingAuthorization: record.pendingAuthorization === true,
+          grant: grantInfo,
+          lastError: record.lastError ?? null,
+          connectionState: record.pendingAuthorization ? 'authorization-required' : record.enabled === false && !legacyMigrationNeedsReauth(record)
+            ? 'disabled' : diagnostic?.state ?? health?.connectionState ?? 'unknown',
+          healthCheckedAt: health?.checkedAt ?? null,
+          lastSuccessfulAt: diagnostic?.lastSuccessfulAt ?? null,
+          healthMessage: diagnostic?.message ?? null,
+          diagnostic,
+          connectionPolicy: directPolicyEffect('connection', record.connectorId),
+          serverPolicy: serverPolicy(record),
+          scope: scopeDetail(record, workspaceId),
+        });
+      }
+      return {
+        ok: true,
+        message: `${
+          workspaceId
+            ? t('共 {count} 条连接；已标记当前 Workspace 可见性', { count: items.length })
+            : t('共 {count} 条连接；未指定 Workspace，展示全部范围', { count: items.length })
+        }`,
+        detail: {
+          items,
+          scope: scopeDocumentDetail(workspaceId),
+          sessionInjection: hostSessionInjection.capabilities(),
+        },
+      };
+    },
+
+    async healthCheck(connectorId, workspaceId, connectionKey) {
+      const scoped = Boolean(workspaceId || connectionKey);
+      const candidates = scoped ? explorerRecords(workspaceId) : [...state.connections.values()];
+      if (connectorId && !candidates.some(record => record.connectorId === String(connectorId))) {
+        return { ok: false, message: t('连接不存在、已停用或当前工作区不可见') };
+      }
+      if (connectionKey && !candidates.some((record) => record.key === connectionKey && (!connectorId || record.connectorId === connectorId))) {
+        return { ok: false, message: t('连接不存在、已停用或当前工作区不可见') };
+      }
+      const targetIds = connectorId
+        ? [String(connectorId)]
+        : [...new Set(candidates.filter(record => !connectionKey || record.key === connectionKey).map((record) => record.connectorId).filter(Boolean))];
+      const summaries = [];
+      for (const id of targetIds) {
+        const records = candidates.filter((record) => record.connectorId === id
+          && (!connectionKey || record.key === connectionKey));
+        const enabledRecords = records.filter((record) => record.enabled !== false);
+        if (records.length === 0 || enabledRecords.length === 0) {
+          const summary = healthSummary(id, records, [], Date.now());
+          if (!scoped) state.health.set(id, summary);
+          summaries.push(summary);
+          continue;
+        }
+        const immediateResults = [];
+        const checkable = [];
+        for (const record of enabledRecords) {
+          const failure = grantFailure(record);
+          if (failure) immediateResults.push(failure);
+          else if (record.transport === 'stdio') {
+            const registered = registeredStdioTools(record);
+            if (registered.tools.length > 0) {
+              immediateResults.push({
+                ok: true,
+                kind: 'connected',
+                serverKey: record.serverKey,
+                serverName: record.serverName,
+                toolCount: registered.tools.length,
+                message: t(`Host 已注册 {count} 个工具`, { count: registered.tools.length }),
+              });
+            } else {
+              const code = registered.error
+                ? 'host-status-error'
+                : registered.supported ? 'host-tools-pending' : 'host-status-unavailable';
+              immediateResults.push({
+                ok: true,
+                kind: 'managed',
+                code,
+                serverKey: record.serverKey,
+                serverName: record.serverName,
+                message: registered.error
+                  ? t('Host 工具注册状态读取失败')
+                  : registered.supported
+                    ? t('Host 尚未注册该 stdio Server 的工具')
+                    : t('当前 Host 无法读取 stdio 工具注册状态'),
+              });
+            }
+          } else checkable.push(record);
+        }
+        let checkedResults = [];
+        if (checkable.length > 0) {
+          const validation = await validateConnectionRecords(checkable, {
+            timeoutMs: Math.min(config.requestTimeoutMs, 5_000),
+            concurrency: 4,
+            grants: grantMap(),
+          });
+          checkedResults = validation.detail.results;
+        }
+        const summary = cacheHealth(id, records, [...immediateResults, ...checkedResults]);
+        if (connectionKey && state.connections.get(connectionKey) === records[0]) {
+          const outcome = [...immediateResults, ...checkedResults][0];
+          if (outcome && !outcome.ok) {
+            const prior = discoveryPlans.get(connectionKey);
+            discoveryPlans.set(connectionKey, { record: records[0], ...nextDiscovery(prior?.record === records[0] ? prior : null, { ok: false, errorKind: outcome.kind, retryAfterMs: outcome.retryAfterMs }) });
+          } else if (discoveryPlans.get(connectionKey)?.reason === 'auth') {
+            discoveryPlans.delete(connectionKey); scheduleDiscovery();
+          }
+        }
+        summaries.push(summary);
+      }
+      const healthy = summaries.filter((item) => item.connectionState === 'healthy').length;
+      const unknown = summaries.filter((item) => item.connectionState === 'unknown').length;
+      const attention = summaries.filter((item) => ['reauth', 'recovering', 'degraded', 'unavailable'].includes(item.connectionState)).length;
+      return {
+        ok: true,
+        message: targetIds.length === 0
+          ? t('暂无已配置连接')
+          : t('已检查 {count} 个连接器：{healthy} 个正常{unknown}{attention}', {
+            count: summaries.length,
+            healthy,
+            unknown: unknown ? t('，{count} 个状态未知', { count: unknown }) : '',
+            attention: attention ? t('，{count} 个需处理', { count: attention }) : '',
+          }),
+        detail: { items: summaries, healthy, unknown, attention },
+      };
+    },
+
+    async migrationPreview({ scanStored = false } = {}) {
+      const { candidates, warnings } = await readLegacyGrantCandidates(ctx.storageDomain, { openClosed: scanStored, t });
+      const plans = planLegacyMigration(candidates, state.merged, state.connections);
+      const items = plans.map((plan) => plan.summary);
+      const pendingCount = items.filter((item) => item.migratable && !item.alreadyMigrated).length;
+      const conflicts = [...state.connections.values()]
+        .filter((record) => record.auth?.mode === 'oauth')
+        .map((record) => grantFailure(record)?.legacyConflict).filter(Boolean);
+      const pendingLegacyDisable = summarizeLegacyConflicts(conflicts);
+      return {
+        ok: true,
+        message: pendingCount > 0
+          ? t('检测到 {count} 个可迁移的旧企查查授权', { count: pendingCount })
+          : conflicts.length ? conflicts[0].message : t('未发现待迁移的旧企查查授权'),
+        detail: { items, pendingCount, pendingLegacyDisable, warnings, destructive: false },
+      };
+    },
+
+    async migrateLegacy(candidateIds = []) {
+      const { candidates, warnings } = await readLegacyGrantCandidates(ctx.storageDomain, { openClosed: true, t });
+      const selected = candidateIds.length > 0 ? candidates.filter((candidate) => candidateIds.includes(candidate.id)) : candidates;
+      const plans = planLegacyMigration(selected, state.merged, state.connections);
+      const migrated = [];
+      const skipped = [];
+      const conflicts = [];
+      let reauthRequired = false;
+      for (const plan of plans) {
+        if (!plan.summary.migratable) { skipped.push(t('{sourcePlugin}(未匹配当前目录)', { sourcePlugin: plan.summary.sourcePlugin })); continue; }
+        const planConflicts = plan.matchedServers.map((server, index) =>
+          legacyProvisionConflict(state.connections.get(plan.connectionKeys[index]) ?? server)).filter(Boolean);
+        if (plan.candidate.grant.accessTokenExpiresAt <= Date.now() && !plan.candidate.grant.refreshToken) {
+          for (const conflict of planConflicts) conflict.reauthRequired = true;
+        }
+        conflicts.push(...planConflicts);
+        for (const conflict of planConflicts) warnLegacyConflict(conflict);
+        if (plan.summary.alreadyMigrated) {
+          skipped.push(t('{connectorName}(已迁移)', { connectorName: plan.summary.connectorName }));
+          reauthRequired ||= plan.connectionKeys.some((key) => {
+            const entry = state.grants.get(state.connections.get(key)?.auth?.grantKey);
+            return !entry || entry.needsReauth || (!entry.grant.refreshToken && entry.grant.accessTokenExpiresAt <= Date.now());
+          });
+          continue;
+        }
+        const entry = await copyLegacyAuthorization(plan, planConflicts.length > 0);
+        const grant = entry.grant;
+        const grantKey = grant.key;
+        const pending = grant.legacySource.pending;
+        let provisionNow = !pending;
+        let lastError;
+        if (pending) {
+          clearTimeout(entry.timer);
+          entry.timer = undefined;
+          reauthRequired ||= grant.accessTokenExpiresAt <= Date.now() && !grant.refreshToken;
+          lastError = planConflicts[0]?.message ?? t('旧授权等待交接，请完整退出并重启 DSH');
+        } else if (grant.accessTokenExpiresAt <= Date.now()) {
+          try { await refreshGrantWithRecovery(grantKey, 'legacy-migration'); }
+          catch (error) {
+            const permanent = error.refreshFailure?.permanent === true;
+            reauthRequired ||= permanent;
+            provisionNow = false;
+            lastError = permanent
+              ? t('旧授权已失效，请重新连接：{error}', { error: error.refreshFailure?.message ?? error.message })
+              : t('旧授权刷新暂时失败，正在自动重试：{error}', { error: error.refreshFailure?.message ?? error.message });
+          }
+        } else {
+          scheduleRefresh(grantKey);
+        }
+        const records = toConnectionRecords(plan, grantKey, { lastError }).filter((record) => !state.connections.has(record.key));
+        for (const record of records) {
+          if (provisionNow) await upsertRecord(record);
+          else await persistRecord(record);
+        }
+        migrated.push({ connectorId: plan.connector.id, keys: records.map((record) => record.key), enabled: true, restartRequired: pending });
+      }
+      const pendingLegacyDisable = summarizeLegacyConflicts(conflicts, { reauthRequired });
+      return {
+        ok: true,
+        message: !config.persistSecrets && (migrated.length || pendingLegacyDisable.restartRequired)
+          ? t('当前仅在内存中保存授权。完整重启 DSH 后，请再次检测并复制旧授权。')
+          : pendingLegacyDisable.restartRequired
+            ? t('旧授权已复制。请处理 {plugins} 的迁移冲突，然后完整重启 DSH。', { plugins: pendingLegacyDisable.pluginIds.join('、') })
+            : reauthRequired ? t('旧授权已失效，请在市场中重新授权。')
+              : migrated.length === 0 ? t('没有需要迁移的旧授权')
+                : t('已复制 {count} 组旧授权；原插件与原凭据均保留', { count: migrated.length }),
+        detail: { migrated, skipped, warnings, sourceCredentialsPreserved: true, pendingLegacyDisable },
+      };
+    },
+
+    async renameConnection(key, name) {
+      const record = state.connections.get(key);
+      if (!record) return { ok: false, message: t(`连接 "{key}" 不存在`, { key: key }) };
+      if (!connectionDisplayNameEditable(record)) {
+        return { ok: false, message: t('仅用户自定义或 JSON 导入的连接可修改显示名；市场连接器名称由目录维护') };
+      }
+
+      let nextName;
+      try {
+        nextName = normalizeConnectionDisplayName(name, { t });
+      } catch (error) {
+        return { ok: false, message: t(`重命名失败: {error}`, { error: error.message }) };
+      }
+      if (nextName === record.name) {
+        return {
+          ok: true,
+          message: t(`连接显示名未变更："{name}"`, { name: record.name }),
+          detail: { key: record.key, name: record.name, serverName: record.serverName, unchanged: true, snapshotId: null },
+        };
+      }
+
+      let snapshot;
+      try {
+        snapshot = await captureConnectionSnapshot('rename', [key]);
+        const next = { ...record, name: nextName, updatedAt: Date.now() };
+        const persisted = config.persistSecrets ? await connectionStore.put(next) : next;
+        state.connections.set(key, persisted);
+        return {
+          ok: true,
+          message: t(`已将连接显示名修改为 "{name}"`, { name: persisted.name }),
+          detail: {
+            key: persisted.key,
+            name: persisted.name,
+            serverName: persisted.serverName,
+            enabled: persisted.enabled !== false,
+            snapshotId: snapshot?.key ?? null,
+          },
+        };
+      } catch (error) {
+        await discardConnectionSnapshot(snapshot);
+        return { ok: false, message: t(`重命名失败，已保留原显示名: {error}`, { error: error.message }) };
+      }
+    },
+
+    async editableConnectionConfig(key) {
+      const record = state.connections.get(key);
+      if (!record) return { ok: false, message: t(`连接 "{key}" 不存在`, { key: key }) };
+      try {
+        return {
+          ok: true,
+          message: t(`已生成 "{name}" 的安全可编辑配置；保留标记将在本机合并，不会返回已有敏感值`, { name: record.name }),
+          detail: editableConnectionConfiguration(record),
+        };
+      } catch (error) {
+        return { ok: false, message: t(`读取可编辑配置失败: {error}`, { error: error.message }) };
+      }
+    },
+
+    async editableLocalOverrides(key) {
+      const record = state.connections.get(key);
+      if (!record || !canEditLocalOverrides(record)) return { ok: false, message: t('仅无凭据的市场 stdio 连接支持本地参数覆盖') };
+      return { ok: true, detail: { json: editableLocalOverrides(record) } };
+    },
+
+    async applyLocalOverrides(key, json, reset = false) {
+      const current = state.connections.get(key);
+      if (!current || (!canEditLocalOverrides(current) && !(reset === true && current.localOverrides))) {
+        return { ok: false, message: t('当前连接不支持本地参数覆盖') };
+      }
+      let localOverrides;
+      try { localOverrides = reset === true ? undefined : normalizeLocalOverrides(current, json); }
+      catch (error) { return { ok: false, message: error.message }; }
+      try {
+        const next = { ...current, localOverrides, updatedAt: Date.now() };
+        const { snapshot } = await commitWithSnapshot([next], 'local-overrides');
+        return { ok: true, message: reset === true ? t('已清除本地覆盖，恢复市场参数') : t('已保存本地参数覆盖；启用的连接已重新加载'), detail: { key, snapshotId: snapshot?.key ?? null } };
+      } catch (error) {
+        // Startup/storage errors may contain command arguments or env values.
+        if (error.rollbackErrors?.length) return {
+          ok: false,
+          message: error.recoverySnapshotId
+            ? t('本地参数更新失败且自动回滚未完成，已保留操作前快照；请修复本机存储或启动问题后，从配置快照恢复并核对连接状态')
+            : t('本地参数更新失败且自动回滚未完成；请检查本机存储、Host 日志与连接状态'),
+          detail: { recoveryRequired: true, snapshotId: error.recoverySnapshotId ?? null },
+        };
+        return { ok: false, message: t('本地参数更新失败，已尝试恢复原配置；请检查本机 Host 日志与连接状态') };
+      }
+    },
+
+    async reconfigureConnection(key, json) {
+      const current = state.connections.get(key);
+      if (!current) return { ok: false, message: t(`连接 "{key}" 不存在`, { key: key }) };
+      try {
+        const next = normalizeConnectionReconfiguration(current, json);
+        const validation = await validateConnectionRecords([next], { timeoutMs: config.requestTimeoutMs });
+        if (!validation.ok) {
+          return {
+            ...validation,
+            message: `${validation.message.replace(t('。未保存连接，请修正后重试。'), '')}${t('。已保留原连接和配置，请修正后重试。')}`,
+          };
+        }
+        const { committed: [committed], snapshot } = await commitWithSnapshot([next], 'reconfigure');
+        await deleteLastSuccessfulTools(committed.key);
+        if (committed.connectorId && committed.enabled !== false) {
+          cacheHealth(committed.connectorId, [committed], readinessResults([committed], validation.detail.results));
+        }
+        return {
+          ok: true,
+          message: committed.enabled === false
+            ? t('已保存 "{name}" 的配置；连接保持停用', { name: committed.name })
+            : t('已保存并重新连接 "{name}"', { name: committed.name }),
+          detail: {
+            key: committed.key,
+            name: committed.name,
+            serverName: committed.serverName,
+            transport: committed.transport,
+            enabled: committed.enabled !== false,
+            snapshotId: snapshot?.key ?? null,
+          },
+        };
+      } catch (error) {
+        return error?.connectionRecord
+          ? connectionSetupFailure(error, t('更新配置失败'), t('已保留原连接和配置，请修正后重试'))
+          : { ok: false, message: t(`更新配置失败，已保留原连接和配置: {error}`, { error: error.message }) };
+      }
+    },
+
+    async setEnabled(key, enabled) {
+      const record = state.connections.get(key);
+      if (!record) return { ok: false, message: t(`连接 "{key}" 不存在`, { key: key }) };
+      if (record.pendingAuthorization && enabled) return { ok: false, message: t('请先点击进行身份验证') };
+      const next = { ...record, enabled: !!enabled, updatedAt: Date.now() };
+      if (next.enabled) {
+        try {
+          const { committed: [committed], snapshot } = await commitWithSnapshot([next], 'set-enabled');
+          if (committed.connectorId) cacheHealth(committed.connectorId, [committed], readinessResults([committed]));
+          return { ok: true, message: t(`已启用 "{name}"`, { name: committed.name }), detail: { snapshotId: snapshot?.key ?? null } };
+        } catch (error) {
+          return connectionSetupFailure(error, t('启用失败'), t('已保留启用前配置，请修正后重试'));
+        }
+      }
+      let snapshot;
+      try {
+        snapshot = await captureConnectionSnapshot('set-enabled', [key]);
+        await disable(ctx, config, next);
+        await persistRecord(next);
+      } catch (error) {
+        await provision(ctx, config, record, grantMap(), { failOnStartupError: false }).catch((rollbackError) => {
+          logger.error(`disable rollback "${record.key}" failed: ${rollbackError.message}`);
+        });
+        await discardConnectionSnapshot(snapshot);
+        return { ok: false, message: t(`停用失败，已保留原连接: {error}`, { error: error.message }) };
+      }
+      return { ok: true, message: t(`已停用 "{name}"`, { name: next.name }), detail: { snapshotId: snapshot?.key ?? null } };
+    },
+
+    /**
+     * 重新建立一条已启用连接的 Host 条目，并复检它的连接状态。
+     *
+     * Host 的 mcp-client 连续重连失败后会注销工具且不再自发重试（日志：giving up after
+     * 10 consecutive failed reconnect attempts），此前只有停用/启用或重启 Host 能恢复。
+     * 这里用与停用/启用相同的 loader 序列触发一次真正的重连，并在有界时间内等待 stdio
+     * 工具重新注册；不修改连接记录、凭据、范围或注入模式。
+     */
+    async reconnect(key) {
+      const record = state.connections.get(key);
+      if (!record) return { ok: false, message: t(`连接 "{key}" 不存在`, { key: key }) };
+      if (record.enabled === false) return { ok: false, message: t(`连接 "{name}" 已停用；请先启用再重新连接`, { name: record.name }) };
+      const failure = grantFailure(record);
+      if (failure) return { ok: false, message: failure.message };
+      try {
+        await disable(ctx, config, record);
+        if (state.connections.get(key) !== record) return { ok: false, message: t('连接配置已变化，请重新检查后重试') };
+        await provision(ctx, config, record, grantMap(), { failOnStartupError: false });
+      } catch (error) {
+        return connectionSetupFailure(error, t('重新连接失败'), t('已保留连接配置，但 Host 条目可能仍停用；请检查后重新连接'));
+      }
+      const records = [...state.connections.values()].filter((item) => item.connectorId === record.connectorId);
+      const enabledRecords = records.filter((item) => item.enabled !== false);
+      const stdioRecords = enabledRecords.filter((item) => item.transport === 'stdio');
+      const counts = await Promise.all(stdioRecords.map((item) => waitForStdioToolRegistration(item)));
+      const registeredTools = counts.reduce((total, count) => total + count, 0);
+      if (state.connections.get(key) !== record) return { ok: false, message: t('连接配置已变化，请重新检查状态') };
+      const results = stdioRecords.map((item) => {
+        const registered = registeredStdioTools(item);
+        if (registered.tools.length > 0) {
+          return { ok: true, kind: 'connected', serverKey: item.serverKey, serverName: item.serverName, toolCount: registered.tools.length, message: t(`Host 已注册 {count} 个工具`, { count: registered.tools.length }) };
+        }
+        return {
+          ok: true,
+          kind: 'managed',
+          code: registered.error ? 'host-status-error' : registered.supported ? 'host-tools-pending' : 'host-status-unavailable',
+          serverKey: item.serverKey,
+          serverName: item.serverName,
+          message: registered.error
+            ? t('Host 工具注册状态读取失败')
+            : registered.supported ? t('Host 尚未注册该 stdio Server 的工具') : t('当前 Host 无法读取 stdio 工具注册状态'),
+        };
+      });
+      const checkable = enabledRecords.filter((item) => item.transport !== 'stdio');
+      if (checkable.length > 0) {
+        const validation = await validateConnectionRecords(checkable, {
+          timeoutMs: Math.min(config.requestTimeoutMs, 5_000),
+          concurrency: 4,
+          grants: grantMap(),
+        });
+        results.push(...validation.detail.results);
+      }
+      const summary = cacheHealth(record.connectorId, records, results);
+      const healthy = summary.connectionState === 'healthy';
+      return {
+        ok: healthy,
+        message: healthy
+          ? t('已重新连接 "{name}"{tools}', {
+            name: record.name,
+            tools: registeredTools > 0 ? t('：Host 已注册 {count} 个工具', { count: registeredTools }) : '',
+          })
+          : t('已重建 "{name}" 的 Host 条目，但当前仍为{state}：{message}', {
+            name: record.name,
+            state: summary.label,
+            message: summary.diagnostic?.message ?? t('请稍后重试'),
+          }),
+        detail: { connectorId: record.connectorId, key: record.key, connectionState: summary.connectionState, registeredTools },
+      };
+    },
+
+    async setInjectionMode(key, mode) {
+      const record = state.connections.get(key);
+      if (!record) return { ok: false, message: t(`连接 "{key}" 不存在`, { key: key }) };
+      let injectionMode;
+      try {
+        if (mode !== 'always' && mode !== 'session') throw new Error(t('mode 必须为 always 或 session'));
+        injectionMode = normalizeInjectionMode(mode);
+        if (injectionMode === 'session') {
+          const capabilities = hostSessionInjection.capabilities();
+          if (!capabilities.executionGuard || !capabilities.visibilityRestriction) {
+            throw new Error(t('当前 DSH Host 不同时支持 tools.guard 与 Agent tools.restrict，不能安全启用'));
+          }
+        }
+      } catch (error) {
+        return { ok: false, message: t(`修改工具注入模式失败: {error}`, { error: error.message }) };
+      }
+      if (normalizeInjectionMode(record.injectionMode) === injectionMode) {
+        return {
+          ok: true,
+          message: injectionMode === 'session'
+            ? t('"{name}" 已是“按会话启用”', { name: record.name })
+            : t('"{name}" 已是“始终注入”', { name: record.name }),
+          detail: { key, injectionMode, unchanged: true },
+        };
+      }
+      let snapshot;
+      try {
+        snapshot = await captureConnectionSnapshot('set-injection-mode', [key]);
+        const next = { ...record, injectionMode, updatedAt: Date.now() };
+        await persistRecord(next);
+        hostSessionInjection.forgetConnection(key);
+        hostSessionInjection.refresh();
+        return {
+          ok: true,
+          message: injectionMode === 'session'
+            ? t('已将 "{name}" 设为按会话启用；连接保持在线，业务工具默认隐藏', { name: next.name })
+            : t('已将 "{name}" 设为始终注入', { name: next.name }),
+          detail: { key, injectionMode, snapshotId: snapshot?.key ?? null },
+        };
+      } catch (error) {
+        await discardConnectionSnapshot(snapshot);
+        return { ok: false, message: t(`修改工具注入模式失败，已保留原配置: {error}`, { error: error.message }) };
+      }
+    },
+
+    async sessionTools(input = {}, exec = {}) {
+      try {
+        const action = String(input.action ?? 'status');
+        const agent = exec.agent;
+        if (!agent) throw new Error(t('当前调用缺少 Agent 会话上下文'));
+        if (action === 'status') {
+          const detail = hostSessionInjection.status(agent);
+          return {
+            ok: true,
+            message: t(`当前会话已激活 {activeCount} 个工具，会话层隐藏 {hiddenCount} 个工具（revision={revision}）`, { activeCount: detail.activeCount, hiddenCount: detail.hiddenCount, revision: detail.revision }),
+            detail,
+          };
+        }
+        if (action === 'search') {
+          const workspaceId = workspaceIdForAgent(agent);
+          const searched = await api.toolSearch({
+            query: input.query,
+            connectionKey: input.connectionKey,
+            connectorId: input.connectorId,
+            workspaceId,
+            limit: input.limit,
+          });
+          if (!searched.ok) return searched;
+          const items = searched.detail.items.filter((item) => item.injectionMode === 'session');
+          return {
+            ok: true,
+            message: t(`找到 {count} 个可按会话激活的精确工具`, { count: items.length }),
+            detail: { ...searched.detail, items, session: hostSessionInjection.status(agent) },
+          };
+        }
+        if (action === 'preview-activate') {
+          const detail = hostSessionInjection.previewActivation(agent, input);
+          return {
+            ok: true,
+            message: t(`预览：将在当前会话激活 {count} 个精确工具，最长 {minutes} 分钟；需要用户确认`, { count: detail.publicNames.length, minutes: detail.ttlMinutes }),
+            detail,
+          };
+        }
+        if (action === 'activate') {
+          const detail = hostSessionInjection.activate(agent, input);
+          return {
+            ok: true,
+            message: t(`已在当前会话激活 {count} 个工具；从下一次模型推理边界生效`, { count: detail.activated.length }),
+            detail,
+          };
+        }
+        if (action === 'deactivate') {
+          const detail = hostSessionInjection.deactivate(agent, input);
+          return {
+            ok: true,
+            message: detail.changed
+              ? t('已更新当前会话工具，剩余 {count} 个激活项', { count: detail.activeCount })
+              : t('当前会话没有匹配的激活项'),
+            detail,
+          };
+        }
+        return { ok: false, message: t(`不支持的会话工具操作: {action}`, { action: action }) };
+      } catch (error) {
+        return { ok: false, message: t(`会话工具操作失败: {error}`, { error: error.message }) };
+      }
+    },
+
+    async disconnect(key, signal) {
+      const record = state.connections.get(key);
+      if (!record) return { ok: false, message: t(`连接 "{key}" 不存在`, { key: key }) };
+
+      const legacyOwnsAuthorization = record.auth?.mode === 'oauth' && legacyOwnsGrant(record.auth.grantKey);
+      let snapshot;
+      try {
+        snapshot = await captureConnectionSnapshot('disconnect', [key]);
+        await deleteConnectionRecordAtomically(record);
+      } catch (error) {
+        await discardConnectionSnapshot(snapshot);
+        return error?.connectionRecord
+          ? connectionSetupFailure(error, t('断开失败'), t('已保留原连接，请修正后重试'))
+          : { ok: false, message: t(`断开失败，已保留原连接: {error}`, { error: error.message }) };
+      }
+
+      if (record.auth?.grantKey) {
+        const stillUsed = [...state.connections.values()].some((r) => r.auth?.grantKey === record.auth.grantKey);
+        if (!stillUsed) {
+          const g = state.grants.get(record.auth.grantKey);
+          if (g?.grant.refreshToken && !legacyOwnsAuthorization) {
+            try {
+              const metadata = await discoverServerMetadata(g.grant.issuer, config.requestTimeoutMs);
+              if (metadata.revocationEndpoint) {
+                await revokeRefreshToken(metadata.revocationEndpoint, {
+                  clientId: g.grant.clientId,
+                  clientSecret: g.grant.clientSecret,
+                  tokenEndpointAuthMethod: g.grant.tokenEndpointAuthMethod ?? 'none',
+                  refreshToken: g.grant.refreshToken,
+                  timeoutMs: config.requestTimeoutMs,
+                });
+              }
+            } catch (error) {
+              logger.warn(`revoke failed (continuing disconnect): ${error.message}`);
+            }
+          }
+          if (g?.timer) clearTimeout(g.timer);
+          state.grants.delete(record.auth.grantKey);
+          if (config.persistSecrets) await grantStore.delete(record.auth.grantKey).catch(() => {});
+        }
+        return {
+          ok: true,
+          message: stillUsed
+            ? t('已断开 "{name}"（授权仍被其他连接共享）', { name: record.name })
+            : legacyOwnsAuthorization
+              ? t('已断开 "{name}"，旧插件的授权已保留', { name: record.name })
+              : t('已断开 "{name}"（已撤销授权；快照恢复仍需重新授权）', { name: record.name }),
+          detail: { snapshotId: snapshot?.key ?? null, requiresReauthorization: !stillUsed },
+        };
+      }
+
+      return { ok: true, message: t(`已断开 "{name}"`, { name: record.name }), detail: { snapshotId: snapshot?.key ?? null } };
+    },
+
+    async refreshCatalog() {
+      try {
+        clearTimeout(catalogTimer);
+        await updateRemoteCatalog();
+        const visibleCount = listCatalog(state.merged, { publishedOnly: true }).length;
+        return { ok: true, message: t(`市场已刷新，共 {count} 个连接器`, { count: visibleCount }) };
+      } catch (error) {
+        return { ok: false, message: t(`刷新失败: {error}`, { error: error.message }) };
+      }
+    },
+
+    async publish(connectorId, published) {
+      const connector = state.merged.find((d) => d.id === connectorId);
+      if (!connector) return { ok: false, message: t(`连接器 "{connectorId}" 不存在`, { connectorId: connectorId }) };
+      state.overrides.set(connectorId, { id: connectorId, published: !!published });
+      await catalogStore.putOverrides([...state.overrides.values()]).catch(() => {});
+      await recomputeMerged();
+      return { ok: true, message: published ? t('已将 "{name}" 上架', { name: connector.name }) : t('已将 "{name}" 下架', { name: connector.name }) };
+    },
+
+    async toolExplorer(input = {}) {
+      const records = explorerRecords(input.workspaceId);
+      const connections = records.map(explorerConnection);
+      const selected = records.filter((record) => (!input.connectionKey || record.key === input.connectionKey)
+        && (!input.serverName || record.serverName === input.serverName)
+        && (!input.status || explorerConnection(record).status === input.status));
+      const entries = selected.map((record) => cachedToolsForRecord(record)?.entry).filter(Boolean);
+      const result = browseToolCatalog(entries, { query: input.query, offset: input.offset, limit: input.limit });
+      const byKey = new Map(connections.map((item) => [item.connectionKey, item]));
+      return { ok: true, message: t(`找到 {total} 个工具`, { total: result.total }), detail: {
+        ...result, items: result.items.map((item) => ({ ...item, connection: byKey.get(item.connectionKey) })),
+        connections, selectedConnections: selected.map(explorerConnection), discoveryOnly: true,
+        scopeLabel: input.workspaceId ? t('当前工作区可见连接') : t('全局连接（未选择工作区）'),
+      } };
+    },
+
+    async toolExplorerDetail(input = {}) {
+      if (!explorerRecords(input.workspaceId).some((record) => record.key === input.connectionKey)) {
+        return { ok: false, message: t('连接不存在、已停用或当前工作区不可见') };
+      }
+      return api.toolDetail(input);
+    },
+
+    async toolExplorerAction(input = {}) {
+      const record = explorerRecords(input.workspaceId).find((item) => item.key === input.connectionKey);
+      if (!record || !['discover', 'check'].includes(input.action)) return { ok: false, message: t('操作无效或连接当前不可见') };
+      const pending = explorerActions.get(record);
+      if (pending) return pending;
+      const plan = discoveryPlans.get(record.key);
+      if (plan?.record === record && plan.reason === 'rate-limit' && !discoveryDue(plan)) {
+        return { ok: false, message: t('服务正在限流，请等待下一次允许重试时间'), detail: { retryAt: plan.nextAt } };
+      }
+      if (Date.now() - (explorerActionTimes.get(record.key) || 0) < 5_000) return { ok: false, message: t('操作过于频繁，请稍后重试') };
+      explorerActionTimes.set(record.key, Date.now());
+      const request = input.action === 'discover'
+        ? api.toolsList(record.connectorId, input.workspaceId, false, record.key)
+        : api.healthCheck(record.connectorId, input.workspaceId, record.key);
+      explorerActions.set(record, request);
+      try { return await request; }
+      finally { explorerActions.delete(record); statusEvents.publish(input.action === 'discover' ? 'tools' : 'status'); }
+    },
+
+    async toolSearch(input = {}) {
+      try {
+        const connectorId = String(input.connectorId ?? '').trim() || undefined;
+        if (connectorId && !state.merged.some((connector) => connector.id === connectorId)
+            && ![...state.connections.values()].some((record) => record.connectorId === connectorId
+              && record.enabled !== false && (!input.workspaceId || connectionVisibleInWorkspace(connectionScopes.binding(record.key), input.workspaceId)))) {
+          return { ok: false, message: t(`连接器 "{connectorId}" 不存在`, { connectorId: connectorId }) };
+        }
+        const items = searchToolCatalog(visibleToolCatalogEntries(input.workspaceId, input.connectionKey), {
+          query: input.query,
+          connectorId,
+          limit: input.limit,
+        }).map((item) => {
+          const record = state.connections.get(item.connectionKey);
+          return {
+            ...item,
+            publicName: publicToolName(item.serverName, item.name),
+            injectionMode: normalizeInjectionMode(record?.injectionMode),
+          };
+        });
+        const staleCount = items.filter((item) => item.stale).length;
+        const visibleRecords = [...state.connections.values()].filter((record) => record.enabled !== false
+          && (!connectorId || record.connectorId === connectorId)
+          && (!input.connectionKey || record.key === input.connectionKey)
+          && (!input.workspaceId || connectionVisibleInWorkspace(connectionScopes.binding(record.key), input.workspaceId)));
+        const pendingServers = visibleRecords.filter((record) => !cachedToolsForRecord(record)
+          && state.toolViews.get(record.key)?.record !== record).length;
+        const failedServers = visibleRecords.filter((record) => {
+          const view = state.toolViews.get(record.key);
+          return view?.record === record && !view.server.ok;
+        }).length;
+        return {
+          ok: true,
+          message: [
+            t('最后成功工具缓存中找到 {count} 个匹配项', { count: items.length }),
+            staleCount ? t('，其中 {count} 个已超过 24 小时', { count: staleCount }) : '',
+            pendingServers ? t('；{count} 个服务正在后台发现', { count: pendingServers }) : '',
+            failedServers ? t('；{count} 个服务最近读取失败', { count: failedServers }) : '',
+          ].join(''),
+          detail: {
+            items,
+            source: 'last-success-cache',
+            discoveryOnly: true,
+            credentialsStored: false,
+            pendingServers,
+            failedServers,
+          },
+        };
+      } catch (error) {
+        return { ok: false, message: t(`搜索工具失败: {error}`, { error: error.message }) };
+      }
+    },
+
+    async toolDetail(input = {}) {
+      try {
+        const connectorId = String(input.connectorId ?? '').trim() || undefined;
+        const serverName = String(input.serverName ?? '').trim() || undefined;
+        const matches = findToolDetails(visibleToolCatalogEntries(input.workspaceId, input.connectionKey), {
+          toolName: input.toolName,
+          connectorId,
+          serverName,
+        });
+        if (matches.length === 0) {
+          return { ok: false, message: t(`最后成功工具缓存中找不到 "{trim}"`, { trim: String(input.toolName ?? '').trim() }) };
+        }
+        if (matches.length > 1) {
+          return {
+            ok: false,
+            message: t(`找到 {count} 个同名工具，请补充 connectorId 或 serverName`, { count: matches.length }),
+            detail: {
+              candidates: matches.map(({ connectorId: id, serverName: server, name }) => ({ connectorId: id, serverName: server, name })),
+              discoveryOnly: true,
+            },
+          };
+        }
+        return {
+          ok: true,
+          message: matches[0].stale
+            ? t('工具详情：{server}/{tool}（缓存已超过 24 小时）', { server: matches[0].serverName, tool: matches[0].name })
+            : t('工具详情：{server}/{tool}', { server: matches[0].serverName, tool: matches[0].name }),
+          detail: {
+            tool: matches[0],
+            source: 'last-success-cache',
+            discoveryOnly: true,
+            credentialsStored: false,
+          },
+        };
+      } catch (error) {
+        return { ok: false, message: t(`读取工具详情失败: {error}`, { error: error.message }) };
+      }
+    },
+
+    /**
+     * 从已连接的 MCP server 动态获取工具清单
+     * 通过 MCP JSON-RPC 协议调用 tools/list 方法
+     */
+    async toolsList(connectorId, workspaceId, cachedOnly = false, connectionKey) {
+      const connector = state.merged.find((d) => d.id === connectorId);
+
+      const records = [...state.connections.values()].filter((record) => (
+        record.connectorId === connectorId
+        && (!connectionKey || record.key === connectionKey)
+        && record.enabled !== false
+        && (!workspaceId || connectionVisibleInWorkspace(connectionScopes.binding(record.key), workspaceId))
+      ));
+      if (connectionKey && !records.length) return { ok: false, message: t('连接不存在、已停用或当前工作区不可见') };
+      if (!connector && !records.length) return { ok: false, message: t(`连接器 "{connectorId}" 不存在或当前工作区不可见`, { connectorId: connectorId }) };
+      // A reachable remote endpoint does not establish that this Host owns the connection.
+      const blockedServer = (record) => {
+        const failure = grantFailure(record);
+        if (!failure?.legacyConflict) return null;
+        return {
+          serverKey: record.serverKey || record.name, serverName: record.serverName,
+          ok: false, errorKind: 'conflict', error: failure.message, legacyConflict: failure.legacyConflict,
+          tools: [], policy: serverPolicy(record),
+        };
+      };
+      if (cachedOnly && records.length) {
+        const servers = records.map((record) => {
+          const blocked = blockedServer(record);
+          if (blocked) return blocked;
+          const cached = cachedToolsForRecord(record);
+          const view = state.toolViews.get(record.key);
+          const current = view?.record === record ? view.server : null;
+          return {
+            serverKey: record.serverKey || record.name, serverName: record.serverName,
+            ok: current?.ok === true, cached: Boolean(cached),
+            unknown: !current || current.unknown === true,
+            pending: current?.pending === true || (!current && !cached),
+            error: current?.error || (!cached && !current ? t('正在后台发现工具，请稍候') : undefined),
+            errorKind: current?.errorKind, errorStage: current?.errorStage, diagnosticCode: current?.diagnosticCode,
+            policy: serverPolicy(record),
+            ...(cached ? { cacheObservedAt: cached.observedAt, cacheAgeMs: cached.cacheAgeMs, stale: cached.stale, cacheTruncated: cached.entry.truncated === true } : {}),
+            tools: (cached?.entry.tools || []).map((tool) => decorateToolPolicy(record, {
+              name: tool.name, title: tool.title || tool.name, description: tool.description || '',
+            })),
+          };
+        });
+        const health = observedHealth(connectorId, records);
+        return { ok: servers.some((server) => server.ok), message: t('最近工具发现状态'), detail: {
+          connectorId, servers, ...countConnectorTools(servers),
+          source: 'last-success-cache',
+          connectionState: health.connectionState, diagnostic: health.diagnostic,
+          discoveryDiagnostic: discoveryHealth(connectorId, records, servers).diagnostic,
+        } };
+      }
+      if (!records.length) {
+        const servers = (connector.toolsSnapshot ?? []).map((snapshot) => ({
+          serverKey: snapshot.serverKey,
+          serverName: snapshot.serverName ?? connector.servers.find((server) => server.serverKey === snapshot.serverKey)?.serverName,
+          ok: true,
+          preview: true,
+          tools: snapshot.tools,
+        }));
+        if (servers.length === 0) return { ok: false, message: t(`连接器 "{name}" 尚未连接，且目录暂无工具快照`, { name: connector.name }) };
+        const counts = countConnectorTools(servers);
+        return {
+          ok: true,
+          message: t(`目录预览：{count} 个 server，{toolCount} 个工具`, { count: servers.length, toolCount: counts.uniqueToolCount }),
+          detail: { connectorId, servers, ...counts, source: 'snapshot' },
+        };
+      }
+
+      const servers = [];
+      const observedNames = hostPublicToolNames();
+      for (const record of records) {
+        const blocked = blockedServer(record);
+        if (blocked) { servers.push(blocked); continue; }
+        if (record.transport === 'stdio') {
+          const registered = registeredStdioTools(record);
+          const snapshot = (connector?.toolsSnapshot ?? []).find((item) =>
+            item.serverKey === record.serverKey || item.serverName === record.serverName);
+          const liveTools = registered.tools;
+          let cached = cachedToolsForRecord(record);
+          if (liveTools.length > 0) {
+            state.toolInventories.set(record.serverName, {
+              observed: true,
+              observedAt: Date.now(),
+              tools: new Set(liveTools.map((tool) => tool.name)),
+            });
+            await cacheLastSuccessfulTools(record, liveTools);
+            cached = cachedToolsForRecord(record);
+          }
+          const cachedFallback = liveTools.length === 0 ? cached : null;
+          const displayTools = liveTools.length > 0
+            ? liveTools
+            : cachedFallback?.entry.tools?.length > 0
+              ? cachedFallback.entry.tools
+              : snapshot?.tools ?? [];
+          const diagnosticCode = registered.error
+            ? 'host-status-error'
+            : registered.supported ? 'host-tools-pending' : 'host-status-unavailable';
+          const prior = discoveryPlans.get(record.key);
+          const startupPending = liveTools.length === 0 && !cached && registered.supported && !registered.error
+            && (prior?.record !== record || !prior.startupStartedAt || Date.now() - prior.startupStartedAt < 60_000);
+          servers.push({
+            serverKey: record.serverKey || record.name,
+            serverName: record.serverName,
+            ok: liveTools.length > 0,
+            managed: true,
+            live: liveTools.length > 0,
+            cached: Boolean(cachedFallback),
+            preview: liveTools.length === 0 && !cachedFallback && Boolean(snapshot),
+            unknown: liveTools.length === 0,
+            diagnosticCode,
+            pending: startupPending,
+            policy: serverPolicy(record),
+            tools: displayTools.map((tool) => decorateToolPolicy(record, {
+              name: tool.name,
+              ...(tool.publicName ? { publicName: tool.publicName } : {}),
+              title: tool.title || tool.name,
+              description: tool.description || '',
+            }, observedNames)),
+            ...(cachedFallback ? {
+              cacheObservedAt: cachedFallback.observedAt,
+              cacheAgeMs: cachedFallback.cacheAgeMs,
+              stale: cachedFallback.stale,
+              cacheTruncated: cachedFallback.entry.truncated === true,
+            } : {}),
+            ...(liveTools.length === 0 ? {
+              errorKind: registered.supported ? 'startup' : 'host-version',
+              error: startupPending ? t('正在后台发现工具，请稍候') : registered.supported
+                ? t('Host 尚未注册该 stdio Server 的工具，请检查启动日志后重试')
+                : t('当前 DSH Host 不支持读取工具注册状态，请升级 Host 后重试'),
+            } : {}),
+          });
+          continue;
+        }
+        try {
+          let request = toolRequests.get(record);
+          if (!request) {
+            const receipt = smartRuntime?.beginDiscovery(record);
+            request = listMcpTools(record, { timeoutMs: config.requestTimeoutMs, grants: grantMap() }).then((listed) => {
+              // Publish the original tools/list before any cache sanitization.
+              smartRuntime?.completeDiscovery(receipt, listed.tools);
+              return listed;
+            });
+            toolRequests.set(record, request);
+          }
+          let listed;
+          try { listed = await request; }
+          finally { if (toolRequests.get(record) === request) toolRequests.delete(record); }
+          state.toolInventories.set(record.serverName, {
+            observed: true,
+            observedAt: Date.now(),
+            tools: new Set(listed.tools.map((tool) => tool.name)),
+          });
+          await cacheLastSuccessfulTools(record, listed.tools);
+          servers.push({
+            serverKey: record.serverKey || record.name,
+            serverName: record.serverName,
+            ok: true,
+            connectionCheckedAt: listed.connectionCheckedAt,
+            policy: serverPolicy(record),
+            tools: listed.tools.map((t) => decorateToolPolicy(record, {
+              name: t.name,
+              title: t.title || t.name,
+              description: t.description || '',
+            }, observedNames)),
+          });
+        } catch (error) {
+          const cached = cachedToolsForRecord(record);
+          const cachedFields = cached ? {
+            cached: true,
+            cacheObservedAt: cached.observedAt,
+            cacheAgeMs: cached.cacheAgeMs,
+            stale: cached.stale,
+            cacheTruncated: cached.entry.truncated === true,
+            tools: cached.entry.tools.map((tool) => decorateToolPolicy(record, {
+              name: tool.name,
+              title: tool.title || tool.name,
+              description: tool.description || '',
+            }, observedNames)),
+          } : { tools: [] };
+          if (error instanceof McpHttpError) {
+            servers.push({
+              serverKey: record.serverKey || record.name,
+              serverName: record.serverName,
+              ok: false,
+              error: error.message,
+              errorKind: error.kind,
+              errorStage: error.stage,
+              connectionCheckedAt: error.connectionCheckedAt,
+              retryAfterMs: error.retryAfterMs,
+              policy: serverPolicy(record),
+              ...cachedFields,
+            });
+            continue;
+          }
+          const classified = classifyConnectionError(error);
+          servers.push({ serverKey: record.serverKey || record.name, serverName: record.serverName, ok: false, error: classified.message, errorKind: classified.kind,
+            errorStage: error.stage, connectionCheckedAt: error.connectionCheckedAt, policy: serverPolicy(record), ...cachedFields });
+        }
+      }
+
+      if (records.some((record) => state.connections.get(record.key) !== record || record.enabled === false)) {
+        return { ok: false, message: t('连接已变更，请重新读取工具') };
+      }
+      records.forEach((record, index) => {
+        if (state.connections.get(record.key) === record && record.enabled !== false) {
+          const at = Date.now();
+          state.toolViews.set(record.key, { record, server: servers[index], at });
+          const prior = discoveryPlans.get(record.key);
+          discoveryPlans.set(record.key, { record, ...nextDiscovery(prior?.record === record ? prior : null, servers[index], at) });
+        }
+      });
+      const counts = countConnectorTools(servers);
+      const availableServers = servers.filter((server) => server.ok).length;
+      const unknownServers = servers.filter((server) => server.unknown).length;
+      const failedServers = servers.length - availableServers - unknownServers;
+      const pendingManagedServers = unknownServers;
+      const cachedServers = servers.filter((server) => server.cached).length;
+      const health = cacheHealth(connectorId, records, servers.map((server) => server.ok || server.connectionCheckedAt !== undefined
+        ? { ok: true, kind: 'connected', serverKey: server.serverKey, serverName: server.serverName, checkedAt: server.connectionCheckedAt }
+        : server.unknown
+          ? {
+              ok: true,
+              kind: 'managed',
+              code: server.diagnosticCode,
+              serverKey: server.serverKey,
+              serverName: server.serverName,
+              message: server.error,
+            }
+        : { ok: false, kind: server.errorKind ?? 'network', serverKey: server.serverKey, serverName: server.serverName, message: server.error, legacyConflict: server.legacyConflict }));
+      const discovery = discoveryHealth(connectorId, records, servers);
+      const failureSummary = servers.filter((server) => !server.ok && !server.unknown).slice(0, 3)
+        .map((server) => `${server.serverName || server.serverKey}${t('：')}${server.error}`).join(t('；'));
+      const unknownSummary = servers.filter((server) => server.unknown).slice(0, 3)
+        .map((server) => `${server.serverName || server.serverKey}${t('：')}${server.error}`).join(t('；'));
+      return {
+        ok: availableServers > 0,
+        message: failedServers > 0
+          ? t('工具加载失败：{summary}{more}{available}{cached}', {
+            summary: failureSummary,
+            more: failedServers > 3 ? t('；另有 {count} 个 Server 不可用', { count: failedServers - 3 }) : '',
+            available: availableServers > 0 ? t('；{count} 个 Server 仍可用', { count: availableServers }) : '',
+            cached: cachedServers > 0 ? t('；{count} 个 Server 显示最后成功缓存', { count: cachedServers }) : '',
+          })
+          : unknownServers > 0
+            ? t('工具状态未知：{summary}{more}', {
+              summary: unknownSummary,
+              more: unknownServers > 3 ? t('；另有 {count} 个 Server 尚未确认', { count: unknownServers - 3 }) : '',
+            })
+          : t('共 {count} 个 server，{toolCount} 个工具', { count: servers.length, toolCount: counts.uniqueToolCount }),
+        detail: {
+          connectorId,
+          servers,
+          ...counts,
+          availableServers,
+          failedServers,
+          unknownServers,
+          pendingManagedServers,
+          cachedServers,
+          connectionState: health.connectionState,
+          lastSuccessfulAt: health.lastSuccessfulAt,
+          diagnostic: health.diagnostic,
+          discoveryDiagnostic: discovery.diagnostic,
+          governance: {
+            revision: governancePolicies.snapshot().revision,
+            connectionPolicy: directPolicyEffect('connection', connectorId),
+            precedenceLabel: t('Tool > Server > Connection > 默认允许'),
+            capabilities: hostGovernance.capabilities(),
+          },
+        },
+      };
+    },
+  };
+
+  /* ───────────────────────── 启动恢复 ───────────────────────── */
+
+  await loadCatalog();
+  detectLegacyPluginConflicts();
+
+  for (const [key, raw] of await connectionStore.entries().catch(() => [])) {
+    try {
+      const record = normalizeConnectionRecord(raw);
+      state.connections.set(key, record);
+    } catch (error) {
+      logger.warn(`skip invalid stored connection "${key}": ${error.message}`);
+    }
+  }
+  if (connectionStatistics.available) void connectionStatistics.baseline([...state.connections.values()]
+    .map(record => record.connectorId).filter(id => state.merged.some(d => d.id === id)))
+    .catch(() => { statisticsError(); });
+  if (config.persistSecrets) {
+    for (const [key, cached] of await toolCatalogStore.entries().catch(() => [])) {
+      const record = state.connections.get(key);
+      if (record
+          && cached.connectorId === record.connectorId
+          && cached.serverName === record.serverName
+          && cached.connectionSignature === connectionToolCacheSignature(record)) {
+        state.toolCatalogCache.set(key, cached);
+      } else {
+        await toolCatalogStore.delete(key).catch(() => {});
+      }
+    }
+  }
+  for (const [key, raw] of await grantStore.entries().catch(() => [])) {
+    try {
+      state.grants.set(key, grantRuntime(raw));
+    } catch (error) {
+      logger.warn(`skip invalid stored grant "${key}": ${error.message}`);
+    }
+  }
+
+  await prepareLegacyHandoffs();
+  const consolidatedGrantCount = await consolidatePersistedSharedGrants();
+  if (consolidatedGrantCount > 0) logger.info(`consolidated ${consolidatedGrantCount} historical OAuth grant(s) during startup`);
+
+  const prunedGrantCount = await pruneOrphanGrants();
+  if (prunedGrantCount > 0) logger.info(`removed ${prunedGrantCount} unreferenced OAuth grant(s) from local storage`);
+
+  for (const [grantKey, g] of state.grants) {
+    if (legacyOwnsGrant(grantKey)) continue;
+    if (g.grant.accessTokenExpiresAt <= Date.now()) {
+      try {
+        await refreshGrantWithRecovery(grantKey, 'startup');
+      } catch {}
+    } else {
+      scheduleRefresh(grantKey);
+    }
+  }
+  for (const [key, record] of state.connections) {
+    if (record.enabled !== false) {
+      if (record.localOverrides && !canEditLocalOverrides(record)) {
+        logger.warn(t('skip provision "{key}" at startup: 当前市场配置不再允许本地参数覆盖，请先清除覆盖', { key }));
+        continue;
+      }
+      const failure = grantFailure(record);
+      if (failure) {
+        logger.warn(`skip provision "${key}" at startup: ${failure.message}`);
+        continue;
+      }
+      // Optional MCPs still participate in the Host loader's startup barrier.
+      // Bound their stdio bootstrap RPCs at the transport, not with Promise.race
+      // around loader.create(): an abandoned fiber would remain pending there.
+      const startupRequestTimeoutMs = Math.max(100, Math.min(DEFAULT_REQUEST_TIMEOUT_MS, Math.trunc(Number(config.requestTimeoutMs) || DEFAULT_REQUEST_TIMEOUT_MS)));
+      try {
+        await provision(ctx, config, record, grantMap(), { startupRequestTimeoutMs });
+        if (record.lastError && state.grants.get(record.auth?.grantKey)?.grant.legacySource) {
+          await persistRecord({ ...record, lastError: undefined });
+        }
+      } catch (error) {
+        logger.warn(`provision "${key}" failed: ${error.message}`);
+      }
+    }
+  }
+
+  // 官方 Host 边界：每个 Agent 在首轮 prompt 组装前安装 schema/lookup/dispatch
+  // restriction；全局 guard 已在 controller 构造时注册，始终作为执行兜底。
+  if (typeof ctx.inject === 'function') {
+    try {
+      ctx.inject(['agents'], (agentCtx) => {
+        agentCtx.effect(() => {
+          const disposeGovernance = hostGovernance.mountAgents(agentCtx);
+          const disposeScopes = hostScopes.mountAgents(agentCtx);
+          const disposeSessionInjection = hostSessionInjection.mountAgents(agentCtx);
+          return () => {
+            disposeSessionInjection?.();
+            disposeScopes?.();
+            disposeGovernance?.();
+          };
+        }, 'mcp-connector.governance-and-scopes()');
+      });
+    } catch (error) {
+      logger.warn(`MCP governance agent visibility unavailable: ${error.message}`);
+    }
+  }
+  hostGovernance.refresh();
+  hostScopes.refresh();
+  hostSessionInjection.refresh();
+
+  // One background pass at a time; UI event refreshes read snapshots, never tools/list.
+  let discoveryDisposed = false;
+  let discoveryRunning = false;
+  let discoveryPending = false;
+  let discoveryTimer = null;
+  async function discoverTools() {
+    if (discoveryDisposed || discoveryRunning) return;
+    discoveryRunning = true;
+    discoveryPending = false;
+    try {
+      await smartRuntime?.reconcile();
+      const records = [...state.connections.values()].filter((record) => {
+        const plan = discoveryPlans.get(record.key);
+        return record.enabled !== false && discoveryDue(plan?.record === record ? plan : null);
+      });
+      let cursor = 0;
+      await Promise.all(Array.from({ length: Math.min(2, records.length) }, async () => {
+        while (cursor < records.length && !discoveryDisposed) {
+          const record = records[cursor++];
+          if (state.connections.get(record.key) !== record || record.enabled === false) continue;
+          await api.toolsList(record.connectorId, undefined, false, record.key).catch(() => {});
+          if (!discoveryDisposed) statusEvents.publish('tools');
+        }
+      }));
+    } finally {
+      discoveryRunning = false;
+      if (discoveryPending) scheduleDiscovery();
+    }
+  }
+  function scheduleDiscovery() {
+    if (discoveryDisposed) return;
+    discoveryPending = true;
+    if (discoveryRunning || discoveryTimer) return;
+    discoveryTimer = setTimeout(() => { discoveryTimer = null; void discoverTools(); }, 100);
+    discoveryTimer.unref?.();
+  }
+  // Serialize same-record actions: a delayed reconnect must never reactivate a
+  // connection the user has subsequently disabled or disconnected.
+  const connectionActions = new Set(['reconnect', 'setEnabled', 'disconnect', 'reconfigureConnection', 'applyLocalOverrides', 'renameConnection', 'setInjectionMode']);
+  const connectionQueues = new Map();
+  async function queueConnectionAction(key, action) {
+    const previous = connectionQueues.get(key) ?? Promise.resolve();
+    const pending = previous.catch(() => {}).then(action);
+    connectionQueues.set(key, pending);
+    try { return await pending; }
+    finally { if (connectionQueues.get(key) === pending) connectionQueues.delete(key); }
+  }
+  for (const name of connectionActions) {
+    const action = api[name];
+    api[name] = (key, ...args) => queueConnectionAction(key, () => action.call(api, key, ...args));
+  }
+  const migrateLegacyAction = api.migrateLegacy;
+  const migrationQueue = Symbol('legacy-migration');
+  api.migrateLegacy = (...args) => queueConnectionAction(migrationQueue, () => migrateLegacyAction.call(api, ...args));
+  // First-time stdio installation must share the edit/disable/disconnect queue.
+  // Otherwise a delayed install can overwrite a newer overlay or resurrect a removed entry.
+  // OAuth retains its independent shared-authorization deduplication path.
+  const connectAction = api.connect;
+  api.connect = (connectorId, serverKey, ...args) => {
+    const connector = state.merged.find((item) => item.id === connectorId);
+    const server = connector?.servers.find((item) => item.serverKey === serverKey) ?? connector?.servers[0];
+    const run = () => connectAction.call(api, connectorId, serverKey, ...args);
+    return connector?.auth.mode === 'none' && server?.transport === 'stdio'
+      ? queueConnectionAction(`${connector.id}-${server.serverKey}`, run)
+      : run();
+  };
+  const discoveryMutations = new Set(['authorizeCustom', 'connect', 'configure', 'importJson', 'installFromUrl', 'reconfigureConnection', 'applyLocalOverrides', 'setEnabled', 'reconnect', 'restoreSnapshot', 'migrateLegacy']);
+  const discoveryApi = new Proxy(api, { get(target, property) {
+    const value = target[property];
+    if (!discoveryMutations.has(property)) return value;
+    return async (...args) => {
+      const result = await value.apply(target, args);
+      if (result?.ok) scheduleDiscovery();
+      return result;
+    };
+  } });
+  observeConnectionSuccess(api, connectionStatistics, {
+    known: id => state.merged.some(d => d.id === id) && !state.dynamic.has(id),
+    onError: statisticsError,
+  });
+  const observableApi = observeStatusEvents(discoveryApi, statusEvents);
+  scheduleDiscovery();
+  const discoveryInterval = setInterval(() => {
+    if (statusEvents.clients.size > 0 || [...discoveryPlans.values()].some((plan) => plan.reason === 'startup-pending')) scheduleDiscovery();
+  }, 5_000);
+  discoveryInterval.unref?.();
+  const disposeTools = registerTools(ctx, observableApi, { compact: config.compactManagementTools === true, t });
+
+  // New Host services are optional: legacy/CLI compositions retain their exact
+  // behavior. Availability of authenticated controls does not enable a smart
+  // default. The first mode selection remains one human preview/confirmation.
+  if (typeof ctx.inject === 'function' && config.compactManagementTools !== true) {
+    ctx.inject(['agents', 'sessions', 'sessionPersistence', 'profileContext', 'connection', 'sessionController', 'commands', 'webServer'], async (smartCtx) => {
+      let disposed = false, runtime;
+      smartCtx.effect(() => async () => {
+        disposed = true;
+        if (smartRuntime === runtime) smartRuntime = undefined;
+        await runtime?.close();
+      });
+      try {
+        runtime = await createSmartModeProduction(smartCtx, { account: config.account,
+          getRecords: () => state.connections.values(), getGrants: () => state.grants,
+          getDescriptors: () => state.merged,
+          isRecordUsable: (record) => record.enabled !== false && grantFailure(record) === null,
+          isRecordVisible: (record, agent) => connectionVisibleInWorkspace(connectionScopes.binding(record.key), workspaceIdForAgent(agent)),
+          isToolAllowed: (name) => hostGovernance.inspect(name)?.policy.effect === 'allow',
+          isManuallyActive: (name, record, agent) => hostSessionInjection.inspect(name, agent)?.active === true,
+          requestDiscovery() {
+            for (const record of state.connections.values()) if (record.connectorId === 'qcc-company') discoveryPlans.delete(record.key);
+            scheduleDiscovery();
+          }, logger, t,
+        });
+        if (disposed) { await runtime.close(); return; }
+        smartRuntime = runtime;
+        // A startup discovery may have finished while optional services loaded.
+        for (const record of state.connections.values()) if (record.connectorId === 'qcc-company') discoveryPlans.delete(record.key);
+        scheduleDiscovery();
+      } catch (error) { logger.warn(`smart enterprise unavailable: ${error.code ?? 'SMART_HOST_UNAVAILABLE'}`); }
+    });
+  }
+
+  /* ───────────────────────── web 半区（图形化市场）──────────────────────── */
+  // webServer + 新版 webStartup 或旧版 webRuntime；纯对话部署不挂载 HTTP 路由。
+  if (typeof ctx.inject === 'function') {
+    try {
+      injectWebRoutes(ctx, observableApi, {
+        logger,
+        eventHub: statusEvents,
+        frameAncestors: config.frameAncestors,
+        locale,
+        localePreference: config.locale,
+      });
+    } catch (error) {
+      logger.warn(`mcp-connector web UI not mounted (webServer unavailable): ${error.message}`);
+    }
+  }
+
+  ctx.effect(() => () => {
+    catalogDisposed = true;
+    clearTimeout(catalogTimer);
+    catalogController?.abort();
+    connectionStatistics.dispose();
+    discoveryDisposed = true;
+    clearTimeout(discoveryTimer);
+    clearInterval(discoveryInterval);
+    disposeTools();
+    hostGovernance.dispose();
+    toolInputGuard.dispose();
+    hostScopes.dispose();
+    hostSessionInjection.dispose();
+    statusEvents.dispose();
+    versionStatusService.dispose();
+    for (const g of state.grants.values()) if (g.timer) clearTimeout(g.timer);
+  });
+
+  if (catalogBackgroundCache) {
+    catalogTimer = setTimeout(() => {
+      void updateRemoteCatalog().catch(error => {
+        if (!catalogDisposed && error.name !== 'AbortError') logger.warn(`catalog background refresh failed (using cache): ${error.message}`);
+      });
+    }, 0);
+    catalogTimer.unref?.();
+  }
+
+  logger.info(t('mcp-connector active（目录 {count} 个连接器，已连接 {connected} 条）', { count: state.merged.length, connected: state.connections.size }));
+}
+
+export { entryIdFor };
+// Explicit APIs remain available to controlled integrations. Normal apply()
+// now composes supported Host services; smart mode still requires human opt-in.
+export { createSmartModeLifecycleAdapter } from './smart-mode-lifecycle.js';
+export { SmartModeStore } from './smart-mode-store.js';
+export { createSmartModeRestrictionController } from './smart-mode-restrictions.js';
+export { createSourceSelector } from './source-selection.js';
+export { createSmartModePrepareController, normalizeReadOnlyReview } from './smart-mode-prepare.js';
+export { SMART_RESOURCE_HOST_CONTRACT, estimateSmartToolTokens } from './smart-mode-resources.js';
+export { createSmartModeIntegration, SMART_INTEGRATION_HOST_CONTRACT } from './smart-mode-integration.js';
+export { createSmartModeDiscoveryPublisher } from './smart-mode-discovery.js';
+export { createSmartEnterpriseRecordView } from './smart-mode-bindings.js';
+export { createSmartModeControl, createSmartSessionActions, SMART_SESSION_CONTROL_HOST_CONTRACT } from './smart-mode-control.js';
+export { mountSmartModeControlRoutes } from './smart-mode-control-web.js';
+export { createReadOnlyEvidenceVerifier, readOnlyEvidenceSigningBytes, readOnlyEvidenceDirectory } from './read-only-evidence.js';

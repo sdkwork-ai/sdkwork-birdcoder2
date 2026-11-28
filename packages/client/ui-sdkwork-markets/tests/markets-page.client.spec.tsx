@@ -26,6 +26,7 @@ import type {
 import { MarketsPage, type MarketsPageProps } from '../src/client/MarketsPage.tsx'
 import type { MarketsHostRenderSnapshot } from '../src/client/marketsHost.ts'
 import type { SkillsCatalogActions } from '../src/client/SkillsCatalogPage.tsx'
+import type { ExpertsCatalogActions } from '../src/client/ExpertsCatalogPage.tsx'
 import type { ConfigLedger, OfficialItem } from '../src/client/configItems.ts'
 import type { MarketsConfigForms } from '../src/client/settingsForms.ts'
 import { emptyInstallSession, type PluginStore, type PluginReadState, type PluginStoreState } from '../src/client/pluginStore.ts'
@@ -66,6 +67,31 @@ vi.mock('../src/client/marketsHost.ts', async () => {
         <button type="button" onClick={() => { onInstalledCountChange(3) }}>catalog.report.installed</button>
       </div>
     ),
+    // The cloud expert catalog double stands in for the real page: it renders
+    // the search text the header owns and offers the two use actions, so the
+    // page contract can be asserted without the Agents App SDK.
+    ExpertsCatalogSurface: ({ searchQuery, onUseExpert, onUseTeam, t }: {
+      searchQuery?: string
+      onUseExpert: (expert: { slug: string; name: string }) => void
+      onUseTeam: (team: { teamId: string; name: string }) => void
+      t: (key: string) => string
+    }) => (
+      <div
+        data-testid="markets-app-experts"
+        {...(searchQuery === undefined ? {} : { 'data-search-query': searchQuery })}
+      >
+        Market surface experts {t('panel.experts.empty')}
+        <button
+          type="button"
+          onClick={() => { onUseExpert({ slug: 'engineering-code-reviewer', name: '代码审查专家' }) }}
+        >
+          catalog.use.expert
+        </button>
+        <button type="button" onClick={() => { onUseTeam({ teamId: 'team-product', name: '产品评审团' }) }}>
+          catalog.use.team
+        </button>
+      </div>
+    ),
     SdkworkPluginsMarketplace: (props: {
       searchQuery: string
       onSearchChange: (value: string) => void
@@ -97,23 +123,20 @@ const dispatchPrompt = vi.fn()
 
 /** The installed tab's configure double: records the configured rows. */
 const onConfigure = vi.fn()
+/** The catalog's use actions: the page hands each card's click through. */
+const onUseExpert = vi.fn()
+const onUseTeam = vi.fn()
 /**
- * The expert market's panel double: the roster panel the built-in
- * `@deepseek-ai/dsh-client-ui-sdkwork-experts` package registers, drawn in
- * place by the Experts tab's market chip.
- *
- * It reads its title from the registration's injected translator, exactly as
- * the real panel reads its copy and its remote client from that face: the
- * embedded draw must pass it, or the market renders without the data it was
- * written for (the first integration crashed that way).
+ * The cloud expert catalog's reads. The surface is doubled above, so these
+ * never run; they exist so the page's injected face stays type-checked against
+ * the real action shape.
  */
-function ExpertMarketPanelDouble({ t }: { t?: (key: string) => string }) {
-  return <div data-expert-market-panel="">{t?.('settings.title')}</div>
+const expertsCatalogDouble: ExpertsCatalogActions = {
+  listDivisions: async () => ({ items: [] }),
+  listExperts: async () => ({ items: [] }),
+  listTeams: async () => ({ items: [] }),
+  listCollections: async () => ({ items: [] }),
 }
-/** The injected face the expert market's registration carries. */
-const expertPanelInjected = { t: (key: string) => `agency:${key}` }
-/** The expert panel snapshot: one object, as the real source keeps it. */
-const expertPanelSnapshot = { component: ExpertMarketPanelDouble, injected: expertPanelInjected }
 /**
  * The MCP connector's panel snapshot: the page the plugin serves, resolved the
  * way the page resolves it (the Connectors tab frames it; it draws no catalog
@@ -461,6 +484,7 @@ const hostSnapshot: MarketsHostRenderSnapshot = {
   apiBaseUrl: 'https://fixture.example',
   accessToken: '',
   locale: 'en',
+  colorScheme: 'light',
   session: null,
   authenticated: true,
 }
@@ -492,14 +516,6 @@ function page(options: {
   read?: PluginReadState
   /** Leave the new SDKWork market page open instead of entering plugin management. */
   startOnMarketplace?: boolean
-  /**
-   * Whether the expert-market plugin registered its panel. True by default for
-   * the same reason: the shipped composition mounts that row and pins the
-   * plugin's entry on, so the Experts tab's market chip draws the roster in
-   * place; a case that says false exercises the notice a deployment without
-   * the row (or with the entry switched to settings-only) shows.
-   */
-  expertMarket?: boolean
   /**
    * Whether the MCP connector plugin registered its panel. True by default for
    * the same reason: the Connectors tab frames the page that plugin serves, and
@@ -534,13 +550,11 @@ function page(options: {
       // bundle through the service publishes here, exactly as the plugin does.
       bundleRequest={navigation.hooks.bundleRequest}
       onBundleRequestHandled={onBundleRequestHandled}
-      // The expert market's panel source: present by default for the same
-      // reason, so the Experts tab's market chip embeds the roster; a case that
-      // says false exercises the unavailable notice.
-      expertMarketPanel={{
-        getSnapshot: () => (options.expertMarket ?? true ? expertPanelSnapshot : undefined),
-        subscribe: () => () => {},
-      }}
+      // The cloud expert catalog's reads and its two use actions: the surface
+      // is doubled above, so these only have to satisfy the page's contract.
+      expertsCatalog={expertsCatalogDouble}
+      onUseExpert={onUseExpert}
+      onUseTeam={onUseTeam}
       // The connector's panel source: present by default (the shipped
       // composition mounts the row), so the Connectors tab frames the page the
       // plugin serves; a case that says false exercises the unavailable notice.
@@ -601,16 +615,6 @@ function clickPluginSubTab(view: ReturnType<typeof page>, id: 'market' | 'offici
 }
 
 /** Click one Experts sub-tab chip by its data-expert-subtab id. */
-function clickExpertSubTab(view: ReturnType<typeof page>, id: 'cloud' | 'market'): void {
-  const chip = view.container.querySelector(`[data-expert-subtab="${id}"]`) as HTMLElement
-  fireEvent.click(chip)
-}
-
-/** Click one Connectors sub-tab chip by its data-connector-subtab id. */
-function clickConnectorSubTab(view: ReturnType<typeof page>, id: 'cloud' | 'connector'): void {
-  const chip = view.container.querySelector(`[data-connector-subtab="${id}"]`) as HTMLElement
-  fireEvent.click(chip)
-}
 
 /** Wait for the official tab's bundle groups, whose cards render immediately. */
 async function awaitBundleGroups(view: ReturnType<typeof page>): Promise<void> {
@@ -719,22 +723,19 @@ describe('MarketsPage', () => {
     expect(view.queryByRole('button', { name: 'mine.skills' })).toBeNull()
 
     clickTab(view, 'tab.connectors')
-    // The Connectors tab lands on its cloud catalog (the App Store's MCP page),
-    // which the page's own search drives.
-    expect(view.getByTestId('markets-app-mcp')).toBeTruthy()
-    expect(view.getByRole('searchbox', { name: 'search.connectors' })).not.toBeNull()
-    expect(view.container.querySelector('[data-mcp-connector-embedded]')).toBeNull()
+    // The Connectors tab is one surface: the connector panel itself, framed in
+    // place. Its toolbar lives in this header row (the Skills arrangement): the
+    // three views with their counts, the search field and the add action.
+    expect(view.container.querySelector('[data-mcp-connector-embedded]')).not.toBeNull()
+    expect(view.container.querySelector('[data-mcp-connector-frame]')).not.toBeNull()
+    expect(view.getByRole('searchbox', { name: 'search.connectors' }).getAttribute('placeholder'))
+      .toBe('search.connectors')
+    expect(view.container.querySelector('[data-markets-add="connectors"]')).not.toBeNull()
+    expect(view.container.querySelectorAll('[data-connector-view]')).toHaveLength(3)
     expect(view.queryByRole('button', { name: 'mine.connectors' })).toBeNull()
     // The skills filter and add belong to the skills row, not to every category.
     expect(view.container.querySelector('[data-skills-installed]')).toBeNull()
     expect(view.container.querySelector('[data-markets-add="skills"]')).toBeNull()
-    // The connector chip is the MCP connector itself: the page its plugin
-    // serves, framed in place. The panel owns its search and its installed
-    // view, so the page draws neither of its own beside it.
-    clickConnectorSubTab(view, 'connector')
-    expect(view.container.querySelector('[data-mcp-connector-embedded]')).not.toBeNull()
-    expect(view.container.querySelector('[data-mcp-connector-frame]')).not.toBeNull()
-    expect(view.queryByRole('searchbox')).toBeNull()
 
     // Back to Experts restores the experts panel and tools.
     clickTab(view, 'tab.experts')
@@ -773,87 +774,85 @@ describe('MarketsPage', () => {
     expect(view.getByTestId('markets-app-skills').getAttribute('data-installed-only')).toBe('false')
   })
 
-  it('renders the Experts sub-tabs with the cloud catalog leading and the expert market one click behind', () => {
+  it('lands the Experts tab on one cloud catalog with no sub-tab split', () => {
     const view = page()
     clickTab(view, 'tab.experts')
-    const strip = view.getByRole('tablist', { name: 'subtabs.experts.label' })
-    const chips = Array.from(strip.querySelectorAll('[role="tab"]'))
-    expect(chips.map(chip => chip.getAttribute('data-expert-subtab'))).toEqual(['cloud', 'market'])
-    expect(chips.map(chip => chip.textContent)).toEqual(['subtab.expertCloud', 'subtab.expertMarket'])
-    // The cloud catalog is the landing view, and the my-experts affordance
-    // belongs to it: the market chip owns its own management.
-    expect(chips[0].getAttribute('aria-selected')).toBe('true')
-    expect(chips[1].getAttribute('aria-selected')).toBe('false')
+    // One view: the cloud catalog. The chip rail that used to split the tab
+    // into an App Store catalog and the plugin's roster is gone, and the land
+    // is the catalog itself.
+    expect(view.queryByRole('tablist', { name: 'subtabs.experts.label' })).toBeNull()
+    expect(view.container.querySelector('[data-experts-subtabs]')).toBeNull()
+    expect(view.container.querySelector('[data-expert-subtab]')).toBeNull()
     expect(view.getByTestId('markets-app-experts')).toBeTruthy()
-    expect(view.container.querySelector('[data-expert-market-embedded]')).toBeNull()
+    // The page header owns the catalog's search, and the my-experts affordance
+    // opens the management view beside it.
+    expect(view.getByRole('searchbox', { name: 'search.experts' })).not.toBeNull()
     expect(view.getByRole('button', { name: 'mine.experts' })).not.toBeNull()
 
-    // The market chip draws the plugin's own roster panel in place, and the
-    // header drops its search because the panel carries its own.
-    clickExpertSubTab(view, 'market')
-    expect(view.container.querySelector('[data-expert-market-embedded]')).not.toBeNull()
-    expect(view.container.querySelector('[data-expert-market-panel]')!.textContent)
-      .toBe('agency:settings.title')
-    expect(view.queryByRole('searchbox', { name: 'search.experts' })).toBeNull()
-    expect(view.queryByRole('button', { name: 'mine.experts' })).toBeNull()
-    expect(view.container.querySelector('[data-markets-tab="experts"]')!.getAttribute('data-experts-subtab'))
-      .toBe('market')
+    // The catalog's own use actions reach the page's handlers.
+    fireEvent.click(view.getByRole('button', { name: 'catalog.use.expert' }))
+    expect(onUseExpert).toHaveBeenCalledWith({ slug: 'engineering-code-reviewer', name: '代码审查专家' })
+    fireEvent.click(view.getByRole('button', { name: 'catalog.use.team' }))
+    expect(onUseTeam).toHaveBeenCalledWith({ teamId: 'team-product', name: '产品评审团' })
 
-    // Leaving Experts and coming back always lands on the cloud catalog.
+    // Leaving the tab and coming back keeps the single catalog: there is no
+    // sub-tab state left to restore.
     clickTab(view, 'tab.plugins')
     fireEvent.click(view.getByRole('button', { name: 'market.partners' }))
-    expect(view.container.querySelector('[data-expert-subtab][aria-selected="true"]')!.getAttribute('data-expert-subtab'))
-      .toBe('cloud')
     expect(view.getByTestId('markets-app-experts')).toBeTruthy()
   })
 
-  it('names a deployment without the expert-market panel instead of leaving the tab blank', () => {
-    const view = page({ expertMarket: false })
-    clickTab(view, 'tab.experts')
-    // The cloud catalog leads, so a deployment without the row never leaves the
-    // tab blank.
-    expect(view.getByTestId('markets-app-experts')).toBeTruthy()
-    clickExpertSubTab(view, 'market')
-    expect(view.container.querySelector('[data-expert-market-embedded]')).toBeNull()
-    expect(view.container.querySelector('[data-expert-market-unavailable]')).not.toBeNull()
-    expect(view.getByText('experts.market.unavailable.title')).not.toBeNull()
-    expect(view.getByText('experts.market.unavailable.detail')).not.toBeNull()
-  })
-
-  it('frames the MCP connector\'s own page on its connectors chip', () => {
+  it('frames the MCP connector\'s own page as the whole Connectors tab', () => {
     const view = page()
     clickTab(view, 'tab.connectors')
-    // The category lands on its cloud catalog, which is a store view: the
-    // connector's frame is one chip behind.
-    expect(view.getByTestId('markets-app-mcp')).toBeTruthy()
-    // The page's search field is the MCP catalog's controlled filter.
-    const search = view.getByRole('searchbox', { name: 'search.connectors' })
-    fireEvent.change(search, { target: { value: 'qcc' } })
-    expect(view.getByTestId('markets-app-mcp').getAttribute('data-search-query')).toBe('qcc')
-    clickConnectorSubTab(view, 'connector')
+    // The Connectors tab is the connector itself: its panel page, framed in
+    // place, with no cloud catalog in front of it.
     const frame = view.container.querySelector('[data-mcp-connector-frame]')
     expect(frame?.getAttribute('src')).toBe('/mcp-connector/ui/')
     // The frame carries the product name as its accessible name.
     expect(frame?.getAttribute('title')).toBe('connectors.surface.title')
-    // The connector chip is the connector itself, not a cloud catalog: nothing
-    // of the storefront's MCP page rides along and no page-level search
-    // competes with the panel's own.
+    // No second storefront page rides along; the header's tools are the
+    // connector's own (view switch, search, add), not a cloud catalog's.
     expect(view.queryByTestId('markets-app-mcp')).toBeNull()
-    expect(view.queryByRole('searchbox')).toBeNull()
+    expect(view.container.querySelectorAll('[data-connector-view]')).toHaveLength(3)
+    expect(view.container.querySelector('[data-connector-search]')).not.toBeNull()
+  })
+
+  it('drives the connector view chips, search and add from the header', () => {
+    const view = page()
+    clickTab(view, 'tab.connectors')
+    const market = view.container.querySelector('[data-connector-view="market"]') as HTMLElement
+    const installed = view.container.querySelector('[data-connector-view="installed"]') as HTMLElement
+    // The market view leads; the two list views print the counts the page
+    // reports, so the chips and the panel can never disagree.
+    expect(market.getAttribute('aria-selected')).toBe('true')
+    expect(market.textContent).toContain('0')
+    fireEvent.click(installed)
+    expect(installed.getAttribute('aria-selected')).toBe('true')
+    expect(market.getAttribute('aria-selected')).toBe('false')
+
+    const search = view.getByRole('searchbox', { name: 'search.connectors' })
+    fireEvent.change(search, { target: { value: 'qcc' } })
+    expect((search as HTMLInputElement).value).toBe('qcc')
+
+    // The add action is the connector page's own add dialog trigger; the page
+    // only raises the command.
+    expect(view.container.querySelector('[data-markets-add="connectors"]')).not.toBeNull()
   })
 
   it('names a deployment that disabled the connector row instead of framing a missing route', () => {
     const view = page({ connector: false })
     clickTab(view, 'tab.connectors')
-    // The cloud catalog still leads, so the category is never blank.
-    expect(view.getByTestId('markets-app-mcp')).toBeTruthy()
-    clickConnectorSubTab(view, 'connector')
     // No panel is registered, so the tab states that rather than pointing a
-    // frame at a route nobody serves.
+    // frame at a route nobody serves — and the header offers no connector tools
+    // that could not reach anything.
     expect(view.container.querySelector('[data-mcp-connector-frame]')).toBeNull()
     expect(view.container.querySelector('[data-mcp-connector-unavailable]')).not.toBeNull()
     expect(view.getByText('connectors.unavailable.title')).not.toBeNull()
     expect(view.getByText('connectors.unavailable.detail')).not.toBeNull()
+    expect(view.container.querySelector('[data-connector-views]')).toBeNull()
+    expect(view.queryByRole('searchbox')).toBeNull()
+    expect(view.container.querySelector('[data-markets-add="connectors"]')).toBeNull()
   })
 
   it('opens the skills add menu from the page header', () => {
@@ -1051,9 +1050,9 @@ describe('MarketsPage', () => {
     expect(view.container.querySelector('[data-plugins-subtabs]')).not.toBeNull()
     clickTab(view, 'tab.experts')
     expect(view.container.querySelector('[data-plugins-subtabs]')).toBeNull()
-    // Experts is a sub-root too: the cloud catalog leads it and the expert
-    // market keeps the second chip.
-    expect(view.container.querySelector('[data-experts-subtabs]')).not.toBeNull()
+    // Experts is a single surface like Skills: the cloud catalog is the whole
+    // tab, so it mounts no chip row of its own.
+    expect(view.container.querySelector('[data-experts-subtabs]')).toBeNull()
     expect(view.getByTestId('markets-app-experts')).toBeTruthy()
     clickTab(view, 'tab.skills')
     expect(view.container.querySelector('[data-experts-subtabs]')).toBeNull()
@@ -1063,7 +1062,9 @@ describe('MarketsPage', () => {
     expect(view.container.querySelector('[data-plugins-subtabs]')).toBeNull()
     expect(view.getByRole('searchbox', { name: 'search.skills' })).not.toBeNull()
     clickTab(view, 'tab.connectors')
-    expect(view.container.querySelector('[data-connectors-subtabs]')).not.toBeNull()
+    // Connectors is a single surface too: the connector panel is the whole tab,
+    // so it mounts no chip row of its own.
+    expect(view.container.querySelector('[data-connectors-subtabs]')).toBeNull()
     expect(view.container.querySelector('[data-skills-subtabs]')).toBeNull()
     clickTab(view, 'tab.plugins')
     // Re-entering Plugins restores the market page without the local roster chrome.

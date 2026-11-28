@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-28-expert-market-one-cloud-catalog.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-28-expert-market-one-cloud-catalog.md
+/agent-note-one-cloud-expert-catalog-for-the-experts-tab:
+  en: 96677ac815b1b4ba
+  zh: dc9c740bb31de512
+/agent-note-one-cloud-expert-catalog-for-the-experts-tab/problem:
+  en: dcb084378c034f55
+  zh: d8b4fc187b88c682
+/agent-note-one-cloud-expert-catalog-for-the-experts-tab/decision:
+  en: 504c88d6836c0eb8
+  zh: cb0fda0f817451ca
+/agent-note-one-cloud-expert-catalog-for-the-experts-tab/alternatives-considered:
+  en: e6ce550237ded0a1
+  zh: 07bcbfce084e9747
+/agent-note-one-cloud-expert-catalog-for-the-experts-tab/consequences:
+  en: 4a60e95db0646a8e
+  zh: fed78edb1dc9f1a6

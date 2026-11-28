@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-06-markets-cloud-catalog-first.md
 /agent-note-every-market-category-lands-on-its-cloud-catalog:
-  en: 5e03f30861db24b6
-  zh: 59c16fc51fb1322a
+  en: 13df91514a2ff1e4
+  zh: 6991c0def8bcb0a8
 /agent-note-every-market-category-lands-on-its-cloud-catalog/problem:
   en: 82d5f95c82e5c639
   zh: c2d099d10dcf6b0f
