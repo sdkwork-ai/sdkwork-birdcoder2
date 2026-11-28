@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-experts",
   "description": "SDKWork expert market: the built-in roster of 331 summonable experts and five expert teams (Host half: persona library, summon/creation tools, the agency-agents settings namespace and the team engine) with the Experts browser face (the expert gallery, the settings management page, the composer @ picker and the recommend bar)",
-  "version": "0.2.3-alpha.2",
+  "version": "0.2.3-alpha.3",
   "publishConfig": {
     "access": "public"
   },
