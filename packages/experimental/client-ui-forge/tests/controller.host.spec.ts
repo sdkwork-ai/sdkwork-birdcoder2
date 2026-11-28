@@ -7,7 +7,7 @@ import { appendPluginRecord, type SessionId } from '@deepseek-ai/dsh-session'
 import type { Session } from '@deepseek-ai/dsh-session'
 import WorktreeService from '@deepseek-ai/dsh-experimental-worktree'
 import ForgePanelController from '../src/index.ts'
-import type { Config, ForgeLocalDiff, ForgePanelState, ForgeSessionWorktree, ForgeWorktreeState } from '../src/index.ts'
+import type { Config, ForgeLocalDiff, ForgeLocalWriteFile, ForgePanelState, ForgeSessionWorktree, ForgeWorktreeState } from '../src/index.ts'
 import { GitOutputTooLarge } from '../src/git.ts'
 import { WORKTREE_RECORD } from '../src/worktree.ts'
 import { missingWorktree } from '../src/panel.ts'
@@ -70,10 +70,11 @@ const UNAVAILABLE = {
 }
 
 /**
- * The same facts once the Session works in its worktree: its root no longer contains the repository's Git
- * directory, which another worktree would have to write. The option that shows the blocker is hidden by then.
+ * The same facts once the Session works in its worktree. Its root no longer contains the repository's Git
+ * directory, which another worktree would have to write; the worktree service's linked-worktree grant covers that
+ * directory except on Windows. The option that shows the blocker is hidden by then.
  */
-const IN_WORKTREE = { ...UNAVAILABLE, blocker: 'outside-writable-root' as const }
+const IN_WORKTREE = { ...UNAVAILABLE, blocker: process.platform === 'win32' ? 'outside-writable-root' as const : null }
 
 /** Matches a generated branch name with the default prefix. */
 const GENERATED_BRANCH: unknown = expect.stringMatching(/^dsh-[0-9a-f]{8}$/)
@@ -544,6 +545,49 @@ describe('forgePanel local changes', () => {
     await expect(opened.ctx.forgePanel.localText(opened.session, { kind: 'unstaged' }, 'tracked.txt', signal)).resolves.toBe('initial\nmore\n')
   })
 
+  it('writes the checkout of a read-only Session, reports a stale write by code, and measures the branch scope again', async () => {
+    const { repo } = await project()
+    await withDefaultBranch(repo)
+    await writeFile(join(repo, 'tracked.txt'), 'initial\nmore\n')
+    await writeFile(join(repo, 'notes.md'), 'hello\n')
+    const opened = await open(repo)
+    // The access mode bounds the Agent; the write is the caller's own.
+    setSandboxMode(opened.session, 'read-only')
+    const follower = reader(opened)
+    await follower.until(state => state.local?.files.length === 2)
+    const { files } = await opened.ctx.forgePanel.localDiff(opened.session, { kind: 'unstaged' }, signal)
+    const [tracked] = files.map(file => ({ path: file.path, digest: file.digest })) as [ForgeLocalWriteFile]
+
+    await expect(opened.ctx.forgePanel.localWrite(opened.session, { kind: 'stage', files: [{ ...tracked, digest: 'other' }] }, signal))
+      .rejects.toMatchObject({ code: 'forgePanel/local-stale', message: 'tracked.txt changed since it was read' })
+    await expect(opened.ctx.forgePanel.localWrite(opened.session, { kind: 'unstage', paths: ['../outside'] }, signal))
+      .rejects.toThrow('is not a path inside the checkout')
+
+    const { undo } = await opened.ctx.forgePanel.localWrite(opened.session, { kind: 'stage', files: [tracked] }, signal)
+    expect(undo).toMatch(/^[0-9a-f]{40}$/)
+    await expect(opened.ctx.forgePanel.localDiff(opened.session, { kind: 'staged' }, signal)).resolves.toMatchObject({ files: [{ path: 'tracked.txt' }] })
+    await opened.ctx.forgePanel.localWrite(opened.session, { kind: 'unstage', paths: ['tracked.txt'] }, signal)
+
+    // The write is the only cause of the inspection that measures the restored file away.
+    await expect(opened.ctx.forgePanel.localWrite(opened.session, { kind: 'restore', files: [tracked] }, signal)).resolves.toEqual({ undo: null })
+    await expect(follower.until(state => state.local?.files.length === 1)).resolves.toMatchObject({ local: { files: [{ path: 'notes.md' }] } })
+  })
+
+  it('reports a deleted file whose path holds a directory by code', async () => {
+    const { repo } = await project()
+    await withDefaultBranch(repo)
+    await rm(join(repo, 'tracked.txt'))
+    await mkdir(join(repo, 'tracked.txt'))
+    await writeFile(join(repo, 'tracked.txt', 'inner.md'), 'inner\n')
+    const opened = await open(repo)
+    const { files } = await opened.ctx.forgePanel.localDiff(opened.session, { kind: 'unstaged' }, signal)
+    const deleted = files.filter(file => file.path === 'tracked.txt').map(file => ({ path: file.path, digest: file.digest }))
+
+    await expect(opened.ctx.forgePanel.localWrite(opened.session, { kind: 'restore', files: deleted }, signal))
+      .rejects.toMatchObject({ code: 'forgePanel/local-path-replaced', message: 'tracked.txt is a directory now; stage or restore the files in it instead' })
+    await expect(access(join(repo, 'tracked.txt', 'inner.md'))).resolves.toBeUndefined()
+  })
+
   it('compares the branch scope with a chosen base branch and lists the branches it can choose', async () => {
     const { repo } = await project()
     await withDefaultBranch(repo)
@@ -559,7 +603,7 @@ describe('forgePanel local changes', () => {
     expect([automatic.base, paths(automatic)]).toEqual(['origin/main', ['feature.txt', 'notes.md']])
     const chosen = await opened.ctx.forgePanel.localDiff(opened.session, { kind: 'branch', base: 'refs/heads/topic', commits: null }, signal)
     expect([chosen.base, paths(chosen)]).toEqual(['topic', ['notes.md']])
-    await expect(opened.ctx.forgePanel.diffBases(opened.session, '', signal)).resolves.toEqual({
+    await expect(opened.ctx.forgePanel.diffBases(opened.session, null, '', signal)).resolves.toEqual({
       automatic: { name: 'origin/main', worktree: false },
       remote: [{ ref: 'refs/remotes/origin/main', name: 'origin/main' }],
       local: [{ ref: 'refs/heads/topic', name: 'topic' }],
@@ -568,7 +612,7 @@ describe('forgePanel local changes', () => {
       .rejects.toMatchObject({ code: 'forgePanel/base-missing' })
 
     const outside = await open(await plain())
-    await expect(outside.ctx.forgePanel.diffBases(outside.session, '', signal)).rejects.toMatchObject({ code: 'forgePanel/not-a-checkout' })
+    await expect(outside.ctx.forgePanel.diffBases(outside.session, null, '', signal)).rejects.toMatchObject({ code: 'forgePanel/not-a-checkout' })
   })
 
   it('lists the commits of the branch scope and reads chosen ones', async () => {
@@ -583,10 +627,10 @@ describe('forgePanel local changes', () => {
     await writeFile(join(repo, 'notes.md'), 'hello\n')
     const opened = await open(repo, { maxCommits: 2 })
 
-    const listed = await opened.ctx.forgePanel.localCommits(opened.session, null, signal)
+    const listed = await opened.ctx.forgePanel.localCommits(opened.session, null, null, signal)
     expect(listed).toMatchObject({ truncated: true, headSha: await git(repo, 'rev-parse', 'HEAD') })
     expect(listed.commits.map(commit => commit.title)).toEqual(['two', 'three'])
-    await expect(opened.ctx.forgePanel.localCommits(opened.session, 'refs/heads/topic', signal))
+    await expect(opened.ctx.forgePanel.localCommits(opened.session, null, 'refs/heads/topic', signal))
       .resolves.toMatchObject({ truncated: false, commits: [{ title: 'three' }] })
     const [two, three] = listed.commits.map(commit => commit.sha)
     const chosen = await opened.ctx.forgePanel.localDiff(opened.session,
@@ -597,7 +641,7 @@ describe('forgePanel local changes', () => {
     await expect(opened.ctx.forgePanel.localDiff(opened.session,
       { kind: 'branch', base: 'refs/heads/topic', commits: { from: two ?? '', to: three ?? '' } }, signal))
       .rejects.toMatchObject({ code: 'forgePanel/commits-missing' })
-    await expect(opened.ctx.forgePanel.localCommits(opened.session, 'refs/heads/gone', signal)).rejects.toMatchObject({ code: 'forgePanel/base-missing' })
+    await expect(opened.ctx.forgePanel.localCommits(opened.session, null, 'refs/heads/gone', signal)).rejects.toMatchObject({ code: 'forgePanel/base-missing' })
     // A merged side branch lists its commit beside the branch's own, so a run across them is refused.
     await git(repo, 'checkout', '--quiet', '-b', 'side', 'origin/main')
     await writeFile(join(repo, 'side.txt'), 'side\n')
@@ -613,9 +657,9 @@ describe('forgePanel local changes', () => {
 
     const unrelated = await project()
     const lonely = await open(unrelated.repo)
-    await expect(lonely.ctx.forgePanel.localCommits(lonely.session, null, signal)).rejects.toMatchObject({ code: 'forgePanel/no-fork-point' })
+    await expect(lonely.ctx.forgePanel.localCommits(lonely.session, null, null, signal)).rejects.toMatchObject({ code: 'forgePanel/no-fork-point' })
     const outside = await open(await plain())
-    await expect(outside.ctx.forgePanel.localCommits(outside.session, null, signal)).rejects.toMatchObject({ code: 'forgePanel/not-a-checkout' })
+    await expect(outside.ctx.forgePanel.localCommits(outside.session, null, null, signal)).rejects.toMatchObject({ code: 'forgePanel/not-a-checkout' })
   })
 
   it('lists more refs than other Git output may print, up to maxDiffBytes', async () => {
@@ -626,13 +670,13 @@ describe('forgePanel local changes', () => {
     expect(listing.length).toBeGreaterThan(1024)
 
     const limited = await open(repo, { maxOutputBytes: 1024, maxBranches: 3 })
-    await expect(limited.ctx.forgePanel.diffBases(limited.session, '', signal)).resolves.toMatchObject({ remote: { length: 3 } })
-    await expect(limited.ctx.forgePanel.diffBases(limited.session, 'name-39', signal)).resolves.toMatchObject({
+    await expect(limited.ctx.forgePanel.diffBases(limited.session, null, '', signal)).resolves.toMatchObject({ remote: { length: 3 } })
+    await expect(limited.ctx.forgePanel.diffBases(limited.session, null, 'name-39', signal)).resolves.toMatchObject({
       remote: [{ name: 'origin/a-long-branch-name-39' }],
     })
 
     const refused = await open(repo, { maxOutputBytes: 1024, maxDiffBytes: 1024 })
-    await expect(refused.ctx.forgePanel.diffBases(refused.session, '', signal)).rejects.toBeInstanceOf(GitOutputTooLarge)
+    await expect(refused.ctx.forgePanel.diffBases(refused.session, null, '', signal)).rejects.toBeInstanceOf(GitOutputTooLarge)
   })
 
   it('reports a directory outside a checkout, a branch without a fork point, and a diff over the limit', async () => {
@@ -996,6 +1040,19 @@ describe('forgePanel worktree blockers', () => {
     expect(blocked.worktree.blocker).toBe('outside-writable-root')
     expect(granted.worktree.blocker).toBeNull()
     expect(revoked.worktree.blocker).toBe('outside-writable-root')
+  })
+
+  it('offers a worktree from a linked checkout when the worktree service is mounted, whose linked-worktree grant covers the shared Git directory', async () => {
+    const { root, repo } = await project()
+    const linked = join(root, 'linked')
+    await git(repo, 'worktree', 'add', '-b', 'feat', linked)
+    const opened = await open(linked, {}, { worktrees: true })
+
+    const state = await reader(opened).until(ready)
+
+    // The grant is registered at Agent creation, before the panel's first inspection; Windows gets none.
+    expect(state.checkout).toMatchObject({ state: 'ready', checkout: { root: linked, branch: 'feat', linked: true } })
+    expect(state.worktree.blocker).toBe(process.platform === 'win32' ? 'outside-writable-root' : null)
   })
 
   it('shows no blocker after an inspection fails', async () => {
@@ -1585,7 +1642,9 @@ describe('forgePanel removed worktrees', () => {
     // The Session's own root is the removed directory; the branch probe runs under the source repository's boundary
     // and keeps the Session's grants. Creation ran an earlier `show-ref`, before the grant.
     const probe = opened.sandbox.calls.findLast(call => call.argv.includes('show-ref'))
-    expect(probe?.policy).toMatchObject({ mode: 'workspace-write', workspaceRoot: repo, additionalWritableRoots: [granted] })
+    // The worktree service's linked-worktree grant registered the repository's Git directory when the Session entered the worktree.
+    const grants = process.platform === 'win32' ? [granted] : [join(repo, '.git'), granted]
+    expect(probe?.policy).toMatchObject({ mode: 'workspace-write', workspaceRoot: repo, additionalWritableRoots: grants })
     const pruning = hold(opened.sandbox, 'list')
     const resetting = hold(opened.sandbox, 'reset')
     const restoring = opened.ctx.forgePanel.restoreWorktree(opened.session, signal)
@@ -1898,7 +1957,7 @@ describe('forgePanel leaving a worktree', () => {
     await expect(opened.ctx.forgePanel.continueInProject(unloaded, signal))
       .rejects.toMatchObject({ code: 'forgePanel/session-busy', message: 'The Session is not loaded' })
     await expect(opened.ctx.forgePanel.continueInProject(opened.session, signal))
-      .rejects.toMatchObject({ code: 'forgePanel/session-busy', message: 'The Session is busy' })
+      .rejects.toMatchObject({ code: 'forgePanel/session-busy', message: expect.stringMatching(/^The Session is busy: agent ".+" /) as string })
     await release()
 
     expect(opened.ctx.workingDirectory.get(unloaded)).toBe(created.path)
@@ -2056,6 +2115,32 @@ describe('forgePanel actions', () => {
       .rejects.toMatchObject({ code: 'forgePanel/action-failed', message: 'Pull Request is not mergeable' })
 
     expect(opened.provider.actions).toEqual(['ready 7', `merge 7 squash ${head}`, `merge 7 rebase ${head}`, 'ready 7', `merge 7 merge ${head}`])
+  })
+
+  it('turns the automatic merge of a bound change request on and off through its provider', async () => {
+    const { repo } = await project()
+    const opened = await open(repo)
+    shellTurn(opened.session, 1, [{ callId: 'create', command: 'gh pr create --fill', output: `${pullUrl(7)}\n` }])
+    const follower = reader(opened)
+    await follower.until(state => ready(state) && polled(state, pullUrl(7)))
+    const on = { enabled: true as const, method: 'merge' as const, headSha: 'a'.repeat(40) }
+
+    await expect(opened.ctx.forgePanel.setAutoMerge(opened.session, pullUrl(7), on, signal))
+      .rejects.toMatchObject({ code: 'forgePanel/action-failed', message: 'This provider sets no automatic merge' })
+    const setAutoMerge = vi.fn<NonNullable<ForgeProvider['setAutoMerge']>>(() => Promise.resolve(undefined))
+    Object.assign(opened.provider, { setAutoMerge })
+    await opened.ctx.forgePanel.setAutoMerge(opened.session, pullUrl(7), on, signal)
+    await opened.ctx.forgePanel.setAutoMerge(opened.session, pullUrl(7), { enabled: false }, signal)
+    expect(setAutoMerge.mock.calls.map(([target, request]) => [target.number, request])).toEqual([[7, on], [7, { enabled: false }]])
+    setAutoMerge.mockResolvedValueOnce({ code: 'stale', message: 'Head moved' })
+    await expect(opened.ctx.forgePanel.setAutoMerge(opened.session, pullUrl(7), on, signal))
+      .rejects.toMatchObject({ code: 'forgePanel/stale-head', message: 'Head moved' })
+    // A URL the Session does not bind names no change request to act on.
+    await expect(opened.ctx.forgePanel.setAutoMerge(opened.session, pullUrl(8), on, signal)).rejects.toMatchObject({ code: 'forgePanel/not-bound' })
+    const aborted = new AbortController()
+    aborted.abort(new Error('closed'))
+    await expect(opened.ctx.forgePanel.setAutoMerge(opened.session, pullUrl(7), on, aborted.signal)).rejects.toThrow('closed')
+    expect(setAutoMerge).toHaveBeenCalledTimes(3)
   })
 
   it('reads and saves viewed marks of a bound change request through its provider, separating a moved head', async () => {

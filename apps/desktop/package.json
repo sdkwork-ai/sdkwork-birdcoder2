@@ -2,7 +2,7 @@
   "name": "@deepseek-ai/dsh-desktop",
   "productName": "BirdCoder",
   "description": "Electron desktop shell for a bundled dsh runtime and external plugins",
-  "version": "0.2.3-alpha.2",
+  "version": "0.2.3-alpha.3",
   "private": true,
   "license": "MIT",
   "author": {
@@ -22,6 +22,7 @@
     "test:installer": "node scripts/test-windows-installer.mjs",
     "build": "tsc -b && pnpm run bundle",
     "bundle": "tsdown --config-loader native",
+    "build:native": "tsx native/shared-texture/scripts/build.ts",
     "dev": "tsx scripts/dev.ts",
     "dev:online": "tsx scripts/dev.ts --online",
     "start": "tsx scripts/dev.ts --skip-build",
@@ -84,6 +85,7 @@
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "3.1067.0",
+    "@deepseek-ai/dsh-shared-texture": "workspace:*",
     "@deepseek-ai/dsh-brand": "workspace:*",
     "@deepseek-ai/dsh-app-boot": "workspace:*",
     "@deepseek-ai/dsh-client-connection": "workspace:*",
@@ -105,13 +107,14 @@
     "extract-zip": "^2.0.1",
     "js-yaml": "^4.3.2",
     "koffi": "3.1.1",
+    "node-api-headers": "1.9.0",
     "pnpm": "11.28.5",
     "sharp": "0.35.5",
     "typescript": "^6.0.3",
     "@types/ws": "^8.18.1",
     "@deepseek-ai/dsh-client-ui-primitives": "workspace:*",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "vite": "^6.4.3",
     "@deepseek-ai/dsh-client-ui-theme": "workspace:*",
     "@deepseek-ai/dsh-client-shortcuts": "workspace:*",
@@ -122,6 +125,7 @@
     "@deepseek-ai/dsh-util-file-drag": "workspace:*",
     "@deepseek-ai/dsh-client-ui-file-actions": "workspace:*",
     "tencentcloud-sdk-nodejs-teo": "4.1.330",
-    "@deepseek-ai/dsh-desktop-publisher": "workspace:*"
+    "@deepseek-ai/dsh-desktop-publisher": "workspace:*",
+    "@deepseek-ai/dsh-util-values": "workspace:*"
   }
 }

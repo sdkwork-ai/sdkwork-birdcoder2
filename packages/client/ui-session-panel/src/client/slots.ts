@@ -2,17 +2,17 @@
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type {
   InjectFace, PropsLocale, PropsRenderFactories, PropsRenderSlots, PropsRuntime,
-} from '@deepseek-ai/dsh-client-ui-slots'
+} from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { RemoteHostFacts } from '@deepseek-ai/dsh-api-remotes/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { StateDotState } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {} from '@deepseek-ai/dsh-client-ui-context-menu/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type { NS } from './locales.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@deepseek-ai/dsh-client-ui-slots/client' {
   interface SlotMap {
     /**
      * Sections of the Session panel. `id` addresses the section, `order` sorts
@@ -34,12 +34,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'conversation.session.panel.section.actions': { kind: 'keyed'; scope: 'session' }
     /**
-     * Marks over the panel toggle, such as an attention dot. Each occupant is
-     * one element: the toggle sizes it to a 6px dot at the glyph's corner, and
-     * the occupant sets its `background` and includes text that names it for
-     * assistive technology, which becomes part of the toggle's name. Occupants
-     * overlap, and a higher `order` paints above a lower one. An occupant that
-     * only repeats what the panel shows renders nothing while `panelShown`.
+     * Status marks share a 6×6 px area at the panel toggle icon's top-right corner.
+     * Draw the mark on your own element; `position: absolute; inset: 0` fills
+     * the area. Supply its shape, color, and any ring. Include status text for
+     * the toggle's accessible name. Marks overlap; higher `order` paints on top.
+     * Render nothing when there is no status to report or when `panelShown` is
+     * true and the mark only repeats the panel.
      */
     'conversation.session.panel.indicator': {
       kind: 'list'

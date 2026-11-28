@@ -365,21 +365,43 @@ describe('package payload constraints', () => {
     } })).toContainEqual(expect.stringContaining('exports["./pipeline"] must expose'))
   })
 
-  it('publishes the reusable program factory and its shared implementation', () => {
-    const dir = 'packages/core/tool-executor-ptc'
+  it('publishes the PTC registry from its single entry point', () => {
+    const dir = 'packages/core/tool-registry-ptc'
     const manifest = JSON.parse(readFileSync(new URL(`../${dir}/package.json`, import.meta.url), 'utf8')) as WorkspaceManifest['manifest']
     expect(checkWorkspaceManifest({ dir, manifest })).toEqual([])
-    for (const omitted of ['lib/run-code.js', 'lib/_chunks/*.js']) {
-      expect(checkWorkspaceManifest({ dir, manifest: {
-        ...manifest, files: manifest.files!.filter(file => file !== omitted),
-      } })).toContainEqual(expect.stringContaining('package.json files must be'))
-    }
     expect(checkWorkspaceManifest({ dir, manifest: {
-      ...manifest, exports: {
-        ...manifest.exports,
-        './run-code': { types: './lib/types/run-code.d.ts', default: './lib/index.js' },
-      },
-    } })).toContainEqual(expect.stringContaining('exports["./run-code"] must expose'))
+      ...manifest, files: [...manifest.files!, 'lib/run-code.js'],
+    } })).toContainEqual(expect.stringContaining('package.json files must be'))
+  })
+
+  it('publishes the pi-ai provider row plugin and its locale resources under the package\'s provider subpath', () => {
+    const dir = 'packages/llm/llm-pi-ai'
+    const manifest = JSON.parse(readFileSync(new URL(`../${dir}/package.json`, import.meta.url), 'utf8')) as WorkspaceManifest['manifest']
+    const errorsWith = (change: Partial<WorkspaceManifest['manifest']>): string[] =>
+      checkWorkspaceManifest({ dir, manifest: { ...manifest, ...change } })
+    const without = (file: string): string[] => manifest.files!.filter(listed => listed !== file)
+    expect(errorsWith({})).toEqual([])
+    expect(errorsWith({ files: without('lib/provider-row.js') })).toContainEqual(expect.stringContaining('package.json files must be'))
+    expect(errorsWith({ files: without('locale/provider/*.json') })).toContainEqual(expect.stringContaining('package.json files must be'))
+    expect(errorsWith({ exports: { ...manifest.exports, './provider': { types: './lib/types/provider-row.d.ts', default: './lib/index.js' } } }))
+      .toContainEqual(expect.stringContaining('exports["./provider"] must expose'))
+    expect(errorsWith({ exports: { ...manifest.exports, './provider/locale/*.json': './locale/*.json' } }))
+      .toContainEqual(expect.stringContaining('exports["./provider/locale/*.json"] must be'))
+  })
+
+  it('publishes the MCP server row plugin and its locale resources under the manager package\'s server subpath', () => {
+    const dir = 'packages/mcp/mcp-manager'
+    const manifest = JSON.parse(readFileSync(new URL(`../${dir}/package.json`, import.meta.url), 'utf8')) as WorkspaceManifest['manifest']
+    const errorsWith = (change: Partial<WorkspaceManifest['manifest']>): string[] =>
+      checkWorkspaceManifest({ dir, manifest: { ...manifest, ...change } })
+    const without = (file: string): string[] => manifest.files!.filter(listed => listed !== file)
+    expect(errorsWith({})).toEqual([])
+    expect(errorsWith({ files: without('lib/server-row.js') })).toContainEqual(expect.stringContaining('package.json files must be'))
+    expect(errorsWith({ files: without('locale/server/*.json') })).toContainEqual(expect.stringContaining('package.json files must be'))
+    expect(errorsWith({ exports: { ...manifest.exports, './server': { types: './lib/types/server-row.d.ts', default: './lib/index.js' } } }))
+      .toContainEqual(expect.stringContaining('exports["./server"] must expose'))
+    expect(errorsWith({ exports: { ...manifest.exports, './server/locale/*.json': './locale/*.json' } }))
+      .toContainEqual(expect.stringContaining('exports["./server/locale/*.json"] must be'))
   })
 
   it('publishes the directory of each locale detail document after the locale resources', () => {
@@ -563,6 +585,34 @@ describe('package payload constraints', () => {
       } })).toEqual([expect.stringContaining('package.json files must be')])
     },
   )
+})
+
+describe('package root declarations', () => {
+  const dir = 'packages/client/ui-slots'
+  const manifest = JSON.parse(readFileSync(new URL(`../${dir}/package.json`, import.meta.url), 'utf8')) as WorkspaceManifest['manifest']
+  const withRootTypes = (types: string, exports = manifest.exports): WorkspaceManifest['manifest'] =>
+    ({ ...manifest, types, exports: { ...exports, '.': { types: `./${types}`, default: './lib/index.js' } } })
+
+  it('accepts a package root that reuses the declarations of its ./client entry', () => {
+    expect(manifest.types).toBe('lib/types/client/index.d.ts')
+    expect(checkWorkspaceManifest({ dir, manifest })).toEqual([])
+    expect(checkWorkspaceManifest({ dir, manifest: withRootTypes('lib/types/index.d.ts') })).toEqual([])
+  })
+
+  it('rejects package root declarations that are neither lib/types/index.d.ts nor the ./client declarations', () => {
+    expect(checkWorkspaceManifest({ dir, manifest: withRootTypes('lib/types/other.d.ts') })).toEqual([
+      expect.stringContaining('package.json must set "types": "lib/types/index.d.ts" or "lib/types/client/index.d.ts"'),
+      expect.stringContaining('package.json exports["."].types must be "./lib/types/index.d.ts" or "./lib/types/client/index.d.ts"'),
+    ])
+  })
+
+  it('rejects the ./client declarations at the root when the ./client entry declares other types', () => {
+    const exports = { ...manifest.exports, './client': { types: './lib/types/browser.d.ts', default: './lib/client.js' } }
+    expect(checkWorkspaceManifest({ dir, manifest: withRootTypes('lib/types/client/index.d.ts', exports) })).toEqual([
+      expect.stringContaining('package.json must set "types": "lib/types/index.d.ts" or "lib/types/browser.d.ts"'),
+      expect.stringContaining('package.json exports["."].types must be "./lib/types/index.d.ts" or "./lib/types/browser.d.ts"'),
+    ])
+  })
 })
 
 it('publishes CLI runtime declarations and rejects a payload that omits them', () => {

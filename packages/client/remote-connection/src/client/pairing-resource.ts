@@ -6,7 +6,7 @@ import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 import type { PairingRequestId, PairingRequestsValue } from '../types.ts'
 import type {} from '@deepseek-ai/dsh-client-remote-connection/remote'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@deepseek-ai/dsh-client-ui-slots/client' {
   interface ResourceProtocolMap {
     /** Pairing requests whose displayed codes require owner approval. */
     'device-pairing': PairingRequestsValue
@@ -69,7 +69,7 @@ export function requestsResource(remote: Pick<Context['remote']['remoteConnectio
         } catch (error) {
           return {
             ok: false,
-            error: remoteErrorOf(error) ?? new RemoteError('pairing/read-failed', 'Could not read pairing requests.', {}),
+            error: remoteErrorOf(error) ?? new RemoteError('pairing/read-failed', `Could not read pairing requests: ${String(error)}`, {}),
           }
         }
       }

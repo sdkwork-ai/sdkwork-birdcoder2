@@ -12,8 +12,8 @@ import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import type { SessionProjectionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
 import {
   type ArchivedFilter,
-  deriveFlat, deriveGroups, deriveSearchResults, orderByRecency, sessionSearchIndex, owningGroupKey, owningParentFolder,
-  pinCurrentBlank, reconcileManualOrder, sessionMemberIds, visibleSessionIds, workspaceLabel, UNGROUPED_KEY,
+  currentRowSessionId, deriveFlat, deriveGroups, deriveSearchResults, orderByRecency, sessionSearchIndex, owningGroupKey,
+  owningParentFolder, pinCurrentBlank, reconcileManualOrder, sessionMemberIds, visibleSessionIds, workspaceLabel, UNGROUPED_KEY,
 } from '../src/client/tree.ts'
 import { createWorkspaceViewStore } from '../src/client/stores.ts'
 
@@ -116,6 +116,28 @@ describe('owningGroupKey', () => {
     const workspaces = [workspace('first', ['owned'])]
     expect(owningGroupKey(workspaces, sid('owned'))).toBe('first')
     expect(owningGroupKey(workspaces, sid('loose'))).toBe(UNGROUPED_KEY)
+  })
+})
+
+describe('currentRowSessionId', () => {
+  const sub = (id: string, parentId: string): SessionSummary => ({ ...summary(id, 0), origin: 'subagent', parentId: sid(parentId) })
+
+  it('resolves a viewed subagent Session to its nearest non-subagent ancestor', () => {
+    const sessions = list(summary('root', 1), sub('child', 'root'), sub('grandchild', 'child'))
+    expect(currentRowSessionId(sessions)).toBeUndefined()
+    expect(currentRowSessionId(withMain(sessions, sid('root')))).toBe('root')
+    expect(currentRowSessionId(withMain(sessions, sid('grandchild')))).toBe('root')
+  })
+
+  it('resolves a viewed side conversation through side and subagent sources to the main conversation', () => {
+    const side = (id: string, parentId: string): SessionSummary => ({ ...summary(id, 0), origin: 'side', parentId: sid(parentId) })
+    const sessions = list(summary('root', 1), side('side', 'root'), sub('agent', 'side'), side('nested', 'agent'))
+    expect(currentRowSessionId(withMain(sessions, sid('nested')))).toBe('root')
+  })
+
+  it('stops at an absent parent or a lineage cycle', () => {
+    expect(currentRowSessionId(withMain(list(sub('orphan', 'missing')), sid('orphan')))).toBe('orphan')
+    expect(currentRowSessionId(withMain(list(sub('a', 'b'), sub('b', 'a')), sid('a')))).toBe('a')
   })
 })
 
@@ -437,6 +459,20 @@ describe('deriveGroups', () => {
       sessions, [workspace('first', ['parent', 'fork'])], 'parent', noArchive, 'default',
       noAttention, { items: [], hasMore: false }, 10,
     ).items[0]).toMatchObject({ id: parent.id, runningSubagentCount: 1 })
+  })
+
+  it('hides side-origin sessions from groups, the flat list, and title search', () => {
+    const source = summary('source', 1)
+    const side = { ...summary('source side', 2), origin: 'side' as const }
+    const sessions = list(source, side)
+    const groups = deriveGroups(sessions, [workspace('first', ['source', 'source side'])], noRows, noAttention, view(['first']))
+
+    expect(groups[0]!.sessions.map(node => node.id)).toEqual([source.id])
+    expect(groups[0]!.sessionCount).toBe(1)
+    expect(deriveFlat(sessions, visibleSessionIds(sessions, noArchive, 'default'), noRows, noAttention)
+      .map(node => node.id)).toEqual([source.id])
+    expect(searchResults(sessions, [], 'source', noArchive, 'default', noAttention, { items: [], hasMore: false }, 10)
+      .items.map(item => item.id)).toEqual([source.id])
   })
 
   it('uses current child status only for members of the direct parent catalog', () => {

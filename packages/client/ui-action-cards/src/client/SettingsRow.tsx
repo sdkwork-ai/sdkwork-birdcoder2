@@ -1,8 +1,8 @@
 /** General settings row for the switch that offers action cards. */
 import { useState } from 'react'
-import { Button, IconInfoOutlineRegular, Switch, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconInfoOutlineRegular, Switch, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type { ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
-import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots/client'
 import css from './SettingsRow.module.css'
 
 /** The Host `action-cards` field this row edits. */
@@ -27,7 +27,7 @@ export interface SettingsRowInjected {
  * @returns the General settings row.
  */
 export function SettingsRow({ useCardSettings, setEnabled, t }:
-  PropsRuntime<'settings.general.item'> & PropsLocale<'actionCards'> & InjectFace<SettingsRowInjected>) {
+  PropsRuntime<'settings.general.group.display.item'> & PropsLocale<'actionCards'> & InjectFace<SettingsRowInjected>) {
   const settings = useCardSettings(value => value)
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)

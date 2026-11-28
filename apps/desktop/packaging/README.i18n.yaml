@@ -18,8 +18,8 @@
   en: 0b35c7471c09b27a
   zh: cc4a382b99fc3210
 /desktop-packaging/release-versions:
-  en: bdee4adb7916e6cc
-  zh: 2880c3594ebab7ab
+  en: 12dcd94e8d332b08
+  zh: ba304a623902c9be
 /desktop-packaging/configuration-and-local-builds:
   en: 4c0718eb16becad7
   zh: 86c223a4b650784c
@@ -45,14 +45,14 @@
   en: ba5927075585bb29
   zh: 022d67e99b3faf99
 /desktop-packaging/runtime-file-selection-and-installation-checks:
-  en: 1d153e4ba7528414
-  zh: cdf15fb80099ce17
+  en: 268cb7868641cf6e
+  zh: ff9a2abcd0370628
 /desktop-packaging/desktop-runtime-preparation:
   en: 326fc2bc4e295dab
   zh: 99bbdef43c735501
 /desktop-packaging/installation-and-release-verification:
-  en: eb35eb973b796643
-  zh: c1c52311632b7296
+  en: 641d23eb85707224
+  zh: 361c3732a0421c74
 /desktop-packaging/dev-note:
   en: 691194744993dfaa
   zh: e5798faf99546ff8

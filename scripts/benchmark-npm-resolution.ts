@@ -26,6 +26,7 @@ const WORKSPACE_MANIFEST_GLOBS = [
   // unrewritten and npm dies with `Unsupported URL Type "workspace:"`.
   'plugins/*/packages/*/package.json',
   'vendor/*/package.json',
+  'vendor/im/*/package.json',
   'native/system/package.json',
   'native/system/packages/*/package.json',
   // Remaining pnpm-workspace.yaml members. Their manifests rarely join the
@@ -161,7 +162,7 @@ export function parseBenchmarkOptions(args: readonly string[]): BenchmarkOptions
 }
 
 function workspaceManifestPath(path: string): boolean {
-  return /^(?:apps\/[^/]+|packages\/[^/]+\/[^/]+|vendor\/[^/]+|native\/system(?:\/packages\/[^/]+)?)\/package\.json$/.test(path)
+  return /^(?:apps\/[^/]+|packages\/[^/]+\/[^/]+|vendor\/(?:im\/)?[^/]+|native\/system(?:\/packages\/[^/]+)?)\/package\.json$/.test(path)
 }
 
 // FORK DIVERGENCE (upstream's workspace is self-contained): this fork joins the SDKWork

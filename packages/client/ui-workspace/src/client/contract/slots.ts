@@ -37,11 +37,11 @@
  * the row's Session identity; a Session binding would activate and retain
  * every listed Session.
  */
-import type { ContextMenuTarget } from '@deepseek-ai/dsh-client-ui-context-menu/client'
+import type {} from '@deepseek-ai/dsh-client-ui-context-menu/client'
 import type {
   FactoryComponentPropsOf, HostObservable, InjectFace, PropsHooks, PropsLocale, PropsRenderFactories, PropsRenderSlots,
   PropsRuntime, PropsStore, SlotHookFactory,
-} from '@deepseek-ai/dsh-client-ui-slots'
+} from '@deepseek-ai/dsh-client-ui-slots/client'
 // Type-only: pull the owner SlotMap merges into programs that resolve the
 // runtime shares below.
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
@@ -141,7 +141,7 @@ export interface SessionRowTrailingOwnerProps {
   readonly sessionId: SessionId
 }
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@deepseek-ai/dsh-client-ui-slots/client' {
   interface SlotMap {
     /** Directory-flow hole under the conversation empty-state picker (declared by the WorkspacePicker entry). */
     'conversation.hero.workspace.directoryFlow': { kind: 'single'; scope: 'root'; owner: DirectoryFlowOwnerProps }
@@ -321,7 +321,8 @@ export type WorkspaceBrowserInjected = {
   requestWorkspaceAction: (workspaceId: WorkspaceId, displayTitle: string, action: 'rename' | 'delete') => void
   hooks: DirectoryPickingInjected['hooks'] & {
     workspaceActionRequest: HostObservable<WorkspaceActionRequest | null>
-    contextMenuTarget: HostObservable<ContextMenuTarget | null>
+    /** Instance id of the element that opened the shared context menu. */
+    contextMenuOpener: HostObservable<string | null>
     /**
      * Fixed Host facts, reached through a hook rather than injected as values:
      * the renderer memoizes an entry's inject result for the registration's

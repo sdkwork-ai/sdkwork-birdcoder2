@@ -101,7 +101,7 @@ kind: "package-reference"
 
 服务器的工具会在 harness 开始首个轮次之前出现。设置 `startupTimeoutMs` 可约束每次连接尝试，包括模板解析与初次工具发现；省略时不添加覆盖整次尝试的截止时间。工具列表通知会刷新已注册工具；发现失败保留上一组工具，注册冲突则关闭连接并按重连策略处理。
 
-服务器连接断开时——例如本地服务器进程崩溃——插件会以从 500 ms 起逐次翻倍、上限 30 s 的延迟自动重连，并刷新工具集；重连进度在日志中可见。中断期间最后已知的工具仍会列出，但对它们的调用会失败，直到服务器恢复。连续失败十次后，该服务器的工具会被移除，重连停止，直到你重载配置或重启 harness；服务器持续连接一段时间后，该计数会重置。设置 `reconnect.enabled: false` 可禁用自动重连——此时工具在断开后仍会列出，但调用失败，直到你重载。编辑配置项会在原地重载服务器连接，未变的名称保持不变。
+服务器连接断开时——例如本地服务器进程崩溃——插件会以从 500 ms 起逐次翻倍、上限 30 s 的延迟自动重连，并刷新工具集；重连进度在日志中可见。中断期间最后已知的工具仍会列出，但对它们的调用会失败，直到服务器恢复。远程服务器不再接受该连接的会话时（例如服务器重启之后），插件按同样方式重连：被服务器拒绝的调用没有执行，重连后会重发一次；重连开始时仍在等待应答的调用失败且不会重发，之后的调用使用新会话。连续失败十次后，该服务器的工具会被移除，重连停止，直到你重载配置或重启 harness；服务器持续连接一段时间后，该计数会重置。设置 `reconnect.enabled: false` 可禁用自动重连——此时工具在断开后仍会列出，但调用失败，直到你重载。编辑配置项会在原地重载服务器连接，未变的名称保持不变。
 
 <a id="on-demand-tool-loading"></a>
 ### 按需加载工具
@@ -153,9 +153,9 @@ kind: "package-reference"
 | [`src/generation.ts`](src/generation.ts) | 传输归属、取消、待处理工作与关闭确认 |
 | [`src/credentials.ts`](src/credentials.ts) | 运行时模板绑定，并替换每个已解析的值 |
 | [`src/templates.ts`](src/templates.ts) | 凭据模板语法、替换与引用发现 |
-| [`src/server-context.ts`](src/server-context.ts) | 资源提供方注册、字面服务器指令与按需工具目录 |
+| [`src/server-context.ts`](src/server-context.ts) | 资源提供方注册与字面服务器指令 |
 | [`src/tools.ts`](src/tools.ts) | 工具桥接：发现、命名、注册交换、执行、图片投影 |
-| [`src/tool-loading.ts`](src/tool-loading.ts) | 按需加载：加载器工具、提示词目录与各 agent 已加载的工具 |
+| [`src/tool-loading.ts`](src/tool-loading.ts) | 按需加载：加载器工具及其作为 `guidance` 的提示词目录，以及各 agent 已加载的工具 |
 | [`src/transport.ts`](src/transport.ts) | 传输工厂：带清洗环境的 stdio spawn、Streamable HTTP |
 | [`src/status.ts`](src/status.ts) | 以 Fiber 为键的状态单元，保留最终清理结果 |
 | [`src/probe.ts`](src/probe.ts) | 一次性探测：连接、取身份、列工具、关闭——不注册任何东西 |
@@ -172,7 +172,7 @@ kind: "package-reference"
 
 `apply` 解析重连策略、在当前注册作用域内预留 `serverName`、启动监督器，并等待初始连接加发现完成。独立 agent（智能体）作用域可以复用相同 namespace，因为其工具与传输彼此隔离；同一作用域内重复会在加载时失败。监督器把所有同步——初始、通知与重连——串行到同一条队列，因此两次同步绝不会交错执行各自的先 dispose 后注册交换。dispose 会取消待执行的重连、关闭协商中的传输或已绑定的客户端、等待进行中的尝试与排队同步完全停稳，然后注销当前世代。
 
-宿主的 `mount` 在实例激活完成后给出其状态句柄。同一 Fiber 重载后句柄保持不变，dispose 后仍保留最终连接与清理结果；最终 dispose 会移除观察者。状态观察者可以在重载时销毁 Fiber；清理仍覆盖该轮连接尝试。宿主的 `probe(config, options)` 测试服务器，不预留名称或注册工具。其 `timeoutMs` 共同约束模板解析、连接与列表查询，独立于运行时的 `startupTimeoutMs`；清理使用 `closeTimeoutMs`，并单独报告 `closeConfirmed`。传输关闭已确认时仍可能存在 `cleanupError`；关闭未确认或清理失败都会阻止替换。
+宿主的 `mount` 在实例激活完成后给出其状态句柄。同一 Fiber 重载后句柄保持不变，dispose 后仍保留最终连接与清理结果；最终 dispose 会移除观察者。句柄的 `registers(definition)` 回答某个工具定义是否属于该实例当前生效的注册项（其当前世代的工具，或在按需加载时，其加载器工具以及各 Agent 已加载的工具），因此按 Agent 挂载服务器的插件可以区分自己的工具与继承而来的工具。状态观察者可以在重载时销毁 Fiber；清理仍覆盖该轮连接尝试。宿主的 `probe(config, options)` 测试服务器，不预留名称或注册工具。其 `timeoutMs` 共同约束模板解析、连接与列表查询，独立于运行时的 `startupTimeoutMs`；清理使用 `closeTimeoutMs`，并单独报告 `closeConfirmed`。传输关闭已确认时仍可能存在 `cleanupError`；关闭未确认或清理失败都会阻止替换。
 
 SDK 通过旧版通知或现代协议订阅接收工具列表变化。监督器将每次重新同步排队并重新发布已连接的工具数；获取失败时保留之前的注册代，注册冲突则回滚本次尝试并关闭连接，再按重连策略处理。每次故障共享一个尝试预算：连续失败达到 `maxAttempts` 后注销工具并停止重连；连接持续超过 `maxDelayMs` 则重置预算。
 
@@ -180,7 +180,7 @@ SDK 通过旧版通知或现代协议订阅接收工具列表变化。监督器�
 
 ### 工具执行内部细节
 
-工具调用向 SDK 提供原始名称、完整工具定义、JSON 参数、取消信号及配置的超时。SDK 负责协议校验和现代协议请求 header。结构化内容是否符合已声明的输出 schema 由桥接器自己用 SDK 在 Node 上的 Ajv 校验器检查，因为 SDK 把自己的检查结果报告为 `ProtocolError`，与服务端的 JSON-RPC 错误无法区分。成功结果规范值为 `{ content: JsonValue[], structuredContent? }`，为编程调用方及 PTC 模式保留有效的 MCP JSON 块；每个进入持久模型上下文的图片块还携带其 `attachment` 引用，PTC 模式会将其转为 `Image`。MCP `isError` 结果会在图片持久化前抛出带 `MCP_TOOL_ERROR` 的 `McpToolError`。其他工具与资源请求失败抛出 `McpToolError`：`MCP_CONNECTION_CLOSED` 或 `MCP_TIMEOUT` 之后请求结果未知，`MCP_SERVER_UNAVAILABLE` 表示请求未发送，`MCP_INVALID_RESULT` 拒绝违反 MCP 结果 schema 或已声明输出 schema 的结果，以及无法编译的输出 schema，`MCP_UNSUPPORTED_TASK_EXECUTION` 拒绝该工具，`MCP_REQUEST_FAILED` 在 message 中携带 JSON-RPC 或 SDK code。连接代关闭表现为带 `MCP_CONNECTION_CLOSED` 的 `McpLocalError`，调用方取消表现为工具注册表的 `ABORTED`。`McpLocalError` 的 code 也报告本地连接失败：`MCP_TIMEOUT`、`MCP_CREDENTIALS_UNAVAILABLE`、`MCP_CREDENTIAL_NOT_FOUND`、`MCP_INSTRUCTIONS_TOO_LARGE` 与 `MCP_TOOL_REGISTRATION_FAILED`。桥接器在保存前校验整批图片；拒绝时将每张图片投影为诊断文本。对未声明 `resources` 能力的服务器，资源列表与模板列表直接返回空页而不调用 SDK，因为 SDK 的兜底逻辑会把诊断写到 stdout，而 ACP 配置档在 stdout 上传输 JSON-RPC。
+工具调用向 SDK 提供原始名称、完整工具定义、JSON 参数、取消信号及配置的超时。SDK 负责协议校验和现代协议请求 header。结构化内容是否符合已声明的输出 schema 由桥接器自己用 SDK 在 Node 上的 Ajv 校验器检查，因为 SDK 把自己的检查结果报告为 `ProtocolError`，与服务端的 JSON-RPC 错误无法区分。成功结果规范值为 `{ content: JsonValue[], structuredContent? }`，为编程调用方及 PTC 模式保留有效的 MCP JSON 块；每个进入持久模型上下文的图片块还携带其 `attachment` 引用，PTC 模式会将其转为 `Image`。MCP `isError` 结果会在图片持久化前抛出带 `MCP_TOOL_ERROR` 的 `McpToolError`。其他工具与资源请求失败抛出 `McpToolError`：`MCP_CONNECTION_CLOSED` 或 `MCP_TIMEOUT` 之后请求结果未知，`MCP_SERVER_UNAVAILABLE` 表示请求没有执行，原因是请求未发送，或服务器因会话过期拒绝了它，`MCP_INVALID_RESULT` 拒绝违反 MCP 结果 schema 或已声明输出 schema 的结果，以及无法编译的输出 schema，`MCP_UNSUPPORTED_TASK_EXECUTION` 拒绝该工具，`MCP_REQUEST_FAILED` 在 message 中携带 JSON-RPC 或 SDK code。连接代关闭表现为带 `MCP_CONNECTION_CLOSED` 的 `McpLocalError`，调用方取消表现为工具注册表的 `ABORTED`。`McpLocalError` 的 code 也报告本地连接失败：`MCP_TIMEOUT`、`MCP_CREDENTIALS_UNAVAILABLE`、`MCP_CREDENTIAL_NOT_FOUND`、`MCP_INSTRUCTIONS_TOO_LARGE` 与 `MCP_TOOL_REGISTRATION_FAILED`。桥接器在保存前校验整批图片；拒绝时将每张图片投影为诊断文本。对未声明 `resources` 能力的服务器，资源列表与模板列表直接返回空页而不调用 SDK，因为 SDK 的兜底逻辑会把诊断写到 stdout，而 ACP 配置档在 stdout 上传输 JSON-RPC。
 
 ### 环境清洗（stdio）
 
@@ -238,7 +238,7 @@ SDK 通过旧版通知或现代协议订阅接收工具列表变化。监督器�
 
 #### 模型看到什么
 
-按需服务器提供一个工具 `mcp__<serverName>__load_tools`，以及一个标题为 `On-demand tools from MCP server <serverName>` 的系统提示词段落，列出每个工具的原始名称和摘要。只有能看到加载器的 agent 才会看到该段落。一次加载返回它新增或已经加载的公开名称；下一次请求带上这些工具的定义，会话日志记录这次工具添加。
+按需服务器提供一个工具 `mcp__<serverName>__load_tools`，以及一个标题为 `On-demand tools from MCP server <serverName>` 的系统提示词段落，列出每个工具的原始名称和摘要。该段落是加载器的 `guidance`，因此只有能调用加载器的 agent 才会看到它。某一代工具被撤回时，见过该段落的会话会收到 `The earlier instructions from mcp:<serverName>:tools no longer apply.`，下一代工具会再次添加该段落；在没有加载器的情况下恢复的会话会保留它见过的目录，且不会收到这条通知。一次加载返回它新增或已经加载的公开名称；下一次请求带上这些工具的定义，会话日志记录这次工具添加。
 
 #### Token 影响
 
@@ -271,11 +271,12 @@ SDK 通过旧版通知或现代协议订阅接收工具列表变化。监督器�
 
 - **资源按需读取**——随附 profile 提供[共享资源服务](../mcp-resources/README.zh.md)；资源订阅与 MCP 提示词模板不受支持。
 - **整次启动尝试的预算需主动配置**——设置 `startupTimeoutMs` 后，它覆盖模板解析、协商、连接与初次工具同步。通知驱动的重同步发出的 `tools/list` 请求使用 MCP SDK 的 60 秒请求默认值及其页数上限。插件卸载先关闭传输以中断待处理的启动请求，再等待清理。
-- **重连处理协商失败与传输关闭**——初始连接失败或 stdio 子进程崩溃都会使用配置的重连预算。普通 HTTP 请求失败使用 SDK 传输的恢复机制；凭据变化则替换连接。
+- **重连处理协商失败、传输关闭与 Streamable HTTP 会话过期**——初始连接失败、stdio 子进程崩溃，或服务器因会话而拒绝请求（HTTP 404，或响应体提到会话或服务器未初始化的 HTTP 400），都会使用配置的重连预算。自身请求被服务器拒绝的工具调用没有执行，会在新连接上重发一次；它在新会话中执行，结果不带“服务器为旧会话保存的状态可能已丢失”的提示。重连被禁用、下一次连接尝试失败或耗时超过 `toolCallTimeoutMs`、该工具不再列出，或新会话同样被拒绝时，这次调用改为以 `MCP_SERVER_UNAVAILABLE` 失败。收到第一个拒绝后，连接在重连延迟内保持打开，因此每个并行调用都会收到自己的应答；延迟结束时仍未收到应答的请求以 `MCP_CONNECTION_CLOSED` 失败一次且不会重发。被拒绝的资源请求以 `MCP_SERVER_UNAVAILABLE` 失败，不会重发。服务器以 HTTP 200 加 JSON-RPC 错误报告会话过期时无法识别。其他 HTTP 请求失败使用 SDK 传输的恢复机制；凭据变化则替换连接。
 - **图片是唯一的持久丰富结果桥接**——PNG、JPEG、WebP 与 GIF 在确切能力得到证明后进入 Native 上下文。音频与嵌入资源载荷仍只存在于执行局部并带明确诊断，资源链接只以文本保留名称与 URI。
 - **无效的协议结果或输出 schema 由 SDK 拒绝**——桥接器不接受旧式 `toolResult` 替代结果，也不绕过已声明的 schema 校验。
 - **OAuth 授权需要浏览器能直接访问 Host Web 服务器**——回调地址是该服务器自身的源地址：监听地址加端口，启用 TLS 时使用 HTTPS。只能通过代理或 Web 应用的 `publicUrl` 访问 DSH 的浏览器无法完成授权。动态客户端注册以该回调地址区分，监听地址或端口改变、或端口随机分配时，下一次显式授权会注册新的客户端；退出登录会保留之前的注册记录。
-- **按需加载不受工具限制约束**——已加载的工具位于调用方 agent 自己的作用域，`tools.restrict()` 的 allow 与 deny 掩码不过滤它们，而且这些掩码会拒绝继承工具列表中不存在的名称。要按名称禁止可加载的工具，使用执行 guard（`tools.guard`）。PTC 模式下程序在开始时绑定工具，`run_code` 内加载的工具要到下一个程序才能调用。
+- **按需加载不受工具限制约束**——已加载的工具位于调用方 agent 自己的作用域，`tools.restrict()` 的 allow 与 deny 掩码不过滤它们，而且 `allow` 掩码会拒绝继承工具列表中不存在的名称。要按名称禁止可加载的工具，使用执行 guard（`tools.guard`）。PTC 模式下程序在开始时绑定工具，`run_code` 内加载的工具要到下一个程序才能调用。
+- **目录可能在重启后比其服务器存留更久**——只有当前进程见过的来源才会被检测为退役，因此在没有该服务器加载器的进程中恢复的会话会保留它见过的目录，且不会收到通知（[来源生命周期](../../core/system-prompt/README.zh.md#known-limitations-and-deferred-work)）。
 - **要求基于任务的 MCP 工具在调用时被拒绝**——要求使用基于任务的执行（task-based execution）扩展的工具会抛出异常而非被桥接；该扩展未实现。
 
 <a id="dev-note"></a>

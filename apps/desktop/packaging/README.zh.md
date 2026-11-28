@@ -63,7 +63,7 @@ pnpm --dir apps/desktop run package:win:x64 --build-version 0.1.6-alpha.1.202609
 
 production 发布使用产品版本本身，不传 `--build-version`。其上传成功后会把打包所用 commit 打成 `desktop-v<版本>` 标签；来自有改动工作区的构建不打标签，打标签失败也只打印手工命令，不会让已完成的上传变成失败。test 与本地构建有意不留标签，而所有产物的清单都记录 `dshBuildCommit` 与 `dshBuildDirty`，直接分发的构建同样可溯源。
 
-安装包独立于版本和发布环境内置 `DSH_DESKTOP_UPDATE_CHANNEL`（默认 `nightly`，也可选择 `stable`）。该值提供默认渠道；[桌面设置](../README.zh.md#local-desktop-settings)中保存的选择优先，包括安装另一个包之后。操作人员独立于版本后缀选择渠道；两个渠道均接受正式版本和预发布版本。稳定产品可生成 `-test.<date>.<sequence>` 构建，但该版本低于稳定基准，不能升级已安装的更高版本。保持自动降级关闭；稳定修复版需要提升产品版本。CI 版本选择与发布见 [CI 发布](../publishing/ci/README.zh.md#package-and-publish)。
+安装包独立于版本和发布环境内置 `DSH_DESKTOP_UPDATE_CHANNEL`（默认 `stable`，也可选择 `nightly`）作为包内渠道标记；运行时在[桌面设置](../README.zh.md#local-desktop-settings)解锁前固定检查 `stable`，发布工作流也独立于该包内标记选择发布目标渠道。操作人员独立于版本后缀选择目标渠道；两个渠道均接受正式版本和预发布版本。稳定产品可生成 `-test.<date>.<sequence>` 构建，但该版本低于稳定基准，不能升级已安装的更高版本。保持自动降级关闭；稳定修复版需要提升产品版本。CI 版本选择与发布见 [CI 发布](../publishing/ci/README.zh.md#package-and-publish)。
 
 <a id="configuration-and-local-builds"></a>
 
@@ -252,7 +252,9 @@ Desktop 在本地打包工作区包，并通过目标捆绑的 Node 和 pnpm 安
 
 [Electron 外壳文件清单](../scripts/electron-builder-config.mjs)从单独收集的 `resources/app.asar/node_modules` 依赖中排除已识别的 JavaScript/CSS/TypeScript source map 和 TypeScript 构建缓存。这些排除规则保留运行时代码、原生模块、WASM、数据文件（包括普通 `.map` 资源）、许可证和 notices；[外壳归档测试](../tests/shell-file-selection.spec.ts)检查保留文件的字节和排除项。
 
-[Office 转换提供方](../../../packages/document/office-kit/README.zh.md)是 web-app 挂载的 Host 服务，因此所有加载 web-app 的应用（包括 `dsh web` 和 Desktop）都提供它以及 [Office 工具](../../../packages/document/tool-office/README.zh.md)。该提供方[自行解析 Kit 的引擎](../../../packages/document/office-kit/README.zh.md#understand-the-implementation)，包括把原生引擎清单映射到解包后的实体目录。Desktop 打包只负责携带和解包引擎：携带目标声明的原生引擎；kit 未声明匹配的原生目标时携带 WASM；目标引擎缺失时，准备阶段在打包前拒绝。完整的 Office 依赖（包括 JavaScript 库以及所选引擎的可执行文件、数据、许可证和声明）解包到 `resources/app.asar.unpacked/dsh/node_modules/` 下。Desktop 壳在 [main.ts](../src/main.ts) 中把主运行时位置传给 Host，由 Host 设为 `DSH_PRIMARY_RUNTIME`；两者都不传 Kit 位置。所有加载 web-app 的应用都提供 Office 技能，Desktop 从 `resources/app.asar` 内的技能包读取它们；只有 Desktop 挂载内置 Python 环境（`workspace-dependencies`）。在 macOS 上，原生 helper 获得 [LibreOffice UNO 桥](https://github.com/LibreOffice/core/blob/master/sysui/desktop/macosx/hardened_runtime.xcent.in)所需的 JIT 权限。`@deepseek-ai/dsh-cua-macos/native/bin` 下的 Computer Use helper 应用也整体解包到 `resources/app.asar.unpacked/dsh/node_modules/` 下，提供方打开该副本。
+[Office 转换提供方](../../../packages/document/office-kit/README.zh.md)是 web-app 挂载的 Host 服务，因此所有加载 web-app 的应用（包括 `dsh web` 和 Desktop）都提供它以及 [Office 工具](../../../packages/document/tool-document/README.zh.md)。该提供方[自行解析 Kit 的引擎](../../../packages/document/office-kit/README.zh.md#understand-the-implementation)，包括把原生引擎清单映射到解包后的实体目录。Desktop 打包只负责携带和解包引擎：携带目标声明的原生引擎；目标引擎未声明或缺失时，准备阶段在打包前拒绝。完整的 Office 依赖（包括 JavaScript 库以及所选引擎的可执行文件、数据、许可证和声明）解包到 `resources/app.asar.unpacked/dsh/node_modules/` 下。Desktop 壳在 [main.ts](../src/main.ts) 中把主运行时位置传给 Host，由 Host 设为 `DSH_PRIMARY_RUNTIME`；两者都不传 Kit 位置。所有加载 web-app 的应用都提供 Office 技能，Desktop 从 `resources/app.asar` 内的技能包读取它们；只有 Desktop 挂载内置 Python 环境（`workspace-dependencies`）。在 macOS 上，原生 helper 获得 [LibreOffice UNO 桥](https://github.com/LibreOffice/core/blob/master/sysui/desktop/macosx/hardened_runtime.xcent.in)所需的 JIT 权限。`@deepseek-ai/dsh-cua-macos/native/bin` 下的 Computer Use helper 应用也整体解包到 `resources/app.asar.unpacked/dsh/node_modules/` 下，提供方打开该副本。
+
+Desktop 在 macOS 和 Windows 上将 `frame-forwarding.node` 及其构建记录随共享纹理模块一同打包。帧转发插件按需加载预装接收器，通过 Plugin Manager 安装时也无需原生构建。
 
 打包应用运行编译后的 JavaScript 和预生成的 Typert 元数据，不编译 TypeScript 插件。源码级调试导航和编辑器声明仍可从开发包中获取。[复制规则测试](../tests/runtime-file-policy.spec.ts)覆盖排除项和保留资源；[产物 smoke](../tests/fixtures/runtime-payload-smoke.mjs) 在 Host smoke 和最终清单验证之前，使用 Electron RunAsNode 执行。产物 smoke 解析搜索工具使用的 ripgrep 可执行文件，并验证文本搜索和文件枚举。Windows 签名构建在依赖签名后运行这些检查；其他构建在 `prepare:dsh` 中运行。[Host smoke](../scripts/smoke-runtime.ts) 使用捆绑的 Python 创建 DOCX、XLSX 和 PPTX 输入，并通过真实 Office 提供方逐一执行：PDF 转换、PNG 渲染、转换为对应的 OpenDocument 格式，以及针对 XLSX 的重算，检查每个输出的签名。每个组装后的应用（包括目录包和未签名构建）都会针对 ASAR 重复产物和 Host 检查。归档完整性检查将归档内完整描述符与准备结果比对，并核对归档和解包目录中的文件内容与清单、归档内文件记录的执行标志，以及解包文件的物理权限。转换失败会在写入发布记录前终止打包；macOS DMG/ZIP 构建在公证前执行这些检查。
 
@@ -300,7 +302,7 @@ macOS 签名打包在组装 App 时、代码签名前写入 `Contents/Resources/
 
 Windows 以不带版本后缀的产品名称显示已安装应用，版本保留在单独的版本字段中。Desktop 的 `package.json` 中的 `author.name` 提供安装包发布者和可执行文件公司名称，与签名证书相互独立。Windows 和 macOS 的版权文本仍使用产品名称。重新构建的安装包在安装或升级时写入新元数据；既有安装在此之前保留原值。
 
-一起保留生成的安装包、版本和打包记录。安装前检查签名与运行时验证结果，再按[已安装更新验收流程](../tests/installed-update/README.zh.md)记录安装后启动及升级证据。[Desktop 测试记录](../tests/README.zh.md)维护验证限制；工作流成功本身不代表 production preset、新工作站或已安装升级验收通过。
+一起保留生成的安装包、版本和打包记录，并在安装前检查签名与运行时验证结果。[Desktop 测试记录](../tests/README.zh.md)维护验证限制；工作流成功本身不代表 production preset、新工作站或已安装升级验收通过。
 
 ## 开发备注
 

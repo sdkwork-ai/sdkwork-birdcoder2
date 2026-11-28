@@ -457,6 +457,7 @@ function sharedHygieneGates(): Gate[] {
     pnpmScript('no-unknown-casts', 'verify-no-unknown-casts', { label: 'no new unknown casts' }),
     pnpmScript('empty-catch', 'verify-empty-catch', { label: 'no new silent catches' }),
     pnpmScript('css-selectors', 'verify-css-selectors', { label: 'bucketed CSS selectors' }),
+    pnpmScript('theme-attributes', 'verify-theme-attributes', { label: 'no theme attributes in feature plugins' }),
     pnpmScript('cordis-root', 'verify-cordis-root', { label: 'no new Cordis root reads' }),
     pnpmScript('no-top-level-await', 'verify-no-top-level-await', { label: 'no module-scope await' }),
     pnpmScript('plugin-entry-exports', 'verify-plugin-entry-exports', { label: 'plugin entry exports' }),
@@ -976,6 +977,10 @@ function hygieneLeafGates(options: { artifactNeeds?: string[] } = {}): Gate[] {
     pnpmScript('dsh-package-licenses', 'verify-dsh-package-licenses', { label: 'DSH package licenses' }),
     pnpmScript('node-next-types', 'verify-node-next-types', {
       label: 'node-next types',
+      ...artifactOptions,
+    }),
+    pnpmScript('client-package-consumer-types', 'verify-client-package-consumer-types', {
+      label: 'Client package consumer types',
       ...artifactOptions,
     }),
     ...sharedHygieneGates(),

@@ -1,6 +1,6 @@
 /** Common browser chrome; a presentation adapter attaches the page inside its content container. */
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import type { SyntheticEvent, ReactNode } from 'react'
 import {
   Button,
   IconChevronLeftOutlineRegular,
@@ -10,8 +10,8 @@ import {
   IconRightUpOutlineRegular,
   SHIELD_OUTLINE_PATH,
   ICON_REGULAR_STROKE,
-} from '@deepseek-ai/dsh-client-ui-primitives'
-import type { InjectFace, PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
+} from '@deepseek-ai/dsh-client-ui-primitives/client'
+import type { InjectFace, PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { BrowserInjected } from '../browser/BrowserController.ts'
 import { emptyBrowserFrame } from '../browser/BrowserFrame.ts'
 import { currentBrowserTarget } from '../browser/BrowserPersistence.ts'
@@ -74,7 +74,7 @@ export function BrowserBody(props: BrowserBodyProps): ReactNode {
   const sandboxed = frame.sandboxEnabled
   const failure = state?.addressFailure
   const error = frame.error
-  const submit = (event: FormEvent): void => { event.preventDefault(); loadUrl(tab.id, draft) }
+  const submit = (event: SyntheticEvent): void => { event.preventDefault(); loadUrl(tab.id, draft) }
 
   return (
     <div className={css.root}>

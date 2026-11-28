@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-feishu",
   "description": "Feishu plugin: the official lark-cli with its embedded skills, and account connection from the Plugins page",
-  "version": "0.2.3-alpha.2",
+  "version": "0.2.3-alpha.3",
   "icon": "./icon.svg",
   "publishConfig": {
     "access": "public"
@@ -48,12 +48,13 @@
     "@deepseek-ai/schemastery": "workspace:~",
     "@larksuite/cli": "1.0.97",
     "yaml": "^2.4.2",
-    "zod": "^4.4.3"
+    "zod": "4.6.6"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-cli-account": "workspace:*",
-    "@deepseek-ai/dsh-skill": "workspace:*"
+    "@deepseek-ai/dsh-skill": "workspace:*",
+    "@deepseek-ai/dsh-subprocess": "workspace:*"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~",

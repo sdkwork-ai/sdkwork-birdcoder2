@@ -34,7 +34,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type { CommandUiContract, SelectOption } from '@deepseek-ai/dsh-client-ui-commands/client'
 import type { ClientSessionContext } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
-import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots/client'
 import { PermissionCatalogDirectory } from './catalog.ts'
 import { PermissionSelect } from './PermissionSelect.tsx'
 import type { PermissionSelectInjected } from './PermissionSelect.tsx'
@@ -62,7 +62,7 @@ export const inject = [
   'configForms', 'settingsSchema',
 ]
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@deepseek-ai/dsh-client-ui-slots/client' {
   interface LocaleNamespaceMap {
     /** Current-session permission picker and confirmation copy. */
     'permission.access': keyof typeof accessEn
@@ -166,10 +166,10 @@ export function apply(ctx: ClientContext): void {
 
   ctx.effect(() => () => { controller.dispose() }, 'ui-permission: settings row directory')
 
-  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
-    name: 'settings.general.item',
+  ctx.slots.inject('settings.general.group.display.item', () => ctx.slots.register({
+    name: 'settings.general.group.display.item',
     id: 'permission',
-    order: -20,
+    order: 0,
     locale: 'settings.permission',
     inject: injected,
   }, PermissionRow))

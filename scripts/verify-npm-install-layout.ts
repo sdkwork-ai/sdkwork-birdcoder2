@@ -1,7 +1,11 @@
-/** Verify npm's physical package placement for two incompatible DSH releases. */
+/**
+ * Verify npm's physical package placement for two incompatible DSH releases, and that one DSH release
+ * installs the external package its packages share only once.
+ */
 
 import { readFileSync } from 'node:fs'
 import { posix, resolve } from 'node:path'
+import { inc, maxSatisfying, rsort } from 'semver'
 import {
   buildRegistryIndex,
   resolveNpmPackageLock,
@@ -16,6 +20,8 @@ const CORDIS_PACKAGE = '@deepseek-ai/cordis'
 const NESTED_DSH_ALIAS = 'dsh-previous'
 const NESTED_DSH_PATH = `node_modules/${NESTED_DSH_ALIAS}`
 const DEPENDENCY_FIELDS = ['dependencies', 'optionalDependencies', 'peerDependencies'] as const
+/** External package that about a hundred DSH packages pin to one version; each installation is about 9 MB. */
+const SHARED_EXTERNAL_PACKAGE = 'zod'
 
 /**
  * Resolution work accepted from the dual-release graph, in
@@ -25,9 +31,9 @@ const DEPENDENCY_FIELDS = ['dependencies', 'optionalDependencies', 'peerDependen
  * edges of its peer target (`canPlacePeers` calls `checkCanPlaceNoCurrent`,
  * which walks `depValid` over that target's edges), so resolution time grows
  * with this product and not with the package count alone. Measured on an idle
- * M5 Pro with Node 24.17.0 and npm 11.13.0: 320 package(s) x 2836 internal
- * edge(s) = 907,520 unit(s) cost 71.03–97.73 s of npm time; the 315-package,
- * 2782-edge graph took 75.27 s on the same host. The budget adds 25% headroom
+ * M5 Pro with Node 24.22.3 and npm 11.19.1: 341 package(s) x 3332 internal
+ * edge(s) = 1,136,212 unit(s) cost 96.16–98.21 s of npm time; the 340-package,
+ * 3320-edge graph took 101.74 s on the same host. The budget adds 25% headroom
  * for ordinary product growth, so a graph that grows here fails with its own
  * measured counts instead of failing on whichever runner happens to be slow.
  * Raising it requires re-measuring the resolution and recording the new counts.
@@ -59,11 +65,12 @@ const DEPENDENCY_FIELDS = ['dependencies', 'optionalDependencies', 'peerDependen
  * estimate above.
  */
 export const MAX_RESOLUTION_WORK_UNITS = 2_450_000
+export const MAX_RESOLUTION_WORK_UNITS = 1_420_265
 
 /**
  * Measured npm seconds per resolution work unit on the reference host: 180.66 s
  * for 699,148 units. This conservative hang-guard calibration also covers the
- * current 907,520-unit graph measured at 71.03–97.73 s on an M5 Pro.
+ * current 1,136,212-unit graph measured at 96.16–98.21 s on an M5 Pro.
  */
 const SECONDS_PER_WORK_UNIT = 2.6e-4
 
@@ -396,6 +403,93 @@ export function assertResolutionWorkBudget(summary: DshInstallLayoutSummary): nu
   return units
 }
 
+/**
+ * Add the release a later registry holds: one minor above the newest indexed version of an external package.
+ *
+ * The local index lists only the versions in the pnpm lockfile, so every range resolves to the locked version
+ * and npm cannot hoist anything else. A release other than the DSH pin that a third-party peer range accepts
+ * is the input that makes npm hoist a version DSH packages cannot share.
+ * @param index - Registry metadata for one DSH release.
+ * @param name - External package that receives the newer release.
+ * @returns Registry metadata with that release added; `index` is unchanged.
+ */
+export function withNewerExternalRelease(index: RegistryIndex, name: string): RegistryIndex {
+  const versions = index.get(name)
+  const newest = rsort([...versions?.keys() ?? []])[0]
+  const manifest = newest === undefined ? undefined : versions?.get(newest)
+  const next = newest === undefined ? null : inc(newest, 'minor')
+  if (manifest === undefined || next === null) throw new Error(`registry contains no release of ${name}`)
+  return new Map(index).set(name, new Map(versions).set(next, { ...manifest, version: next }))
+}
+
+interface PeerDeclarations {
+  readonly peerDependencies?: Record<string, string>
+  readonly peerDependenciesMeta?: Record<string, unknown>
+}
+
+function requiresPeer(manifest: PeerDeclarations | undefined, name: string): boolean {
+  if (manifest?.peerDependencies?.[name] === undefined) return false
+  const meta = manifest.peerDependenciesMeta?.[name]
+  return !(typeof meta === 'object' && meta !== null && 'optional' in meta && meta.optional === true)
+}
+
+/**
+ * Assert that every DSH package depending on an external package that requires `name` as a peer declares `name`.
+ *
+ * npm installs a required peer that no dependent provides at the newest release the peer range accepts, and
+ * whether that release reaches the top level depends on the order npm processes the tree. This check reads
+ * manifests, so it also covers DSH packages outside the `@deepseek-ai/dsh` graph and orders npm does not
+ * produce today.
+ * @param index - Registry metadata for one DSH release.
+ * @param name - External package required as a peer.
+ */
+export function assertRequiredPeerDeclared(index: RegistryIndex, name: string): void {
+  const undeclared: string[] = []
+  for (const [dshName, versions] of index) {
+    if (!isDshPackage(dshName)) continue
+    for (const manifest of versions.values()) {
+      if (manifest.dependencies?.[name] !== undefined) continue
+      for (const [dependency, range] of Object.entries({ ...manifest.optionalDependencies, ...manifest.dependencies })) {
+        const candidates = index.get(dependency)
+        const resolved = candidates === undefined ? null : maxSatisfying([...candidates.keys()], range)
+        const external = resolved === null ? undefined : candidates?.get(resolved)
+        if (!requiresPeer(external, name)) continue
+        undeclared.push(`${dshName}: ${dependency}@${String(resolved)} requires ${name}@${String(external?.peerDependencies?.[name])}`)
+      }
+    }
+  }
+  if (undeclared.length === 0) return
+  throw new Error(
+    `DSH package(s) depend on a package that requires ${name} as a peer without declaring ${name}:\n`
+    + `${undeclared.sort().map(line => `  - ${line}`).join('\n')}\n`
+    + `  Add ${name} to each package's dependencies at the version other DSH packages pin. npm otherwise\n`
+    + `  installs the newest ${name} release that peer range accepts, and DSH packages that cannot share it\n`
+    + '  install their own copies.',
+  )
+}
+
+/**
+ * Assert that npm installs an external package shared by DSH packages exactly once, at the top level.
+ * @param packageLock - Metadata-only package lock npm produced for one DSH release.
+ * @param name - External package that must have a single installation.
+ */
+export function assertSingleExternalInstallation(packageLock: NpmPackageLock, name: string): void {
+  const expected = `node_modules/${name}`
+  const paths = Object.entries(packageLock.packages).flatMap(([path, manifest]) =>
+    packageNameAtPath(path, manifest) === name ? [path] : [])
+  if (paths.length === 1 && paths[0] === expected) return
+  const hoisted = packageLock.packages[expected]?.version
+  const others = paths.filter(path => path !== expected)
+  throw new Error(
+    `expected one ${name} installation at ${expected}, got ${String(paths.length)}: `
+    + `${hoisted === undefined ? `no ${expected}` : `${expected}@${hoisted}`} and ${String(others.length)} other(s)`
+    + `${others.length === 0 ? '' : ` such as ${others.slice(0, 3).join(', ')}`}\n`
+    + `  A ${name} release other than the one DSH packages pin reached the top level, so each of them\n`
+    + `  installs its own copy. A DSH package whose external dependency requires ${name} as a peer must pin\n`
+    + `  ${name} to the same version, so npm places that version first.`,
+  )
+}
+
 function workspaceVersion(root: string): string {
   const manifest = JSON.parse(readFileSync(resolve(root, 'apps/cli/package.json'), 'utf8')) as { version?: unknown }
   if (typeof manifest.version !== 'string') throw new Error('apps/cli/package.json has no string version')
@@ -412,6 +506,17 @@ async function main(): Promise<void> {
       .map(([name]) => name),
   )
   const index = buildDualDshRegistry(workspaceIndex, sourceVersion)
+  const version = workspaceVersion(root)
+  const release = buildRegistryIndex(root)
+  assertRequiredPeerDeclared(release, SHARED_EXTERNAL_PACKAGE)
+  const shared = await resolveNpmPackageLock(
+    withNewerExternalRelease(release, SHARED_EXTERNAL_PACKAGE),
+    { [DSH_PACKAGE]: version },
+    NPM_HANG_GUARD_MS,
+    'npm resolution hang guard',
+  )
+  assertSingleExternalInstallation(shared.packageLock, SHARED_EXTERNAL_PACKAGE)
+  const index = buildDualDshRegistry(release, version)
   const [nestedVersion, rootVersion] = SYNTHETIC_DSH_VERSIONS
   const result = await resolveNpmPackageLock(index, {
     [DSH_PACKAGE]: rootVersion,
@@ -424,8 +529,9 @@ async function main(): Promise<void> {
     `verify-npm-install-layout: ${String(summary.dshPackagesPerVersion)} DSH package(s) per release and `
     + `${String(summary.checkedDshEdges)} internal edge(s) verified in ${(result.durationMs / 1000).toFixed(2)} s; `
     + `${String(units)} of ${String(MAX_RESOLUTION_WORK_UNITS)} budgeted resolution work unit(s); `
-    + `both releases share one Cordis installation; ${String(result.unknownPackages.length)} unavailable optional `
-    + 'package name(s) ignored by npm.',
+    + `both releases share one Cordis installation; one release installs ${SHARED_EXTERNAL_PACKAGE} once beside a `
+    + `newer registry release; ${String(result.unknownPackages.length)} unavailable optional package name(s) `
+    + 'ignored by npm.',
   )
 }
 

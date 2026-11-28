@@ -77,8 +77,9 @@
         enabled: true
         appVersion: !!js process.env.DSH_CLIENT_VERSION
 
-    # Host-owned authorization sampled at Agent creation. The Plugins page
-    # edits this settings namespace independently of the selected preset.
+    # Host-owned default child route and route authorization, read at each
+    # delegation. The Plugins page edits this settings namespace independently
+    # of the selected preset.
     - id: subagent-model-selection-settings
       name: '@deepseek-ai/dsh-tool-subagent/model-selection-settings'
 
@@ -130,6 +131,11 @@
       name: '@deepseek-ai/dsh-client-ui-context-menu'
     - id: ui-open-in-app
       name: '@deepseek-ai/dsh-client-ui-open-in-app'
+
+    # Renderer shared-texture bridge: the Client half provides ctx.sharedTexture where
+    # Desktop's product preload exposes textures; other documents get no service.
+    - id: shared-texture
+      name: '@deepseek-ai/dsh-shared-texture'
 
     - id: workspace
       name: '@deepseek-ai/dsh-workspace'
@@ -248,14 +254,10 @@
       name: '@deepseek-ai/dsh-api-sdkwork-scaffold-install-controller'
       inject: [sdkworkScaffoldInstall]
 
+    # Inspection registry plus the process-global Host inspect providers that
+    # every preset's `tool-cordis` row reads.
     - id: cordis-host-runner
       name: '@deepseek-ai/dsh-cordis-host-runner'
-
-    # The Host inspect providers are process-global: the registry rejects a
-    # duplicate id, so they register here once and every preset's `tool-cordis`
-    # row reads them.
-    - id: cordis-inspect-providers
-      name: '@deepseek-ai/dsh-tool-cordis/host'
 
     # Ordinary provider for the parsed Web flags. Its plugin-level injection
     # waits for cmdlineArgs; no launcher metadata or special row kind is needed.
@@ -320,6 +322,14 @@
     # entry by the kernel, never fetched).
     - id: modules
       name: '@deepseek-ai/dsh-client-modules'
+
+    # Script Realm registry and its iframe provider. Neither creates a Realm
+    # until a package is script-isolated; only then does startup wait for them.
+    - id: script-realm
+      name: '@deepseek-ai/dsh-client-script-realm'
+
+    - id: script-realm-iframe
+      name: '@deepseek-ai/dsh-client-script-realm-iframe'
 
     # Owns both ends of the web transport: node half binds the gateway to the
     # webserver under /api; browser half is the fetch/SSE client. Every API
@@ -389,6 +399,19 @@
 
     - id: ui-layout
       name: '@deepseek-ai/dsh-client-ui-layout'
+
+    # Page media queries and the device class behind useMediaQuery and useMobile.
+    - id: ui-responsive
+      name: '@deepseek-ai/dsh-client-ui-responsive'
+
+    - id: ui-slots
+      name: '@deepseek-ai/dsh-client-ui-slots'
+
+    - id: ui-primitives
+      name: '@deepseek-ai/dsh-client-ui-primitives'
+
+    - id: ui-dockkit
+      name: '@deepseek-ai/dsh-client-ui-dockkit'
 
     - id: ui-renderer
       name: '@deepseek-ai/dsh-client-ui-renderer'
@@ -1452,8 +1475,7 @@
 # The preset selection registry. The shipped preset declarations follow as
 # separate patch files under `presets/`, listed after this file in
 # `package.json` `dsh.bundle.patch`.
-- insert:
-    - id: agent-preset-registry
-      name: '@deepseek-ai/dsh-agent-preset-registry'
-      config:
-        default: standard
+- id: agent-preset-registry
+  disabled: false
+  config:
+    default: standard

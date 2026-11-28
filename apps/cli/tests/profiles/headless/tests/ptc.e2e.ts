@@ -31,7 +31,6 @@ import LocalJobRegistry from '@deepseek-ai/dsh-jobs-local'
 import * as ToolJobs from '@deepseek-ai/dsh-tool-jobs'
 import CordisHostRunner from '@deepseek-ai/dsh-cordis-host-runner'
 import * as ToolCordis from '@deepseek-ai/dsh-tool-cordis'
-import * as CordisInspectProviders from '@deepseek-ai/dsh-tool-cordis/host'
 
 /**
  * With-key PTC mode proof: a real model receives only `run_code`, composes two
@@ -151,6 +150,14 @@ async function typedPtcModeHarness(mode: PtcMode): Promise<Context> {
   return harness
 }
 
+/** The same harness under a native root, which offers the tools a PTC root binds only in programs. */
+async function typedNativeHarness(mode: PtcMode): Promise<Context> {
+  const harness = new Context()
+  await mountAgentLoopTestDependencies(harness, { workingDirectory: true })
+  await mountRuntime(harness, mode)
+  return harness
+}
+
 /** Keyless real-process harness with the task-owned bash lifecycle. */
 async function backgroundPtcModeHarness(mode: PtcMode, cwd: string): Promise<Context> {
   const harness = await typedPtcModeHarness(mode)
@@ -170,9 +177,11 @@ describe.each(PTC_MODES)('PTC mode typed values ($mode): keyless real-process co
     await writeFile(path, 'alpha\nbeta\n')
     ctx = await typedPtcModeHarness(mode)
     await ctx.plugin(ToolFs)
+    const reference = await typedNativeHarness(mode)
+    await reference.plugin(ToolFs)
 
     const formatted = `<path>${path}</path>\n<type>file</type>\n<content>\n1: alpha\n2: beta\n\n(End of file - total 2 lines)\n</content>`
-    const native = await executeToolFixture(ctx, {
+    const native = await executeToolFixture(reference, {
       callId: brandString<ToolCallId>('inspect-read-reference'), name: 'read',
       arguments: { file_path: path }, signal: testToolSignal,
     })
@@ -352,7 +361,6 @@ describe.each(PTC_MODES)('PTC mode typed values ($mode): keyless real-process co
   it('uses runtime inspection results directly through PTC', async () => {
     ctx = await typedPtcModeHarness(mode)
     await ctx.plugin(CordisHostRunner)
-    await ctx.plugin(CordisInspectProviders)
     await ctx.plugin(ToolCordis)
     const agent = {
       ctx,
@@ -369,7 +377,8 @@ describe.each(PTC_MODES)('PTC mode typed values ($mode): keyless real-process co
       inspect(JSON.stringify({ provider: provider.id, names: inspected.data.tools.map(tool => tool.name) }));
     `, testToolSignal, agent))
 
-    expect(value).toEqual({ provider: 'Tool', names: ['cordis_inspect'] })
+    // Inspect lists the entries the Agent can call directly; a PTC root offers only its program entry.
+    expect(value).toEqual({ provider: 'Tool', names: ['run_code'] })
   })
 })
 

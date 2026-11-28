@@ -5,7 +5,7 @@ import {
   IconChevronUpOutlineRegular, IconCodeOutlineRegular, IconContextInjectionOutlineRegular, IconEditOutlineRegular,
   IconGlobeOutlineRegular, IconPlanOutlineRegular, IconQuestionOutlineRegular, IconSearchOutlineRegular, IconSparkleRegular,
   IconThinkOutlineRegular, TextShimmer,
-} from '@deepseek-ai/dsh-client-ui-primitives'
+} from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type { GroupKey, NodeReference } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { ProcessActivity, RunningProcessActivity } from '../contract/process-groups.ts'
 import type { ChatStoreState } from '../contract/store.ts'
@@ -14,7 +14,7 @@ import { turnProcessOpen } from '../stores.ts'
 import { ChatNodeSeat } from './ChatNodeSeat.tsx'
 import { hiddenOrCollapsing } from './flow-motion.ts'
 import { chatRenderKey } from './render-entry.ts'
-import { processTitle } from './step-process.ts'
+import { processTitle, stepRunsGrouped, thinkingTitle } from './step-process.ts'
 import { useDisclosure } from './use-disclosure.ts'
 import { useProcessScroll } from './use-process-scroll.ts'
 import css from './ChatGroupSeat.module.css'
@@ -33,6 +33,8 @@ interface LiveProcessTitle {
   readonly activity: RunningProcessActivity | 'thinking'
   readonly detail: string
   readonly preparing: boolean
+  /** Thinking title composed from the counts when this title was desired; empty while a tool is live. */
+  readonly thinking: string
 }
 
 const PROCESS_ICONS: Record<ProcessTitleActivity, ReactNode> = {
@@ -55,6 +57,7 @@ const PROCESS_ICONS: Record<ProcessTitleActivity, ReactNode> = {
 
 function sameLiveProcessTitle(left: LiveProcessTitle, right: LiveProcessTitle): boolean {
   return left.activity === right.activity && left.detail === right.detail && left.preparing === right.preparing
+    && left.thinking === right.thinking
 }
 
 function useStableLiveProcessTitle(desired: LiveProcessTitle, active: boolean): LiveProcessTitle {
@@ -78,7 +81,7 @@ function useStableLiveProcessTitle(desired: LiveProcessTitle, active: boolean): 
     }
     const timer = setTimeout(commit, remaining)
     return () => { clearTimeout(timer) }
-  }, [active, desired.activity, desired.detail, desired.preparing])
+  }, [active, desired.activity, desired.detail, desired.preparing, desired.thinking])
   return active ? displayed : desired
 }
 
@@ -105,11 +108,12 @@ const ProcessGroupHeader = memo(function ProcessGroupHeader({ groupKey, useChatG
     activity: data?.summary.running ?? 'thinking',
     detail: data?.summary.runningDetail ?? '',
     preparing: data?.summary.preparing === true,
+    thinking: data === undefined || data.closed || data.summary.running !== undefined ? '' : thinkingTitle(data.summary, t),
   }, data !== undefined && !data.closed)
   if (data === undefined) return null
   const label = data.closed ? processTitle(data.summary, t)
     : live.preparing ? t(`message.stepProcess.prepare.${live.activity === 'thinking' ? 'tools' : live.activity}`)
-      : t(`message.stepProcess.${live.activity}`)
+      : live.activity === 'thinking' ? live.thinking : t(`message.stepProcess.${live.activity}`)
   const detail = detailed && !data.closed ? live.detail : ''
   const title = detail === '' ? label : `${label}${t('message.turnProcess.separator')}${detail}`
   const activity = data.closed ? data.summary.counts[0]?.kind ?? 'thinking' : live.activity
@@ -145,8 +149,8 @@ export const ChatGroupSeat = memo(function ChatGroupSeat({ groupKey, useChatGrou
     return location?.kind === 'turn' || location?.kind === 'step' ? location.turn : undefined
   })
   // Detailed keeps the latest completed Turn flat, like a running one, until the next input.
-  const grouped = props.usePresentation(policy => policy.stepGrouping === 'collapsed'
-    || (policy.stepGrouping === 'history' && turnLocation?.status !== 'open' && !deferCollapse))
+  const grouped = props.usePresentation(policy =>
+    stepRunsGrouped(policy.stepGrouping, turnLocation?.status === 'open', deferCollapse))
   const reason = turnLocation?.end?.data.reason.kind
   const alwaysOpen = presentation?.turnClosed === false || presentation?.hasInterleavedInput === true
     || reason === 'aborted' || reason === 'interrupted' || reason === 'error'

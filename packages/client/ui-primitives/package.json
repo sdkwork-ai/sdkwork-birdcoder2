@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-primitives",
   "description": "Pure React atoms for the dsh web UI: controls, icons, markdown, and JSON inspectors (zero cordis)",
-  "version": "0.2.3-alpha.2",
+  "version": "0.2.3-alpha.3",
   "publishConfig": {
     "access": "public"
   },
@@ -12,24 +12,37 @@
   },
   "type": "module",
   "main": "lib/index.js",
-  "types": "lib/types/index.d.ts",
+  "types": "lib/types/client/index.d.ts",
   "exports": {
     ".": {
-      "types": "./lib/types/index.d.ts",
+      "types": "./lib/types/client/index.d.ts",
       "default": "./lib/index.js"
     },
+    "./client": {
+      "types": "./lib/types/client/index.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./assets/*": "./lib/assets/*",
     "./src/*": "./src/*",
+    "./locale/*.json": "./locale/*.json",
     "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [],
+      "immediately": true
+    }
   },
   "license": "MIT",
   "devDependencies": {
     "@deepseek-ai/dsh-client-store": "workspace:*",
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-util-code-language": "workspace:*",
-    "react": "^18.2.0",
+    "react": "^19.3.1",
     "clsx": "^2.0.0",
     "diff": "^9.0.0",
-    "react-dom": "^18.2.0",
+    "react-dom": "^19.3.1",
     "anser": "^2.3.5",
     "katex": "^0.18.7",
     "micromark-core-commonmark": "^2.0.3",
@@ -53,8 +66,11 @@
     "@deepseek-ai/dsh-util-file-drag": "workspace:*"
   },
   "files": [
+    "locale/*.json",
     "lib/index.js",
-    "lib/**/*.css",
+    "lib/client.js",
+    "lib/assets",
+    "lib/client.*.js",
     "lib/types/**/*.d.ts",
     "lib/types/**/*.d.ts.map",
     "lib/**/*.js.map",

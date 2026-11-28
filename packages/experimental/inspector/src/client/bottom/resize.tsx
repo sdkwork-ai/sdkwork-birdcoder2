@@ -18,6 +18,7 @@ export function InspectorResizeHandle({ height, onResize, label, panelId }: {
   panelId: string
 }) {
   const drag = useRef<{ pointerId: number; y: number; height: number } | undefined>(undefined)
+  const drag = useRef<{ pointerId: number; y: number; height: number }>(undefined)
   const resize = (value: number): void => { onResize(Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, value))) }
   const move = (event: PointerEvent<HTMLDivElement>): void => {
     const start = drag.current

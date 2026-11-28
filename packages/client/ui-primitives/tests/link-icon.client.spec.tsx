@@ -3,7 +3,7 @@
 // so the literal is the value under assertion rather than a binding this build resolves
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
-import { LinkIconMedium, LinkIconRegular, classifyLinkPath, type LinkIconKind } from '@deepseek-ai/dsh-client-ui-primitives'
+import { LinkIconMedium, LinkIconRegular, classifyLinkPath, type LinkIconKind } from '@deepseek-ai/dsh-client-ui-primitives/client'
 
 afterEach(cleanup)
 

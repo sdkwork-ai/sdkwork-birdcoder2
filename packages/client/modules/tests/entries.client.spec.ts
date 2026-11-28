@@ -395,6 +395,18 @@ it('reports reconciliation before startup and missing service activation without
   expect(b.modules.entries.state.getSnapshot().failures).toEqual([])
 })
 
+it('publishes a plain Error by its message and keeps the class name of a specific error', async () => {
+  const b = await bench(graph(), {
+    plain: () => ({ apply() { throw new Error('apply unavailable') } }),
+    typed: () => ({ apply() { throw new TypeError('value is not a function') } }),
+  })
+  await b.modules.entries.sync(graph(row('plain'), row('typed')))
+  expect(b.modules.entries.state.getSnapshot().failures).toEqual([
+    { id: 'plain', message: 'apply unavailable' },
+    { id: 'typed', message: 'TypeError: value is not a function' },
+  ])
+})
+
 it('retries a materialization failure without publishing a partial module record', async () => {
   let broken = true
   const meta = vi.fn(stylesheet('a.css', '.a {}'))
@@ -445,7 +457,7 @@ it('does not finish a stale code replacement after download or asynchronous tear
 it('keeps the previous module records active until the replaced runtime has been torn down', async () => {
   const effects = { mounted: 0, disposed: 0, hits: 0 }
   const cleanup = deferred()
-  const b = await bench(graph(row('a')), { a: visible('a', effects, () => cleanup.promise) })
+  const b = await bench(graph(row('a', 'r0', { isolation: 'style' })), { a: visible('a', effects, () => cleanup.promise) })
   const previous = b.modules.loadCache.get('a')!
   const active = (): boolean => [...b.modules.activeRecords()].includes(previous)
   const published: boolean[] = []
@@ -458,6 +470,7 @@ it('keeps the previous module records active until the replaced runtime has been
   // The replacement is downloading while the previous runtime is still mounted.
   expect(document.querySelectorAll('[data-live=a]')).toHaveLength(1)
   expect(b.modules.loadCache.has('a')).toBe(false)
+  expect(previous).toMatchObject({ ownerId: 'a', isolation: { script: false, style: true } })
   expect(active()).toBe(true)
   download.resolve()
   await vi.waitFor(() => { expect(document.querySelector('[data-live=a]')).toBeNull() })
@@ -470,6 +483,20 @@ it('keeps the previous module records active until the replaced runtime has been
   expect(b.modules.loadCache.get('a')).not.toBe(previous)
   expect([...b.modules.activeRecords()]).toContain(b.modules.loadCache.get('a'))
   expect(effects).toEqual({ mounted: 2, disposed: 1, hits: 0 })
+})
+
+it('uses the graph at load for a superseded install and reads a new declaration after eviction', async () => {
+  const b = await bench(graph(), { a: () => ({ apply() {} }), b: () => ({ apply() {} }) })
+  const first = b.modules.entries.sync(graph(row('a', 'r0', { isolation: 'style' }), row('b')))
+  const latest = b.modules.entries.sync(graph(row('a'), row('b', 'r0', { isolation: 'style' })))
+  await Promise.all([first, latest])
+  expect(b.modules.loadCache.get('a')?.isolation.style).toBe(false)
+  expect(b.modules.loadCache.get('b')?.isolation.style).toBe(true)
+  await b.modules.entries.sync(graph())
+  expect([...b.modules.activeRecords()].map(record => record.id)).toEqual(['bootstrap'])
+  await b.modules.entries.sync(graph(row('a', 'r0', { isolation: 'style' }), row('b')))
+  expect(b.modules.loadCache.get('a')?.isolation.style).toBe(true)
+  expect(b.modules.loadCache.get('b')?.isolation.style).toBe(false)
 })
 
 it('keeps the previous module records active while a failed replacement leaves the old runtime running', async () => {
@@ -500,7 +527,7 @@ it('keeps the previous module records active while a failed replacement leaves t
 it('retains a module that only a running replaced runtime requests when the graph drops it', async () => {
   const effects = { mounted: 0, disposed: 0, hits: 0 }
   const plugin = visible('a', effects)
-  const b = await bench(graph(row('a'), row('b')), {
+  const b = await bench(graph(row('a'), row('b', 'r0', { isolation: 'style' })), {
     a: { ...plugin, factory: (require) => { require('b'); return plugin.factory(require) } },
     b: () => ({ apply() {} }),
   })
@@ -513,6 +540,9 @@ it('retains a module that only a running replaced runtime requests when the grap
   expect(document.querySelectorAll('[data-live=a]')).toHaveLength(1)
   expect(b.modules.loadCache.get('b')).toBe(library)
   expect([...b.modules.activeRecords()]).toContain(library)
+  expect(library.isolation.style).toBe(true)
+  await b.modules.entries.sync(graph())
+  expect([...b.modules.activeRecords()]).not.toContain(library)
 })
 
 it('replaces an entry whose previous import left no module record', async () => {
@@ -544,13 +574,14 @@ it('stops an obsolete multi-entry application after awaiting removal', async () 
 })
 
 
-it('keeps bootstrap ownership explicit and diagnoses removal without changing entries', async () => {
-  const b = await bench(graph(row('bootstrap')), {})
-  await expect(b.modules.entries.sync(graph())).rejects.toThrow('removing bootstrap module')
+it('rejects bootstrap removal without loading the added package', async () => {
+  const b = await bench(graph(row('bootstrap')), { added: () => ({ apply() {} }) })
+  await expect(b.modules.entries.sync(graph(row('added', 'r0', { isolation: 'style' })))).rejects.toThrow('removing bootstrap module')
   expect([...b.ctx.loader.entries()].map(entry => entry.options.name)).toEqual(['bootstrap'])
-  expect(b.modules.entries.state.getSnapshot().syncing).toBe(false)
-  await b.modules.entries.sync(graph(row('bootstrap')))
+  expect(b.modules.loadCache.has('added')).toBe(false)
+  await b.modules.entries.sync(graph(row('bootstrap'), row('added')))
   expect(b.modules.entries.state.getSnapshot().failures).toEqual([])
+  expect(b.modules.loadCache.get('added')?.isolation.style).toBe(false)
 })
 
 it('retains an unrelated module record while reporting a failed replacement', async () => {
@@ -663,7 +694,7 @@ it.each([false, true])('does not mount a materialized factory after a newer remo
   expect([...b.ctx.loader.entries()]).toHaveLength(0)
 })
 
-it('coalesces an overlapping graph snapshot with the same rebuilt artifact', async () => {
+it.each([false, true])('shares a pending rebuild with the same artifact even when style isolation changes: %s', async (style) => {
   const effects = { mounted: 0, disposed: 0, hits: 0 }
   const b = await bench(graph(row('a')), { a: visible('a', effects) })
   const download = deferred()
@@ -671,9 +702,10 @@ it('coalesces an overlapping graph snapshot with the same rebuilt artifact', asy
   b.arrival(async () => { started.resolve(); await download.promise })
   const rebuilding = b.modules.entries.reload('a', 'r1')
   await started.promise
-  const syncing = b.modules.entries.sync(graph(row('a', 'r1')))
+  const syncing = b.modules.entries.sync(graph(row('a', 'r1', style ? { isolation: 'style' } : {})))
   download.resolve()
   await Promise.all([rebuilding, syncing])
+  expect(b.modules.loadCache.get('a')?.isolation.style).toBe(false)
   expect(b.fetched).toEqual(['/batch', row('a', 'r1').url])
   expect(effects).toEqual({ mounted: 2, disposed: 1, hits: 0 })
 })
@@ -738,7 +770,7 @@ it.each(['graph', 'rebuilt'])('preserves bootstrap and dependent fibers when a %
   for (let retry = 0; retry < 2; retry++) {
     await b.modules.entries.retry()
     expect(b.modules.entries.state.getSnapshot().failures).toEqual([
-      { id: 'bootstrap', message: 'Error: client-modules: replacing bootstrap module bootstrap requires a page reload' },
+      { id: 'bootstrap', message: 'client-modules: replacing bootstrap module bootstrap requires a page reload' },
     ])
   }
   expect([...b.ctx.loader.entries()].map(entry => entry.fiber)).toEqual(fibers)
@@ -829,7 +861,7 @@ describe('Host release changes', () => {
     const listener = vi.fn()
     const unsubscribe = b.modules.entries.releaseChange.subscribe(listener)
     // A different commit of the same version is another release.
-    await b.modules.entries.sync(built(r2, row('pet', 'r1'), row('cat')))
+    await b.modules.entries.sync(built(r2, row('pet', 'r1', { isolation: 'style' }), row('cat')))
     await b.modules.entries.reload('pet', 'r2')
     expect(effects).toEqual({ mounted: 1, disposed: 0, hits: 0 })
     expect(b.modules.loadCache.has('cat')).toBe(false)

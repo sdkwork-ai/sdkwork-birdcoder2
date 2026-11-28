@@ -1,8 +1,8 @@
-/** Lifecycle glyphs of change requests and outcome glyphs of their checks. */
+/** Lifecycle glyphs of change requests, outcome glyphs of their checks, the marks of their code hosts, and the marks of file headers. */
 
 import type { ReactNode } from 'react'
 import clsx from 'clsx'
-import { IconCheckCircleFillRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconCheckCircleFillRegular, IconRightUpOutlineRegular, LinkIconRegular } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type { CheckState, ChecksRollup } from '@deepseek-ai/dsh-experimental-forge/types'
 import type { ChangeRequestTone } from './status.ts'
 import css from './Forge.module.css'
@@ -18,8 +18,8 @@ const BRANCH_ENDS = (
 /** The head branch line that bends back toward the base, shared by the open and blocked shapes. */
 const TOWARD_BASE = (
   <>
-    <path d="M12 10.9V6.6C12 5.5 11.1 4.6 10 4.6H8.2" />
-    <path d="M9.6 3L8 4.6L9.6 6.2" />
+    <path d="M12 10.9V5.5C12 4.4 11.1 3.5 10 3.5H8.2" />
+    <path d="M9.6 1.9L8 3.5L9.6 5.1" />
   </>
 )
 
@@ -60,7 +60,7 @@ const SHAPES: Record<ChangeRequestTone, ReactNode> = {
   closed: (
     <>
       {BRANCH_ENDS}
-      <path d="M4 5.1V10.9M12 10.9V8.6M10.4 3.2L13.6 6.4M13.6 3.2L10.4 6.4" />
+      <path d="M4 5.1V10.9M12 10.9V7.1M10.4 1.9L13.6 5.1M13.6 1.9L10.4 5.1" />
     </>
   ),
 }
@@ -146,5 +146,50 @@ export function CheckGlyph({ state, size = 16 }: { readonly state: CheckState; r
         </svg>
       )}
     </span>
+  )
+}
+
+/** The public host whose site mark stands for each forge family, self-hosted instances included. */
+const FORGE_SITE: Readonly<Record<string, string>> = { github: 'https://github.com', gitlab: 'https://gitlab.com' }
+
+/**
+ * Draw the mark of a code host on an action that opens it: the site mark of the provider's forge family, whatever the
+ * host name, or the leaving arrow for a family without a mark and for no provider.
+ * @param props.forge - forge family of the change request's provider, such as `github`, or null without one.
+ * @param props.size - width and height in pixels, 14 by default.
+ * @returns the decorative glyph.
+ */
+export function ForgeGlyph({ forge, size = 14 }: { readonly forge: string | null; readonly size?: number | undefined }): ReactNode {
+  const site = forge === null ? undefined : FORGE_SITE[forge]
+  return site === undefined ? <IconRightUpOutlineRegular size={size} /> : <LinkIconRegular kind="url" href={site} size={size} />
+}
+
+/** A file header mark the shared icons have no drawing of. */
+export type FileMark = 'unstage' | 'restore' | 'unviewed'
+
+const FILE_MARKS: Record<FileMark, ReactNode> = {
+  // The horizontal stroke of the shared plus, which stages.
+  unstage: <path vectorEffect="non-scaling-stroke" d="M2 8H14" />,
+  restore: (
+    <g strokeLinecap="round" strokeLinejoin="round">
+      <path vectorEffect="non-scaling-stroke" d="M5.5 2.5L2.5 5.5L5.5 8.5" />
+      <path vectorEffect="non-scaling-stroke" d="M2.5 5.5H9.5A4 4 0 0 1 9.5 13.5H6" />
+    </g>
+  ),
+  // The ring of the shared check circle, which marks a viewed file.
+  unviewed: <circle vectorEffect="non-scaling-stroke" cx="8" cy="8" r="6.5" />,
+}
+
+/**
+ * Draw a decorative mark of a file header at the weight of the shared Regular icons: a minus for unstaging, an arrow
+ * turning back for restoring, and the empty ring of a file that is not viewed.
+ * @param props.mark - which mark to draw.
+ * @returns the glyph, 16 pixels wide unless its control sizes it.
+ */
+export function FileMarkGlyph({ mark }: { readonly mark: FileMark }): ReactNode {
+  return (
+    <svg width={16} height={16} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1} aria-hidden="true" data-forge-file-mark={mark}>
+      {FILE_MARKS[mark]}
+    </svg>
   )
 }

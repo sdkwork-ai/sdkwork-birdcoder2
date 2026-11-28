@@ -421,8 +421,8 @@ describe('web e2e: plugin manager', () => {
       const release = Promise.withResolvers<undefined>()
       const listBundles = scaffold.ctx.pluginManager.listBundles.bind(scaffold.ctx.pluginManager)
       const reads: ReturnType<typeof listBundles>[] = []
-      const spy = vi.spyOn(scaffold.ctx.pluginManager, 'listBundles').mockImplementation(() => {
-        const read = release.promise.then(() => listBundles())
+      const spy = vi.spyOn(scaffold.ctx.pluginManager, 'listBundles').mockImplementation((...args) => {
+        const read = release.promise.then(() => listBundles(...args))
         reads.push(read)
         return read
       })
@@ -762,7 +762,7 @@ describe('web e2e: plugin manager', () => {
       .toMatchObject({ enabled: true, installed: false, removable: true, error: { code: 'operation-error' }, rows: [] })
     await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'missing-bundle.expected.md'),
       await captureStableAria(page, '[data-plugin-panel]', scaffold.workspaceCwd, {
-        replacements: [[scaffold.harnessHome, '{{home}}']],
+        replacements: [[JSON.stringify(join(scaffold.harnessHome, 'profiles', 'scaffold')).slice(1, -1), '{{home}}/profiles/scaffold']],
       }), MODE)
     await toggle.click()
     await expect.poll(async () => (JSON.parse(await homeFile('profiles', 'scaffold', 'package.json')) as {
@@ -854,12 +854,12 @@ describe('web e2e: plugin manager', () => {
     await compareOrRefreshGolden(TERMINAL_EXPECTED, await captureStableAria(
       page, '[data-plugin-group="more"] [data-plugin-package="@deepseek-ai/dsh-experimental-terminal-bundle"]', scaffold.workspaceCwd,
     ), MODE)
-    // The More list also omits LiveShare until its rows run, so the offered count is one lower than
-    // the eligible installed optional-bundle list.
+    // Web omits Desktop Office preview even when its Host ships the bundle.
+    expect(await panel.locator('[data-plugin-package="@deepseek-ai/dsh-office-frame-forwarding-bundle"]').count()).toBe(0)
     expect(await panel.locator('[data-plugin-group="more"] [data-plugin-package="@deepseek-ai/dsh-experimental-liveshare"]').count()).toBe(0)
     expect(await panel.locator('[data-plugin-group="more"] [data-plugin-package]').count())
       .toBe(bundles.filter(bundle => !HIDDEN_BUNDLES.has(bundle.name)
-        && bundle.name !== '@deepseek-ai/dsh-experimental-liveshare'
+        && bundle.name !== '@deepseek-ai/dsh-experimental-liveshare' && bundle.name !== '@deepseek-ai/dsh-office-frame-forwarding-bundle'
         && bundle.official && (bundle.listedByDefault !== false || bundle.enabled || bundle.installed)).length)
     // Computer Use ships with the installation and is listed only on the macOS Hosts it supports.
     const cuaSupported = process.platform === 'darwin' || process.platform === 'win32'
@@ -878,9 +878,11 @@ describe('web e2e: plugin manager', () => {
       await card.getByText('实验性', { exact: true }).count(),
     ]))).toEqual([
       ['@deepseek-ai/dsh-experimental-voice-input-bundle', 1],
+      ['@deepseek-ai/dsh-read-aloud-bundle', 1],
       ['@deepseek-ai/dsh-experimental-plugin-market-bundle', 1],
       ['@deepseek-ai/dsh-experimental-auto-review', 1],
       ['@deepseek-ai/dsh-experimental-forge-bundle', 1],
+      ['@deepseek-ai/dsh-client-ui-connectors', 1],
       ['@deepseek-ai/dsh-experimental-inspector-profile', 1],
       ...cuaSupported ? [['@deepseek-ai/dsh-cua-bundle', 1]] : [],
       ['@deepseek-ai/dsh-timeline', 1],
@@ -1285,12 +1287,12 @@ describe('web e2e: plugin manager', () => {
     await panel.getByRole('button', { name: '查看 语音输入', exact: true }).click()
     const packageName = panel.locator('[data-plugin-name]')
     expect(await packageName.textContent()).toBe('@deepseek-ai/dsh-experimental-voice-input-bundle')
-    expect(await panel.getByText('在本机使用 SenseVoice 转写录音，首次使用需安装依赖。').count()).toBe(1)
+    expect(await panel.getByText('登录 DeepSeek 账号或配置 API Key 后使用云端识别转写录音，也可以下载本地 SenseVoice 模型。').count()).toBe(1)
     try {
       await setLanguage('en')
       await panel.getByRole('heading', { name: 'Voice input', exact: true }).waitFor()
       expect(await packageName.textContent()).toBe('@deepseek-ai/dsh-experimental-voice-input-bundle')
-      expect(await panel.getByText('Transcribe recordings locally with SenseVoice; first use requires installing dependencies').count()).toBe(1)
+      expect(await panel.getByText('Dictate with DeepSeek cloud recognition through a DeepSeek account or API key, or download the local SenseVoice model').count()).toBe(1)
       await panel.getByRole('button', { name: 'Back to plugins' }).click()
       await panel.getByRole('button', { name: 'View Voice input', exact: true }).waitFor()
       expect(await panel.getByRole('switch', { name: 'Enable Voice input', exact: true }).count()).toBe(1)
@@ -1573,6 +1575,7 @@ describe('web e2e: plugin manager', () => {
     // A live profile: the row mounts once the whole tree recomposed, the switch is on, and nothing waits for a restart.
     await expect.poll(() => mounted()?.fiber?.state, { timeout: 20_000 }).toBe(2)
     await expect.poll(() => toggle.getAttribute('aria-checked'), { timeout: PLUGIN_TOGGLE_SETTLE_MS }).toBe('true')
+    await expect.poll(() => toggle.isEnabled(), { timeout: PLUGIN_TOGGLE_SETTLE_MS }).toBe(true)
     expect(await panel.getByText(/下次启动生效/).count()).toBe(0)
     const snapshot = await captureStableAria(page, '[data-plugin-panel]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(LIVE_EXPECTED, snapshot, MODE)

@@ -48,6 +48,9 @@
       "path": "../ui-renderer"
     },
     {
+      "path": "../ui-responsive"
+    },
+    {
       "path": "../ui-session"
     },
     {
@@ -70,6 +73,9 @@
     },
     {
       "path": "../product-analytics/tsconfig.client.json"
+    },
+    {
+      "path": "../../subagent/subagent"
     }
   ]
 }

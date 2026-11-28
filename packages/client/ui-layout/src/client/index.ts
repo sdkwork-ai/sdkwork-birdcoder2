@@ -13,7 +13,7 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
-import type { HostObservable, SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
+import type { HostObservable, SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { PanelInfo } from './service.ts'
 // The owner shares below name the mode union; the re-export further down
 // publishes it to consumers without bringing it into this module's scope.
@@ -46,7 +46,7 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@deepseek-ai/dsh-client-ui-slots/client' {
   interface LocaleNamespaceMap {
     /** Layout keyboard command labels. */
     'shortcuts.layout': keyof typeof zh
@@ -173,6 +173,11 @@ export interface SidebarOwnerProps {
   width: number
   /** Present the retained sidebar content as an overlay drawer. */
   drawer: boolean
+  /**
+   * True while the frame eases its column tracks after a collapse, expand, or fold change, and false during a
+   * resize drag or a viewport change; a sidebar that sets its own width eases it on the same curve meanwhile.
+   */
+  animating: boolean
 }
 
 /**

@@ -2,9 +2,9 @@
 
 import { useId, useState } from 'react'
 import {
-  CodeBlock, DisclosureRow, IconCodeOutlineRegular, IconInspectOutlineRegular,
-} from '@deepseek-ai/dsh-client-ui-primitives'
-import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+  CodeBlock, DisclosureRow, IconCodeOutlineRegular, InspectButton,
+} from '@deepseek-ai/dsh-client-ui-primitives/client'
+import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client'
 import { cordisDefineCard, type CordisToolState } from './card-model.ts'
 import type { CordisCardFace } from './slots.ts'
@@ -76,6 +76,7 @@ function StartedCordisDefineRow({
   return (
     <div
       className={css.card}
+      data-inspect-scope
       data-tool="cordis_define"
       data-state={card.state}
       data-terminal={reading === 'removed' || undefined}
@@ -160,10 +161,7 @@ function StartedCordisDefineRow({
           )}
           {card.pluginId !== null && <div className={css.panelHint}>{t('panel.hint')}</div>}
           {inspect !== undefined && (
-            <button type="button" className={css.inspectButton} onClick={inspect}>
-              <IconInspectOutlineRegular />
-              {t('action.inspect')}
-            </button>
+            <InspectButton label={t('action.inspect')} onClick={inspect} />
           )}
         </div>
       </DisclosureRow>

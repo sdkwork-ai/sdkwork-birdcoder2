@@ -20,8 +20,9 @@
 // line silently drops it and crashes every workspace row at render.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent, RefObject } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import clsx from 'clsx'
-import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots/client'
 import {
   HoverCard, IconArchiveOutlineRegular,
   IconFolderCloseRegular, IconFolderOpenRegular,
@@ -29,6 +30,10 @@ import {
   IconTriangleRightFillRegular, IconUnarchiveOutlineRegular, relativeTime, StateDot, Tooltip, useRowDragPreview,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
+  IconTriangleRightFillRegular, IconUnarchiveOutlineRegular, relativeTime, StateDot, Tooltip, useHoverMarquee, useRowDragPreview,
+} from '@deepseek-ai/dsh-client-ui-primitives/client'
+import type { ShortcutCatalogEntry } from '@deepseek-ai/dsh-client-shortcuts/client'
+import type { StateDotState } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import { abbreviateHomePath } from '@deepseek-ai/dsh-util-workspace-path'
 import type { WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { ShortcutCatalogEntry } from '@deepseek-ai/dsh-client-shortcuts/client'
@@ -320,7 +325,7 @@ type ProjectRowItemProps = {
   /** Actions handed to the fork rowMenus plugin renderer (rename/delete). */
   actions?: WorkspaceRowMenuRendererProps['actions']
   t: RowTranslate
-} & Pick<WorkspaceBrowserProps, 'useWorkspaceAccess' | 'renderFactorySlot' | 'useContextMenuTarget' | 'useContextMenu'>
+} & Pick<WorkspaceBrowserProps, 'useWorkspaceAccess' | 'renderFactorySlot' | 'useContextMenuOpener' | 'useContextMenu'>
 
 /**
  * Which of one header row's actions the caller's access snapshot allows.
@@ -380,6 +385,12 @@ function ProjectRow({
   renderFactorySlot, useContextMenu, useContextMenuTarget,
 }: ProjectRowItemProps & { access: ProjectRowAccess }) {
   const drag = access.reorder ? offeredDrag : undefined
+  group, containsCurrentDescendant = false, onToggle, drag: offeredDrag, home, newShortcut, t, actions,
+  renderFactorySlot, useContextMenuOpener, useContextMenu,
+}: Omit<ProjectRowItemProps, 'onCreate'> & { actions: ProjectRowActions }) {
+  const { getTriggerProps } = useContextMenu()
+  const drag = actions.reorder ? offeredDrag : undefined
+  const create = actions.create
   const row = group
   const workspaceId = row.workspaceId
   // The ungrouped bucket has no workspace title: its label is dictionary copy.
@@ -424,6 +435,13 @@ function ProjectRow({
         },
       },
   )
+  // The row's gesture and its button share one opener id, so a menu for the
+  // same Workspace opened elsewhere leaves this row unchanged.
+  const menuOpener = useId()
+  const menuOpen = useContextMenuOpener(opener => opener === menuOpener)
+  const dragPreview = useRowDragPreview(css.dragPreview as string, DRAG_PREVIEW_PROPERTIES)
+  const workspaceMenuTarget = row.workspaceId !== undefined && row.cwd !== undefined
+    ? { workspaceId: row.workspaceId, path: row.cwd } : undefined
   const ownRow = (
     <div
       className={clsx(css.projectRow, menuOpen && css.menuOpen)}
@@ -432,6 +450,9 @@ function ProjectRow({
       aria-expanded={row.expanded}
       onClick={onToggle}
       {...trigger}
+      {...getTriggerProps(workspaceMenuTarget === undefined
+        ? undefined
+        : { kind: 'workspace', value: { ...workspaceMenuTarget, displayTitle: label } }, undefined, menuOpener)}
       draggable={drag !== undefined}
       onDragStart={drag === undefined
         ? undefined
@@ -465,6 +486,15 @@ function ProjectRow({
         })}
         {menuNode}
         {access.create !== undefined && (
+        {workspaceMenuTarget !== undefined && (
+          renderFactorySlot('contextMenu.button', {
+            target: { kind: 'workspace', value: { ...workspaceMenuTarget, displayTitle: label } },
+            label: t('actions.workspace.aria', { name: label }),
+            size: 'row',
+            opener: menuOpener,
+          })
+        )}
+        {create !== undefined && (
           <Tooltip label={t('actions.newSession')} shortcutKeys={newShortcut?.keys} side="bottom" align="end" delayMs={500} portal>
             <button
               type="button"
@@ -737,10 +767,12 @@ export function SearchResultItem({
 export function SessionNodeItem({
   node, currentId, now, onOpen, onRenameRequest, onFork, onArchive, onPin, onUnpin,
   renderSlot, onReveal, drag, menu, home, useSessionAccess, t, renderFactorySlot, useContextMenu, useContextMenuTarget,
+  node, currentId, now, onOpen, onRenameRequest, renderSlot, renderFactorySlot, useContextMenuOpener,
+  useContextMenu, onReveal, drag, home, useSessionAccess, t,
 }: {
   useContextMenu: WorkspaceBrowserProps['useContextMenu']
   renderFactorySlot: WorkspaceBrowserProps['renderFactorySlot']
-  useContextMenuTarget: WorkspaceBrowserProps['useContextMenuTarget']
+  useContextMenuOpener: WorkspaceBrowserProps['useContextMenuOpener']
   node: SessionNode
   currentId: string | undefined
   now: number
@@ -803,6 +835,11 @@ export function SessionNodeItem({
   const menuOpen = pluginMenuOpen || menuCaptured
   const [, setContextPoint] = useState<{ x: number; y: number } | null>(null)
   const dragPreview = useRowDragPreview(css.dragPreview, DRAG_PREVIEW_PROPERTIES)
+  // The row's gesture and its button share one opener id, so the conversation
+  // title's menu for the same Session leaves this row unchanged.
+  const menuOpener = useId()
+  const menuOpen = useContextMenuOpener(opener => opener === menuOpener)
+  const dragPreview = useRowDragPreview(css.dragPreview as string, DRAG_PREVIEW_PROPERTIES)
   const rowRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLSpanElement>(null)
   // On macOS the click that activates the window is not delivered, but the
@@ -876,6 +913,9 @@ export function SessionNodeItem({
       onPointerEnter={marquee.enter}
       onPointerLeave={leaveRow}
       {...(onRowContextMenu === undefined ? {} : { onContextMenu: onRowContextMenu })}
+      } }, menuOpener)}
+      onPointerEnter={marquee.onPointerEnter}
+      onPointerLeave={marquee.onPointerLeave}
       draggable={draggable}
       onDragStart={!draggable
         ? undefined
@@ -957,7 +997,8 @@ export function SessionNodeItem({
           {menu === undefined && renderFactorySlot('contextMenu.button', {
             target: { kind: 'session', value: { sessionId: node.id, displayTitle: row.title } },
             label: t('actions.session.aria', { name: title }),
-            className: css.iconButton,
+            size: 'row',
+            opener: menuOpener,
           })}
           {menuNode}
           <span className={css.rowQuickActions}>

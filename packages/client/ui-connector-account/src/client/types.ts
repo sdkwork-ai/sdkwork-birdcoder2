@@ -1,6 +1,6 @@
 /** Browser-side state and face of the accounts the Plugins page shows. */
 import type { ClientRemote } from '@deepseek-ai/dsh-api-remotes/client'
-import type { HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
+import type { HostObservable } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { LocalizedText } from '@deepseek-ai/dsh-package-manifest'
 import type { ConnectorAccountEntry, ConnectorOperationId } from '../types.ts'
 
@@ -41,4 +41,19 @@ export interface ConnectorAccountFace {
 export interface ConnectorBundleAccountFace extends ConnectorAccountFace {
   /** The key of the account the bundle owns. */
   readonly account: string
+}
+
+/** What a surface outside the account's bundle page passes to the `connector.account` Factory. */
+export interface ConnectorAccountFactoryInput {
+  /** The key of the account to show, such as `mcp:<server>`. */
+  readonly account: string
+  /** `section` shows the account's whole section; `status` only its state dot and status line, as in a list row. */
+  readonly presentation: 'section' | 'status'
+}
+
+declare module '@deepseek-ai/dsh-client-ui-slots/client' {
+  interface SlotFactoryMap {
+    /** One registered account by key, for a surface outside the account's bundle page; nothing before the Host lists it. */
+    'connector.account': { scope: 'root'; props: ConnectorAccountFactoryInput; locale: 'connectorAccount'; inject: ConnectorAccountFace }
+  }
 }

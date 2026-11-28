@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
+import { contextMenuHook, responsiveHooks, themeHooks } from '@deepseek-ai/dsh-client-test-runtime'
 /** Frame interactions with a real store and explicitly driven browser measurements. */
-import type { GlobalStandardProps, RenderOpts } from '@deepseek-ai/dsh-client-ui-slots'
+import type { GlobalStandardProps, RenderOpts } from '@deepseek-ai/dsh-client-ui-slots/client'
 import { allowAllAccess, bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -105,6 +105,7 @@ function mountFrame(windowWidth = frameWidth, content?: AppFrameProps['renderSlo
       useContextMenu={contextMenuHook()} useResource={useResource}
       useWorkspaces={sel => sel(workspaceState)}
       {...allowAllAccess}
+      {...responsiveHooks()} {...themeHooks()}
       t={key => key === 'brand.localBuild' ? 'DSH Local Build' : key}
     />
   )
@@ -220,6 +221,9 @@ describe('AppFrame', () => {
     expect(sidebarOwner()).toEqual({ collapsed: false, width: 280, drawer: false })
     // The prospective preference is 45% of the post-rail frame.
     expect(rightOwner()).toEqual({ width: 839, viewportWidth: 1920, canShow: true })
+    expect(tracks(frame)).toEqual([280, 0])
+    expect(sidebarOwner()).toEqual({ collapsed: false, width: 280, drawer: false, animating: false })
+    expect(rightOwner()).toEqual({ width: 864, viewportWidth: 1920, canShow: true })
     expect(slotCalls.find(c => c.key === 'main')).toEqual({ key: 'main', props: {}, options: { entryKey: 'conversation' } })
   })
 
@@ -263,6 +267,8 @@ describe('AppFrame', () => {
     act(() => { instance.actions.toggleSidebar() })
     expect(tracks(frame)).toEqual([56, 56, 0])
     expect(sidebarOwner()).toEqual({ collapsed: true, width: 56, drawer: false })
+    expect(tracks(frame)).toEqual([56, 0])
+    expect(sidebarOwner()).toEqual({ collapsed: true, width: 56, drawer: false, animating: true })
     expect(getByTestId('sidebar-content')).toBeTruthy()
     expect(frame.querySelector('[data-side="sidebar"]')).toBeNull()
     // The rail keeps the window chrome housed: no shell.leading seat.
@@ -280,6 +286,8 @@ describe('AppFrame', () => {
     act(() => { instance.actions.toggleSidebar() })
     expect(tracks(frame)).toEqual([56, 0, 0])
     expect(sidebarOwner()).toEqual({ collapsed: true, width: 0, drawer: false })
+    expect(tracks(frame)).toEqual([0, 0])
+    expect(sidebarOwner()).toEqual({ collapsed: true, width: 0, drawer: false, animating: true })
     expect(frame.querySelector('[data-shell-leading]')).not.toBeNull()
     expect(queryByTestId('shell.leading-content')).toBeTruthy()
     act(() => { instance.actions.toggleSidebar() })
@@ -404,6 +412,7 @@ describe('AppFrame normal width concessions', () => {
     expect(tracks(frame)).toEqual([56, 447.5, 0])
     expect(frame.dataset.animating).toBe('true')
     expect(sidebarOwner()).toEqual({ collapsed: false, width: 447.5, drawer: false })
+    expect(sidebarOwner()).toEqual({ collapsed: false, width: 475.5, drawer: false, animating: true })
     expect(frame.querySelector('[data-side="sidebar"]')).toBeNull()
     expect(getByTestId('sidebar-content')).toBe(sidebar)
     act(() => { instance.actions.toggleSidebar() })
@@ -411,7 +420,7 @@ describe('AppFrame normal width concessions', () => {
     resize(767)
     expect(frame.dataset.animating).toBeUndefined()
     act(() => { instance.actions.toggleSidebar() })
-    expect(sidebarOwner()).toEqual({ collapsed: false, width: 360, drawer: true })
+    expect(sidebarOwner()).toEqual({ collapsed: false, width: 360, drawer: true, animating: true })
     resize(951)
     act(() => { instance.actions.toggleSidebar() })
     expect(tracks(frame)[1]).toBe(447.5)
@@ -762,6 +771,18 @@ describe('AppFrame pointer resizing', () => {
     expect(handle.hasPointerCapture(1)).toBe(false)
   })
 
+  it('tells the sidebar its width eases with the tracks only outside a drag', () => {
+    const { frame, instance, sidebarOwner } = mountFrame()
+    expect(sidebarOwner().animating).toBe(false)
+    act(() => { instance.actions.toggleSidebar() })
+    act(() => { instance.actions.toggleSidebar() })
+    expect(frame.hasAttribute('data-animating')).toBe(true)
+    expect(sidebarOwner().animating).toBe(true)
+    pointer(handleFor(frame, 'sidebar'), 'pointerdown', 280)
+    expect(frame.hasAttribute('data-animating')).toBe(true)
+    expect(sidebarOwner().animating).toBe(false)
+  })
+
   it('starts a conceded right drag at its actual width, shared by panel and track', () => {
     const { frame, instance, rightOwner } = mountFrame()
     act(() => { instance.actions.openRightbar(true, false) })
@@ -914,6 +935,8 @@ describe('sidebar drawer', () => {
     const leading = getByTestId('shell.leading-content')
     expect(tracks(frame)).toEqual([56, 0, 0])
     expect(sidebarOwner()).toEqual({ collapsed: true, width: 280, drawer: true })
+    expect(tracks(frame)).toEqual([0, 0])
+    expect(sidebarOwner()).toEqual({ collapsed: true, width: 280, drawer: true, animating: false })
     expect(sidebar.parentElement?.hasAttribute('inert')).toBe(true)
     const mask = frame.querySelector('[data-sidebar-mask]')
     expect(mask).not.toBeNull()
@@ -946,6 +969,10 @@ describe('sidebar drawer', () => {
     expect(sidebarOwner()).toEqual({ collapsed: true, width: 56, drawer: false })
     expect(tracks(frame)).toEqual([56, 56, 0])
     resize(DRAWER_FRAME_EDGE - 1)
+    resize(768)
+    expect(sidebarOwner()).toEqual({ collapsed: true, width: 56, drawer: false, animating: false })
+    expect(tracks(frame)).toEqual([56, 0])
+    resize(767)
     expect(sidebarOwner().collapsed).toBe(true)
     expect(tracks(frame)).toEqual([56, 0, 0])
   })

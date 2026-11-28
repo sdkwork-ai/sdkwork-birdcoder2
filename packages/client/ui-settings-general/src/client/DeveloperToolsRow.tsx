@@ -1,8 +1,8 @@
 /** General Settings control for shared developer-tool visibility and previews. */
 import { useState } from 'react'
-import { Switch } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Switch } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
-import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots/client'
 import css from './DeveloperToolsRow.module.css'
 
 /** Accepted setting and ordered mutation supplied by the settings owner. */
@@ -17,7 +17,7 @@ export interface DeveloperToolsRowInjected {
  * @returns the General Settings row.
  */
 export function DeveloperToolsRow({ useDeveloperTools, setEnabled, t }:
-  PropsRuntime<'settings.general.item'> & PropsLocale<'settings'> & InjectFace<DeveloperToolsRowInjected>) {
+  PropsRuntime<'settings.general.group.display.item'> & PropsLocale<'settings'> & InjectFace<DeveloperToolsRowInjected>) {
   const enabled = useDeveloperTools(value => value)
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)

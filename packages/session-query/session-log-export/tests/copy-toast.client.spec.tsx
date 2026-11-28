@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
-import { contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
+import { contextMenuHook, responsiveHooks, themeHooks } from '@deepseek-ai/dsh-client-test-runtime'
 import { act, cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useSyncExternalStore } from 'react'
 import { createSnapshotStore, type ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
-import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
+import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { SessionMarkdownCopyState } from '../src/client/copy-controller.ts'
 import { SessionMarkdownCopyToast } from '../src/client/CopyToast.tsx'
 import type { SessionMarkdownCopyToastProps } from '../src/client/CopyToast.tsx'
@@ -14,7 +14,8 @@ const unused = (): never => { throw new Error('This isolated component does not 
 const standard: GlobalStandardProps = {
   useSessions: unused, useSessionStatus: unused, useSessionRetainInfo: unused,
   useSessionAccess: () => true, useRemoteAccess: () => true, useWorkspaceAccess: () => true,
-  usePanelInfo: unused, useContextMenu: contextMenuHook(), useResource: unused, useWorkspaces: unused,
+  usePanelInfo: unused, useContextMenu: contextMenuHook(), ...responsiveHooks(), ...themeHooks(),
+  useResource: unused, useWorkspaces: unused,
 }
 
 function bindSnapshot(store: ObservableSnapshot<SessionMarkdownCopyState>) {

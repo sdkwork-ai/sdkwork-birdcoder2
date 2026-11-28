@@ -15,7 +15,7 @@ import { DirectoryNode } from '../src/client/directory-node.ts'
 import { memoryBook, scriptedSearch } from './search-fixture.client.ts'
 import { scriptedList } from './scripted-list.client.ts'
 import { sessionFileAddress } from '@deepseek-ai/dsh-util-workspace-path'
-import type { PaneId, TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
+import type { PaneId, TabId } from '@deepseek-ai/dsh-client-ui-dockkit/client'
 
 const SESSION = 's-1' as SessionId
 const ROOT = '/work/app'
@@ -393,6 +393,31 @@ describe('filesFace', () => {
     expect(h.snapshot()!.levels[ROOT]).toMatchObject({
       kind: 'ready', level: LEVEL,
       failure: { code: 'gateway/internal', message: 'watch disconnected' },
+    })
+    await stream.released.promise
+  })
+
+  it('records a watch failure the Host reported under its own code', async () => {
+    const h = mount()
+    const reported = Promise.withResolvers<undefined>()
+    const unsubscribe = h.instance.subscribe(() => {
+      const level = h.snapshot()?.levels[ROOT]
+      if (level?.kind === 'ready' && level.failure !== undefined) reported.resolve(undefined)
+    })
+    onTestFinished(unsubscribe)
+    h.attach()
+    h.face.hold(PANE, ROOT)
+    const stream = await h.watches.forPath(ROOT)
+    // The Remote face's bundle throws its own copy of the class, which fails `instanceof` in this one.
+    stream.fail(Object.assign(new Error('no entry at "/work/app"'), {
+      isDSHRemoteError: true, code: 'workspace-file/not-found', details: { path: ROOT },
+    }))
+    expect((await h.waitForList(0)).path).toBe(ROOT)
+    await h.settle({ ok: true, value: LEVEL })
+    await reported.promise
+    expect(h.snapshot()!.levels[ROOT]).toMatchObject({
+      kind: 'ready', level: LEVEL,
+      failure: { code: 'workspace-file/not-found', message: 'no entry at "/work/app"', details: { path: ROOT } },
     })
     await stream.released.promise
   })

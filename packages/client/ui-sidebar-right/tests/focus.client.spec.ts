@@ -3,10 +3,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createElement } from 'react'
 import { cleanup, render } from '@testing-library/react'
-import { Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Modal } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import { Context } from '@deepseek-ai/cordis'
-import { activeDockPaneId, findTabPane, getPane } from '@deepseek-ai/dsh-client-ui-dockkit'
-import type { TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
+import { activeDockPaneId, findTabPane, getPane } from '@deepseek-ai/dsh-client-ui-dockkit/client'
+import type { TabId } from '@deepseek-ai/dsh-client-ui-dockkit/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { createSidebarRightController } from '../src/client/service.ts'
 import { createSidebarRightStore } from '../src/client/stores.ts'
@@ -570,6 +570,12 @@ describe('page close and refresh', () => {
       shift: false, repeat: false, composing: false, defaultPrevented: false }
     const context = { target: element, region: 'page' as const, modal: null }
     const consume = vi.fn()
+    const nativeRefresh = vi.fn()
+    const unmountPreview = occurrence.tabActions.bindCommands({ refresh: nativeRefresh })
+    registry.dispatch(gesture, context, vi.fn())
+    expect(nativeRefresh).toHaveBeenCalledOnce()
+    expect(refresh).not.toHaveBeenCalled()
+    unmountPreview()
     registry.dispatch(gesture, context, consume)
     registry.dispatch({ ...gesture, repeat: true }, context, consume)
     expect(refresh).toHaveBeenCalledTimes(1)

@@ -225,6 +225,8 @@ describe('Sidebar chat components', () => {
     // FORK DIVERGENCE: this repository's React passes function components no
     // legacy context argument, so only the props are the contract.
     expect(SessionProvider.mock.lastCall?.[0]).toMatchObject({ session: reference })
+    // React 18 passes a legacy context object as a second argument; React 19 passes none.
+    expect(SessionProvider.mock.lastCall?.[0]).toEqual(expect.objectContaining({ session: reference }))
     expect(renderSlot).toHaveBeenCalledWith('sidebar.chat.conversation', {})
   })
 

@@ -2,7 +2,7 @@
 // result's text blocks; rendered page images reach the model but are not displayed.
 
 import { extractTextContent } from '@deepseek-ai/dsh-llm/message'
-import { IconBrowseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconBrowseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type { Context } from '@deepseek-ai/cordis'
 import { toolFileInject } from '../file-menu.ts'
 import { officeRowModel } from '../models/office-card-model.ts'
@@ -53,7 +53,7 @@ export function OfficeRow({
   )
 }
 
-/** Registers the three Office toolviews. */
+/** Registers the Office toolviews under the current and earlier tool names. */
 export const officeToolview = {
   name: 'office-toolview',
   inject: ['slots', 'sessions'],
@@ -63,6 +63,10 @@ export const officeToolview = {
    */
   apply(ctx: Context): void {
     ctx.slots.inject('tool.call.toolview', function* () {
+      yield ctx.slots.register({ name: 'tool.call.toolview', key: 'document_render', locale: NS, inject: toolFileInject(ctx) }, OfficeRow)
+      yield ctx.slots.register({ name: 'tool.call.toolview', key: 'document_convert', locale: NS, inject: toolFileInject(ctx) }, OfficeRow)
+      yield ctx.slots.register({ name: 'tool.call.toolview', key: 'document_recalculate', locale: NS, inject: toolFileInject(ctx) }, OfficeRow)
+      // The `office_*` keys are the earlier tool names, kept so calls in older Sessions keep the Office row.
       yield ctx.slots.register({ name: 'tool.call.toolview', key: 'office_render', locale: NS, inject: toolFileInject(ctx) }, OfficeRow)
       yield ctx.slots.register({ name: 'tool.call.toolview', key: 'office_convert', locale: NS, inject: toolFileInject(ctx) }, OfficeRow)
       yield ctx.slots.register({ name: 'tool.call.toolview', key: 'office_recalculate', locale: NS, inject: toolFileInject(ctx) }, OfficeRow)

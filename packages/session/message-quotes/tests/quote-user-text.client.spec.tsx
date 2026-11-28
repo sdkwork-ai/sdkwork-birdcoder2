@@ -3,7 +3,7 @@
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import { formatQuoteText } from '@deepseek-ai/dsh-client-ui-primitives'
+import { formatQuoteText } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import { UserTextRegistry } from '@deepseek-ai/dsh-client-ui-conversation/src/client/conversation/user-text-registry.ts'
 import type { UserTextFacts } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { quoteRule } from '../src/client/quote-rule.ts'
@@ -56,8 +56,6 @@ describe('quote UserText', () => {
   })
 
   it('preserves credential spelling and reference syntax in the excerpt and full-text card', async () => {
-    const scrollWidth = vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(200)
-    const clientWidth = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(100)
     const secret = 'sk-1234567890abcdefghijklmnopqrstuvwxyz'
     const text = formatQuoteText(`${secret} @notes.md /review`)
     const renderText = createUserTextFixture()
@@ -71,8 +69,6 @@ describe('quote UserText', () => {
       expect(document.querySelector('[data-quote-popover]')?.textContent).toBe(`${secret} @notes.md /review`)
       expect(document.querySelector('[data-quote-popover] [data-secret]')).toBeNull()
     })
-    scrollWidth.mockRestore()
-    clientWidth.mockRestore()
   })
 
   it('retains parsed quote nodes across unchanged evaluations', async () => {

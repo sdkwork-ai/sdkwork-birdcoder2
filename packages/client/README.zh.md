@@ -62,6 +62,7 @@ kind: "package-group"
 | [`ui-sdkwork-image-preview/`](ui-sdkwork-image-preview/README.zh.md) | 在右侧 Sidebar 的文档 tab 中绘制图片，含格式嗅探、缩放旋转舞台与基线 TIFF 解码器 | `ctx.documentPreviews` |
 | [`ui-sdkwork-video-preview/`](ui-sdkwork-video-preview/README.zh.md) | 在右侧 Sidebar 的文档 tab 中播放视频，含从字节识别容器与编码、完整播放控制条 | `ctx.documentPreviews` |
 | [`ui-sdkwork-audio-preview/`](ui-sdkwork-audio-preview/README.zh.md) | 在右侧 Sidebar 的文档 tab 中播放音频，含从字节读取容器、编码、标签与封面 | `ctx.documentPreviews` |
+| [`ui-responsive/`](ui-responsive/README.zh.md) | 以 `useMediaQuery` 与 `useMobile` 向每个 Slot 组件提供页面的媒体查询结果和设备类别 | — |
 | [`ui-dockkit/`](ui-dockkit/README.zh.md) | 提供停靠布局操作与 React 组件 | — |
 | [`ui-sidebar/`](ui-sidebar/README.zh.md) | 展示工作区与会话导航 | — |
 | [`ui-sidebar-right/`](ui-sidebar-right/README.zh.md) | 管理右侧 Sidebar 及其 tab 类型 | `ctx.sidebarRight`, `ctx.sidebarRightTabs` |

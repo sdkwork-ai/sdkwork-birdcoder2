@@ -51,6 +51,7 @@ const WORKSPACE_MANIFEST_GLOBS = [
   'apps/*/package.json',
   'packages/*/*/package.json',
   'vendor/*/package.json',
+  'vendor/im/*/package.json',
 ]
 
 
@@ -322,7 +323,15 @@ export function collectRuntimeSourceExportUses(path: string, source: string): Ru
     || left.column - right.column)
 }
 
-function resolveLocal(importer: string, specifier: string): string | undefined {
+/**
+ * Resolve a relative module specifier to the source file it names: a specifier with an extension names that file, or
+ * else its TypeScript source (`.js` to `.ts` or `.tsx`, `.mjs` to `.mts`, `.cjs` to `.cts`); an extensionless specifier
+ * tries the TypeScript extensions and then the directory's `index.ts` or `index.tsx`.
+ * @param importer - Absolute path of the importing file; the specifier resolves from its directory.
+ * @param specifier - Relative module specifier.
+ * @returns Absolute path of the first existing candidate, or undefined when none exists.
+ */
+export function resolveLocal(importer: string, specifier: string): string | undefined {
   const raw = resolve(dirname(importer), specifier)
   const candidates = extname(raw) === ''
     ? [`${raw}.ts`, `${raw}.tsx`, `${raw}.mts`, `${raw}.cts`, join(raw, 'index.ts'), join(raw, 'index.tsx')]
@@ -345,11 +354,15 @@ function hasGeneratedHostExport(pkg: WorkspacePackageManifest): boolean {
     && nodeExportTargets((exports as Record<string, unknown>)['./typert']).includes('./lib/typert.host.js')
 }
 
-/** Generate Host modules in memory, without the build plugin's artifact writes. */
+/**
+ * Generate Host modules in memory, without the build plugin's artifact writes. Like the build plugin, generation leaves
+ * TypeScript diagnostics to `pnpm run typecheck`.
+ */
 function generatedHostSources(root: string, packages: readonly WorkspacePackageManifest[]): ReadonlyMap<string, string> {
   const selected = packages.filter(hasGeneratedHostExport)
   if (selected.length === 0) return new Map()
-  const artifacts = new WorkspaceTypertGenerator(root).generate(selected.map(pkg => pkg.name), ['host'])
+  const artifacts = new WorkspaceTypertGenerator(root, { checkDiagnostics: false })
+    .generate(selected.map(pkg => pkg.name), ['host'])
   const sources = new Map(artifacts.map(artifact => [artifact.package, artifact.js]))
   for (const pkg of selected) {
     if (!sources.has(pkg.name)) throw new Error(`${pkg.manifestPath}: declared Host Typert export has no generated module`)
@@ -362,9 +375,9 @@ function generatedHostSources(root: string, packages: readonly WorkspacePackageM
  * package-asset subpaths publish no Host code.
  */
 function hostSourceEntries(root: string, pkg: WorkspacePackageManifest): string[] {
-  const entry = resolve(root, pkg.dir, 'src/index.ts')
-  if (!existsSync(entry)) {
-    throw new Error(`${pkg.manifestPath}: Host runtime entry ${normalizePath(relative(root, entry))} does not exist`)
+  const entry = resolveLocal(resolve(root, pkg.manifestPath), './src/index.js')
+  if (entry === undefined) {
+    throw new Error(`${pkg.manifestPath}: Host runtime entry ./src/index.js has no source module`)
   }
   const entries = new Set([entry])
   const exports = pkg.manifest.exports

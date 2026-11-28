@@ -146,6 +146,14 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Supplies parsed task and run options to the headless runner and its sandbox-policy configuration.',
   },
   {
+    key: 'im',
+    pkg: 'im',
+    title: 'Persistent IM automation',
+    mode: 'service',
+    consumers: ['im-session-commands'],
+    note: 'Owns durable intake, the hosted sessions of every admitted chat, and explicitly authorized reads and publications.',
+  },
+  {
     key: 'cotTranslation',
     pkg: 'experimental-client-ui-cot-translation',
     title: 'Reasoning translation Remote',
@@ -197,6 +205,13 @@ const SERVICE_ROLES: ServiceRole[] = [
     title: 'Vendor CLIs and accounts of CLI app plugins',
     mode: 'service',
     note: 'Holds what each CLI app plugin registers: adds the CLI\'s absolute path to required runtime context, runs the plugin\'s account operations one at a time through bounded commands, and registers the account with `ctx.connectorAccounts` while that registry is loaded.',
+  },
+  {
+    key: 'connectors',
+    pkg: 'client-ui-connectors',
+    title: 'Custom MCP servers on the Connectors tab',
+    mode: 'service',
+    note: 'Streams the MCP server rows of the profile\'s composition to the Connectors tab and runs each save, removal, and switch as one Host operation over the configuration editor, the plugin manager, credentials, and the MCP manager; registers the account of each OAuth server row that is on with `ctx.mcpAccounts` while that service is loaded.',
   },
   {
     key: 'pluginMarket',
@@ -265,6 +280,14 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Explicit experimental creation from a pinned local commit. Existing write permissions govern checkout and shared Git metadata; the working-directory service owns the resulting Session directory.',
   },
   {
+    key: 'environments',
+    pkg: 'environment',
+    title: 'Execution environments',
+    mode: 'seam',
+    implementations: ['environment-ssh', 'environment-ssh-config', 'environment-local'],
+    note: 'Providers contribute stable handles, display names and transports. The registry executes each run through the selected handle with one shared protocol.',
+  },
+  {
     key: 'workingDirectory',
     pkg: 'working-directory',
     title: 'Session working directory',
@@ -311,8 +334,16 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'The provider owns the retained cua_run_code runtime; a host without a model releases one Agent\'s environment and reads the configured screenshot request target through it.',
   },
   {
+    key: 'sharedTexture',
+    pkg: 'shared-texture',
+    title: 'Shared-texture presentation',
+    mode: 'seam',
+    consumers: ['frame-forwarding'],
+    note: 'Desktop Host implements the exclusive Host claim that submits GPU-backed frames to Desktop; the Client half of the package provides the Desktop preload bridge as the Client service. Consumers never touch Mach ports, Win32 handles, or Electron.',
+  },
+  {
     key: 'officeKit', pkg: 'office-kit', title: 'Office rendering, conversion, and recalculation',
-    mode: 'core', consumers: ['client-ui-sidebar-documentpreview', 'tool-office'],
+    mode: 'core', consumers: ['client-ui-sidebar-documentpreview', 'tool-document'],
     note: 'Authorized Office bytes are rendered as PDFs or images, converted, or recalculated on the Host using the declared native target engine, or Node WASM when no native target is declared.',
   },
   {
@@ -359,6 +390,13 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Plugins prepare independent top-level fields; the official adapter merges them and commits their delivery state after HTTP acceptance.',
   },
   {
+    key: 'piAiProviders',
+    pkg: 'llm-pi-ai',
+    title: 'Pi-ai provider route registry',
+    mode: 'core',
+    note: 'Each provider row of the package registers one route; the adapter serves those routes beside its own dict, and for each route the declaration that comes last in the composed entry list.',
+  },
+  {
     key: 'tokenMeter',
     pkg: 'token-meter',
     title: 'Replay token measurement',
@@ -388,6 +426,13 @@ const SERVICE_ROLES: ServiceRole[] = [
     title: 'Experimental transcription Remote',
     mode: 'core',
     note: 'Validates bounded browser audio before provider dispatch.',
+  },
+  {
+    key: 'readAloud',
+    pkg: 'read-aloud',
+    title: 'Experimental read-aloud Remote',
+    mode: 'core',
+    note: 'Plans a stored reply as segments and synthesizes one segment per call, so the browser paces what is submitted.',
   },
   {
     key: 'sessionStatus',
@@ -681,10 +726,10 @@ const SERVICE_ROLES: ServiceRole[] = [
   {
     key: 'tools',
     pkg: 'tools',
-    title: 'Scoped tool registry and executor selection',
+    title: 'Scoped tool registry and root selection',
     mode: 'core',
     consumers: ['agent-loop', 'tool-ask-user', 'tool-bash', 'tool-cordis', 'tool-fs', 'tool-terminal', 'tool-skill', 'tool-subagent', 'tool-todo', 'tool-web'],
-    note: 'Registers capabilities and scoped executors. Native and PTC providers own descriptions and complete raw call batches; their optional shared pipeline handles tool policy and dispatch.',
+    note: 'Registers capabilities and hands each scope\'s selected root registry the registrations it sees. Native and PTC roots supply the model entries; `ctx.tools.execute()` runs raw call batches through the shared pipeline that handles tool policy and dispatch.',
   },
   {
     key: 'userQuestions',
@@ -891,8 +936,8 @@ const SERVICE_ROLES: ServiceRole[] = [
     title: 'PTC execution seam',
     mode: 'seam',
     implementations: ['ptc-runtime-node'],
-    consumers: ['tool-executor-ptc', 'workflow-ptc'],
-    note: 'Runs programs against host-provided async bindings; tool-executor-ptc owns PTC presentation and workflow-ptc owns workflow orchestration.',
+    consumers: ['tool-registry-ptc', 'workflow-ptc'],
+    note: 'Runs programs against host-provided async bindings; tool-registry-ptc owns PTC presentation and workflow-ptc owns workflow orchestration.',
   },
   {
     key: 'fs',
@@ -930,6 +975,15 @@ const SERVICE_ROLES: ServiceRole[] = [
     implementations: ['experimental-speech-to-text-sensevoice'],
     consumers: ['experimental-api-speech-to-text'],
     note: 'Routes explicit recognizers; the browser uses the authenticated Remote and keeps transcripts in the draft until submission.',
+  },
+  {
+    key: 'textToSpeech',
+    pkg: 'text-to-speech',
+    title: 'Experimental speech synthesis providers',
+    mode: 'seam',
+    implementations: ['text-to-speech-deepseek'],
+    consumers: ['read-aloud'],
+    note: 'Routes text to the configured synthesizer and streams its PCM; the read-aloud Remote is the consumer.',
   },
   {
     key: 'agentTeams',
@@ -1731,8 +1785,8 @@ function renderLifecycle(): string {
     '  Note over Agent,Driver: claim pending next-step input plus one queued prompt',
     `  Driver-->>SDK: ${mermaidCode('agent/inbox/spliced')} pure deletion`,
     `  Driver-->>SDK: ${mermaidCode('agent/inbox/claimed')} { message, turn } per message`,
-    '  Driver->>Tools: resolve({ agent, modelSelection, signal }) once per proposed step',
-    `  Driver->>Prompt: ${mermaidCode('system-prompt/assemble')} waterfall with the step tool set`,
+    '  Driver->>Tools: capture the root\'s entries as the step\'s ToolStep',
+    `  Driver->>Prompt: ${mermaidCode('system-prompt/assemble')} waterfall with the ToolStep`,
     `  Driver->>Hooks: ${mermaidCode('agent/pre-step')} waterfall`,
     '  Hooks-->>Driver: authoritative reject or enter(messages)',
     '  alt proposed step rejected, first batch empty, or pre-step failed',
@@ -1772,7 +1826,6 @@ function renderLifecycle(): string {
     '    end',
     '  end',
     `  Driver->>Session: ${mermaidCode('step/end')}`,
-    '  Driver->>Tools: dispose the step tool set',
     '  opt natural stop and next-step inbox empty',
     `    Driver->>Hooks: ${mermaidCode('agent/turn-stopping')} serial terminal checkpoint`,
     '  end',
@@ -1804,7 +1857,7 @@ function renderToolPipeline(): string {
   const maintenance = 'curated Mermaid flow; exact tool schemas and event signatures live in generated catalogs'
   return [
     ...generatedHeader('Tool Execution Pipeline'),
-    'Built-in executors own raw batch parsing, scheduling, cancellation, and Session call/result logging. This graph shows where their shared invocation pipeline applies policy, hooks, sandboxing, filesystem guards, result rewriting, final-outcome observation, and UI rendering without changing the loop. The `tools/pre-execute` waterfall runs first, monotonic guards run next, and the `tools/execute` and `tools/post-execute` waterfalls follow; the three waterfalls may transform a call. Definition-owned `projectContent` installs prepared content before post-execute; `finalizeContent` and `tools/result` run afterward.',
+    '`ctx.tools.execute()` owns raw batch parsing, scheduling, cancellation, and Session call/result logging; the selected root registry only supplies the entries a call may run. This graph shows where the shared invocation pipeline applies policy, hooks, sandboxing, filesystem guards, result rewriting, final-outcome observation, and UI rendering without changing the loop. The `tools/pre-execute` waterfall runs first, monotonic guards run next, and the `tools/execute` and `tools/post-execute` waterfalls follow; the three waterfalls may transform a call. Definition-owned `projectContent` installs prepared content before post-execute; `finalizeContent` and `tools/result` run afterward.',
     '',
     '```mermaid',
     'flowchart TD',
@@ -1828,7 +1881,7 @@ function renderToolPipeline(): string {
     `  toolResult["Session event: ${mermaidCode('tool/result')}<br/>single model-facing outcome"]`,
     '  allResults["Tool batch settled<br/>recorded tool/result events complete"]',
     '  presentResult["UI completed card<br/>presentResult(args, result)"]',
-    '  executor["Selected ToolExecutor.execute<br/>raw batch, Agent, optional logging step"]',
+    `  executor["${mermaidCode('ctx.tools.execute()')}<br/>raw batch, Agent, ToolStep, optional logging step<br/>entries from the selected root"]`,
     '  model --> executor --> toolCall',
     '  toolCall --> presentCall',
     '  toolCall --> pre',

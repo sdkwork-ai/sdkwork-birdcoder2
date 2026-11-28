@@ -9,9 +9,9 @@ This file lists **direct** dependencies declared by the workspace, the explicitl
 
 The complete npm transitive closure, including the Landlock launcher workspace, is recorded with exact pinned versions in [`pnpm-lock.yaml`](pnpm-lock.yaml) — inspect it with `pnpm licenses list`. The Python SDK closure is recorded separately in [`python/sdk/uv.lock`](python/sdk/uv.lock).
 
-## Vendored source (`vendor/`)
+## Vendored source (`vendor/`, `vendor/im/`)
 
-The Cordis framework and its foundation libraries are source-vendored into this repository rather than consumed from npm, and republished under the `@deepseek-ai` scope. All are MIT-licensed; each directory preserves its upstream `LICENSE` file. Exact upstream commits and local modifications are recorded in [`vendor/README.md`](vendor/README.md).
+The Cordis framework and its foundation libraries are source-vendored into this repository rather than consumed from npm, and republished under the `@deepseek-ai` scope. All are MIT-licensed; each directory preserves its upstream `LICENSE` file. Exact upstream commits and local modifications are recorded in [`vendor/README.md`](vendor/README.md) and, for the IM packages derived from Satori, [`vendor/im/README.md`](vendor/im/README.md).
 
 | Package | Upstream name | Source | License |
 | --- | --- | --- | --- |
@@ -24,6 +24,14 @@ The Cordis framework and its foundation libraries are source-vendored into this 
 | `@deepseek-ai/cordis-plugin-timer` | `@cordisjs/plugin-timer` | [vendor/timer](vendor/timer/) | MIT |
 | `@deepseek-ai/cordis-plugin-hmr` | `@cordisjs/plugin-hmr` | [vendor/hmr](vendor/hmr/) | MIT |
 | `@deepseek-ai/cordis-plugin-logger-console` | `@cordisjs/plugin-logger-console` | [vendor/logger-console](vendor/logger-console/) | MIT |
+| `@deepseek-ai/cordis-element` | `@cordisjs/element` | [vendor/element](vendor/element/) | MIT |
+| `@deepseek-ai/cordis-fetch-file` | `@cordisjs/fetch-file` | [vendor/fetch-file](vendor/fetch-file/) | MIT |
+| `@deepseek-ai/cordis-plugin-http` | `@cordisjs/http` | [vendor/http](vendor/http/) | MIT |
+| `@deepseek-ai/satori-element` | `@satorijs/element` | [vendor/im/element](vendor/im/element/) | MIT |
+| `@deepseek-ai/cordis-plugin-im-core` | `@satorijs/core` | [vendor/im/core](vendor/im/core/) | MIT |
+| `@deepseek-ai/cordis-plugin-im-adapter-lark` | `@satorijs/adapter-lark` | [vendor/im/adapter-lark](vendor/im/adapter-lark/) | MIT |
+| `@deepseek-ai/cordis-plugin-im-adapter-qq` | `@satorijs/adapter-qq` | [vendor/im/adapter-qq](vendor/im/adapter-qq/) | MIT |
+| `@deepseek-ai/cordis-plugin-im-markdown` | `@satorijs/markdown` | [vendor/im/markdown](vendor/im/markdown/) | MIT |
 
 ## Runtime npm dependencies
 
@@ -105,8 +113,10 @@ External packages installed for runtime use or embedded in distributed Host or b
 | [`execa`](https://github.com/sindresorhus/execa) | MIT |
 | [`fast-xml-parser`](https://github.com/NaturalIntelligence/fast-xml-parser) | MIT |
 | [`fflate`](https://github.com/101arrowz/fflate) | MIT |
+| [`file-type`](https://github.com/sindresorhus/file-type) | MIT |
 | [`fuzzysort`](https://github.com/farzher/fuzzysort) | MIT |
 | [`got`](https://github.com/sindresorhus/got) | MIT |
+| [`hast-util-raw`](https://github.com/syntax-tree/hast-util-raw) | MIT |
 | [`hosted-git-info`](https://github.com/npm/hosted-git-info) | ISC |
 | [`immer`](https://github.com/immerjs/immer) | MIT |
 | [`ipaddr.js`](https://github.com/whitequark/ipaddr.js) | MIT |
@@ -117,6 +127,8 @@ External packages installed for runtime use or embedded in distributed Host or b
 | [`mdast-util-from-markdown`](https://github.com/syntax-tree/mdast-util-from-markdown) | MIT |
 | [`mdast-util-gfm`](https://github.com/syntax-tree/mdast-util-gfm) | MIT |
 | [`mdast-util-math`](https://github.com/syntax-tree/mdast-util-math) | MIT |
+| [`mdast-util-to-hast`](https://github.com/syntax-tree/mdast-util-to-hast) | MIT |
+| [`mdast-util-to-markdown`](https://github.com/syntax-tree/mdast-util-to-markdown) | MIT |
 | [`micromark-core-commonmark`](https://github.com/micromark/micromark/tree/main/packages/micromark-core-commonmark) | MIT |
 | [`micromark-extension-gfm`](https://github.com/micromark/micromark-extension-gfm) | MIT |
 | [`micromark-extension-math`](https://github.com/micromark/micromark-extension-math) | MIT |
@@ -135,11 +147,14 @@ External packages installed for runtime use or embedded in distributed Host or b
 | [`open`](https://github.com/sindresorhus/open) | MIT |
 | [`p-limit`](https://github.com/sindresorhus/p-limit) | MIT |
 | [`papaparse`](https://github.com/mholt/PapaParse) | MIT |
+| [`path-to-regexp`](https://github.com/pillarjs/path-to-regexp) | MIT |
+| [`path-to-regexp-typed`](https://github.com/shigma/path-to-regexp-typed) | MIT |
 | [`pdfjs-dist`](https://github.com/mozilla/pdf.js) | Apache-2.0 |
 | [`picomatch`](https://github.com/micromatch/picomatch) | MIT |
+| [`protobufjs`](https://github.com/protobufjs/protobuf.js) | BSD-3-Clause |
 | [`qrcode.react`](https://github.com/zpao/qrcode.react) | ISC |
-| [`react`](https://github.com/facebook/react) | MIT |
-| [`react-dom`](https://github.com/facebook/react) | MIT |
+| [`react`](https://github.com/react/react) | MIT |
+| [`react-dom`](https://github.com/react/react) | MIT |
 | [`readable-stream`](https://github.com/nodejs/readable-stream) | MIT |
 | [`resolve.exports`](https://github.com/lukeed/resolve.exports) | MIT |
 | [`rrule`](https://github.com/jakubroztocil/rrule) | BSD-3-Clause |
@@ -150,6 +165,7 @@ External packages installed for runtime use or embedded in distributed Host or b
 | [`sherpa-onnx-node`](https://github.com/csukuangfj/sherpa-onnx) | Apache-2.0 |
 | [`shiki`](https://github.com/shikijs/shiki) | MIT |
 | [`simple-icons`](https://github.com/simple-icons/simple-icons) | CC0-1.0 |
+| [`ssh-config`](https://github.com/cyjake/ssh-config) | MIT |
 | [`string_decoder`](https://github.com/nodejs/string_decoder) | MIT |
 | [`supports-color`](https://github.com/chalk/supports-color) | MIT |
 | [`tar`](https://github.com/isaacs/node-tar) | BlueOak-1.0.0 |
@@ -206,7 +222,7 @@ The installed SDK 0.3.263 declares the following optional platform packages. Eac
 
 ## LibreOffice conversion kit
 
-`@deepseek-ai/libreoffice-kit`, `@deepseek-ai/libreoffice-kit-wasm`, `@deepseek-ai/libreoffice-kit-darwin-arm64`, `@deepseek-ai/libreoffice-kit-darwin-x64`, `@deepseek-ai/libreoffice-kit-win32-arm64`, `@deepseek-ai/libreoffice-kit-win32-x64` declare MPL-2.0, which remains outside the permissive-license allowlist; the notices check accepts only these package identities at those terms. The [distribution decision](.agents/notes/implemented/architecture/2026-09-14-independent-libreoffice-kit.md) records the source obligations.
+`@deepseek-ai/libreoffice-kit`, `@deepseek-ai/libreoffice-kit-wasm`, `@deepseek-ai/libreoffice-kit-darwin-arm64`, `@deepseek-ai/libreoffice-kit-darwin-x64`, `@deepseek-ai/libreoffice-kit-win32-arm64`, `@deepseek-ai/libreoffice-kit-win32-x64`, `@deepseek-ai/libreoffice-kit-linux-arm64-glibc`, `@deepseek-ai/libreoffice-kit-linux-x64-glibc` declare MPL-2.0, which remains outside the permissive-license allowlist; the notices check accepts only these package identities at those terms. The [distribution decision](.agents/notes/implemented/architecture/2026-09-14-independent-libreoffice-kit.md) records the source obligations.
 
 The [kit repository](https://github.com/deepseek-ai/dsh-libreoffice-kit) supplies the corresponding LibreOffice source pin, modifications, build instructions, Node API, and artifact validation. Its engine packages retain their license and third-party notices; the Node API retains its MPL-2.0 declaration and NOTICE. Recipients must have access to those corresponding sources and notices.
 
@@ -233,6 +249,7 @@ External packages **directly declared** for development, tests, types, or toolin
 | [`@types/compression`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
 | [`@types/d3-time`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
 | [`@types/estree`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
+| [`@types/hast`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
 | [`@types/hosted-git-info`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
 | [`@types/js-yaml`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
 | [`@types/jsdom`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
@@ -275,6 +292,7 @@ External packages **directly declared** for development, tests, types, or toolin
 | [`lightningcss`](https://github.com/parcel-bundler/lightningcss) | MPL-2.0 |
 | [`mermaid`](https://github.com/mermaid-js/mermaid) | MIT |
 | [`micromark-util-types`](https://github.com/micromark/micromark/tree/main/packages/micromark-util-types) | MIT |
+| [`node-api-headers`](https://github.com/nodejs/node-api-headers) | MIT |
 | [`oxlint`](https://github.com/oxc-project/oxc) | MIT |
 | [`oxlint-tsgolint`](https://github.com/oxc-project/tsgolint) | MIT |
 | [`playwright`](https://github.com/microsoft/playwright) | Apache-2.0 |

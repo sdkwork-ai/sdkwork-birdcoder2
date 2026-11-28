@@ -343,6 +343,29 @@
   }
 }
 
+/* The automatic merge button: outlined and as tall as the merge button; its glyph takes the accent once it is on. */
+.primaryAction.autoMergeAction {
+  gap: 6px;
+  padding: 0 10px 0 12px;
+}
+
+.autoMergeAction[data-forge-auto-merge='on'] > svg:first-child {
+  color: var(--dsw-alias-state-business-primary);
+}
+
+/* A merge the host would refuse now: the button stays reachable so it can say why, and looks and acts disabled. */
+.primaryAction.mergeAction.unavailable {
+  background: color-mix(in srgb, var(--dsw-alias-button-info-fill) 92%, var(--dsw-alias-label-primary));
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (hover: hover) {
+  .primaryAction.mergeAction.unavailable:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--dsw-alias-button-info-fill) 92%, var(--dsw-alias-label-primary));
+  }
+}
+
 /* A solid caret that points down, and up while the menu is open. */
 .mergeCaret {
   flex: none;
@@ -458,9 +481,13 @@
   }
 }
 
-/* Attention mark over the Session panel toggle; the toggle sizes and places it. */
 .attention {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  corner-shape: round;
   background: var(--dsw-alias-state-warn-primary);
+  box-shadow: 0 0 0 1.5px var(--dsw-alias-bg-base);
 }
 
 /* The unresolved review thread count at the end of the changes row. */

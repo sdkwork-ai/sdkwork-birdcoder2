@@ -2,6 +2,7 @@
 
 import { spawn, execFileSync } from 'node:child_process'
 import { cpSync, existsSync, readFileSync, rmSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -12,6 +13,8 @@ import type { DesktopRelease } from '../src/release.ts'
 import { developmentRuntimeDirectory, resolveDesktopBuildTarget } from './desktop-build-paths.mjs'
 import { prepareDevelopmentProject } from './development-project.ts'
 import { prepareDevelopmentApp } from './development-app.ts'
+import { prepareDevelopmentState } from './development-state.ts'
+import { buildNativePackage, nativeBuildEnvironment, nativePackageBuildAt, type NativePackageBuild } from './native-package-builds.mjs'
 import { preparePrimaryRuntime } from './prepare-primary-runtime.ts'
 import { KEEP_INHERITED_SDKWORK_ENV, developmentLaunchEnvironment } from './development-sdkwork-env.ts'
 import { selectDevelopmentHome } from './development-home.ts'
@@ -97,6 +100,18 @@ async function run(
 
 async function runPackageScript(script: string, cwd: string, environment: NodeJS.ProcessEnv): Promise<void> {
   if (process.env.npm_execpath === undefined || process.env.npm_execpath === '') {
+/** Workspace packages declaring `dsh.native`; development loads them in place, so they build in their own directories. */
+function workspaceNativePackages(): NativePackageBuild[] {
+  const packages = join(REPOSITORY_ROOT, 'packages')
+  return readdirSync(packages, { withFileTypes: true }).filter(group => group.isDirectory())
+    .flatMap(group => readdirSync(join(packages, group.name), { withFileTypes: true }).filter(entry => entry.isDirectory())
+      .map(entry => nativePackageBuildAt(join(packages, group.name, entry.name))))
+    .filter(declaration => declaration !== undefined)
+}
+
+async function runPackageScript(script: string, cwd: string): Promise<void> {
+  const packageManager = process.env.npm_execpath
+  if (packageManager === undefined || packageManager === '') {
     throw new Error('desktop development: invoke this launcher through pnpm run dev:desktop or start:desktop')
   }
   // FORK DIVERGENCE (upstream always runs `npm_execpath` through Node): the standalone
@@ -339,6 +354,20 @@ async function main(): Promise<void> {
     await launchDevelopment(onlineBuildEnvironment(onlineLaunch.environment, process.env),
       onlineLaunch.environment, online, arguments_)
     return
+  const { values } = parseArgs({ options: { 'skip-build': { type: 'boolean', default: false } } })
+  if (!values['skip-build']) {
+    await runPackageScript('build:artifacts', REPOSITORY_ROOT)
+    await runPackageScript('build', APP_ROOT)
+    // Without a C++ toolchain, development uses the consumers' unavailable-addon fallbacks.
+    if (process.platform === 'darwin' || process.platform === 'win32') await runPackageScript('build:native', APP_ROOT).catch((error: unknown) => {
+      console.warn(`desktop development: shared-texture addons not built: ${error instanceof Error ? error.message : String(error)}`)
+    })
+    // Packaging's build environment: on Windows, the MSVC developer environment for this architecture.
+    for (const declaration of workspaceNativePackages()) {
+      try { buildNativePackage(declaration, process.arch, nativeBuildEnvironment(process.arch)) } catch (error) {
+        console.warn(`desktop development: ${declaration.name} native addon not built: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    }
   }
   // A packaged Desktop application exports the deployment it resolved into every child
   // process, so a shell that carries that environment would otherwise point this source

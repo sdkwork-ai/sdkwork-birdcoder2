@@ -52,8 +52,8 @@
       config:
         outputDirectory: !!js dshHomePath('office-kit', 'outputs')
 
-    - id: tool-office
-      name: '@deepseek-ai/dsh-tool-office'
+    - id: tool-document
+      name: '@deepseek-ai/dsh-tool-document'
 
     - id: workspace-dependencies
       name: '@deepseek-ai/dsh-tool-workspace-dependencies'
@@ -73,10 +73,10 @@
 - id: tool-pwsh
   disabled: true
 
-- id: tool-executor-native
+- id: tool-registry-native
   disabled: true
 
-- id: tool-executor-ptc
+- id: tool-registry-ptc
   disabled: false
 
 - id: ptc-runtime

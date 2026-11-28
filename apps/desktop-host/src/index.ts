@@ -1,6 +1,7 @@
 /** Launch the Desktop profile through the Web application and report its URL to Electron. */
 
-import { delimiter, join } from 'node:path'
+import { delimiter, isAbsolute, join } from 'node:path'
+import { parseArgs } from 'node:util'
 import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import type { PluginOperationRunId } from '@deepseek-ai/dsh-plugin-manager/diagnostic'
@@ -12,6 +13,7 @@ import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-deepseek-account'
 import { applyDesktopLaunchEnvironment } from './launch-environment.ts'
 import { localDragResource } from './file-drag.ts'
+import * as sharedTexture from './shared-texture.ts'
 
 import { installDesktopUpdateTaskControl } from './update-tasks.ts'
 import { installDesktopQuitInspection } from './quit-inspection.ts'
@@ -55,6 +57,13 @@ async function main(profileLease: ProfileLease): Promise<void> {
   // platform surfaces receive the deployment's identity, gateway, and bootstrap
   // credential; see launch-environment.ts.
   const { cwd: projectRoot } = await applyDesktopLaunchEnvironment({ cwd: process.cwd(), env: process.env })
+  const { values, positionals: [pnpm, nodeBin] } = parseArgs({
+    args: process.argv.slice(5),
+    allowPositionals: true,
+    options: { 'frame-receiver-path': { type: 'string' } },
+  })
+  const receiverPath = values['frame-receiver-path']
+  if (receiverPath !== undefined && !isAbsolute(receiverPath)) throw new Error('--frame-receiver-path must be absolute')
   // Set before the launch-environment snapshot and profile evaluation; empty means the payload sits beside the runtime directory.
   process.env.DSH_PRIMARY_RUNTIME = process.argv[4] || join(runtimeDir, '..', 'runtime', 'primary-runtime')
   const installAnchor = join(runtimeDir, 'node_modules', '@deepseek-ai', 'dsh', 'package.json')
@@ -71,13 +80,16 @@ async function main(profileLease: ProfileLease): Promise<void> {
     patchFiles: [fileURLToPath(new URL('../config/desktop.cordis.patch.yml', import.meta.url))],
     args: ['--no-open', '--host', '127.0.0.1', '--port', String(resolveDesktopHostWebPort(process.env))],
     ...(process.argv[5] === undefined ? {} : {
+    patchFiles: [],
+    args: ['--no-open', '--host', '127.0.0.1', '--port', '0'],
+    ...(pnpm === undefined ? {} : {
       packageManager: {
         command: process.execPath,
-        args: ['--expose-internals', process.argv[5]],
+        args: ['--expose-internals', pnpm],
         env: {
           ELECTRON_RUN_AS_NODE: '1',
           DSH_DESKTOP_NODE_EXECUTABLE: process.execPath,
-          PATH: `${process.argv[6] ?? ''}${delimiter}${process.env.PATH ?? ''}`,
+          PATH: `${nodeBin ?? ''}${delimiter}${process.env.PATH ?? ''}`,
         },
       },
     }),
@@ -193,6 +205,8 @@ async function main(profileLease: ProfileLease): Promise<void> {
   control.updateTasks = installDesktopUpdateTaskControl(ctx)
   control.quitInspection = installDesktopQuitInspection(ctx)
   control.bootInjections = () => ctx.webServer.collectIndexInjections(ctx.connection.browserPeer)
+  if (receiverPath !== undefined) ctx.provide('desktopFrameReceiver', { path: receiverPath })
+  await ctx.plugin(sharedTexture)
   installPlatformSessionPublisher(ctx, (session) => {
     if (process.connected) process.send?.({ type: 'platform-session', session })
   })

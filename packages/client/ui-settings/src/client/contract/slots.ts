@@ -9,9 +9,9 @@
  * ui-settings-general too.
  */
 
-import type {} from '@deepseek-ai/dsh-client-ui-slots'
+import type {} from '@deepseek-ai/dsh-client-ui-slots/client'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@deepseek-ai/dsh-client-ui-slots/client' {
   interface SlotFactoryMap {
     /**
      * One `settings.section` entry, rendered wherever a surface shows that
@@ -111,9 +111,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * position), `label` (registrant-localized display text, usually a thunk
      * that each projection re-reads on locale change). An entry renders
      * wherever a caller renders `settings.section.view` with its id.
-     * (`settings.general.item`, declared by ui-settings-general's General
-     * entry, is typed in the locale package — the common dependency of every
-     * item registrant; the shell neither declares nor renders it.)
+     * General Settings hosts the `settings.general.group` list; each group
+     * owns its content and any child preference slots.
      */
     'settings.section': { kind: 'list'; scope: 'root'; owner: SettingsSectionOwnerProps }
     /**
@@ -136,18 +135,26 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'settings.onboarding': { kind: 'list'; scope: 'root'; owner: SettingsOnboardingOwnerProps }
     /**
-     * One preference row inside the General section — the additive seat for a
-     * single setting that needs no page of its own (a whole page is
-     * `settings.section`), contributed by the feature plugin that owns the
-     * preference (locale → Language, ui-theme → Appearance, ui-conversation →
-     * Composer Enter). Options: `id` (row key), `order` (row position). The
-     * section column only stacks rows, so a row draws its own internals,
-     * including its label: nothing projects a `label` here and the owner passes
-     * no props at all — copy, current value, and the write path are all yours,
-     * through your own inject face and `host.call`. Declared at runtime by
-     * ui-settings-general's General entry; the type lives here with every other
-     * settings slot type, because this package is the settings domain's base
-     * layer and every registrant already depends on it for `ctx.configForms`.
+     * One titled group in General Settings. Options carry its unique id,
+     * localized label, and order. The page owns the enclosing card; the
+     * registrant owns content and any child item-slot declarations.
+     */
+    'settings.general.group': { kind: 'list'; scope: 'root'; owner: SettingsGeneralGroupOwnerProps }
+    /** Session and work-step display preferences. */
+    'settings.general.group.display.item': { kind: 'list'; scope: 'root'; owner: SettingsGeneralItemOwnerProps }
+    /** Sending behavior, shortcuts, and link preferences. */
+    'settings.general.group.interaction.item': { kind: 'list'; scope: 'root'; owner: SettingsGeneralItemOwnerProps }
+    /** Notification preferences contributed by available providers. */
+    'settings.general.group.notifications.item': { kind: 'list'; scope: 'root'; owner: SettingsGeneralItemOwnerProps }
+    /** Data and Session-log preferences. */
+    'settings.general.group.data.item': { kind: 'list'; scope: 'root'; owner: SettingsGeneralItemOwnerProps }
+    /** Release and update information. */
+    'settings.general.group.updates.item': { kind: 'list'; scope: 'root'; owner: SettingsGeneralItemOwnerProps }
+    /**
+     * Legacy additive preferences in the default Preferences group. Options carry
+     * the unique row id and order; registrants own copy, state, and mutations.
+     * Register here when no explicit group is needed. The default group owns
+     * this declaration, preserving existing plugin registrations.
      */
     'settings.general.item': { kind: 'list'; scope: 'root'; owner: SettingsGeneralItemOwnerProps }
     /**
@@ -228,58 +235,38 @@ export interface SettingsMiniProgramsOwnerProps {
 }
 /** Owner share of the domain (DNS) management modal seat (shell-driven visibility). */
 export interface SettingsDnsOwnerProps {
-  /** Whether the modal is currently shown. */
-  open: boolean
-  /** Request dismissal (Escape, mask click, or the header close button). */
-  onClose: () => void
-}
 /** Owner share of the certificate management modal seat (shell-driven visibility). */
 export interface SettingsCertificatesOwnerProps {
-  /** Whether the modal is currently shown. */
-  open: boolean
-  /** Request dismissal (Escape, mask click, or the header close button). */
-  onClose: () => void
-}
 /** Owner share of the deployed-applications modal seat (shell-driven visibility). */
 export interface SettingsMyDeploymentsOwnerProps {
-  /** Whether the modal is currently shown. */
-  open: boolean
-  /** Request dismissal (Escape, mask click, or the header close button). */
-  onClose: () => void
-}
 /** Owner share of the official-account management modal seat (shell-driven visibility). */
 export interface SettingsOfficialAccountsOwnerProps {
-  /** Whether the modal is currently shown. */
-  open: boolean
-  /** Request dismissal (Escape, mask click, or the header close button). */
-  onClose: () => void
-}
 /** Owner share of the API-key management modal seat (shell-driven visibility). */
 export interface SettingsApiKeysOwnerProps {
-  /** Whether the modal is currently shown. */
-  open: boolean
-  /** Request dismissal (Escape, mask click, or the header close button). */
-  onClose: () => void
-}
 /** Owner share of the settings menu's account-card seat. */
 export interface SettingsMenuAccountOwnerProps {
   /** Dismiss the settings menu (content opened its own surface over it). */
   close: () => void
-}
 /** Owner share of the settings menu's plan/points card seat. */
 export interface SettingsMenuPlanOwnerProps {
-  /** Dismiss the settings menu (content opened its own surface over it). */
-  close: () => void
   /** Open the shell-owned points purchase modal (the card's top-up action). */
   openPointsRecharge: () => void
-}
 
 /** Owner share of the points purchase modal seat (shell-driven visibility). */
 export interface SettingsPointsRechargeOwnerProps {
-  /** Whether the modal is currently shown. */
-  open: boolean
   /** Request dismissal (Escape, mask click, or the modal's own close control). */
-  onClose: () => void
+/** Built-in group item slots; custom groups declare their own SlotMap keys. */
+export type SettingsGeneralGroupItemSlot =
+  | 'settings.general.group.display.item'
+  | 'settings.general.group.interaction.item'
+  | 'settings.general.group.notifications.item'
+  | 'settings.general.group.data.item'
+  | 'settings.general.group.updates.item'
+
+/** A group receives no owner data; labels and ordering live on its registration. */
+export interface SettingsGeneralGroupOwnerProps {
+  /** Marker field: group owner props are intentionally empty. */
+  children?: never
 }
 
 /** Owner share of a General preference row (the section supplies nothing). */

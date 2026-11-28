@@ -11,14 +11,14 @@
 import type { RefCallback } from 'react'
 import type {
   InjectFace, PropsLocale, PropsRenderFactories, PropsRenderSlots, PropsRuntime, SlotHookFactory,
-} from '@deepseek-ai/dsh-client-ui-slots'
+} from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { ShortcutCatalogEntry } from '@deepseek-ai/dsh-client-shortcuts/client'
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { ProductEventMap } from '@deepseek-ai/dsh-client-product-analytics/client'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@deepseek-ai/dsh-client-ui-slots/client' {
   interface SlotFactoryMap {
     /** Reuse a registered panel icon in navigation rows and menus. */
     'sidebar.panel.icon': {
@@ -102,11 +102,10 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     /**
      * HOC layer around the inner content of the New-session row — the Tooltip
      * and button the shell passes as `children`, rendered only while the Peer
-     * may create Sessions. An occupant receives that content and returns it,
-     * possibly wrapped, together with its own controls, so it decorates the
-     * row without adding a wrapper element. Occupants nest around the content
-     * instead of rendering beside it: one that adds nothing must return
-     * `children`, and with no occupant the content renders unchanged.
+     * may create Sessions. Each occupant can render `children` with its own
+     * controls. Forwarded content sits in `[data-slot-children="sidebar.session.action"]`.
+     * An occupant that adds nothing must return `children`; with no occupant
+     * the content renders directly in the slot anchor.
      * Declared by this package's 'sidebar' entry.
      */
     'sidebar.session.action': { kind: 'hoc'; scope: 'root'; owner: SidebarSessionActionOwnerProps }

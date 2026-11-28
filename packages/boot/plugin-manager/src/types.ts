@@ -40,6 +40,8 @@ export interface ManagementError {
   diagnostic?: string
   /** Present with `incompatible-version`: the packages the running DSH version rejects. */
   incompatible?: IncompatiblePlugin[]
+  /** Present with `unsupported-platform`: the Host platforms the bundle supports. */
+  platforms?: string[]
 }
 
 /**
@@ -335,6 +337,11 @@ export interface UpdateBundleOptions {
   readonly spec?: string
   /** Names the update's progress and the target installation's logs; `cancelInstall` stops only that installation. */
   readonly requestId?: PluginInstallRequestId
+  /**
+   * Pending build scripts to allow, as `InstallBundleOptions.approvedBuilds`. They are saved before the installed version
+   * is removed and stay saved when the update fails; a name no longer pending refuses the update before anything changes.
+   */
+  readonly approvedBuilds?: string[]
 }
 
 /** The step of an update its Host progress names. */

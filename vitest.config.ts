@@ -196,8 +196,15 @@ const windowsUnsupportedPackages = process.platform === 'win32'
       'packages/experimental/hooks-codex',
       'packages/terminal/terminal-bash',
       'packages/sandbox/sandbox-local',
+      // Registers nothing on Windows, whose process confinement ignores additional writable directories.
+      'packages/experimental/sandbox-policy-git',
       // OpenSSH multiplexing and Unix-socket helper streams require POSIX endpoints.
       'packages/ssh/*',
+      // Environment fixtures exercise POSIX SSH commands and process-group cleanup.
+      'packages/experimental/environment',
+      'packages/experimental/environment-local',
+      'packages/experimental/environment-ssh-config',
+      'packages/experimental/environment-ssh',
     ]
   : []
 
@@ -298,6 +305,11 @@ const pwshCoverageExclusions = spawnSync(resolvePwshPath(), ['-NoLogo', '-NoProf
 
 const testIncludes = [
   'packages/*/*/tests/**/*.spec.{ts,tsx}',
+  // Vendor packages carry their own suites (conformance, goldens, decode
+  // fixtures). They are deliberately outside the coverage gate: coverage
+  // measures `packages/*/*/src`, so nothing here is instrumented or thresholded.
+  'vendor/*/tests/**/*.spec.{ts,tsx}',
+  'vendor/im/*/tests/**/*.spec.{ts,tsx}',
   'apps/*/tests/**/*.spec.{ts,tsx}',
   'scripts/**/*.spec.ts',
   'website/tests/**/*.spec.ts',
@@ -356,6 +368,7 @@ const claudeCodeTestingAliasList = Object.entries(claudeCodeTestingAliases).map(
 const liveshareRemoteBuild = fileURLToPath(new URL('./packages/experimental/liveshare/lib/typert.remote-client.js', import.meta.url))
 const chatImportRemoteBuild = fileURLToPath(new URL('./packages/experimental/deepseek-chat-import/lib/typert.remote-client.js', import.meta.url))
 const hmrRemoteBuild = fileURLToPath(new URL('./packages/client/hmr/lib/typert.remote-client.js', import.meta.url))
+const connectorsRemoteBuild = fileURLToPath(new URL('./packages/experimental/client-ui-connectors/lib/typert.remote-client.js', import.meta.url))
 const generatedRemoteAliases = {
   ...existsSync(hmrRemoteBuild) ? {} : {
     '@deepseek-ai/dsh-client-hmr/remote': fileURLToPath(new URL('./packages/client/hmr/tests/generated-remote-stub.ts', import.meta.url)),
@@ -365,6 +378,9 @@ const generatedRemoteAliases = {
   },
   ...existsSync(chatImportRemoteBuild) ? {} : {
     '@deepseek-ai/dsh-deepseek-chat-import/remote': fileURLToPath(new URL('./packages/experimental/deepseek-chat-import/tests/generated-remote-stub.ts', import.meta.url)),
+  },
+  ...existsSync(connectorsRemoteBuild) ? {} : {
+    '@deepseek-ai/dsh-client-ui-connectors/remote': fileURLToPath(new URL('./packages/experimental/client-ui-connectors/tests/generated-remote-stub.ts', import.meta.url)),
   },
 }
 // FORK DIVERGENCE: `@xmanrui/dsh-im` is the `plugins/dsh-im` git submodule, whose
@@ -498,10 +514,10 @@ export default defineConfig({
         // is deferred until a native Electron harness covers guest behavior.
         'packages/client/ui-sidebar-browser/src/client/electron/**',
         // Trajectory's compact Markdown projection retains deferred branch coverage.
-        'packages/client/ui-primitives/src/markdown/plain-text.ts',
+        'packages/client/ui-primitives/src/client/markdown/plain-text.ts',
         'packages/client/ui-user-questions/src/client/QuestionComposer.tsx',
-        'packages/client/ui-primitives/src/Menu.tsx',
-        'packages/client/ui-primitives/src/RiskConfirmation.tsx',
+        'packages/client/ui-primitives/src/client/Menu.tsx',
+        'packages/client/ui-primitives/src/client/RiskConfirmation.tsx',
         'packages/client/ui-workspace/src/client/WorkspaceBrowser.tsx',
         'packages/client/ui-workspace/src/client/WorkspacePicker.tsx',
         'packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx',
@@ -526,9 +542,9 @@ export default defineConfig({
         'packages/client/ui-chat/src/client/model/*',
         'packages/client/ui-chat/src/client/contract/snapshot.ts',
         'packages/client/ui-chat/src/client/historical-images.ts',
-        'packages/client/ui-primitives/src/DisclosureRow.tsx',
+        'packages/client/ui-primitives/src/client/DisclosureRow.tsx',
         'packages/client/ui-tool/src/*',
-        'packages/client/ui-slots/src/*',
+        'packages/client/ui-slots/src/client/*',
         'packages/client/ui-layout/src/*',
         'packages/client/web/src/*',
         'packages/host/webserver/src/*',
@@ -600,6 +616,9 @@ export default defineConfig({
         // The speech entry also imports generated Remote definitions; voice-input.e2e.ts
         // exercises the built entry, while source tests cover mountVoiceInput.
         'packages/experimental/client-ui-voice-input/src/client/index.ts',
+        // The read-aloud entry imports generated Remote definitions as well; read-aloud.e2e.ts
+        // exercises the built entry, while source tests cover mountReadAloud.
+        'packages/experimental/client-ui-read-aloud/src/client/index.ts',
         // The permission entry binds generated Remote code; cua-permissions.e2e.ts covers
         // its built entry, while source tests exercise mountCuaPermissions and its UI.
         'packages/experimental/cua/src/client/index.ts',
@@ -612,6 +631,11 @@ export default defineConfig({
         // The forge panel entry imports its generated Remote contribution, which exists only in lib;
         // forge-panel.e2e.ts exercises the built entry, while source tests cover mountForgePanel.
         'packages/experimental/client-ui-forge/src/client/index.ts',
+        // The Office preview entry imports its generated Remote contribution, which exists only in lib;
+        // the built Desktop Client loads it, while source tests cover mountOfficePreview.
+        'packages/experimental/client-ui-office-frame-forwarding/src/client/index.ts',
+        // The frame-forwarding entry imports its generated Remote contribution the same way; source tests cover mountFrameForwarding.
+        'packages/experimental/frame-forwarding/src/client/index.ts',
         // Slash/command/input round: per-file gaps deferred with the same
         // client-lane debt. TODO(gui): cover and remove with the lane above.
         'packages/client/ui-commands/src/index.ts',
@@ -636,7 +660,7 @@ export default defineConfig({
         'packages/client/ui-skill/src/client/index.ts',
         'packages/client/ui-workspace/src/client/index.ts',
         'packages/test-support/client-runtime/src/translate.ts',
-        'packages/client/ui-primitives/src/JsonTree.tsx',
+        'packages/client/ui-primitives/src/client/JsonTree.tsx',
         'packages/client/ui-settings-models/src/client/DeepSeekOnboardingDialog.tsx',
         'packages/client/ui-settings-models/src/client/welcome-store.ts',
         'packages/extensions/{cordis-client-runner,cordis-host-runner,tool-cordis,ui-cordis}/src/**/*.{ts,tsx}',

@@ -1,8 +1,8 @@
 /** General settings row and persistent shell notice for API log uploads. */
-import { Switch, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Switch, Toast } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
-import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { UploadMutation, UploadSettings } from './upload-preference.ts'
 import css from './UploadRow.module.css'
 
@@ -23,7 +23,7 @@ type Face = InjectFace<UploadInjected> & PropsLocale<'settings.sessionLog'>
  * @param props - settings hooks, writer and localized copy.
  * @returns the bottom preference row.
  */
-export function UploadRow({ useUpload, useMutation, setEnabled, t }: PropsRuntime<'settings.general.item'> & Face) {
+export function UploadRow({ useUpload, useMutation, setEnabled, t }: PropsRuntime<'settings.general.group.data.item'> & Face) {
   const upload = useUpload(value => value)
   const busy = useMutation(value => value.busy)
   return <div className={css.row}>

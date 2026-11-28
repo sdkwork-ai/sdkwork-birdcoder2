@@ -6,12 +6,19 @@
  * experimental name only through this map.
  */
 export const EXPERIMENTAL_PACKAGE_NAME_EXCEPTIONS: Readonly<Record<string, string>> = {
+  'packages/experimental/environment-local': '@deepseek-ai/dsh-environment-local',
+  'packages/experimental/environment-ssh-config': '@deepseek-ai/dsh-environment-ssh-config',
+  'packages/experimental/environment': '@deepseek-ai/dsh-environment',
+  'packages/experimental/environment-ssh': '@deepseek-ai/dsh-environment-ssh',
   'packages/experimental/cua': '@deepseek-ai/dsh-cua',
   'packages/experimental/cua-bundle': '@deepseek-ai/dsh-cua-bundle',
   'packages/experimental/cua-macos': '@deepseek-ai/dsh-cua-macos',
   'packages/experimental/cua-mcp': '@deepseek-ai/dsh-cua-mcp',
   'packages/experimental/cua-windows': '@deepseek-ai/dsh-cua-windows',
   'packages/experimental/timeline': '@deepseek-ai/dsh-timeline',
+  'packages/experimental/frame-forwarding': '@deepseek-ai/dsh-frame-forwarding',
+  'packages/experimental/client-ui-office-frame-forwarding': '@deepseek-ai/dsh-client-ui-office-frame-forwarding',
+  'packages/experimental/office-frame-forwarding-bundle': '@deepseek-ai/dsh-office-frame-forwarding-bundle',
   'packages/experimental/tool-session-query': '@deepseek-ai/dsh-tool-session-query',
   'packages/experimental/session-title-all-prompts-llm': '@deepseek-ai/dsh-session-title-all-prompts-llm',
   'packages/experimental/tool-terminal': '@deepseek-ai/dsh-tool-terminal',
@@ -25,6 +32,19 @@ export const EXPERIMENTAL_PACKAGE_NAME_EXCEPTIONS: Readonly<Record<string, strin
   'packages/experimental/webhook-github': '@deepseek-ai/dsh-webhook-github',
   'packages/experimental/forge-gitlab': '@deepseek-ai/dsh-forge-gitlab',
   'packages/experimental/deepseek-chat-import': '@deepseek-ai/dsh-deepseek-chat-import',
+  'packages/experimental/im': '@deepseek-ai/dsh-im',
+  'packages/experimental/im-bundle': '@deepseek-ai/dsh-im-bundle',
+  'packages/experimental/im-session-commands': '@deepseek-ai/dsh-im-session-commands',
+  'packages/experimental/speech-to-text-deepseek': '@deepseek-ai/dsh-speech-to-text-deepseek',
+  'packages/experimental/sandbox-policy-git': '@deepseek-ai/dsh-sandbox-policy-git',
+  'packages/experimental/client-ui-connectors': '@deepseek-ai/dsh-client-ui-connectors',
+  'packages/experimental/text-to-speech': '@deepseek-ai/dsh-text-to-speech',
+  'packages/experimental/text-to-speech-deepseek': '@deepseek-ai/dsh-text-to-speech-deepseek',
+  'packages/experimental/read-aloud': '@deepseek-ai/dsh-read-aloud',
+  'packages/experimental/client-ui-read-aloud': '@deepseek-ai/dsh-client-ui-read-aloud',
+  'packages/experimental/read-aloud-bundle': '@deepseek-ai/dsh-read-aloud-bundle',
+  'packages/experimental/client-ui-sidechat': '@deepseek-ai/dsh-client-ui-sidechat',
+  'packages/experimental/llm-mock': '@deepseek-ai/dsh-llm-mock',
 } satisfies Record<`packages/experimental/${string}`, `@deepseek-ai/dsh-${string}`>
 
 /** Legacy npm namespace, allowed only in `LEGACY_PREFIXED_EXPERIMENTAL_PACKAGE_DIRECTORIES`. */

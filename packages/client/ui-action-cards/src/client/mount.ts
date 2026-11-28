@@ -13,7 +13,7 @@ import { SettingsRow, type CardSettings, type SettingsRowInjected } from './Sett
 import { ActionCardRegistry } from './registry.ts'
 import { de, en, es, fr, ja, pt, ru, zh, type ActionCardKey } from './locales.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@deepseek-ai/dsh-client-ui-slots/client' {
   interface LocaleNamespaceMap { actionCards: ActionCardKey }
 }
 
@@ -55,9 +55,9 @@ export function apply(ctx: Context): void {
     { name: 'conversation.chat.markdown.fence', key: ACTION_CARD_FENCE, id: '@deepseek-ai/dsh-client-ui-action-cards/block' }, HiddenCardBlock,
   ))
   const form = ctx.configForms.get<CardSettings>(SETTINGS_NAMESPACE)
-  ctx.effect(() => ctx.configForms.whileServed([SETTINGS_NAMESPACE], () => ctx.slots.inject('settings.general.item', () =>
+  ctx.effect(() => ctx.configForms.whileServed([SETTINGS_NAMESPACE], () => ctx.slots.inject('settings.general.group.display.item', () =>
     ctx.slots.register({
-      name: 'settings.general.item', id: 'action-cards', order: 40, locale: 'actionCards',
+      name: 'settings.general.group.display.item', id: 'action-cards', order: 13, locale: 'actionCards',
       inject: (): SettingsRowInjected => ({ hooks: { cardSettings: form }, setEnabled: enabled => form.set('enabled', enabled) }),
     }, SettingsRow))), 'action-cards: settings row')
 }

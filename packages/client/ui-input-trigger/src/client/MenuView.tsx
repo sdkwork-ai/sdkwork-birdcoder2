@@ -12,11 +12,11 @@
  * (a localized title), then the description right-aligned. A source publishing crumbs gets a breadcrumb
  * header pinned above the scrolling list.
  */
-import { MenuSurface } from '@deepseek-ai/dsh-client-ui-primitives'
+import { MenuSurface } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import clsx from 'clsx'
-import { IconChevronRightOutlineRegular, ReferenceIconRegular, useAnchoredMaxHeight } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+import { IconChevronRightOutlineRegular, ReferenceIconRegular, useAnchoredMaxHeight } from '@deepseek-ai/dsh-client-ui-primitives/client'
+import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots/client'
 import css from './MenuView.module.css'
 import type { MenuViewInjected } from './slots.ts'
 import type { MenuKey } from './locales.ts'
@@ -81,10 +81,10 @@ export function MenuView({ menu, headers, onPick, onCrumb, onHover, onDismiss, t
   useEffect(() => {
     if (!state.open) return
     const onPointerDown = (ev: PointerEvent): void => {
-      if (!(ev.target instanceof Node)) return
-      if (listRef.current?.contains(ev.target)) return
+      const target = ev.target as Node
+      if (listRef.current?.contains(target)) return
       const composerCard = listRef.current?.closest('[data-composer-card]')
-      if (composerCard?.contains(ev.target)) return
+      if (composerCard?.contains(target)) return
       onDismiss()
     }
     document.addEventListener('pointerdown', onPointerDown, true)

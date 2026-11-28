@@ -5,6 +5,9 @@ import { createRoot, hydrateRoot, type Root } from 'react-dom/client'
 import type { Context } from '@deepseek-ai/cordis'
 import type { UiRendererService } from './index.ts'
 import { buildRenderApp } from './app.tsx'
+import { createDocumentPortal } from './document-portal.tsx'
+import { bindDocumentViewport } from './document-viewport.ts'
+import { RootErrorCapture } from './root-errors.ts'
 import { DocumentStyles } from './styles/document-styles.ts'
 
 interface BootSnapshot {
@@ -24,22 +27,25 @@ function BootHandoff(props: { app: () => ReactNode; boot: BootSnapshot }): React
   })
 }
 
-/** Mount React while preserving the framework-free boot DOM through hydration. */
-function mountApp(container: HTMLElement, app: () => ReactNode): Root {
+/**
+ * Mount React while preserving the framework-free boot DOM through hydration. A
+ * fresh root renders synchronously, so an uncaught initial render error fails the mount.
+ */
+function mountApp(container: HTMLElement, app: () => ReactNode, errors: RootErrorCapture): Root {
   const boot = container.querySelector<HTMLElement>(':scope > [data-dsh-boot]')
   if (boot !== null) {
     return hydrateRoot(container, createElement(BootHandoff, {
       app,
       boot: { className: boot.className, html: boot.innerHTML },
-    }))
+    }), errors.options)
   }
-  const root = createRoot(container)
+  const root = createRoot(container, errors.options)
   try {
-    flushSync(() => { root.render(app()) })
+    errors.run(() => { flushSync(() => { root.render(app()) }) })
     return root
   } catch (error) {
     try {
-      root.unmount()
+      errors.run(() => { root.unmount() })
     } catch (cleanupError) {
       throw new AggregateError([error, cleanupError], 'renderer: render and root cleanup failed', { cause: error })
     }
@@ -50,6 +56,8 @@ function mountApp(container: HTMLElement, app: () => ReactNode): Root {
 /** Resources belonging to one mount, retained so stale cleanup cannot affect a later mount. */
 interface RendererMount {
   readonly styles: DocumentStyles
+  readonly errors: RootErrorCapture
+  releaseDocumentProps?: () => void
   root?: Root
   releasing?: boolean
 }
@@ -64,15 +72,18 @@ export class UiRenderer implements UiRendererService {
   mount(container: HTMLElement): () => void {
     if (this.disposed) throw new Error('renderer: cannot mount a disposed renderer')
     if (this.current !== undefined) throw new Error('renderer: application is already mounted')
-    const mounted: RendererMount = {
-      styles: new DocumentStyles(container.ownerDocument.head, this.ctx.modules),
-    }
+    const page = container.ownerDocument
+    const mounted: RendererMount = { styles: new DocumentStyles(page.head, this.ctx.modules), errors: new RootErrorCapture() }
     this.current = mounted
     try {
       mounted.styles.mount()
-      const root = mountApp(container, buildRenderApp({ ctx: this.ctx }))
+      const Portal = createDocumentPortal(page)
+      mounted.releaseDocumentProps = this.ctx.slots.provideRoot({
+        props: { useDocumentPortal: () => Portal, useDocumentViewport: bindDocumentViewport(page) },
+      })
+      const root = mountApp(container, buildRenderApp({ ctx: this.ctx }), mounted.errors)
       if (this.current !== mounted) {
-        root.unmount()
+        mounted.errors.run(() => { root.unmount() })
         throw new Error('renderer: disposed during application mount')
       }
       mounted.root = root
@@ -99,12 +110,17 @@ export class UiRenderer implements UiRendererService {
     mounted.releasing = true
     const failures: unknown[] = []
     try {
-      mounted.root?.unmount()
+      const root = mounted.root
+      if (root !== undefined) mounted.errors.run(() => { root.unmount() })
     } catch (error) {
       failures.push(error)
     }
     try {
-      mounted.styles.dispose()
+      try {
+        mounted.releaseDocumentProps?.()
+      } finally {
+        mounted.styles.dispose()
+      }
     } catch (error) {
       failures.push(error)
     } finally {

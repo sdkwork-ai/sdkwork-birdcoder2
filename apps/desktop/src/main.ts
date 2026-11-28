@@ -8,6 +8,7 @@ import { configurationFailure, channelSaveFailure, configurationMessage } from '
 import type { DesktopChannelState, DesktopChannelChangeResult } from '@deepseek-ai/dsh-client-ui-settings-general/types'
 import { DesktopUpdateSettings } from './update-settings.ts'
 import { createUpdateConfigSource } from './updates/config/index.ts'
+import { DesktopUpdateSettings, type DesktopUpdateConfigVersion } from './update-settings.ts'
 import { isDesktopUpdateChannel } from './settings-file.ts'
 import type { ProductEventMap, ProductEvent } from '@deepseek-ai/dsh-client-product-analytics/types'
 import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
@@ -30,6 +31,7 @@ import {
   safeStorage,
   session,
   shell,
+  type IpcMainEvent,
   type IpcMainInvokeEvent,
   type MenuItemConstructorOptions,
 } from 'electron'
@@ -37,6 +39,7 @@ import { resolveDesktopPaths } from './paths.ts'
 import { resolveWindowIcon } from './app-icon.ts'
 import { applyDevToolsWindowIcon } from './devtools-icon.ts'
 import { DesktopProjectManager } from './project-manager.ts'
+import { createDesktopSharedTextures } from './shared-texture/main.ts'
 import { DesktopHostFatalError, DesktopHostProcess, DesktopHostUncleanExitError } from './host-process.ts'
 import { DesktopPlatformView, PLATFORM_IPC, platformBounds } from './platform-view.ts'
 import { installDesktopFileDrag } from './file-drag.ts'
@@ -55,7 +58,6 @@ import { readDeviceInfo } from './device-info.ts'
 import { DESKTOP_DEFAULT_BRAND, desktopUpdateReadyConfirmation, formatDesktopMessage, resolveDesktopLocale, resolveDesktopStartupLocale } from './locale.ts'
 import type { DesktopMessages } from './locale.ts'
 import { claimDesktopSingleInstance } from './single-instance.ts'
-import { desktopUpdateChannel } from './update-channel.ts'
 import { DesktopUpdateCoordinator } from './update-coordinator.ts'
 import { prepareDesktopUpdateWindow } from './update-window.ts'
 import { DesktopCommandManager } from './command-management.ts'
@@ -372,6 +374,7 @@ protocol.registerSchemesAsPrivileged([{
 }])
 
 interface RuntimeResources {
+  readonly frameReceiverPath: string
   readonly nodeBin: string
   readonly node: string
   readonly pnpm: string
@@ -387,7 +390,9 @@ function runtimeResources(): RuntimeResources {
       : join(process.resourcesPath, 'runtime', 'primary-runtime', 'dependencies', 'pnpm', 'bin', 'pnpm.mjs'))
   const dsh = (development ? process.env.DSH_DESKTOP_DSH_DIR : undefined)
     ?? (development ? join(app.getAppPath(), '.desktop-build', 'development', 'project') : join(app.getAppPath(), 'dsh'))
-  return { node, nodeBin, pnpm, dsh }
+  const nativeRoot = development ? app.getAppPath() : join(process.resourcesPath, 'app.asar.unpacked')
+  const frameReceiverPath = join(nativeRoot, 'lib', 'native', `${process.platform}-${process.arch}`, 'frame-forwarding.node')
+  return { node, nodeBin, pnpm, dsh, frameReceiverPath }
 }
 
 function developmentPrimaryRuntime(): string {
@@ -746,6 +751,13 @@ async function main(): Promise<void> {
     }
     return mainWindow
   }
+  const textures = createDesktopSharedTextures(app.getAppPath(), () => mainWindow)
+  app.on('child-process-gone', (_event, details) => {
+    // A new GPU process can composite on another adapter.
+    if (details.type === 'GPU') void textures.reset({ gpuProcessGone: true }).catch((error: unknown) => {
+      console.error('Shared textures could not reset after GPU exit', error)
+    })
+  })
   let navigation: { window: BrowserWindow; url: string; promise: Promise<void> } | undefined
   /**
    * Load the workspace document, joining an in-flight load of the same URL.
@@ -776,13 +788,25 @@ async function main(): Promise<void> {
         ...hostEnvironment,
         DSH_CLIENT_VERSION: desktopClientVersion(),
       }, onFailure,
+    const host = new DesktopHostProcess(resources.node, resources.dsh, activeProject, {
+      inspectPort: developmentHostInspectPort(development),
+      environment: { ...hostEnvironment, DSH_CLIENT_VERSION: desktopClientVersion() },
       primaryRuntime,
-      resources, (next) => { platformView.setSession(next) }, (record) => {
+      packageManager: resources,
+      frameReceiverPath: resources.frameReceiverPath,
+      channels: [textures.channel],
+      onFailure(error) {
+        void textures.dispose().catch((closeError: unknown) => { console.error('Shared texture cleanup failed', closeError) })
+        onFailure(error)
+      },
+      onPlatformSession: (next) => { platformView.setSession(next) },
+      onPluginOperation(record) {
         operationJournal ??= new OperationJournal(join(app.getPath('userData'), 'plugin-operations'), {
           segmentBytes: 256 * 1024, recordBytes: 4096, queuedBytes: 64 * 1024,
         })
         operationJournal.enqueue(JSON.stringify(record))
-      })
+      },
+    })
     return {
       start: async () => {
         const ready = await host.start()
@@ -856,8 +880,11 @@ async function main(): Promise<void> {
         try { await host.stop(requireCleanStop) }
         catch (error) {
           if (!requireCleanStop || !(error instanceof DesktopHostUncleanExitError)) throw error
-          // Backend cleanup succeeded; installation still rejects the unsuccessful task teardown.
+          // Installation still rejects the unsuccessful task teardown after resources are released.
           updateStopFailure = error
+        } finally {
+          // A cleanup failure must not replace the stop outcome.
+          await textures.dispose().catch((error: unknown) => { console.error('Shared texture cleanup failed', error) })
         }
       },
       updateTasks: (action: 'inspect' | 'lock' | 'unlock') => host.updateTasks(action),
@@ -966,11 +993,19 @@ async function main(): Promise<void> {
     })
   const packagedChannel = desktopUpdateChannel(manifest)
   const channelSettings = new DesktopUpdateSettings(app.getPath('userData'), packagedChannel)
+  const channelSettings = new DesktopUpdateSettings(app.getPath('userData'))
   const initialChannel = await channelSettings.load()
-  channelState = { channel: initialChannel.kind === 'ready' ? initialChannel.channel : null,
-    packagedChannel, changing: false,
-    ...(initialChannel.kind === 'error' ? { error: configurationFailure(initialChannel.error) } : {}) }
-  const updateChannel = initialChannel.kind === 'ready' ? initialChannel.channel : packagedChannel
+  let configVersion: DesktopUpdateConfigVersion = initialChannel.kind === 'ready' ? initialChannel.configVersion : '0'
+  channelState = {
+    channel: initialChannel.kind === 'ready' ? initialChannel.channel : null,
+    unlocked: initialChannel.kind === 'ready' ? initialChannel.unlocked : false,
+    changing: false,
+    ...(initialChannel.kind === 'error' ? { error: configurationFailure(initialChannel.error) } : {}),
+  }
+  const updateChannel = initialChannel.kind === 'ready' ? initialChannel.channel : 'stable'
+  let cachedBundledDshVersion: string | undefined
+  const readBundledDshVersion = (): string =>
+    cachedBundledDshVersion ??= app.isPackaged ? readDesktopRuntime(resources.dsh).release.version : app.getVersion()
   const updates = new DesktopUpdateCoordinator(
     publishUpdate,
     async () => {
@@ -1031,6 +1066,7 @@ async function main(): Promise<void> {
     updateChannel,
     undefined,
     updateConfigSource,
+    () => ({ configVersion, unlocked: channelState?.unlocked ?? false, bundledDshVersion: readBundledDshVersion() }),
   )
 
   if (initialChannel.kind === 'error') updates.suspendConfiguration(initialChannel.error.path)
@@ -1356,16 +1392,33 @@ async function main(): Promise<void> {
     publishChannel({ ...channelState, changing: true })
     try {
       const kind = await updates.switchChannel(channel, async () => {
-        try { await channelSettings.save(channel) } catch (error) {
+        try {
+          await channelSettings.save(channel)
+          configVersion = '1'
+          if (channelState !== undefined) channelState = { ...channelState, unlocked: true }
+        } catch (error) {
           if (channelSaveFailure(error) === 'uncertain') {
+            configVersion = '0'
             updates.suspendConfiguration('desktop update: settings save outcome is unknown')
-            publishChannel({ channel: updates.selectedChannel, packagedChannel, changing: true, error: 'read' })
+            publishChannel({
+              channel: updates.selectedChannel,
+              unlocked: channelState?.unlocked ?? false,
+              changing: true,
+              error: 'read',
+            })
           }
           throw error
         }
       })
       if (kind === 'applied') void mandatoryPolicy?.check('channel-change', true).catch((error: unknown) => { console.error(error) })
-      return { kind, state: publishChannel({ channel: updates.selectedChannel, packagedChannel, changing: --channelRequests > 0 }) }
+      return {
+        kind,
+        state: publishChannel({
+          channel: updates.selectedChannel,
+          unlocked: channelState.unlocked,
+          changing: --channelRequests > 0,
+        }),
+      }
     } catch (error) {
       console.error('desktop update: channel change failed', error)
       const state = publishChannel({ ...channelState, changing: --channelRequests > 0,
@@ -1385,16 +1438,25 @@ async function main(): Promise<void> {
     assertProductSender(event)
     return (await readWelcomeState()).hasApiKey
   })
+  const fromProductDocument = (event: IpcMainEvent): boolean => {
+    const window = mainWindow
+    return window !== undefined && !window.isDestroyed() && event.sender === window.webContents
+      && event.senderFrame === window.webContents.mainFrame && event.senderFrame.url.startsWith(`${SCHEME}://app/`)
+  }
   ipcMain.on(DESKTOP_IPC.onboardingActive, (event, active: unknown) => {
     const window = mainWindow
-    if (window === undefined || window.isDestroyed() || event.sender !== window.webContents
-      || event.senderFrame !== window.webContents.mainFrame
-      || !event.senderFrame.url.startsWith(`${SCHEME}://app/`) || typeof active !== 'boolean') return
+    if (window === undefined || !fromProductDocument(event) || typeof active !== 'boolean') return
     window.setMinimumSize(active ? 960 : 520, 600)
     if (active) {
       const { width, height } = window.getBounds()
       if (width < 960) window.setSize(960, height)
     }
+  })
+  ipcMain.on(DESKTOP_IPC.sharedTextureImported, (event, id: unknown, result: unknown) => {
+    if (fromProductDocument(event) && typeof id === 'number') textures.rendererImported(id, result)
+  })
+  ipcMain.on(DESKTOP_IPC.sharedTextureReleased, (event, id: unknown) => {
+    if (fromProductDocument(event) && typeof id === 'number') textures.rendererReleased(id)
   })
   ipcMain.handle(DESKTOP_IPC.updatesOpen, async (event) => {
     assertProductSender(event)
@@ -1418,11 +1480,18 @@ async function main(): Promise<void> {
               try {
                 const loaded = await channelSettings.load()
                 if (loaded.kind === 'error') {
+                  configVersion = '0'
                   publishChannel({ ...channelState, changing: true, error: configurationFailure(loaded.error) })
                   return false
                 }
+                configVersion = loaded.configVersion
+                channelState = { ...channelState, unlocked: loaded.unlocked }
                 await updates.switchChannel(loaded.channel, async () => {})
-                publishChannel({ channel: updates.selectedChannel, packagedChannel, changing: true })
+                publishChannel({
+                  channel: updates.selectedChannel,
+                  unlocked: loaded.unlocked,
+                  changing: true,
+                })
                 return true
               } catch (error) {
                 console.error('desktop update: settings reload failed', error)
@@ -1800,7 +1869,11 @@ async function main(): Promise<void> {
       window.on('focus', () => { sessionEnding = false })
       window.on('show', () => { sessionEnding = false })
     }
-    window.on('closed', () => { if (mainWindow === window) mainWindow = undefined })
+    window.on('closed', () => {
+      if (mainWindow !== window) return
+      mainWindow = undefined
+      void textures.reset().catch((error: unknown) => { console.error('Shared texture cleanup failed', error) })
+    })
     window.webContents.on('console-message', (details) => {
       if (details.level !== 'error') return
       rendererConsole.push(`${details.sourceId}:${String(details.lineNumber)} ${details.message}`)
@@ -1813,7 +1886,13 @@ async function main(): Promise<void> {
     window.webContents.on('preload-error', (_event, _path, error) => {
       if (!quitting && !window.isDestroyed()) reportFatal(error, 'renderer')
     })
+    // Only a committed cross-document navigation replaces the document; cancelled, intercepted, and same-document
+    // navigations keep its textures.
+    window.webContents.on('did-navigate', () => {
+      void textures.reset().catch((error: unknown) => { console.error('Shared texture cleanup after navigation failed', error) })
+    })
     window.webContents.on('render-process-gone', (_event, details) => {
+      void textures.reset().catch((error: unknown) => { console.error('Shared texture cleanup failed', error) })
       navigation = undefined
       if (!quitting && !window.isDestroyed() && details.reason !== 'clean-exit') {
         reportFatal(new Error(`Desktop renderer exited: ${details.reason}`), 'renderer')
@@ -2127,7 +2206,7 @@ async function main(): Promise<void> {
     mandatoryPolicy = new DesktopMandatoryUpdatePolicy(policyConfig, {
       platform: policyPlatform, arch: process.arch as 'x64' | 'arm64',
       get channel() { return updates.selectedChannel },
-      bundledDshVersion: app.isPackaged ? readDesktopRuntime(resources.dsh).release.version : app.getVersion(),
+      bundledDshVersion: readBundledDshVersion(),
     }, (state) => {
       if (state.error !== 'authentication-required') policyAuthenticationQueued = false
       if (state.blocking) {

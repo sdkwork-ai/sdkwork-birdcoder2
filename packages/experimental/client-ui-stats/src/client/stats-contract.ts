@@ -6,7 +6,12 @@ import type {
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
 
 /** Outcome of one older-history request. */
-export type LoadOlderResult = 'grew' | 'exhausted' | 'retry'
+/**
+ * Outcome of one older-page request: 'prepared' holds a page the view must publish
+ * in the commit that keeps the reading line, 'exhausted' ends history, and 'retry'
+ * leaves the gesture available without a page to place.
+ */
+export type LoadOlderResult = 'prepared' | 'exhausted' | 'retry'
 
 /** Token usage counts one assistant message reported. */
 export interface StatsUsage {
@@ -65,10 +70,14 @@ export interface StatsStepState {
   readonly toolMs: number
   readonly toolOpen: number
   readonly toolMissing: number
-  readonly pending: Readonly<Record<string, number>> | null
-  readonly tools: Readonly<Record<string, number>> | null
-  readonly calls: Readonly<Record<string, StatsCall>> | null
-  readonly starts: Readonly<Record<string, number>> | null
+  /** Tool calls awaiting their result, keyed by call id; the fold mutates it in place. */
+  readonly pending: Map<string, number>
+  /** Tool tallies in first-call order; the fold mutates it in place. */
+  readonly tools: Map<string, number>
+  /** Recorded calls keyed by call id, in first-call order; the fold mutates it in place. */
+  readonly calls: Map<string, StatsCall>
+  /** Dispatch start times awaiting their settle event, keyed by subcall id; the fold mutates it in place. */
+  readonly starts: Map<string, number>
   readonly retries: number
   readonly toolErrors: number
   /** Turn-level marker kind; step states leave this null. */

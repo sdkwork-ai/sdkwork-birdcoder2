@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
+import { contextMenuHook, responsiveHooks, themeHooks } from '@deepseek-ai/dsh-client-test-runtime'
 /**
  * The shipped Session row actions rendered directly with hand-built props:
  * the menu rows, hover buttons, dialogs, and global notices. Every action
@@ -15,7 +15,7 @@ import type { WorkspaceId, WorkspaceSnapshot } from '@deepseek-ai/dsh-api-worksp
 import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session-status/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { GlobalStandardProps, PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { GlobalStandardProps, PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots/client'
 import { allowAllAccess, bindSnapshotSelector, makeTranslate, SlotTestRuntime } from '@deepseek-ai/dsh-client-test-runtime'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { registerToasts } from '../src/client/toast/register.ts'
@@ -79,7 +79,7 @@ const standard: GlobalStandardProps = {
   useSessionStatus: hook(noStatus),
   useSessionRetainInfo: () => undefined,
   usePanelInfo,
-  useContextMenu: contextMenuHook(), useResource,
+  useContextMenu: contextMenuHook(), ...responsiveHooks(), ...themeHooks(), useResource,
   useWorkspaces: hook(workspaces),
   ...allowAllAccess,
 }

@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
+import { contextMenuHook, responsiveHooks, themeHooks } from '@deepseek-ai/dsh-client-test-runtime'
+import { createDocumentPortal } from '@deepseek-ai/dsh-client-ui-renderer/src/client/document-portal.tsx'
 import type { ShortcutCatalogEntry, ShortcutCommandId } from '@deepseek-ai/dsh-client-shortcuts/client'
-import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
+import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useEffect, useState } from 'react'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
@@ -13,7 +14,7 @@ import type { SettingsRootComponentProps } from '../src/client/shell-contract.ts
 import { SettingsRoot } from '../src/client/SettingsRoot.tsx'
 import { en, zh } from '../src/client/locales.ts'
 import type { DesktopUpdateView } from '../src/types.ts'
-import { Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Modal } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import { brandString } from '@deepseek-ai/dsh-brand'
 
 // Every fixture carries the resource hook the resources plugin merges into GlobalStandardProps.
@@ -52,6 +53,9 @@ type AttentionSnapshot = Parameters<Parameters<SettingsRootComponentProps['useSe
 type ConnectionSnapshot = Parameters<Parameters<SettingsRootComponentProps['useConnectionState']>[0]>[0]
 const noAttention: AttentionSnapshot = new Map()
 const useSessionStatus: SettingsRootComponentProps['useSessionStatus'] = selector => selector(noAttention)
+
+/** The renderer's portal into this test document, as a mounted Slot receives it. */
+const Portal = createDocumentPortal(document)
 
 function mount({
   shortcuts = [],
@@ -122,6 +126,7 @@ function mount({
     useWorkspaces: unusedHook,
     ...allowAllAccess,
     useContextMenu: contextMenuHook(),
+    ...responsiveHooks({ portal: Portal }), ...themeHooks(),
     wide,
     reconnect,
     openDesktopUpdate: () => {},
@@ -372,7 +377,8 @@ describe('SettingsPanel close paths', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Reference control' }))
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
     const settings = screen.getByRole('dialog', { name: 'Settings Title' })
-    expect(settings.parentElement?.parentElement).toBe(document.body)
+    // The overlay sits in the application document portal's wrapper, a body child after the reference Modal.
+    expect(settings.parentElement?.parentElement?.parentElement).toBe(document.body)
     expect(reference.parentElement!.compareDocumentPosition(settings.parentElement!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'General' }))
     fireEvent.keyDown(document, { key: 'Escape' })

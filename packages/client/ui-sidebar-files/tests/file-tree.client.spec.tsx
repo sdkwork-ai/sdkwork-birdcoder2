@@ -288,6 +288,7 @@ describe('FileTree', () => {
     // FORK DIVERGENCE: this repository's React build detaches a ref with
     // `ref(null, undefined, undefined, undefined, undefined)`, so the row
     // argument is the contract — not the whole call.
+    // React 19's development build detaches a callback ref with extra undefined arguments after null.
     expect(currentRef.mock.lastCall?.[0]).toBeNull()
   })
 })

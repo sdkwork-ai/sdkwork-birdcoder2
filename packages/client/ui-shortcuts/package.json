@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-shortcuts",
   "description": "Keyboard shortcut reference, recording, and local preference editing",
-  "version": "0.2.3-alpha.2",
+  "version": "0.2.3-alpha.3",
   "publishConfig": {
     "access": "public"
   },
@@ -57,7 +57,7 @@
     "@deepseek-ai/dsh-client-ui-settings": "workspace:*",
     "@deepseek-ai/dsh-brand": "workspace:*",
     "clsx": "^2.1.1",
-    "react": "^18.2.0",
+    "react": "^19.3.1",
     "@deepseek-ai/dsh-client-test-runtime": "workspace:*",
     "@deepseek-ai/dsh-util-text-search": "workspace:*"
   },

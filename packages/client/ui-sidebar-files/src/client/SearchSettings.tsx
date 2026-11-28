@@ -13,10 +13,10 @@
 import { useId, useRef, useState } from 'react'
 import type { ReactNode, RefObject } from 'react'
 import clsx from 'clsx'
-import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots/client'
 import {
   IconCloseOutlineRegular, IconPlusOutlineRegular, IconRefreshOutlineRegular, IconTrashOutlineRegular, Tooltip,
-} from '@deepseek-ai/dsh-client-ui-primitives'
+} from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type {} from './locales.ts'
 import {
   addRule, defaultRules, isDefaultRules, removeRule, setRuleEnabled, type ExclusionRule, type RuleInvalidReason,
@@ -66,7 +66,7 @@ export function SearchSettings({ rules, respectGitignore, onRespectGitignore, tr
       }}
       onBlur={(event) => {
         const next = event.relatedTarget
-        if (next instanceof Node && (event.currentTarget.contains(next) || trigger.current?.contains(next) === true)) return
+        if (event.currentTarget.contains(next) || trigger.current?.contains(next) === true) return
         onClose(false)
       }}
     >

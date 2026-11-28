@@ -4,6 +4,11 @@
  * card at a time. Rows retain the BirdCoder-first order supplied by the store
  * and expose only confirmed API-key state through accessible
  * solid configured or missing dots. A whole-section provider without a
+ * card at a time. Rows retain the account-first order supplied by the store
+ * and expose only confirmed API-key state: a solid dot when the key is
+ * configured, and a dot beside its wording when it is missing. A row whose
+ * editor is open becomes the editing surface itself, under its own name, and
+ * offers no second Edit. A whole-section provider without a
  * configured key renders as its open setup card instead of a row, but only in
  * the first-run posture — no provider on the page can serve requests yet — and
  * only until the user closes that card. The add flow is one card behind one
@@ -25,11 +30,13 @@ import { useEffect, useId, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Button, IconPlusOutlineRegular, Modal, SegmentedControl } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import { Button, IconPlusOutlineRegular, Modal, SegmentedControl } from '@deepseek-ai/dsh-client-ui-primitives/client'
+import type { InjectFace, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { LlmNativeAuth, SettingsNamespaceView } from '@deepseek-ai/dsh-api-remotes/client'
 // Type-only: pulls this package's SlotMap merge (the two Models child slots).
 import type {} from './slot-contract.ts'
 import { CustomProviderCard } from './CustomProviderCard.tsx'
-import { deriveKeyRef, protocolChoices, providerUsable, reasoningLevelChoices } from './store.ts'
+import { deriveKeyRef, PI_AI_ADAPTER_NS, PI_AI_PROFILE_PATH, protocolChoices, providerUsable, reasoningLevelChoices } from './store.ts'
 import type { ModelsSettingsStore, ProviderRow } from './store.ts'
 import type { ModelsOperations } from './operations.ts'
 import type { SettingsSchemaOperations } from './schema-operations.ts'
@@ -123,19 +130,28 @@ interface CatalogDraft {
 /** Values that vary around the shared provider-editor rendering. */
 interface ProviderEditorRenderProps extends Pick<
   ProviderEditorProps,
-  'namespace' | 'schema' | 'operations' | 't' | 'readOnly' | 'onClose'
+  'namespace' | 'schema' | 'operations' | 't' | 'readOnly' | 'onClose' | 'hideTitle'
 > {
   target: EditorTarget
   row: ProviderRow
+}
+
+/** Whether a settings layer holds no field: an absent layer, or one without a key. */
+function emptyLayer(layer: unknown): boolean {
+  return typeof layer !== 'object' || layer === null || Object.keys(layer).length === 0
 }
 
 /** Render an editor for either the setup posture or an expanded provider row. */
 function renderProviderEditor({ target, row, ...props }: ProviderEditorRenderProps): ReactNode {
   return (
     <ProviderEditor
+      // A route's settings address changes when a provider row starts or stops serving it; a draft and
+      // revision read at one address must not be written to the other.
+      key={[target.settingsNs, ...target.settingsPath].join('\n')}
       provider={target.provider}
       displayName={target.displayName}
       settingsPath={target.settingsPath}
+      adapterNs={row.adapterNs}
       {...target.declared === true ? { declared: true } : {}}
       {...target.defaultBaseURL === undefined ? {} : { defaultBaseURL: target.defaultBaseURL }}
       {...target.baseURLEnv === undefined ? {} : { baseURLEnv: target.baseURLEnv }}
@@ -178,17 +194,20 @@ export async function removeProviderProfile(
 }
 
 /**
- * Whether a whole-section provider still needs its first key: an unconfigured
- * credential opens the setup card instead of showing a row. This is the
- * first-run posture alone — a user who can already reach some provider gets an
- * ordinary row with the missing-key dot, since nothing here is blocking them.
+ * Whether a provider configured in its adapter's whole section still needs its
+ * first key: an unconfigured credential opens the setup card instead of
+ * showing a row. A profile at a path inside a section, or a pi-ai provider
+ * row, is one that somebody added, and waits for its key as an ordinary row.
+ * This is the first-run posture alone — a user who can already reach some
+ * provider gets an ordinary row with the missing-key dot, since nothing here
+ * is blocking them.
  * @param row - the joined provider row.
  * @param anyUsable - whether any joined row can already serve requests.
  * @returns whether to render the setup card.
  */
 export function needsSetup(row: ProviderRow, anyUsable: boolean): boolean {
   if (anyUsable || row.entry.provider === 'deepseek-account') return false
-  if (row.entry.settingsPath.length > 0) return false
+  if (row.entry.settingsPath.length > 0 || row.adapterNs !== row.entry.settingsNs) return false
   return row.credential?.configured !== true
 }
 
@@ -416,9 +435,9 @@ function Loaded({ injected, renderSlot, focusProvider }: {
   // Hand-declared routes live in the pi-ai namespace, which is also the only
   // one whose schema names the protocols one may speak; without it mounted
   // there is nothing to declare and the mode is not offered.
-  const piAi = state.namespaces.get('llm-pi-ai')
-  const protocols = protocolChoices(piAi, schema)
-  const reasoningLevels = reasoningLevelChoices(piAi, schema)
+  const piAi = state.namespaces.get(PI_AI_ADAPTER_NS)
+  const protocols = protocolChoices(piAi, PI_AI_PROFILE_PATH, schema)
+  const reasoningLevels = reasoningLevelChoices(piAi, PI_AI_PROFILE_PATH, schema)
   // Each mode is offered while its namespace is mounted and enabled while it
   // has something to offer; the card shows the chosen mode where both are
   // offered, else the only one there is. A mode's panel is mounted while it is
@@ -486,6 +505,11 @@ function Loaded({ injected, renderSlot, focusProvider }: {
                 data-revealed={revealedProvider === row.entry.provider || undefined}
               >
                 {error}
+                {renderSlot(
+                  'settings.models.provider-card',
+                  { provider: row.entry, configured: row.configured, keyConfigured: keyConfiguredOf(row) },
+                  { entryKey: row.adapterNs },
+                )}
                 {renderProviderEditor({
                   target,
                   row,
@@ -496,11 +520,6 @@ function Loaded({ injected, renderSlot, focusProvider }: {
                   readOnly: !state.writable,
                   onClose: (changed) => { closeSetup(changed, target) },
                 })}
-                {renderSlot(
-                  'settings.models.provider-card',
-                  { provider: row.entry, configured: row.configured, keyConfigured: keyConfiguredOf(row) },
-                  { entryKey: row.entry.settingsNs },
-                )}
               </li>
             )
           }
@@ -516,9 +535,14 @@ function Loaded({ injected, renderSlot, focusProvider }: {
               className={styles['rowCard']}
               data-revealed={revealedProvider === row.entry.provider || undefined}
             >
+            <li key={row.entry.provider} className={`${styles['rowCard']} ${open ? styles['rowCardOpen'] : ''}`}>
               <div className={styles['rowHead']}>
                 <span className={styles['rowIdentity']}>
                   <span className={styles['rowName']}>{row.entry.displayName}</span>
+                  {/* The open card edits this route, so it names the id its settings are stored under. */}
+                  {open && row.entry.provider !== row.entry.displayName
+                    ? <span className={styles['editorRoute']}>{row.entry.provider}</span>
+                    : null}
                   {/* Only the adapter can tell a hand-declared route from a
                       shipped one it also has a stored profile for, so the tag
                       follows its answer and stays off when it gives none. */}
@@ -545,33 +569,33 @@ function Loaded({ injected, renderSlot, focusProvider }: {
                     )
                     : credentialMissing
                       ? (
-                        <span
-                          className={`${styles['credentialDot']} ${styles['credentialDotMissing']}`}
-                          role="img"
-                          aria-label={t('credentialMissing')}
-                          title={t('credentialMissing')}
-                        />
+                        // A missing key is the one state the reader must act on, so it is worded.
+                        <span className={styles['credentialMissing']}>
+                          <span className={`${styles['credentialDot']} ${styles['credentialDotMissing']}`} aria-hidden="true" />
+                          {t('credentialMissing')}
+                        </span>
                       )
                       : null}
                 </span>
                 <span className={styles['rowActions']}>
-                  {/* The account catalog comes from the account listing; its model overrides live in cordis.patch.yml. */}
-                  {row.entry.provider === 'deepseek-account'
+                  {/* The account catalog comes from the account listing; its model overrides live in cordis.patch.yml.
+                      An open card is dismissed by its own Cancel. */}
+                  {row.entry.provider === 'deepseek-account' || open
                     ? null
                     : (
                       <button
                         type="button"
                         className={styles['secondaryButton']}
                         aria-label={providerCopy(t('editProvider'), target)}
-                        disabled={!open && state.status !== 'ready'}
+                        disabled={state.status !== 'ready'}
                         onClick={() => {
-                          if (!open && controller.store.getSnapshot().status !== 'ready') return
+                          if (controller.store.getSnapshot().status !== 'ready') return
                           setSavedTarget(undefined)
                           // One card at a time: the add card closes with whatever
                           // it held, since closing either card would otherwise
                           // discard the other's draft.
                           setAddOpen(false)
-                          setEditing(open ? undefined : target)
+                          setEditing(target)
                         }}
                       >
                         {t('edit')}
@@ -601,16 +625,22 @@ function Loaded({ injected, renderSlot, focusProvider }: {
               {renderSlot(
                 'settings.models.provider-card',
                 { provider: row.entry, configured: row.configured, keyConfigured: keyConfiguredOf(row) },
-                { entryKey: row.entry.settingsNs },
+                { entryKey: row.adapterNs },
               )}
               {open
                 ? renderProviderEditor({
                   target,
                   row,
-                  namespace,
+                  // A provider row that the profile patch does not override runs with what its own layer
+                  // gives it, so that is what a cleared field returns to; it differs from the composed base
+                  // when a layer after the profile adds the row or sets its config.
+                  namespace: row.adapterNs !== namespace.ns && emptyLayer(namespace.user)
+                    ? { ...namespace, base: namespace.value }
+                    : namespace,
                   schema,
                   operations,
                   t,
+                  hideTitle: true,
                   readOnly: !state.writable,
                   onClose: (changed) => { closeEditor(changed, target) },
                 })
@@ -689,6 +719,13 @@ function Loaded({ injected, renderSlot, focusProvider }: {
                         ))}
                       </select>
                     </div>
+                    {addRow === undefined
+                      ? null
+                      : renderSlot(
+                        'settings.models.provider-card',
+                        { provider: addRow.entry, configured: addRow.configured, keyConfigured: keyConfiguredOf(addRow) },
+                        { entryKey: addRow.adapterNs },
+                      )}
                     <ProviderEditor
                       key={draft.target.provider}
                       provider={draft.target.provider}
@@ -707,13 +744,6 @@ function Loaded({ injected, renderSlot, focusProvider }: {
                       onClose={(changed) => { closeEditor(changed, draft.target) }}
                       onBusyChange={setCatalogBusy}
                     />
-                    {addRow === undefined
-                      ? null
-                      : renderSlot(
-                        'settings.models.provider-card',
-                        { provider: addRow.entry, configured: addRow.configured, keyConfigured: keyConfiguredOf(addRow) },
-                        { entryKey: addRow.entry.settingsNs },
-                      )}
                   </div>
                 )
                 : null}

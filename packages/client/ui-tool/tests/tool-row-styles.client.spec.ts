@@ -80,3 +80,29 @@ describe('ToolRow.module.css summary line', () => {
     }
   })
 })
+
+describe('ProgramCallRow.module.css header line', () => {
+  const sheet = readFileSync(fileURLToPath(new URL('../src/client/tool/components/ProgramCallRow.module.css', import.meta.url)), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+
+  it('truncates the description and never the sub-call count or the settled state', () => {
+    // The description and its detail share one line. A detail that could shrink would
+    // lose width in proportion to its text, which clips a short state beside a long description.
+    expect(declarations('.root .description', sheet)).toEqual(expect.arrayContaining([
+      'flex: 0 1 auto', 'min-width: 0', 'overflow: hidden', 'text-overflow: ellipsis', 'white-space: nowrap',
+    ]))
+    expect(declarations('.detail', sheet)).toEqual(expect.arrayContaining(['flex: none', 'white-space: nowrap']))
+  })
+})
+
+describe('ToolCallTree.module.css current sub-call row', () => {
+  const sheet = readFileSync(fileURLToPath(new URL('../src/client/tool/ToolCallTree.module.css', import.meta.url)), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+
+  it('clips the row to the height of one disclosure row', () => {
+    // The dispatched view owns its own markup, so the container bounds what a collapsed program call shows.
+    expect(declarations('.currentSubCall', sheet)).toEqual(expect.arrayContaining([
+      'overflow: hidden', 'height: calc(24px + var(--dsh-content-font-delta, 0px))',
+    ]))
+  })
+})

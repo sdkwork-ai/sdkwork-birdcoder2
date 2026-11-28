@@ -109,7 +109,7 @@ export interface SessionHeader {
    */
   readonly cwd?: string
   /**
-   * Direct creator of a subagent Session. Ordinary forks omit this field;
+   * Direct creator of a subagent Session, or the source of a side conversation. Ordinary forks omit this field;
    * historical ordinary forks may retain their source id here. Presence alone
    * does not classify a Session as a subagent; use `origin` for that distinction.
    */
@@ -120,10 +120,11 @@ export interface SessionHeader {
    */
   readonly isSeeded: boolean
   /**
-   * Coarse product classification for a session created as a subagent child.
-   * This is presentation metadata, not proof that the child is continuable.
+   * Coarse product classification: `subagent` for a subagent child, `side` for
+   * a side conversation forked from another Session. Absence means an ordinary
+   * Session. This is presentation metadata, not proof that the Session is continuable.
    */
-  readonly origin?: 'subagent'
+  readonly origin?: SessionOrigin
   /**
    * Delegation depth: absent (zero) for a top-level session, parent depth + 1
    * for a subagent child. Persisted so a recursion budget survives restart and
@@ -139,16 +140,20 @@ export interface SessionHeader {
   readonly agentPreset?: string
 }
 
+/** Durable product classification of a Session that is not an ordinary top-level Session. */
+export type SessionOrigin = 'subagent' | 'side'
+
 /**
  * Caller-supplied storage fields that `buildSessionHeader` folds into a new {@link SessionHeader}.
  * `isSeeded` marks fork lineage; supplying replay history alone does not make it inherited.
  */
 export interface SessionHeaderMeta {
   readonly cwd?: string
+  /** Direct creator of a subagent Session or source of a side conversation; see {@link SessionHeader.parentSession}. */
   readonly parentSession?: SessionId
   readonly createdAt?: number
   readonly isSeeded?: boolean
-  readonly origin?: 'subagent'
+  readonly origin?: SessionOrigin
   readonly delegationDepth?: number
   readonly agentPreset?: string
 }
@@ -222,8 +227,8 @@ export interface TurnEndReasonMap {
   /**
    * The turn failed. `error` is always a structured failure: the `LlmError`
    * facts verbatim, or `{ message: errorChain(error), code }` flattened from
-   * any other error, where `code` is `TOOL_ACTIVATION_FAILED` for a failed
-   * tool condition and `UNKNOWN` otherwise.
+   * any other error under the `UNKNOWN` code. Released logs may also carry
+   * `TOOL_ACTIVATION_FAILED`.
    */
   error: { kind: 'error'; error: LlmFailure }
   /** At least one step reached its output-token ceiling, even if a plugin continued the turn. */

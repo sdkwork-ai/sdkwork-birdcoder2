@@ -7,7 +7,7 @@
  * inert subtree, or behind the foreground modal dialog or menu, is never
  * addressed.
  */
-import { modalSelector } from '@deepseek-ai/dsh-client-ui-primitives'
+import { modalSelector } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type { ComposerFileIntake, ComposerFileIntakeTarget } from '../contract/slots.ts'
 
 /** Controls that own their own paste; the document-level route never takes it from them. */
@@ -65,9 +65,8 @@ export function createComposerFileIntake(): ComposerFileIntake {
     const paste = (event: ClipboardEvent): void => {
       // A focused composer editor consumes its own paste before bubbling here.
       if (event.defaultPrevented || event.clipboardData === null) return
-      // The first path element sees through shadow roots, which retarget event.target to their host.
-      const origin = event.composedPath().find(value => value instanceof Element)
-      if (origin instanceof Element && origin.closest(EDITABLE) !== null) return
+      // The first path entry sees through shadow roots, which retarget event.target to their host.
+      if ((event.composedPath()[0] as Partial<Element> | undefined)?.closest?.(EDITABLE) != null) return
       const { files, directories } = clipboardFiles(event.clipboardData)
       if (files.length === 0) return
       const target = pasteTarget(document)

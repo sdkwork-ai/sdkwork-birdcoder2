@@ -26,9 +26,6 @@
             disabled: !!js process.platform !== 'win32'
           - id: tool-fs
             name: '@deepseek-ai/dsh-tool-fs'
-            config:
-              # Set false to drop the apply_patch tool beside edit.
-              applyPatch: false
           - id: tool-fs-search
             name: '@deepseek-ai/dsh-tool-fs-search'
             config:
@@ -129,8 +126,8 @@
             name: '@deepseek-ai/dsh-tool-cordis'
           - id: present
             name: '@deepseek-ai/dsh-tool-present'
-          - id: tool-office
-            name: '@deepseek-ai/dsh-tool-office'
+          - id: tool-document
+            name: '@deepseek-ai/dsh-tool-document'
           - id: tool-plugin-manager
             name: '@deepseek-ai/dsh-plugin-manager/tools'
             disabled: !!js "!ctx.get('profileContext')"

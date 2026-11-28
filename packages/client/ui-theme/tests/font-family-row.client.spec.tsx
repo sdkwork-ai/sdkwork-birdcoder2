@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-import { contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
+import { contextMenuHook, responsiveHooks, themeHooks } from '@deepseek-ai/dsh-client-test-runtime'
 /** FontFamilyRow behavior: the field shows the persisted list, blur and Enter
  * commit the normalized input, and the field follows store changes. Also
  * covers the font-list normalization it relies on. */
-import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
+import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -55,6 +55,7 @@ function mount(kind: FontRole = 'code', code = '') {
     useWorkspaces: emptyWorkspaces(),
     ...allowAllAccess,
     useContextMenu: contextMenuHook(),
+    ...responsiveHooks(), ...themeHooks(),
     useStore: bindSnapshotSelector(store),
     actions: store.actions,
     t: (key: string) => COPY[key] ?? key,

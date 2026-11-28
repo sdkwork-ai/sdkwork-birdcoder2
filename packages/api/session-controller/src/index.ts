@@ -292,7 +292,8 @@ export class SessionController extends TypertRemoteService {
   }
 
   /**
-   * Select the first available account model after login when no provider API key is configured.
+   * Make the default an account model after login when no provider API key is configured.
+   * A saved default naming a listed account model is retained with its reasoning effort.
    * @returns after saving the first available model or retaining the existing default.
    */
   @Remote
@@ -300,9 +301,12 @@ export class SessionController extends TypertRemoteService {
     const provider = 'deepseek-account'
     if (await hasProviderApiKey(this.ctx)) return
     const catalog = await buildModelCatalog(this.ctx)
-    const model = catalog.groups.find(group => group.id === provider)?.models[0]
+    const models = catalog.groups.find(group => group.id === provider)?.models ?? []
+    const model = models[0]
     if (model === undefined) throw new RemoteError('session/provider-models-unavailable',
       `provider "${provider}" has no available models`, { provider })
+    const saved = this.ctx.agentDefaultModel.currentSelection()
+    if (saved.provider === provider && models.some(listed => listed.id === saved.model)) return
     const selection = { provider, model: model.id,
       ...model.reasoning?.defaultEffort === undefined ? {}
         : { reasoningEffort: brandString<ReasoningEffortId>(model.reasoning.defaultEffort) },
@@ -416,19 +420,11 @@ export class SessionController extends TypertRemoteService {
    * Fork one cold-readable exact event prefix into a new Session. An omitted
    * boundary selects the latest completed-turn prefix; an open cut receives
    * synthetic fork closers.
-   * @param request - source Session, optional exact inclusive event boundary, and migration preflight choice.
+   * @param request - source Session, optional exact inclusive event boundary, migration preflight choice, and child origin.
    * @returns the new Session identity.
    */
   @Remote('fork')
-  async fork(request: SessionForkRequest): Promise<SessionForkValue> {
-    if (request.allowMigration === false && this.ctx.sessions.get(request.sessionId) === undefined) {
-      const stored = await this.ctx.get('sessionPersistence')?.stat(request.sessionId)
-      if (stored?.formatStatus === 'migration-required' && this.ctx.sessions.get(request.sessionId) === undefined) {
-        throw new RemoteError('session/migration-required', 'Open the source Session to complete migration before forking', {
-          sessionId: request.sessionId,
-        })
-      }
-    }
+  fork(request: SessionForkRequest): Promise<SessionForkValue> {
     return this.commands.fork(request)
   }
 

@@ -35,7 +35,7 @@ export function apply(ctx) {
       const office = await ctx.skills.get('office')
       const content = { office: office?.content ?? null }
       const resources = office?.resourceBase?.kind === 'directory' ? await readdir(office.resourceBase.path) : null
-      response.end(JSON.stringify({ names, content, resources, loaded, officeKit: ctx.get('officeKit') !== undefined, tools: ctx.tools.schemas().map(tool => tool.name).filter(name => name.startsWith('office_')) }))
+      response.end(JSON.stringify({ names, content, resources, loaded, officeKit: ctx.get('officeKit') !== undefined, tools: ctx.tools.getAll().map(tool => tool.name).filter(name => name.startsWith('document_')) }))
     } catch (error) {
       response.statusCode = 500
       response.end(String(error?.stack ?? error))
@@ -68,8 +68,9 @@ describe.skipIf(!existsSync(builtHost))('built Desktop Host Office resources', (
       writeFileSync(join(paths.profile, 'cordis.patch.yml'), '- id: webserver\n  config:\n    host: 127.0.0.1\n    port: 0\n')
       installSkillProbe(paths.profile)
       const primaryRuntime = mode === 'relative-source' ? 'runtime/primary-runtime' : join(runtime, 'primary-runtime')
-      host = new DesktopHostProcess(process.execPath, project, paths.profile, undefined,
-        process.env, (error) => { failures.push(error) }, primaryRuntime)
+      host = new DesktopHostProcess(process.execPath, project, paths.profile, {
+        primaryRuntime, onFailure: (error) => { failures.push(error) },
+      })
       const { url, authenticationCookie: cookie } = await host.start()
       const response = await fetch(url, { headers: { cookie }, redirect: 'manual' })
       await response.body?.cancel()
@@ -94,7 +95,7 @@ describe.skipIf(!existsSync(builtHost))('built Desktop Host Office resources', (
       // The advertised resource directory holds only the skill file.
       expect(skills.resources).toEqual(['SKILL.md'])
       expect(skills.content.office).toContain('# Office tasks')
-      expect(skills.content.office).toContain('`office_render`')
+      expect(skills.content.office).toContain('`document_render`')
       expect(failures).toEqual([])
     } finally {
       await host?.stop()

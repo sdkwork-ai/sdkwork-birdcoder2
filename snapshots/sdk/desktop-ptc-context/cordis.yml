@@ -35,16 +35,11 @@
   config:
     timeZone: UTC
 
-- id: tool-executor-native
+- id: tool-registry-native
   disabled: true
 
-- id: tool-executor-ptc
+- id: tool-registry-ptc
   disabled: false
-
-# The recorded tool catalog includes the optional patch tool.
-- id: tool-fs
-  config:
-    applyPatch: true
 
 # Recorded programs are async function bodies, so replay keeps the per-call runtime.
 - id: ptc-runtime

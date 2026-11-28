@@ -16,13 +16,14 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import type { FileNavigatorInput } from '@deepseek-ai/dsh-client-ui-sidebar-files/client'
-import type { TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
-import type { OwnerOf } from '@deepseek-ai/dsh-client-ui-slots'
+import type { TabId } from '@deepseek-ai/dsh-client-ui-dockkit/client'
+import type { OwnerOf } from '@deepseek-ai/dsh-client-ui-slots/client'
 import { TextPreview } from '../src/client/TextPreview.tsx'
 import type { TextPreviewProps } from '../src/client/TextPreview.tsx'
 import { CodeBody } from '../src/client/code/CodeBody.tsx'
 import type { DocumentPreviewDefinition } from '../src/client/document/registry.ts'
 import { TextBody } from '../src/client/text/TextBody.tsx'
+import { scrollToLine } from '../src/client/text/lines.ts'
 import { PLAIN_BODY_ID } from '../src/client/text/index.ts'
 import { documentSlots, ABSOLUTE_PATH, ADDRESS, PATH, SESSION, TAB_ID, failure, harness, page, settle } from './fixtures.client.ts'
 
@@ -681,6 +682,21 @@ describe('TextPreview — navigation and view', () => {
     expect(h.instance.getSnapshot().byTab[TAB_ID]?.revision).toBe(2)
   })
 
+  it('reveals a line of a page in another window, as a script-isolated plugin sees the page', () => {
+    const frame = document.body.appendChild(document.createElement('iframe'))
+    try {
+      const other = frame.contentDocument!
+      const scrollport = other.body.appendChild(other.createElement('div'))
+      const line = scrollport.appendChild(other.createElement('div'))
+      line.setAttribute('data-textpreview-line', '1')
+      expect(line instanceof HTMLElement).toBe(false)
+      expect(scrollToLine(scrollport, 1)).toBe(line)
+      expect(scrollToLine(scrollport, 2)).toBeUndefined()
+    } finally {
+      frame.remove()
+    }
+  })
+
   it('wraps by default and stops when the shared store says so', async () => {
     const h = harness({ 1: page(1, ['a'], true) })
     const view = render(<TextPreview {...h.props()} />)
@@ -863,8 +879,6 @@ describe('TextPreview — workspace navigator Factories', () => {
     return {
       toggle: header?.lastElementChild?.getAttribute('data-navigator-factory'),
       navigator: row?.lastElementChild?.getAttribute('data-navigator-factory'),
-      // The navigator's filled layout hides the body of the row this attribute names.
-      navigatorRow: row?.hasAttribute('data-files-navigator-row'),
     }
   }
 
@@ -880,7 +894,7 @@ describe('TextPreview — workspace navigator Factories', () => {
     ])
     expect(view.container.querySelector('[data-textpreview-state="loading"]')).not.toBeNull()
     expect(seats(view.container)).toEqual({
-      toggle: 'sidebar.files.navigator.toggle', navigator: 'sidebar.files.navigator', navigatorRow: true,
+      toggle: 'sidebar.files.navigator.toggle', navigator: 'sidebar.files.navigator',
     })
     const navigator = view.container.querySelector<HTMLElement>('[data-textpreview-content] > [data-navigator-factory]')!
     const toggle = view.container.querySelector('[data-textpreview-path]')?.parentElement?.lastElementChild
@@ -894,7 +908,7 @@ describe('TextPreview — workspace navigator Factories', () => {
     await settle()
     expect(view.container.querySelector('[data-textpreview-state="text"]')).not.toBeNull()
     expect(seats(view.container)).toEqual({
-      toggle: 'sidebar.files.navigator.toggle', navigator: 'sidebar.files.navigator', navigatorRow: true,
+      toggle: 'sidebar.files.navigator.toggle', navigator: 'sidebar.files.navigator',
     })
     expect(view.container.querySelector('[data-textpreview-content] > [data-navigator-factory]')).toBe(navigator)
     expect(view.container.querySelector('[data-textpreview-path]')?.parentElement?.lastElementChild).toBe(toggle)

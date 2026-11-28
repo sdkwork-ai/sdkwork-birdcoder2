@@ -1,6 +1,6 @@
 ---
 description: "Slot registry pure core for the dsh web client: ordinary extension slots, reusable Component Factories, derived props types, store seats, and the renderer install contract."
-kind: "package-library"
+kind: "package-reference"
 ---
 
 # @deepseek-ai/dsh-client-ui-slots
@@ -32,6 +32,8 @@ Compose UI through this package whenever you write a client plugin: register a c
 A designer may choose a Component Factory for a component or assembly they consider reusable, even with one current caller; unrelated parents, separate packages, and additional injection or local slots are not prerequisites. A one-off component need not use a Factory. Declare its complete type in `SlotFactoryMap`, install the definition with `ctx.slots.registerFactory()`, render occurrences through the injected `renderFactorySlot()`, and select each declared local Component through the call's `slots` option. The definition reads that choice through `useFactorySlot(name, fallback)`.
 
 Factory `children` remain ordinary global Slots and must match `SlotMap`, while local `slots` select one Component per occurrence. An occurrence inherits its render-position scope; `renderFactorySlot()` does not accept a Session identity. Shared Store handles use ordinary scope resolution. A Store factory stays lazy until an occurrence first materializes, then creates one handle for that render position and rejects a persistent Store spec whose key would collide across occurrences.
+
+In DOM queries, `[data-slot-factory]` marks a rendered Factory, and `[data-slot-factory-children]` marks a mounted local component explicitly selected by its caller. See the [Factory DOM migration guide](../../../docs/upgrade-guide/v0.2.3-alpha.2/factory-content-roots/guide.md) for selector examples and how to declare inline roots.
 
 ### The five framework props shares
 
@@ -98,6 +100,7 @@ None; this package neither assembles nor sends a provider request.
 These limits define the registry's scaling behavior and accepted type noise; they are current package constraints.
 
 - **`isLive` scans all records linearly** — fine at UI-plugin registration counts (tens); revisit with an entry→record backref if ledgers ever grow hot.
+- **Dynamic plugin package** — the package is a dynamic plugin package with `immediately: true`. Its `/client` entry, `lib/client.js`, built from `src/client/index.ts`, still exports values that other bundles require, a historical exception that will be reduced over time ([export discipline](../AGENTS.md#export-discipline-client-plugin-packages)); browser bundles reach those exports by package name or by the `/client` subpath, which name one module-table row. For compatibility with code outside the repository, the package root's types reuse the `./client` declarations, and its runtime, `lib/index.js` built from `src/index.js`, is the Host entry with an empty `apply` ([package roots](../AGENTS.md#hand-written-package-roots)). In Node the package root therefore provides no values: code imports them from the `/client` subpath, and tests that run them outside the browser resolve that subpath to source ([Client test runtime](../../test-support/client-runtime/README.md#module-resolution)); repository code names the package only through `/client`. Independent consumers supply its development dependencies ([dependency rules](../AGENTS.md#dependency-declaration)).
 - **The `__renders` phantom anchor is visible on `PropsRenderSlots`** — the same accepted noise as the type-chain design's `__accepts`: generic method signatures compare loosely across key unions, so the contravariant marker is what enforces "component key set ⊆ children declaration".
 
 <a id="dev-note"></a>

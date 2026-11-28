@@ -59,12 +59,14 @@ export const OPTIONAL_BUNDLES: readonly string[] = [
   '@deepseek-ai/dsh-cua-bundle',
   '@deepseek-ai/dsh-cua-mcp',
   '@deepseek-ai/dsh-timeline',
+  '@deepseek-ai/dsh-office-frame-forwarding-bundle',
   '@deepseek-ai/dsh-experimental-session-search',
   '@deepseek-ai/dsh-experimental-ralph-bundle',
   '@deepseek-ai/dsh-experimental-terminal-bundle',
   '@deepseek-ai/dsh-experimental-badge-skill-bundle',
   '@deepseek-ai/dsh-experimental-session-titles-bundle',
   '@deepseek-ai/dsh-experimental-voice-input-bundle',
+  '@deepseek-ai/dsh-read-aloud-bundle',
   '@deepseek-ai/dsh-experimental-cot-translation-bundle',
   '@deepseek-ai/dsh-experimental-auto-review',
   '@deepseek-ai/dsh-experimental-inspector-profile',
@@ -73,10 +75,26 @@ export const OPTIONAL_BUNDLES: readonly string[] = [
   '@deepseek-ai/dsh-experimental-tool-worktree',
   '@deepseek-ai/dsh-experimental-forge-bundle',
   '@deepseek-ai/dsh-deepseek-chat-import',
+  '@deepseek-ai/dsh-client-ui-connectors',
 ]
 
 /** Public DSH release members available through the ordinary on-demand bundle installer. */
 export const ON_DEMAND_BUNDLES: readonly string[] = [
   '@deepseek-ai/dsh-subagent-claude-code',
   '@deepseek-ai/dsh-subagent-codex',
+]
+
+/**
+ * The official connector bundles: public DSH release members published at the DSH version and installed separately.
+ * The installation does not ship them, and the plugin manager does not list one until a profile installs it.
+ * `OFFICIAL_CONNECTOR_CATALOG` embeds their metadata in this order.
+ */
+export const CONNECTOR_BUNDLES: readonly string[] = [
+  '@deepseek-ai/dsh-feishu',
+  '@deepseek-ai/dsh-wecom',
+  '@deepseek-ai/dsh-dingtalk',
+  '@deepseek-ai/dsh-tencent-meeting',
+  '@deepseek-ai/dsh-notion',
+  '@deepseek-ai/dsh-tencent-docs',
+  '@deepseek-ai/dsh-linear',
 ]

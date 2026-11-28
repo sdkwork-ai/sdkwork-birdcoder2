@@ -5,6 +5,7 @@ import { CordisInspectRegistryService } from '@deepseek-ai/dsh-cordis-host-runne
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRegistry, { type ToolRunContext } from '@deepseek-ai/dsh-tools'
+import { NativeToolRegistry } from '@deepseek-ai/dsh-tools/pipeline'
 import { expect, it, onTestFinished, vi } from 'vitest'
 import * as ToolCordis from '../src/index.ts'
 
@@ -14,6 +15,7 @@ async function fixture() {
   await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRegistry)
+  ctx.tools.setRoot(new NativeToolRegistry())
   await ctx.plugin(CordisInspectRegistryService, 10_000)
   const fiber = await ctx.plugin(ToolCordis)
   const tool = ctx.tools.get('cordis_inspect')!
@@ -23,13 +25,13 @@ async function fixture() {
 
 it('lists providers without query and withdraws its single registration on disposal', async () => {
   const { ctx, fiber, tool, exec } = await fixture()
-  expect(ctx.tools.schemas().map(row => row.name)).toEqual(['cordis_inspect'])
+  expect(ctx.tools.getAll().map(row => row.name)).toEqual(['cordis_inspect'])
   const value = { providers: [] }
   expect(await tool.execute({}, exec)).toEqual(value)
   expect(tool.output.render({}, value)).toEqual([{ type: 'text', text: JSON.stringify(value, null, 2) }])
   expect(tool.presentCall?.({})).toMatchObject({ kind: 'read', title: 'List Cordis Inspect Providers' })
   await fiber.dispose()
-  expect(ctx.tools.schemas()).toEqual([])
+  expect(ctx.tools.getAll()).toEqual([])
 })
 
 it.each(['host', 'client'])('forwards the %s query, Agent, and cancellation signal', async (platform) => {
@@ -44,8 +46,18 @@ it.each(['host', 'client'])('forwards the %s query, Agent, and cancellation sign
 
 it('requires an Agent for a query but not for discovery', async () => {
   const { tool, exec } = await fixture()
-  await expect(tool.execute({ query: { platform: 'host', provider: 'Service', method: 'listService' } }, exec))
-    .rejects.toThrow('Cordis inspection requires an Agent-backed session')
+  await expect(tool.execute({ query: { platform: 'host', provider: 'Service', method: 'listService' } }, exec)).rejects.toMatchObject({
+    name: 'ToolContextUnavailableError', code: 'TOOL_CONTEXT_UNAVAILABLE', message: 'Cordis inspection requires an Agent-backed session',
+  })
+})
+
+it('declares discovery and valid queries parallel-safe', async () => {
+  const { tool } = await fixture()
+  expect(tool.isConcurrencySafe?.({})).toBe(true)
+  for (const platform of ['host', 'client']) {
+    expect(tool.isConcurrencySafe?.({ query: { platform, provider: 'Service', method: 'listService' } })).toBe(true)
+  }
+  expect(tool.isConcurrencySafe?.({ query: {} })).toBe(false)
 })
 
 it.each([null, {}, { platform: 'host', provider: 'Service' }, { platform: 'other', provider: 'Service', method: 'listService' }])(

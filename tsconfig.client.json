@@ -24,9 +24,53 @@
     "rewriteRelativeImportExtensions": false,
     "types": ["node"]
   },
+  "include": [
+    // The native/renderer keyboard fixture imports only these Cordis-free Desktop modules.
+    "apps/desktop/tests/keyboard.spec.ts",
+    "apps/desktop/src/keyboard.ts",
+    "apps/desktop/src/keybindings.ts",
+    "apps/desktop/src/browser-guests.ts",
+    "apps/desktop/src/ipc.ts",
+    "apps/desktop/src/update-overlay.ts",
+    "apps/desktop/src/windows-layout.ts",
+    "apps/desktop/tests/**/*.client.spec.tsx",
+    // Source-subpath test imports can arrive through workspace links whose
+    // realpath semantics vary by host. Load package CSS declarations directly.
+    "packages/client/*/src/css-modules.d.ts",
+    "packages/experimental/*/src/css-modules.d.ts",
+    "packages/client/*/tests/**/*.ts",
+    "packages/client/*/tests/**/*.tsx",
+    "benchmarks/**/*.client.ts",
+    "benchmarks/**/*.client.tsx",
+    "benchmarks/support/**/*.ts",
+    "packages/*/*/tests/**/*.client.spec.ts",
+    "packages/*/*/tests/**/*.client.spec.tsx",
+    "packages/*/*/tests/**/*.client.tsx",
+    "packages/*/*/tests/**/*.client.ts",
+    // Client package outside packages/client with a local CSS module face.
+    "packages/extensions/ui-cordis/src/css-modules.d.ts",
+    "packages/client/tsdown.client.ts",
+    "scripts/client-build-environment.ts",
+    "scripts/shipped-locales.ts",
+    "scripts/bundle-input-isolation.ts",
+    "scripts/experimental-package-policy.ts",
+    "scripts/test-css-identifier.ts",
+    "scripts/*.client.spec.ts",
+    "scripts/client-bundle-css.spec.ts",
+    "scripts/client-bundle-purity.spec.ts"
+  ],
+  // Host unit tests (`*.host.spec.ts`), e2e tests (`*.host.e2e.ts`), and fixtures
+  // (`*.host.ts`) belong to the host aggregate, which excludes `*.client.*`
+  // in turn. `exclude` wins over `include`, so the test glob above stays broad.
+  "exclude": [
+    "packages/client/*/tests/**/*.host.spec.ts",
+    "packages/client/*/tests/**/*.host.e2e.ts",
+    "packages/client/*/tests/**/*.host.ts"
+  ],
   "references": [
     { "path": "./packages/client/ui-action-cards" },
     { "path": "./packages/client/ui-creation-recommendations" },
+    { "path": "./packages/experimental/client-ui-connectors/tsconfig.client.json" },
     { "path": "./packages/client/ui-plugin-recommendations" },
     { "path": "./packages/client/ui-file-drag" },
     { "path": "./packages/session/message-quotes" },
@@ -38,15 +82,21 @@
     // aggregate, so the fixture keeps its own project — upstream's fixture files
     // are listed in tsconfig.desktop-keyboard-tests.json.
     { "path": "./tsconfig.desktop-keyboard-tests.json" },
+    { "path": "./packages/shared-texture/shared-texture/tsconfig.client.json" },
+    { "path": "./packages/experimental/frame-forwarding/tsconfig.client.json" },
+    { "path": "./packages/experimental/client-ui-office-frame-forwarding/tsconfig.client.json" },
     { "path": "./apps/desktop/tsconfig.client.json" },
     { "path": "./packages/util/atomic-write" },
     { "path": "./packages/experimental/client-ui-voice-input" },
+    { "path": "./packages/experimental/client-ui-read-aloud" },
     { "path": "./packages/experimental/client-ui-claude-code-mods" },
 
     { "path": "./packages/client/ui-sidebar-terminal" },
     { "path": "./packages/api/terminal-controller/tsconfig.client.json" },
     // Producer-to-UI spill tests use the ptc-runtime contract with the real tool registry.
     { "path": "./packages/ptc-runtime/ptc-runtime" },
+    { "path": "./packages/core/tool-registry-native" },
+    { "path": "./packages/core/tool-registry-ptc" },
     { "path": "./packages/client/ui-settings-account" },
     { "path": "./packages/client/ui-account-notifications" },
     // Shared leaf: web e2e boots the real host webserver (fixture + real-host
@@ -69,6 +119,7 @@
     { "path": "./packages/experimental/inspector/tsconfig.client.json" },
     { "path": "./packages/experimental/liveshare-protocol/tsconfig.client.json" },
     { "path": "./packages/experimental/liveshare/tsconfig.client.json" },
+    { "path": "./packages/experimental/client-ui-sidechat" },
     { "path": "./packages/experimental/session-inspector" },
     { "path": "./packages/experimental/client-ui-forge/tsconfig.client.json" },
     { "path": "./packages/client/config" },
@@ -144,6 +195,7 @@
     { "path": "./packages/client/ui-sdkwork-input-history" },
     { "path": "./packages/client/ui-sdkwork-access-token/tsconfig.client.json" },
     { "path": "./packages/client/ui-sdkwork-git" },
+    { "path": "./packages/client/ui-responsive" },
     { "path": "./packages/client/ui-sidebar" },
     { "path": "./packages/client/ui-sdkwork-sidebar" },
     { "path": "./packages/client/ui-brand-official" },

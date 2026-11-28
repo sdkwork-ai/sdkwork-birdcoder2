@@ -1,16 +1,16 @@
 // @vitest-environment jsdom
-import { contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
+import { contextMenuHook, responsiveHooks, themeHooks } from '@deepseek-ai/dsh-client-test-runtime'
 
 import { ChatViewport } from '../src/client/chat/use-chat-viewport.ts'
 import type { ProcessGroupData } from '../src/client/contract/process-groups.ts'
 import type { InboxState } from '@deepseek-ai/dsh-agent/types'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import type { MessageId } from '@deepseek-ai/dsh-llm/types'
-import type { GlobalStandardProps, PropsRenderFactories, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
+import type { GlobalStandardProps, PropsRenderFactories, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useEffect, useMemo } from 'react'
-import { useMarkdownDelegate, type MarkdownDelegateFenceInfo, type MarkdownMenuTarget } from '@deepseek-ai/dsh-client-ui-primitives'
+import { useMarkdownDelegate, type MarkdownDelegateFenceInfo, type MarkdownMenuTarget } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type {
   AssistantMessageNode, ChatFlowHookContext, ChatFlowOwnerProps, ChatFlowSlotProps,
   ChatNode, ChatNodeHookContext, ChatNodeOwnerProps, ChatSnapshot, UserBeforeOwnerProps,
@@ -23,14 +23,14 @@ import type {
   SessionListState, SessionSnapshot,
 } from '@deepseek-ai/dsh-api-session-controller/client'
 import type {
-  ConversationGroupedView,
+  ConversationFocus, ConversationGroupedView,
   ConversationSnapshot, ConversationViewSnapshotStore, GroupKey, GroupSnapshot,
   MessageImagesOwnerProps, NodeKey, TurnLocation,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import { SessionSeq, type SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session-status/client'
-import type { KeyedSnapshotSelectorHook, SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
+import type { KeyedSnapshotSelectorHook, SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots/client'
 import { allowAllAccess, bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore, type ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { ConnectionState } from '@deepseek-ai/dsh-client-connection/client'
@@ -454,7 +454,7 @@ function makeHarness(
   const loadThrough = vi.fn<(seq: number) => Promise<void>>().mockResolvedValue(undefined)
   // Mutable outline holder: tests swap the value and drive a re-render via set().
   let outlineValue: unknown
-  const openView = vi.fn<(view: string, focus: string) => void>()
+  const openView = vi.fn<(view: string, focus: ConversationFocus) => void>()
   // In-memory scroll memory matching the apply.ts per-session map contract.
   let savedScroll: ReturnType<ChatViewSlotProps['chatScroll']['read']> = null
   const chatScroll: ChatViewSlotProps['chatScroll'] = {
@@ -566,6 +566,7 @@ function makeHarness(
     useSessions: emptySessions(),
     useSessionRetainInfo: () => undefined,
     useContextMenu: contextMenuHook(),
+    ...responsiveHooks(), ...themeHooks(),
     useResource,
     useSessionStatus: bindSnapshotSelector(
       createSnapshotStore<SessionStatusSnapshot>(new Map()),
@@ -596,7 +597,8 @@ function makeHarness(
     // The fixture implements the concrete flow dispatch behind the generic slot signature.
     renderSlot: renderSlot as ChatViewSlotProps['renderSlot'],
     SessionProvider: SessionProviderStub,
-    inspectCall: (callId: string) => { openView('trajectory', callId) },
+    inspectCall: (callId: string) => { openView('trajectory', { kind: 'tool-call', callId }) },
+    inspectRequest: (turn: number, step: number) => { openView('trajectory', { kind: 'request', turn, step }) },
     viewRequest: null,
     openView,
     completeViewRequest: () => {},
@@ -1378,6 +1380,67 @@ describe('ChatView', () => {
     translate.mockClear()
     act(() => { h.setTranscriptView('standard') })
     expect(translate.mock.calls.filter(([key]) => key.startsWith('message.stepProcess.'))).toHaveLength(0)
+  })
+
+  it.each([
+    { counts: [], title: '正在分析请求' },
+    { counts: [{ kind: 'context', count: 2 }], title: '正在分析请求' },
+    { counts: [{ kind: 'read', count: 3 }, { kind: 'search', count: 1 }], title: '已读取文件并搜索代码，正在思考下一步' },
+    {
+      counts: [{ kind: 'read', count: 3 }, { kind: 'search', count: 2 }, { kind: 'write', count: 1 }, { kind: 'commands', count: 1 }],
+      title: '已读取文件，已搜索代码，已写入文件等，正在思考下一步',
+    },
+  ] as const)('titles a running group without a live tool from its completed work: $title', ({ counts, title }) => {
+    const snapshot = chatSnapshotFixture({ nodes: [user(1, 'inside')] })
+    const h = makeHarness({}, {}, snapshot)
+    const key = 'thinking-process' as GroupKey
+    const groups = new ConversationGroupStore<ProcessGroupData>()
+    groups.prepareAndInstall({
+      entries: [{ kind: 'group', key }],
+      groups: { kind: 'replace', snapshots: [{
+        key, members: [{ kind: 'node', key: snapshot.order[0] as NodeKey }],
+        data: { turn: 1, closed: false, summary: { counts, running: undefined, runningDetail: 'weighing results' } },
+      }] },
+    }, key => snapshot.nodes.get(key))
+    h.setGrouped(groups)
+    h.setTranscriptView('compact')
+    const view = render(<h.ChatView {...h.props} />)
+    const header = view.container.querySelector<HTMLButtonElement>('[data-process-activity]')!
+    expect(header.getAttribute('data-process-activity')).toBe('thinking')
+    expect(header.textContent).toBe(title)
+    act(() => { h.setTranscriptView('standard') })
+    expect(header.textContent).toBe(`${title}${h.props.t('message.turnProcess.separator')}weighing results`)
+  })
+
+  it('holds the completed-work thinking title for its minimum time when a tool starts', () => {
+    vi.useFakeTimers()
+    try {
+      const snapshot = chatSnapshotFixture({ nodes: [user(1, 'inside')] })
+      const h = makeHarness({}, {}, snapshot)
+      const key = 'thinking-then-tool' as GroupKey
+      const groups = new ConversationGroupStore<ProcessGroupData>()
+      const install = (summary: ProcessGroupData['summary']): void => {
+        groups.prepareAndInstall({
+          entries: [{ kind: 'group', key }],
+          groups: { kind: 'replace', snapshots: [{
+            key, members: [{ kind: 'node', key: snapshot.order[0] as NodeKey }], data: { turn: 1, closed: false, summary },
+          }] },
+        }, key => snapshot.nodes.get(key))
+        groups.publish()
+      }
+      install({ counts: [{ kind: 'read', count: 1 }], running: undefined, runningDetail: '' })
+      h.setGrouped(groups)
+      h.setTranscriptView('compact')
+      const view = render(<h.ChatView {...h.props} />)
+      const header = view.container.querySelector<HTMLButtonElement>('[data-process-activity]')!
+      expect(header.textContent).toBe('已读取文件，正在思考下一步')
+      act(() => { install({ counts: [{ kind: 'read', count: 1 }, { kind: 'commands', count: 1 }], running: 'commands', runningDetail: 'pwd' }) })
+      expect(header.textContent).toBe('已读取文件，正在思考下一步')
+      act(() => { vi.advanceTimersByTime(150) })
+      expect(header.textContent).toBe('正在运行命令')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('passes independently keyed group parts to business Node renderers', () => {
@@ -2686,7 +2749,7 @@ describe('ChatView', () => {
     } as const satisfies ConversationNode
     const h = makeHarness({ nodes: [user(1, 'try'), retryNode] }, { running: true })
     const view = render(<h.ChatView {...h.props} />)
-    const disclosure = view.container.querySelector('details') as HTMLDetailsElement
+    const disclosure = view.container.querySelector('[data-retry-row]') as HTMLElement
     expect(disclosure.dataset.active).toBe('true')
     expect(within(disclosure).getByRole('status').textContent).toBe('正在重试模型请求（1/2） · 1s')
 
@@ -2694,7 +2757,7 @@ describe('ChatView', () => {
       h.setChat({ nodes: [user(1, 'try'), nextRetry] })
     })
     expect(within(disclosure).getAllByRole('status')).toHaveLength(1)
-    expect(view.container.querySelector('details')).toBe(disclosure)
+    expect(view.container.querySelector('[data-retry-row]')).toBe(disclosure)
     expect(within(disclosure).getByRole('status').textContent).toBe('正在重试模型请求（2/2） · 1s')
 
     act(() => {
@@ -2715,7 +2778,7 @@ describe('ChatView', () => {
       h.setChat({ nodes: [user(1, 'try'), { ...retry(6), retryState: 'cancelled' }] })
       h.setSession({ running: true })
     })
-    const cancelledDisclosure = view.container.querySelector('details') as HTMLDetailsElement
+    const cancelledDisclosure = view.container.querySelector('[data-retry-row]') as HTMLElement
     expect(cancelledDisclosure.dataset.active).toBeUndefined()
     expect(within(cancelledDisclosure).getByRole('status').textContent).toContain('重试已取消')
   })
@@ -2805,13 +2868,31 @@ describe('ChatView', () => {
     expect(h.toolOwners.at(-1)?.inspectCall).toBeTypeOf('function')
   })
 
+  it('opens a retried request in the trajectory from the expanded retry row', () => {
+    const h = makeHarness({ nodes: [user(1, 'try'), { ...retry(2), retryState: 'started' }] })
+    const view = render(<h.ChatView {...h.props} />)
+    const row = view.container.querySelector('[data-retry-row] [data-disclosure-row]') as HTMLElement
+    fireEvent.click(row)
+    expect(view.getByRole('button', { name: '查看' }).closest('[data-inspect-scope]')).not.toBeNull()
+    fireEvent.click(view.getByRole('button', { name: '查看' }))
+    const node = retry(2)
+    expect(h.openView).toHaveBeenCalledWith('trajectory', { kind: 'request', turn: node.turn, step: node.step })
+  })
+
+  it('omits the retry row inspect action without an inspection target', () => {
+    const h = makeHarness({ nodes: [user(1, 'try'), { ...retry(2), retryState: 'started' }] })
+    const view = render(<h.ChatView {...h.props} inspectRequest={undefined} />)
+    fireEvent.click(view.container.querySelector('[data-retry-row] [data-disclosure-row]') as HTMLElement)
+    expect(view.queryByRole('button', { name: '查看' })).toBeNull()
+  })
+
   it('hands the trajectory callback to the Tool seat', () => {
     const h = makeHarness({
       nodes: [toolResult(3, 'a')],
     })
     render(<h.ChatView {...h.props} />)
     h.toolOwners[0]?.inspectCall?.('a')
-    expect(h.openView).toHaveBeenCalledWith('trajectory', 'a')
+    expect(h.openView).toHaveBeenCalledWith('trajectory', { kind: 'tool-call', callId: 'a' })
   })
 
   it('shows assistant IconActions only on the last content message of each turn', () => {
@@ -4135,7 +4216,7 @@ describe('ChatView', () => {
     owner.openFile('src/a.ts')
     expect(h.openFile.mock.calls[0]).toEqual(['src/a.ts'])
     owner.inspectCall?.('a')
-    expect(h.openView).toHaveBeenCalledWith('trajectory', 'a')
+    expect(h.openView).toHaveBeenCalledWith('trajectory', { kind: 'tool-call', callId: 'a' })
   })
 
   it('shows a Host open refusal with the reason and retries the same path', async () => {
@@ -4361,6 +4442,9 @@ describe('ChatView', () => {
     const backButton = view.getByLabelText('回到底部')
     expect(backButton).toBeTruthy()
     expect(view.container.querySelector('[data-chat-following-tail]')).toBeNull()
+    // A host scrollport keeps its scroll anchoring while the reader is away from the tail.
+    expect(view.container.querySelector('[data-conversation-scroll-anchor]')).toBeNull()
+    expect(view.container.querySelector('[data-conversation-overscroll="none"]')).not.toBeNull()
     // Streaming growth must NOT drag a scrolled-away reader down.
     act(() => {
       h.setChat({ partial: { turn: 1, step: 1, blocks: [{ kind: 'text', text: 'grow' }] } })
@@ -4369,6 +4453,7 @@ describe('ChatView', () => {
     fireEvent.click(backButton)
     expect(scroller.scrollTop).toBe(700)
     expect(view.container.querySelector('[data-chat-following-tail]')).not.toBeNull()
+    expect(view.container.querySelector('[data-conversation-scroll-anchor="none"]')).not.toBeNull()
     // At the bottom again: follow re-arms and the button unmounts.
     expect(view.queryByLabelText('回到底部')).toBeNull()
   })

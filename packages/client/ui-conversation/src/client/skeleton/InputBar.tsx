@@ -17,8 +17,10 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import type { ChangeEvent, KeyboardEvent, MouseEvent } from 'react'
 import clsx from 'clsx'
 import {
-  focusWithoutRing, IconPlusOutlineMedium, IconTriangleRightFillRegular, IconWarningOutlineRegular, isMobileDevice, Toast, Tooltip,
-} from '@deepseek-ai/dsh-client-ui-primitives'
+  focusWithoutRing, IconPlusOutlineMedium, IconTriangleRightFillRegular, IconWarningOutlineRegular, Toast, Tooltip,
+} from '@deepseek-ai/dsh-client-ui-primitives/client'
+// Type-only: the `useMobile` standard prop merge.
+import type {} from '@deepseek-ai/dsh-client-ui-responsive/client'
 // Type-only: the `plan` projection key merge (the TodoDock posture — the
 // composer reads a host-computed value; the domain owns the key).
 import type {} from '@deepseek-ai/dsh-plan-mode/client'
@@ -27,7 +29,7 @@ import type {} from '@deepseek-ai/dsh-goal/client'
 // The `imageLimits` projection key merge (intake pre-check) arrives with the
 // wire types: apiproxy's sessions contract declares it, and client-runtime's
 // api-remotes import already places it in every client program.
-import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
+import type { Translate } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { ComposerBarProps, inputBarChildren } from '../contract/slots.ts'
 import { DraftEditor } from '../input/editor/DraftEditor.tsx'
 import {
@@ -36,7 +38,7 @@ import {
 } from '../input/editor/view-binding.ts'
 import { resolveSubmitMode } from '../input/submission-policy.ts'
 import { attachmentErrorText, imageSizeText } from '../image-labels.ts'
-import { isImageMediaType } from '../service.ts'
+import { IMAGE_MEDIA_TYPES, isImageMediaType } from '../service.ts'
 import { ContextMeter } from './ContextMeter.tsx'
 import { observeControlRow } from './control-row-layout.ts'
 import css from './InputBar.module.css'
@@ -48,7 +50,7 @@ const InputBarBody = memo(function InputBarBody({
   retryFileUpload, registerFileIntake,
   toggleCommandMenu, stop, retry, t,
   renderSlot, renderSlotChain, useBusyEnter, useFileUploads, useNotices, useLexicon, useMenuLauncher, useStopShortcut,
-  useAccess,
+  useAccess, useMobile, useDocumentPortal,
   useProjection, sessionId, variant, occurrence, disabled: inert = false, blocked,
   workspacePickerOpen = false, onRequestWorkspace,
   placeholder, accessory,
@@ -57,6 +59,8 @@ const InputBarBody = memo(function InputBarBody({
   const notice = useNotices(s => s)
   const busyEnter = useBusyEnter(s => s)
   const stopKeys = useStopShortcut(keys => keys)
+  const mobile = useMobile()
+  const Portal = useDocumentPortal()
   // A page whose access snapshot excludes prompting, stopping, or uploading to this Session is offered
   // no Send, no Stop, or no file intake rather than a disabled control. `useAccess` is undefined only
   // without a Session, where the bar is an inert placeholder with no keyboard, stop, or file intake.
@@ -193,9 +197,9 @@ const InputBarBody = memo(function InputBarBody({
   // scrolling the conversation.
   useEffect(() => {
     if (locked || editor === null) return
-    if (isMobileDevice()) return
+    if (mobile) return
     focusDraftEditor(editor, revealSelection)
-  }, [locked, sessionId, editor])
+  }, [locked, sessionId, editor, mobile])
 
   // A read-only phase can move focus to the body. Restore the composer's
   // keyboard position without reopening the mobile keyboard or taking focus
@@ -210,7 +214,7 @@ const InputBarBody = memo(function InputBarBody({
     busyPhaseSeen.current = false
     if (locked || editor === null) return
     if (document.activeElement !== null && document.activeElement !== document.body) return
-    if (isMobileDevice()) {
+    if (mobile) {
       if (cardRef.current !== null) focusWithoutRing(cardRef.current, { preventScroll: true })
     } else {
       focusDraftEditor(editor, revealSelection)
@@ -331,9 +335,10 @@ const InputBarBody = memo(function InputBarBody({
 
   const onCardMouseDown = (e: MouseEvent<HTMLDivElement>): void => {
     if (!editable || editor === null || e.button !== 0 || e.defaultPrevented) return
-    const target = e.target
-    if (!(target instanceof Element) || !e.currentTarget.contains(target)) return
-    if (target.closest('[data-composer-overlay]') !== null) return
+    const target = e.target as Element
+    if (!e.currentTarget.contains(target)) return
+    // Only an element outside the composer overlays moves the caret; a text target has no `closest` and keeps the browser default.
+    if ((target as Partial<Element>).closest?.('[data-composer-overlay]') !== null) return
     if (scrollRef.current?.contains(target)) return
     const control = target.closest('button, a, input, select, textarea, [role="button"], [contenteditable], [tabindex]')
     if (control !== null && control !== e.currentTarget && e.currentTarget.contains(control)) return
@@ -363,24 +368,22 @@ const InputBarBody = memo(function InputBarBody({
     }
   }
 
-  // An ordinary running session keeps Stop while the composer is empty or
-  // owner-blocked; an actionable draft gets the busy Send action, delivered
-  // through the same mode plain Enter resolves to. The label names that mode
-  // only when the click would deliver a plain message right now — an enabled
-  // button (no pending upload) over a non-empty draft that is neither a
-  // claimed command nor a `/` line headed for adjudication — so it never
-  // describes a delivery the click cannot or does not perform; every other
-  // state keeps plain Send. A continuable child keeps Send primary and
-  // exposes Stop independently, and so does a running session while a
-  // message waits for the Host.
-  const primaryStops = running && subagent === null && !sending && (empty || blocked !== undefined)
+  // A running composer keeps Stop while its draft is empty or the owner blocks
+  // input; an actionable draft gets the busy Send action, delivered through
+  // the same mode plain Enter resolves to. Continuable children use the same
+  // seat as ordinary Sessions. The label names the delivery mode only when the
+  // click would deliver a plain message right now — an enabled button (no
+  // pending upload) over a non-empty draft that is neither a claimed command
+  // nor a `/` line headed for adjudication — so it never describes a delivery
+  // the click cannot or does not perform; every other state keeps plain Send.
+  const primaryStops = running && steeringAvailable && !sending && (empty || blocked !== undefined)
   const primaryRetries = !running && subagent === null && empty && retryableFailure !== undefined
     && !pendingHumanInput && historyOpen && !submissionPending && !disabled && input.queue.length === 0
     && input.phase === 'plain' && retry !== undefined
   // Disabled native buttons may omit mouseleave; their tooltip must close from state.
   const primaryDisabled = primaryStops ? stopAction === undefined
     : (!primaryRetries && empty) || disabled || machineBusy || uploadsPending
-  const interruptible = running && (continuable || (sending && subagent === null))
+  const interruptible = running && steeringAvailable && sending
   const primarySubmitMode = resolveSubmitMode(busyEnter, running, 'enter', steeringAvailable)
   const plainMessageDraft = !empty && input?.phase === 'plain' && !draft.trimStart().startsWith('/')
   const primaryLabel = primaryStops
@@ -526,7 +529,8 @@ const InputBarBody = memo(function InputBarBody({
               ref={fileInputRef}
               type="file"
               multiple
-              disabled={!canAcceptDrop || subagent !== null}
+              accept={continuable ? IMAGE_MEDIA_TYPES.join(',') : undefined}
+              disabled={!canAcceptDrop}
               hidden
               onChange={onPickFiles}
             />
@@ -605,7 +609,7 @@ const InputBarBody = memo(function InputBarBody({
         {(variant === 'composer' || variant === 'hero') && input !== undefined && sessionId !== undefined
           ? renderSlot('conversation.composer.dock', {})
           : null}
-        {activity ? null : <ContextMeter useProjection={useProjection} t={t} />}
+        {activity ? null : <ContextMeter useProjection={useProjection} t={t} Portal={Portal} />}
       </div>
     </div>
   )

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
+import { contextMenuHook, responsiveHooks, themeHooks } from '@deepseek-ai/dsh-client-test-runtime'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { act, cleanup, fireEvent, isInaccessible, render, screen, within } from '@testing-library/react'
@@ -22,7 +22,7 @@ import {
 } from '../src/client/schedule-format.ts'
 import { en, zh } from '../src/client/task-manager-locales.ts'
 import css from '../src/client/TaskManagerPage.module.css'
-import modalCss from '../../ui-primitives/src/Modal.module.css'
+import modalCss from '../../ui-primitives/src/client/Modal.module.css'
 import pluginsCss from '../../ui-plugin-manager/src/client/PluginManagerPage.module.css'
 import { pinSystemZone } from './zone-fixture.ts'
 
@@ -48,7 +48,7 @@ function installStyles(selectors: Record<string, string | undefined>): void {
   for (const [name, hashed] of Object.entries(selectors)) {
     if (hashed !== undefined) mapped = mapped.replaceAll(`.${name}`, `.${hashed}`)
   }
-  const layer = readFileSync(resolve(import.meta.dirname, '../../ui-primitives/src/Modal.module.css'), 'utf8')
+  const layer = readFileSync(resolve(import.meta.dirname, '../../ui-primitives/src/client/Modal.module.css'), 'utf8')
     .replaceAll('.root', `.${modalCss.root}`)
   installedStyles = document.createElement('style')
   installedStyles.textContent = `${mapped}\n${layer}`
@@ -169,6 +169,7 @@ function mount(
     useResource: () => { throw new Error('The task manager does not load document resources') },
     ...allowAllAccess,
     useContextMenu: contextMenuHook(),
+    ...responsiveHooks(), ...themeHooks(),
     onDelete: vi.fn<TaskManagerPageProps['onDelete']>(async () => 'deleted'),
     onRetry: vi.fn(async () => {}),
     onNewTask: vi.fn(),
@@ -1806,7 +1807,7 @@ describe('Task manager details', () => {
       usePanelInfo={unread}
       useSessions={unread}
       useWorkspaces={unread}
-      useContextMenu={contextMenuHook()} useResource={unread}
+      useContextMenu={contextMenuHook()} {...responsiveHooks()} {...themeHooks()} useResource={unread}
       useSessionStatus={unread}
       useSessionRetainInfo={unread}
       {...allowAllAccess}

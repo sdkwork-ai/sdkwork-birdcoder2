@@ -4,6 +4,7 @@ import type { Entry, Loader } from '@deepseek-ai/cordis-plugin-loader'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import { parseBootManifest, readRelease } from './manifest.ts'
 import type { BootManifest, ClientModuleLoader } from './manifest.ts'
+import { ISOLATED_REALM_PROVIDER_ROWS } from './isolated-realms.ts'
 import { ReleaseChangeGate, type ClientReleaseChange } from './release-change.ts'
 import { notifySubscribers } from './notify.ts'
 import { tearDownEntryFiber } from './entry-lifecycle.ts'
@@ -13,8 +14,17 @@ import { SyncedConfigEntry } from './synced-config.ts'
 export interface ClientEntryState {
   /** True while a snapshot, retry or code replacement is being applied. */
   readonly syncing: boolean
-  /** Package ids and errors from the latest reconciliation. */
+  /** Package ids and failure texts from the latest reconciliation; a text names its error class unless that is plain `Error`. */
   readonly failures: readonly { readonly id: string; readonly message: string }[]
+}
+
+/**
+ * The text a failure is published with.
+ * @param error - the value an entry operation rejected with.
+ * @returns a plain `Error`'s message; any other value stringified, which keeps a specific class name such as `TypeError`.
+ */
+function failureText(error: unknown): string {
+  return error instanceof Error && error.name === 'Error' ? error.message : String(error)
 }
 
 /** Module-table capabilities used within serialized entry operations. */
@@ -122,9 +132,15 @@ export class ClientEntries {
       return this.queue
     }, 'client-modules: entry reconciliation')
     return this.enqueue(async () => {
-      await Promise.all(this.desired.plugins.map(async ({ id }) => {
+      const create = async ({ id }: { readonly id: string }): Promise<void> => {
         await this.create(loader, id).catch((error: unknown) => { loader.ctx.logger.error(error) })
-      }))
+      }
+      // The registry must be installed and its iframe factory registered before an isolated bundle executes.
+      if (manifest.modules.some(row => row.isolation.script)) {
+        await Promise.all(manifest.plugins.filter(row => ISOLATED_REALM_PROVIDER_ROWS.includes(row.id)).map(create))
+        await loader.await()
+      }
+      await Promise.all(manifest.plugins.filter(row => !this.managed.has(row.id)).map(create))
       await loader.await()
       for (const row of this.modules.manifest.modules) this.revisions.set(row.id, row.rev)
     })
@@ -226,7 +242,7 @@ export class ClientEntries {
     this.queue = run.then(() => undefined, (error: unknown) => {
       this.publish({ syncing: false, failures: [
         ...this.snapshot.failures.filter(failure => failure.id !== subject),
-        { id: subject, message: String(error) },
+        { id: subject, message: failureText(error) },
       ] })
     })
     return run
@@ -302,7 +318,7 @@ export class ClientEntries {
           await entry.fiber.update(entry.options.config, true)
         }
       } catch (error) {
-        failures.push({ id: row.id, message: String(error) })
+        failures.push({ id: row.id, message: failureText(error) })
       }
     }
     await loader.await()
@@ -314,7 +330,7 @@ export class ClientEntries {
         await entry.fiber.await()
         failures.push({ id, message: `client-modules: ${id} is waiting for activation` })
       } catch (error) {
-        failures.push({ id, message: String(error) })
+        failures.push({ id, message: failureText(error) })
       }
     }
     this.index.prune([...loader.entries()].map(entry => entry.options.name))

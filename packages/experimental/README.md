@@ -36,6 +36,9 @@ Promotion requires a named product role, documented public behavior and limitati
 
 | Package | Role | ctx key |
 |---|---|---|
+| [`office-frame-forwarding-bundle`](office-frame-forwarding-bundle/README.md) | Optional Desktop native read-only Office preview | — |
+| [`client-ui-office-frame-forwarding`](client-ui-office-frame-forwarding/README.md) | Authorized native read-only Office viewing | `ctx.officePreview` |
+| [`frame-forwarding`](frame-forwarding/README.md) | Native frame forwarding for Host plugins through Desktop shared textures | `ctx.frameForwarding` |
 | [`tool-session-query`](tool-session-query/README.md) | Workspace-authorized model session search, trace, and event reads | — |
 | [`session-search`](session-search/README.md) | Optional experimental global session search tools | — |
 | [`deepseek-chat-import`](deepseek-chat-import/README.md) | Optional upload of DeepSeek website chat exports as Sessions in a chosen Workspace | `ctx.deepseekChatImport` |
@@ -49,6 +52,7 @@ Promotion requires a named product role, documented public behavior and limitati
 | [`webhook`](webhook/README.md) | Authenticated delivery dispatch and Workspace Session creation | `ctx.webhookRuntime` |
 | [`webhook-github`](webhook-github/README.md) | Signed GitHub webhook ingress | — |
 | [`session-title-all-prompts-llm`](session-title-all-prompts-llm/README.md) | Session titles from all human prompts | — |
+| [`llm-mock`](llm-mock/README.md) | Keyless mock model route with a fixed reply | — |
 | [`tool-terminal`](tool-terminal/README.md) | Persistent terminal tools | — |
 | [`terminal-panel`](terminal-panel/README.md) | Agent terminals in the Web sidebar and read-only user terminal tools | — |
 | [`tool-ralph`](tool-ralph/README.md) | Bounded repeated delegated tasks | — |
@@ -60,11 +64,18 @@ Promotion requires a named product role, documented public behavior and limitati
 | [`speech-to-text-sensevoice`](speech-to-text-sensevoice/README.md) | Managed local SenseVoice inference | — |
 | [`api-speech-to-text`](api-speech-to-text/README.md) | Authenticated transient transcription Remote | `ctx.speechController` |
 | [`client-ui-voice-input`](client-ui-voice-input/README.md) | Microphone capture and guarded draft insertion | — |
+| [`client-ui-connectors`](client-ui-connectors/README.md) | Default-disabled Connectors tab of the Plugins page: lists, installs, and opens the official connectors and manages custom MCP servers | — |
 | [`plugin-market-bundle`](plugin-market-bundle/README.md) | Default-disabled optional custom plugin indexes: the index service and the Discover tab | — |
 | [`liveshare`](liveshare/README.md) | Opt-in LiveShare host bundle: Relay-backed Session sharing at the `view` or `write` tier, with forking and attachment uploads as independent switches | injects `connection`; serves the viewer page through the Host's web resources |
 | [`liveshare-protocol`](liveshare-protocol/README.md) | Wire frames and the identity contract shared by the owner bundle and the Relay | library and protocol — no ctx key |
 | [`voice-input-bundle`](voice-input-bundle/README.md) | Default-disabled optional voice input composition | — |
+| [`text-to-speech`](text-to-speech/README.md) | Named speech synthesis providers | `ctx.textToSpeech` |
+| [`text-to-speech-deepseek`](text-to-speech-deepseek/README.md) | DeepSeek cloud speech synthesis | — |
+| [`read-aloud`](read-aloud/README.md) | Segment planning and paced synthesis Remote for assistant replies | `ctx.readAloud` |
+| [`client-ui-read-aloud`](client-ui-read-aloud/README.md) | Read aloud control in the message action row | — |
+| [`read-aloud-bundle`](read-aloud-bundle/README.md) | Default-disabled optional read-aloud composition | — |
 | [`client-ui-stats`](client-ui-stats/README.md) | Per-turn and per-step context, timing, cache, and tool cost for Web | — |
+| [`client-ui-sidechat`](client-ui-sidechat/README.md) | `/side` forks the conversation into a side conversation in the right Sidebar | — |
 | [`auto-review`](auto-review/README.md) | Explicit Web layer for same-model review before each native or PTC inner tool call | — |
 | [`subagent-oar`](subagent-oar/README.md) | Run standalone external coding-agent tasks through OAR | `ctx.subagents` |
 | [`tool-subagent-oar`](tool-subagent-oar/README.md) | Select a configured external agent for each delegated task | `ctx.tools` |
@@ -85,10 +96,18 @@ Promotion requires a named product role, documented public behavior and limitati
 | [`inspector`](inspector/README.md) | Cross-realm CDP hub for Host debugging, Client Runtime inspection, network capture, and Cordis trees | `ctx.inspector` |
 | [`session-inspector`](session-inspector/README.md) | Sidebar tables for raw Session logs and Chat nodes | — |
 | [`inspector-profile`](inspector-profile/README.md) | Optional Web bundle for Session log and Chat node inspection | — |
+| [`im`](im/README.md) | IM message admission, hosted sessions, the shared default session, and `im_*` tools | `ctx.im` |
+| [`im-session-commands`](im-session-commands/README.md) | IM chat slash commands | — |
+| [`im-bundle`](im-bundle/README.md) | Explicitly installed Feishu/Lark IM automation layer | — |
 | [`tool-worktree`](tool-worktree/README.md) | Optional bundle and model tool for creating and entering worktrees | `ctx.tools` |
 | [`webworker-packer`](webworker-packer/README.md) | Builds the gzip-compressed VFS image consumed by the browser worker preview | library and CLI — no ctx key |
 | [`webworker-runtime`](webworker-runtime/README.md) | Runs the harness plugin tree inside a dedicated browser worker | library and worker entry — no ctx key |
 | [`worktree`](worktree/README.md) | Creates a named Git worktree and changes the calling Session directory | `ctx.worktrees` |
+| [`sandbox-policy-git`](sandbox-policy-git/README.md) | Grants a Session in a linked worktree write access to its repository's Git directory | — |
+| [`environment-local`](environment-local/README.md) | Contributes a managed local execution process | registers on `ctx.environments` |
+| [`environment-ssh-config`](environment-ssh-config/README.md) | Contributes concrete OpenSSH aliases through the SSH provider | registers on `ctx.environments` |
+| [`environment`](environment/README.md) | Runs tool-owned functions in a daemon on another machine, with calls back to host handlers | `ctx.environments` |
+| [`environment-ssh`](environment-ssh/README.md) | Reaches the execution environment daemon over OpenSSH with strict host-key checking | registers on `ctx.environments` |
 | [`forge`](forge/README.md) | Code host provider registry with shared change request polling | `ctx.forge` |
 | [`forge-github`](forge-github/README.md) | GitHub provider that reads pull requests through the host GitHub CLI | registers a provider on `ctx.forge` |
 | [`forge-gitlab`](forge-gitlab/README.md) | GitLab provider that reads and writes merge requests through the host GitLab CLI | registers a provider on `ctx.forge` |
@@ -108,6 +127,7 @@ Promotion requires a named product role, documented public behavior and limitati
 - [Browser use](../../docs/subsystems/browser-use.md) — browser provider choices and Session ownership.
 - [Agent Teams subsystem](../../docs/subsystems/agent-team.md) — durable Team types and the `ctx.agentTeams` service API.
 - [Experimental subtree rules](AGENTS.md) — what experimental status does and does not relax.
+- [Execution environment subsystem](../../docs/subsystems/environment.md) — tool functions run in a remote daemon with host handler calls.
 
 -----
 

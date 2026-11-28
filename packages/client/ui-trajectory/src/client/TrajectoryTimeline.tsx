@@ -4,7 +4,7 @@ import {
   memo, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent,
   type PointerEvent,
 } from 'react'
-import { Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Tooltip } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type { TrajectoryTurnModel } from './layout.ts'
 import type { TrajectoryTranslate } from './locales.ts'
 import type { AssistantMetricDetail, TrajectoryCellKind, TrajectoryCellProps } from './trajectory-record.ts'
@@ -417,8 +417,7 @@ export const TrajectoryTimeline = memo(function TrajectoryTimeline({
   }
 
   const recordIndexAt = (event: PointerEvent<HTMLDivElement>): number | null => {
-    const target = event.target instanceof HTMLElement ? event.target : null
-    const value = target?.closest<HTMLElement>('[data-timeline-record-index]')
+    const value = (event.target as Partial<Element>).closest?.<HTMLElement>('[data-timeline-record-index]')
       ?.dataset.timelineRecordIndex
     if (value === undefined) return null
     const index = Number(value)

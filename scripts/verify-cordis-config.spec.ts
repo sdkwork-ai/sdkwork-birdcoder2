@@ -16,7 +16,33 @@ import {
   packageTestFixtureDependencyErrors,
   packageTestPluginDependencyErrors,
   readLoaderYaml,
+  resolvesToPackageSource,
 } from './verify-cordis-config.ts'
+
+describe('source-plane resolution of configured packages', () => {
+  const pkg = join(tmpdir(), 'packages', 'client', 'ui-slots')
+
+  it.each([
+    ['a TypeScript source under src', 'src/index.ts'],
+    ['the host runtime under src', 'src/index.js'],
+    ['a TypeScript source outside src', 'examples/demo/index.ts'],
+  ])('accepts %s', (_label, path) => {
+    expect(resolvesToPackageSource(pkg, join(pkg, path))).toBe(true)
+  })
+
+  it.each([
+    ['built declarations', 'lib/types/index.d.ts'],
+    ['a built runtime entry', 'lib/index.js'],
+    ['a declaration file outside src', 'types/index.d.ts'],
+  ])('rejects %s', (_label, path) => {
+    expect(resolvesToPackageSource(pkg, join(pkg, path))).toBe(false)
+  })
+
+  it('rejects another package and an unresolved specifier', () => {
+    expect(resolvesToPackageSource(pkg, join(tmpdir(), 'packages', 'client', 'other', 'src', 'index.ts'))).toBe(false)
+    expect(resolvesToPackageSource(pkg, undefined)).toBe(false)
+  })
+})
 
 describe('verify-cordis-config metadata expressions', () => {
   it('accepts a disabled !!js expression', () => {
@@ -52,13 +78,13 @@ describe('verify-cordis-config metadata expressions', () => {
 describe('workspace Bundle discovery and product dependency closures', () => {
   it('allows scoped executors on both planes while retaining other plugin rows', () => {
     expect([...exclusivePlaneRowIds([{ insert: [
-      { id: 'native', name: '@deepseek-ai/dsh-tool-executor-native' },
-      { id: 'ptc', name: '@deepseek-ai/dsh-tool-executor-ptc' },
+      { id: 'native', name: '@deepseek-ai/dsh-tool-registry-native' },
+      { id: 'ptc', name: '@deepseek-ai/dsh-tool-registry-ptc' },
       { id: 'tools', name: '@deepseek-ai/dsh-tools' },
       { id: 'group', name: 'cordis:group', group: true, config: [
-        { id: 'tool-executor-ptc', name: '@deepseek-ai/dsh-tool-fs' },
+        { id: 'tool-registry-ptc', name: '@deepseek-ai/dsh-tool-fs' },
       ] },
-    ] }])]).toEqual(['tools', 'group', 'tool-executor-ptc'])
+    ] }])]).toEqual(['tools', 'group', 'tool-registry-ptc'])
   })
 
   it('discovers a Bundle outside packages/bundle from its manifest declaration', () => {

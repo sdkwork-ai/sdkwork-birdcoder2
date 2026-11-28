@@ -40,13 +40,16 @@ import type {
   ChildrenDecl, ComposedProps, HostObservable, OwnerOf, RenderOpts, SlotComponent, SlotMap, SlotRenderer,
   ScopedStandardSourceBinding, SessionProviderComponent, SlotEntryDef, SlotFactoryMap, SlotRendererHost, SlotSpec,
   SnapshotSelectorHook, StoredFactory, StoreInstanceLike,
-} from '@deepseek-ai/dsh-client-ui-slots'
+} from '@deepseek-ai/dsh-client-ui-slots/client'
 import { registerDomSnapshotSerializer } from './snapshot.ts'
 import { TestRemote } from './remote.ts'
 import { TestSessions } from './sessions.ts'
 import { TestWorkspaces } from './workspaces.ts'
 import type { Stabilizer } from './fixtures.ts'
 import { allowAllAccessPlugin } from './access.ts'
+import { responsiveHooks, StaticUiResponsive } from './responsive.ts'
+import { themeSnapshot } from './theme.ts'
+import type { ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
 
 export type { UseSession } from '@deepseek-ai/dsh-client-ui-session/client'
 export { domSnapshotSerializer, registerDomSnapshotSerializer } from './snapshot.ts'
@@ -67,6 +70,10 @@ export { makeTranslate } from './translate.ts'
 export { allowAllAccess, allowAllAccessPlugin, StaticRemoteAccess, staticAccessPlugin } from './access.ts'
 export type { AccessStandardProps, StaticAccessPlugin } from './access.ts'
 export { usePinnedBrowserLanguages } from './locale-env.ts'
+export { responsiveHooks, StaticUiResponsive } from './responsive.ts'
+export type { ResponsiveHookOptions, ResponsiveStandardProps } from './responsive.ts'
+export { themeHooks, themeSnapshot } from './theme.ts'
+export type { ThemeHookOptions, ThemeStandardProps } from './theme.ts'
 
 /**
  * Bind an observable source to the production renderer's selector hook.
@@ -240,6 +247,8 @@ export class SlotTestRuntime {
   readonly workspaces: TestWorkspaces
   /** Test-owned panel selection used by the framework's usePanelInfo hook. */
   readonly panelInfo = createSnapshotStore<PanelInfo>({ activePanelId: null })
+  /** Test-owned theme snapshot behind the framework's useTheme hook; starts as the built-in light theme. */
+  readonly theme = createSnapshotStore<ThemeSnapshot>(themeSnapshot())
   /** Mutable file-upload stub; replace `upload` in suites that exercise the capability. */
   readonly fileUpload: TestFileUpload
 
@@ -257,6 +266,8 @@ export class SlotTestRuntime {
   private autoRootView: RenderResult | undefined
   private readonly disposeWorkspaceSource: () => void
   private readonly disposePanelInfoSource: () => void
+  private readonly disposeThemeSource: () => void
+  private releaseResponsive: (() => Promise<void>) | undefined
 
   private constructor(ctx: Context, slots: SlotRegistry) {
     this.ctx = ctx
@@ -278,6 +289,9 @@ export class SlotTestRuntime {
     } })
     this.disposeWorkspaceSource = slots.provideRoot({ hooks: { workspaces: this.workspaces.list } })
     this.disposePanelInfoSource = slots.provideRoot({ hooks: { panelInfo: this.panelInfo } })
+    this.disposeThemeSource = slots.provideRoot({ hooks: { theme: this.theme } })
+    const { useDocumentPortal, useDocumentViewport } = responsiveHooks()
+    slots.provideRoot({ props: { useDocumentPortal, useDocumentViewport } })
     // Capturing install: the production renderer does the rendering; the
     // wrapper only takes the host face for storeOf (no machinery copied).
     const renderer = createSlotRenderer()
@@ -291,7 +305,8 @@ export class SlotTestRuntime {
 
   /**
    * Assemble a runtime: real Context, mounted SlotRegistry, installed
-   * renderer, and the session/workspace doubles provided as services.
+   * renderer, the session/workspace doubles provided as services, and the
+   * {@link StaticUiResponsive} stand-in for the `uiResponsive` service.
    * @returns the ready runtime.
    */
   static async create(): Promise<SlotTestRuntime> {
@@ -301,6 +316,9 @@ export class SlotTestRuntime {
     await fiber.await()
     const runtime = new SlotTestRuntime(ctx, ctx.get('slots') as SlotRegistry)
     await ctx.plugin(allowAllAccessPlugin).await()
+    const responsive = ctx.plugin(StaticUiResponsive)
+    await responsive.await()
+    runtime.releaseResponsive = () => runtime.stabilizer(() => responsive.dispose())
     await ctx.plugin({ inject: [...uiSessionInject], apply: applyUiSession }).await()
     await ctx.plugin({ inject: [...sessionStatusInject], apply: applySessionStatus }).await()
     return runtime
@@ -345,6 +363,21 @@ export class SlotTestRuntime {
   /** Release the default panel hook before mounting the production Layout owner. */
   releasePanelInfoSource(): void {
     this.disposePanelInfoSource()
+  }
+
+  /** Release the default theme hook before mounting the production ui-theme owner. */
+  releaseThemeSource(): void {
+    this.disposeThemeSource()
+  }
+
+  /**
+   * Unload the default {@link StaticUiResponsive} service and its root props before mounting the production ui-responsive
+   * service; plugins that inject `uiResponsive` unload with it. Releasing again does nothing.
+   */
+  async releaseResponsiveSource(): Promise<void> {
+    const release = this.releaseResponsive
+    this.releaseResponsive = undefined
+    await release?.()
   }
 
   /**
@@ -494,6 +527,8 @@ export class SlotTestRuntime {
     this.root.release()
     this.disposeWorkspaceSource()
     this.disposePanelInfoSource()
+    this.disposeThemeSource()
+    await this.releaseResponsiveSource()
     await this.sessions.disposeScopes()
     await this.stabilizer(() => this.ctx.fiber.dispose())
     localStorage.clear()

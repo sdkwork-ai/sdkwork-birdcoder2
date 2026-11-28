@@ -69,7 +69,7 @@
       "path": "../../util/crypto"
     },
     {
-      "path": "../../core/tool-executor-ptc"
+      "path": "../../core/tool-registry-ptc"
     }
   ]
 }

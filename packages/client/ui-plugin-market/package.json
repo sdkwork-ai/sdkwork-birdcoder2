@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-plugin-market",
   "description": "Discover tab of the dsh web Plugins page: browse configured plugin market indexes and install their bundles",
-  "version": "0.2.3-alpha.2",
+  "version": "0.2.3-alpha.3",
   "publishConfig": {
     "access": "public"
   },
@@ -60,8 +60,8 @@
     "@deepseek-ai/dsh-plugin-market-index": "workspace:*",
     "@deepseek-ai/dsh-typert-protocol": "workspace:*",
     "@testing-library/react": "^16.1.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "files": [
     "locale/*.json",

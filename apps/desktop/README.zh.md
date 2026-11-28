@@ -31,7 +31,7 @@ Desktop 在原生应用中运行 Harness 工作区。本参考文档说明应用
 
 ## 应用概览
 
-Desktop 在显示欢迎页或工作区窗口前，从 Host 启动设置响应读取有效的应用主题。可选主题设置缺失或无效时使用系统外观；无效值会记录日志。Windows 工作区底色保持不透明，并跟随有效的浅色／深色主题及运行中的变化；自定义配色使用内置浅色／深色底色近似。macOS 窗口使用透明背景和侧边栏毛玻璃效果。
+Desktop 在显示欢迎页或工作区窗口前，从 Host 启动设置响应读取有效的应用主题。可选主题设置缺失或无效时使用系统外观；无效值会记录日志。Windows 工作区底色保持不透明，并跟随有效的浅色／深色主题及运行中的变化；自定义配色使用内置浅色／深色底色近似。macOS 窗口使用透明背景和侧边栏毛玻璃效果；全屏时侧边栏改为绘制 Web 的不透明底色。
 
 Electron 在 `userData/desktop/locale-cache` 缓存最近确认的界面语言，使启动恢复弹窗在 Host 设置尚不可用时也能使用该语言。缓存缺失、无效或不可读时回退到系统语言；缓存写入失败不阻断启动。Host 成功启动或界面语言变更时会刷新缓存；在此之前，变更后的系统语言可能与缓存语言不同。
 
@@ -103,6 +103,8 @@ macOS 的 ICNS 包含最高 1024 像素的表示，是扁平图标，并非 Icon
 
 electron-builder 只把清单中的 `dependencies` 复制进 `app.asar/node_modules`，因此 Electron 主进程 bundle `lib/main.js` 内联其工作区 devDependencies，裸导入只剩 `electron`、Node 内置模块与这些 `dependencies`；沙箱 preload 只能留下 `electron`、`events`、`timers` 与 `url`，即其 `require` polyfill 能解析的模块。主进程 bundle 从被内联包的 `lib/` 产物解析它们，所以根 `build:lib:host` 在并发的工作区 tsdown 阶段之后才为 `apps/desktop` 打 bundle，并由 [`desktop-bundle-imports`](scripts/desktop-bundle-imports.mjs) 让任何静态、动态或 `require()` 导入无法在打包应用内解析的 Desktop bundle 直接失败。没有这项检查时，rolldown 无法解析的导入会作为外部说明符进入产物，并在启动时以 `ERR_MODULE_NOT_FOUND` 失败。[已归档的bundle 顺序决策](../../.agents/notes/archived/process/2026-09-22-desktop-main-bundle-after-workspace-tsdown.md)记录了备选方案。
 
+Desktop 的[共享纹理服务](../../packages/shared-texture/shared-texture/src/index.ts)由 Host 上的[帧转发](../../packages/experimental/frame-forwarding/README.zh.md#security-semantics)独占认领，向产品主文档传递 GPU 帧。macOS 与 Windows 都由一对 [Node-API addon](native/shared-texture/) 在 Host 与 Main 之间建立原生双向通道；Host 的 IPC 通道只承载能力查询与适配器查询。macOS 上通道传递 IOSurface；Windows 上由 Main 把 Host 的 NT 句柄复制进自己的进程。Host 中的原生 addon 经 `nativeSink` 返回的入口提交帧；每一帧的提交、交付回执与结算都经这条通道传递，不经过 Host 的 JavaScript 事件循环；提交被拒时，结果会区分只是该帧被拒还是通道已断开。最多 32 帧等待 Main 的 JavaScript 线程处理；超出的帧由 Main 拒绝，Host 可以立即复用该帧。Host 最多接受 128 个尚未结算的帧；交付超时的帧会继续占用名额，直到结算。Electron 导入纹理后将其连同 Host 的元数据文本经 `dshDesktop.textures` 交给文档，由 preload 解析元数据；元数据不是 JSON 的帧，或在文档没有消费者时到达的帧，会在渲染进程导入前被拒绝，Main 释放自己的引用后 Host 即可复用该帧。渲染进程与 Main 均释放引用且 GPU 工作完成后，Host 才能复用该帧。文档、GPU 进程或通道丢失会使尚未结算的帧失效，下一帧会建立新通道；`nativeSink` 对象只属于一条通道。若 Electron 无法同步某帧的 GPU 释放操作，该帧也会失效。Windows 上，Main 自行识别 Chromium 合成器所用的适配器：它导出一张合成器纹理，读取其适配器 LUID 后立即释放，并在 Chromium 的 GPU 进程退出前复用这一结果，因此探测纹理不会进入 Host。主进程在定位运行时资源时确定预装接收器的绝对路径，创建每个 Desktop Host 时把它写入启动配置。启动 Host 时通过 `--frame-receiver-path` 传入该路径，Host 插件从 `desktopFrameReceiver.path` 读取。
+
 Electron 主进程将 `@deepseek-ai/dsh-error` 声明为生产依赖，满足 `@deepseek-ai/dsh-typert-protocol` 必需的对等依赖（peer dependency）。独立命令管理 worker 位于 `resources/runtime/cli/command-manager.js`，其相邻位置没有 `node_modules`，因此 bundle 内联 `@deepseek-ai/dsh-atomic-write` 和 `@deepseek-ai/dsh-error`。
 
 Windows 签名打包按 PE 文件内容扫描第一方运行时和应用生产依赖，包括没有常规扩展名的文件。最终扫描覆盖整个解包应用。目录链接、格式错误的 `MZ` 文件以及非 PE 的 `.exe`、`.dll` 或 `.pyd` 文件会使打包停止；以 `MZ` 开头的数据文件也会被拒绝，除非包含有效 PE 头。它保留有效的上游签名，并在记录运行时哈希或执行冒烟检查前为未签名代码补签。公钥验签每个进程处理最多 32 个文件，同时最多运行四个进程；硬件令牌签名仍串行执行，每个新签名必须匹配配置的证书且带时间戳。硬件签名或验签失败会停止本轮执行；独立的时间戳请求遵循[有界重试规则](windows-signing/README.zh.md#windows-ev-signing)。electron-builder 只有在验签和逐字节比对通过后，才保留复制后运行时可执行文件的签名。写入发布完成记录前，必须通过最终 PE 签名检查，以及使用全新缓存的 ASAR 载荷和 Host 冒烟检查。开发、仅准备和未签名构建不使用硬件令牌，可能被 Windows 代码完整性策略阻止；任何构建模式都不会关闭该策略。冒烟检查通过不代表兼容所有企业策略。
@@ -126,6 +128,7 @@ Desktop/SDK 共享运行时构建器在复制或签名产物前，裁剪 NumPy �
 | 原生编解码器 | sharp 预编译的 libvips 链接其自带的 glib，而 Electron 二进制导出系统副本，导致 Host 进程中的首次解码在 Linux 上崩溃。 | Linux Host 与桌面 CLI 拒绝加载 `sharp` 模块（`apps/desktop-host/src/sharp-platform.ts`），图像消费者保留原始文件；打包后的 smoke 改为在内置的普通 Node 运行时下探测同一预编译产物。 |
 | 包来源 | 即使离线，启动时安装核心依赖也会增加开销。 | `app.asar/dsh` 携带完整生产依赖树；profile 只安装外部插件。 |
 | 状态归属 | 共享可执行依赖图会让 CLI（命令行界面）与 Desktop 相互改变 dsh、Cordis、插件或原生模块版本，而两个桌面进程还可能争用同一个 profile。 | Electron 在访问任何 profile 前获取进程生命周期单实例锁，并独占 `$DSH_HOME/profiles/desktop` 及其包管理器状态。Host 还会对该 profile 目录持有一把独占的内核租约（`apps/desktop-host/src/profile-lease.ts`），因此使用另一个浏览器 user-data 目录启动的 Host 会直接拒绝，而不是共享会话。CLI 与 Desktop 共享 `$DSH_HOME` 下受支持的产品数据，但绝不共享可执行包、插件激活、锁文件或 `node_modules`。 |
+| 状态归属 | 共享可执行依赖图会让 CLI（命令行界面）与 Desktop 相互改变 dsh、Cordis、插件或原生模块版本，而两个桌面进程还可能争用同一个 profile。 | Electron 在访问任何 profile 前获取按其 `userData` 目录区分的进程生命周期单实例锁，并负责 `$DSH_HOME/profiles/desktop` 及其包管理器状态。`userData` 不同的应用（例如已安装应用与 `dev:desktop`）可以同时运行在同一个 profile 上；profile 准备和恢复仍会获取 profile 锁。CLI 与 Desktop 共享 `$DSH_HOME` 下受支持的产品数据，但绝不共享可执行包、插件激活、锁文件或 `node_modules`。 |
 | 传输 | Web 与 Desktop 共享请求准入和基于 Peer 的授权。 | Electron 加载打包的 Web 资源；私有 Desktop Provider 认证原生 Host 请求，Host 提供该 Peer 的启动注入。 |
 | 插件变更 | Desktop 与 Web 需要一致的安装和激活行为。 | 主应用使用共享 Web 插件管理器和内置 pnpm。 |
 | 更新 | 桌面壳与 dsh 独立更新会重新产生版本分裂，而桌面壳未变化的数据块不应强制完整传输。 | Electron 壳、匹配的 dsh 运行时与 pnpm 组成一个已签名更新单元。平台更新产物可以复用未变化的数据块，但运行时版本选择绝不脱离 Desktop 发布。 |
@@ -165,6 +168,7 @@ Electron 拥有 `$DSH_HOME/profiles/desktop`。其 `dependencies` 包含 pnpm �
 Electron 根据应用语言选择类型化的八种[内置 Client 语言](../../packages/client/locale/README.zh.md)的 shell 文案，并回退到英文。macOS 应用包通过 `CFBundleLocalizations` 声明支持全部八种语言，让 macOS 根据用户的首选语言匹配初始应用语言。主界面仍优先使用已保存的 Client UI 语言偏好。Windows NSIS 安装器在 `installer/locales/` 下按语言保存独立 JSON 资源；打包从这些文件生成 NSIS 文案和安装器语言清单。全部内置语言资源的键、格式占位符和命令示例必须一致，`pnpm run check:i18n` 负责检查。原生安装器测试逐个构建并验证配置中的语言。账户平台页面和引导插图对中文以外的语言使用英文。在 Windows 上，主文档的语言会更新桌面菜单、恢复与更新提示。仓库 Client UI i18n 检查覆盖桌面端源码。
 
 Windows、macOS 和 Linux 会在原生全屏切换及每次页面加载后向渲染器同步全屏状态，让浮层调整顶栏避让距离。
+Windows 和 macOS 会在原生全屏切换及每次页面加载后向渲染器同步全屏状态，让浮层调整顶栏避让距离。Windows 的“应用”和“编辑”入口在全屏期间隐藏，退出全屏后恢复。文档只通过 Fullscreen API 进入全屏，帧转发把它提供给插件；Electron 随后让窗口全屏，同样的状态同步随之生效。
 
 Windows 和 Linux 使用 40 DIP 顶栏，保留原生窗口按钮，颜色随应用调色板同步。侧栏开关旁的本地化“应用”和“编辑”入口打开原生弹出菜单。仅当应用框架发布 shell overlay 席位后才挂载菜单，启动加载期间不显示。“应用”提供关于、设置、检查更新、管理 birdcoder 命令、开发者工具和退出（Linux 上为“退出 BirdCoder”）；“编辑”向当前编辑器发送对应按键，提供撤销、重做、剪切、复制、粘贴、删除和全选，不受自定义快捷键绑定影响。插件管理使用主应用的“插件”页面。按 Alt 不会出现额外的原生菜单行。macOS 保留原生应用菜单。带系统边框的 Linux 欢迎窗口会移除菜单栏，因此任何窗口都不会出现第二条 header。可编辑区域保留快捷键和不带快捷键标注的右键菜单；命令可用状态由 Chromium 提供，选中的只读文本提供“复制”命令。顶栏菜单保留鼠标和键盘操作，顶栏中的 Web 控件仍可触达。共享 DOM 只约束展示，不构成安全边界：产品脚本可以隐藏蒙层，但不能借此清除主进程策略或授权安装。更新操作与状态通过隔离预加载和壳 frame 之间的私有 MessageChannel 传递。
 
@@ -226,6 +230,7 @@ pnpm run desktop:prod --insecure-tls                     # also accept a self-si
 证书为自签名的网关默认会被两侧拒绝：Node 侧的 Host 报 `DEPTH_ZERO_SELF_SIGNED_CERT`，渲染进程报 `net::ERR_CERT_AUTHORITY_INVALID`（`[online-request]` 日志行会显示这些错误码）。`--insecure-tls` 只在本次启动中接受该证书：以 `--ignore-certificate-errors` 启动 Electron，并为 Host 及其 Node 子进程设置 `NODE_TLS_REJECT_UNAUTHORIZED=0`，同时打印警告。当流量携带你在意的凭据时，优先使用安全方式：`NODE_EXTRA_CA_CERTS=<网关证书.pem>` 覆盖 Node 侧，把证书导入操作系统受信任根则覆盖 Chromium。发布包同样具备这一能力：在打包环境或平台 dotenv 中设置 `DSH_DESKTOP_INSECURE_TLS=1` 会写入 `dshDesktopInsecureTls`，安装后的应用每次启动都接受无法验证的证书，打包下载也能访问这类主机。单次启动安装包时也可以改为传入 `--insecure-tls`。SDKWork 配置在构建期确定：`apps/web` 通过 Vite 读取已提交的 `.env.<deployment-profile>.<environment>`（默认 `cloud`，因此网关是 SDKWork 云边缘），构建出的页面携带该部署的网关与 `SDKWORK_ACCESS_TOKEN`，安装后的应用因此不需要打包期投影或本机凭据；构建模式由[打包指南](packaging/README.zh.md#configuration-and-local-builds)说明。
 
 该网关必须按应用租户运行知识库表面。网关的开发 profile 会注入 `SDKWORK_KNOWLEDGEBASE_TENANT_ID=100001`（即 `agent.app.config.json` 中的 `backend.tenantId`）；其他网关需要同样的值，否则内嵌运行时回退到租户 `1`，并以 `40303 authenticated tenant does not match configured runtime tenant` 拒绝所有知识库调用。知识库 app-api 没有按用户的权限校验：该租户下所有已登录用户都可以创建和使用空间。
+未设置 `DSH_HOME` 时，开发模式使用正常的 Harness home `~/.dsh`，其中包括已安装应用的 `profiles/desktop` 插件 profile。非空的本地开发 home `apps/desktop/.desktop-dev/home` 会在 `~/.dsh` 不存在或为空时移入 `~/.dsh`；两者都有数据，或 `~/.dsh` 是符号链接时，不合并，启动继续使用本地 home。移到另一个卷时会先复制到 `~/.dsh` 旁边，因此 `~/.dsh` 只会以完整状态出现。Harness Dev 仍在使用默认的 `.desktop-dev` 浏览器数据或所选浏览器数据时，也不会移动。Electron 浏览器数据默认写入 `apps/desktop/.desktop-dev/electron-user-data`；`pnpm run clean` 会删除 `.desktop-build`，但保留 `.desktop-dev`。一次性 npm 项目位于 `apps/desktop/.desktop-build/development/project`。启动时会把每个缺失的 `.desktop-dev` 目录从 `.desktop-build/development` 移过来；若正在运行的 Harness Dev 仍在使用那里的浏览器数据，启动会停止而不迁移。与已安装应用同时运行并调试插件变更、原生恢复或数据格式变更时，请显式设置独立的 `DSH_HOME`。非空的 `DSH_HOME` 与其他模式一样解析（包括展开 `~`），且不移动任何数据；`DSH_DESKTOP_USER_DATA_DIR` 只会替换浏览器数据。Renderer DevTools 默认自动打开，Main、Renderer 和 dsh Host 调试端口依次为 9229、9222 和 9230。`DSH_DESKTOP_MAIN_INSPECT_PORT`、`DSH_DESKTOP_RENDERER_DEBUG_PORT` 与 `DSH_DESKTOP_HOST_INSPECT_PORT` 可以替换这些端口，`DSH_DESKTOP_OPEN_DEVTOOLS=0` 则保持 Renderer 调试窗口关闭。
 
 显式构建完成后，`start:desktop` 会重新生成一次性项目，并跳过构建直接启动已有产物：
 
@@ -318,6 +323,7 @@ macOS 在安装准备阶段等待产品主窗口退出全屏，再显示重启�
 普通更新弹窗、Windows 首次关闭提示和强更文档共用随壳打包的 UI design token。各文档在显示卡片前通过 `prefers-color-scheme` 解析 Electron 的应用主题，配色变化时同步暗色主题属性。欢迎页与更新文档复用同一初始化脚本。明确选择浅色／暗色及跟随系统共用此路径，隔离文档保持透明背景，仅暗色模式以基于 token 的 1 CSS px 内描边区分卡片，不改变尺寸；浅色模式不描边。
 
 打包应用在启动后异步检查固定 Nightly。常规轮询以十分钟为基础间隔，每次独立采样 ±20% 的随机抖动。每次检查失败将基础延迟翻倍，上限为一小时；成功后重置。随机延迟不超过该上限，并从全部复用调用结算后开始计时。本地化的“检查更新…”菜单项（可从顶栏的“应用”菜单进入）立即执行，并复用正在进行的检查。回到前台和系统恢复时遵守相同的单调时钟截止时间。新收到的强更策略也会立即请求检查更新清单。自动检查从不弹窗或下载安装包。手动检查显示正在检查、失败或包含已安装版本号的无更新反馈。下载或校验期间，“**检查更新…**”显示打开提示时的状态，不随操作进展刷新。下载提示说明可以继续使用应用；校验提示不再包含下载完成的说明。关闭状态提示不影响更新。若已有普通壳弹窗，点击会聚焦该弹窗，保留其待确认操作；关闭后可再次查看更新状态。状态界面创建失败时，使用相同状态文案和按钮的原生弹窗兜底；展示失败仅记日志，不改变更新操作。常规更新弹窗原位渐入渐出；连续弹窗替换卡片内容并重置其滚动位置，保留黑色半透明蒙层，不模糊父页面。
+打包应用在启动后异步检查当前有效更新渠道（本地设置未解锁前固定为 `stable`）；`.yml` 更新清单请求附带非机密来源请求头（`x-dsh-config-version`、`x-client-update-channel`、`x-client-channel-source`、`x-client-version`、`x-client-bundled-dsh-version`、`x-client-platform`、`x-client-arch` 和 `x-client-device-id`），安装包、归档与 blockmap 下载不携带这些请求头。常规轮询以十分钟为基础间隔，每次独立采样 ±20% 的随机抖动。每次检查失败将基础延迟翻倍，上限为一小时；成功后重置。随机延迟不超过该上限，并从全部复用调用结算后开始计时。本地化的“检查更新…”菜单项（Windows 可从顶栏的“应用”菜单进入）立即执行，并复用正在进行的检查。回到前台和系统恢复时遵守相同的单调时钟截止时间。新收到的强更策略也会立即请求检查更新清单。自动检查从不弹窗或下载安装包。手动检查显示正在检查、失败或包含已安装版本号的无更新反馈。下载或校验期间，“**检查更新…**”显示打开提示时的状态，不随操作进展刷新。下载提示说明可以继续使用应用；校验提示不再包含下载完成的说明。关闭状态提示不影响更新。若已有普通壳弹窗，点击会聚焦该弹窗，保留其待确认操作；关闭后可再次查看更新状态。状态界面创建失败时，使用相同状态文案和按钮的原生弹窗兜底；展示失败仅记日志，不改变更新操作。常规更新弹窗原位渐入渐出；连续弹窗替换卡片内容并重置其滚动位置，保留黑色半透明蒙层，不模糊父页面。
 
 `DSH_DESKTOP_UPDATE_CHECK_INTERVAL_MS` 配置常规基础间隔，`DSH_DESKTOP_UPDATE_CHECK_MAX_BACKOFF_MS` 配置上限；两者均接受 1000 至 2147483647 的整数毫秒数，且上限不能小于间隔。省略上限时取一小时与间隔中的较大值。`DSH_DESKTOP_UPDATE_CHECK_JITTER` 配置 0 至 1 的抖动比例，默认 `0.2`；最终延迟至少一秒，且不超过上限。这些配置不改变强更策略轮询，也不授权下载重试。
 
@@ -339,19 +345,20 @@ Electron 主进程在启动时读取一次 `app.getPath('userData')/desktop/sett
 
 ```json
 {
+  "version": "1",
   "updates": {
     "allowTestAuthPopupWindow": false
   }
 }
 ```
 
-启动读取不会覆盖已有文件；缺少 `updates` 对象或该字段时均按 `false` 处理。将字段设为 `true` 后完全退出并重启应用，即可允许测试鉴权弹窗。改回 `false` 并重启即可再次禁止。创建、读取或校验失败时使用默认值 `false`，不阻止启动。Desktop 尝试在 Electron 控制台记录包含文件路径的警告；日志不可用也不阻止启动。修正文件并重启后才会应用显式设置。未知字段会保留。安装更新保留此用户数据文件；Windows 卸载按[卸载规则](#windows-uninstall-rules)删除它。
+启动初始化会将有效的无版本文件原地迁移至 `"version": "1"`，移除无版本的 `updates.channelUnlocked` 字段并将无版本的 `"nightly"` 渠道重置为 `"stable"`，但绝不覆盖已带版本的文件、损坏的 JSON、无效文档结构、不支持的 `version` 值或无效字段；缺少 `updates` 对象或 `allowTestAuthPopupWindow` 字段时按 `false` 处理。将字段设为 `true` 后完全退出并重启应用，即可允许测试鉴权弹窗。改回 `false` 并重启即可再次禁止。创建、读取或校验失败时使用默认值 `false`，不阻止启动。Desktop 尝试在 Electron 控制台记录包含文件路径的警告；日志不可用也不阻止启动。修正文件并重启后才会应用显式设置。未知字段会保留。安装更新保留此用户数据文件；Windows 卸载按[卸载规则](#windows-uninstall-rules)删除它。
 
-在桌面版**设置 → 通用设置 → 更新渠道**中，**正式版**选择 `stable`，**开发版**选择 `nightly`。发布者独立于版本后缀为各渠道选择版本；正式版渠道也可以提供 alpha 或 RC 版本。主进程在同一文件中保存 `updates.channel`，并通过 IPC 立即应用选择，不依赖 Host 设置服务。省略 channel 时使用打包注入的包内默认值。外部编辑和删除仅在下次启动读取，不运行文件监听器。鉴权弹窗设置仍须重启生效。UI 写入保留最新有效文件中的其他字段；外部编辑器不能与 UI 保存同时写入。
+在写入 `"version": "1"` 且 `updates.channelUnlocked: true` 之前，除非存在需恢复的配置错误，否则**更新渠道**保持隐藏，且运行时有效更新渠道固定为 `stable`（`x-client-channel-source: default`），不受包内 `dshDesktopUpdateChannel` 或未解锁字段影响。在桌面版**设置 → 通用设置**中连续点击五次**当前版本**会打开风险确认弹窗；确认后主进程通过 IPC 写入 `"version": "1"`、`updates.channel: "nightly"` 与 `updates.channelUnlocked: true`（不依赖 Host 设置服务），立即切换至 `nightly`（`x-client-channel-source: explicit`），并持续显示**更新渠道**（**正式版**对应 `stable`，**开发版**对应 `nightly`），切回 `stable` 后仍保持可见。发布者独立于版本后缀和包内渠道标记为各目标渠道选择版本；正式版渠道也可以提供 alpha 或 RC 版本。外部编辑和删除仅在下次启动读取，不运行文件监听器；鉴权弹窗设置仍须重启生效；UI 写入保留最新有效文件中的其他字段，外部编辑器不得与 UI 保存并发写入。
 
 UI 切换期间，选择器显示待应用选项和加载指示；失败时恢复实际运行渠道，并显示简短 toast。普通保存失败不会阻止使用当前渠道及旧更新目标。启动配置无效或无法撤销旧更新安装资格会暂停更新操作；没有强更策略阻塞时，主应用仍可使用。启动配置错误会显示持续十秒、可查看详情的非阻塞提示。更新入口独立于下载进度保留暂停原因；打开后可查看恢复指引、配置路径并在系统文件管理器中定位文件。修正文件后，可在错误详情中选择**重新读取配置**或重启；显式重读只应用更新配置，不改写文件。重读按钮至少显示半秒加载指示，期间不接受重复点击；文件仍无效时继续暂停更新。在设置中选择有效渠道也可恢复无效渠道；JSON 损坏须先修复文件。已知强更阻塞继续生效；强更页面的配置异常入口可打开同一文件定位和重读对话框。渠道切换成功后立即重新检查强更策略；如旧渠道的检查仍在进行，则等待其完成后检查新渠道。切换成功时先收尾检查、下载并撤销安装资格，再检查新渠道；两个渠道版本号相同也遵循该规则。切换不降级，也不自动安装。安装准备期间拒绝 UI 切换；调用 `quitAndInstall()` 交接后，编辑文件不能取消本次安装。
 
-共享设置存储区分文件缺失、读取失败、JSON 损坏、文档结构无效和单项字段无效。鉴权开关与渠道字段分别通过 Zod 校验；鉴权开关无效不会使有效渠道失效，反之亦然。读取不创建文件；启动初始化是显式操作，并与保存共用写锁。保存保留未知字段和无关的无效字段。写入诊断区分未写入、完成情况不确定，以及写入已提交但释放锁失败；最后一种情况不表示文件已回滚。
+共享设置存储区分文件缺失、读取失败、JSON 损坏、文档结构无效、不支持的 `version` 值和单项字段无效。鉴权开关与渠道字段分别通过 Zod 校验；鉴权开关无效不会使有效渠道失效，反之亦然。读取不创建文件；启动初始化是显式操作，并与保存共用写锁。保存保留未知字段和无关的无效字段。写入诊断区分未写入、完成情况不确定，以及写入已提交但释放锁失败；最后一种情况不表示文件已回滚。
 
 撤销安装资格后，旧文件删除失败不阻止渠道切换。失败时间、操作、路径及文件系统错误会刷新写入 Electron 日志目录的 `update-cleanup.jsonl`；日志本身无法写入时回退到标准错误输出。后续下载失败独立报告，不归因于之前的清理警告。有结构化文件系统错误时，区分空间不足、无法写入和文件占用；错误弹窗详情保留当次错误码及已提供的文件路径。没有结构化依据时保留通用下载失败提示。
 
@@ -377,6 +384,7 @@ UI 切换期间，选择器显示待应用选项和加载指示；失败时恢�
 | `jitter` | 随机增加的间隔比例；默认 `0.2`，范围为 `0` 至 `1` |
 
 时长必须是 1000 至 2147483647 毫秒的整数。启动与定时轮询独立于业务请求；前台／恢复检查遵守下次到期时间，手动检查绕过该时间并复用在途请求。客户端发送已安装平台、架构、完整壳与内置 dsh 版本、应用 ID、语言和固定 Nightly。不使用业务登录凭据或安装 ID。
+时长必须是 1000 至 2147483647 毫秒的整数。启动与定时轮询独立于业务请求；前台／恢复检查遵守下次到期时间，手动检查绕过该时间并复用在途请求。客户端发送已安装平台、架构、DSH_CLIENT_VERSION、内置 dsh 版本、当前语言与 UTC 偏移、空 bundle ID 和当前运行时有效更新渠道（未解锁前为 `stable`）。不使用业务登录凭据或安装 ID。
 
 启用 `feishu-test` 时，包含 `error.code: "UNAUTHENTICATED"` 的 HTTP 401 JSON 响应仅在本地 `updates.allowTestAuthPopupWindow` 为 `true` 时提供登录入口。该字段默认为 `false`，禁止启动、手动检查更新、强更刷新以及延迟或重复失败触发的整个鉴权弹窗流程。测试网关 Cookie 仅在当前进程有效。启动时关闭弹窗后，需要鉴权的网关无法在本次进程中提供新的强更决策；需开启设置、重启并登录后才能获取。策略请求仍需网关鉴权，鉴权失败不会解除已知强更阻塞。常规更新和产品账号鉴权保持独立。正式环境始终使用原有匿名策略请求，不受此设置影响。
 
@@ -405,6 +413,7 @@ node apps/desktop/node_modules/pnpm/bin/pnpm.mjs --dir apps/desktop run test:upd
 此命令构建 Desktop 壳，让其协调器通过真实 Electron HTTP 请求和 `NsisUpdater` 访问私有回环服务器。它验证用户授权的完整下载、SHA-512 拒绝、显式重试、并发请求合并、清单替换和安装交接。它还打开使用沙箱预加载的真实强更页面，检查按钮操作、关闭／Esc 拦截、纯文本内容、策略请求停滞和策略解除。成功时打印 `LOCAL_UPDATER_RESULT` 并以零退出码结束；功能失败时返回非零退出码。每次调用独占随机端口和临时用户数据／缓存目录，关闭监听器、等待 Electron 退出，并移除临时文件。报告和可用截图保存在唯一的 `.desktop-build/qualification/local-updater-*` 目录中。截图失败单独记录，绝不当作视觉验收通过。不需要 COS 或签名凭据。
 
 下载内容是不可执行的测试字节，安装调用仅记录而不执行。测试替换浏览器打开与剪贴板写入，避免外部导航和剪贴板修改。它不启动完整产品工作区，不验证真实安装器或重启，不验证发布者签名，也不覆盖差分更新或 macOS。停滞的策略请求、清单请求和负载传输会执行真实截止时间及恢复。真实常规弹窗验证隔离预加载、卡片尺寸、背景模糊、取消、任务警告选项与显式安装批准；账户行组件测试另行提供证据。[本地验证决策](../../.agents/notes/implemented/testing/2026-09-10-desktop-local-updater-qualification.zh.md)和[验证记录](tests/README.zh.md)保留这些限制；生产发布要求保持不变。
+下载内容是不可执行的测试字节，安装调用仅记录而不执行。测试替换浏览器打开与剪贴板写入，避免外部导航和剪贴板修改。它不启动完整产品工作区，不验证真实安装器或重启，不验证发布者签名，也不覆盖差分更新或 macOS。停滞的策略请求、清单请求和负载传输会执行真实截止时间及恢复。真实常规弹窗验证隔离预加载、卡片尺寸、未施加模糊的父页面、取消、任务警告选项与显式安装批准；账户行组件测试另行提供证据。[本地验证决策](../../.agents/notes/implemented/testing/2026-09-10-desktop-local-updater-qualification.zh.md)和[验证记录](tests/README.zh.md)保留这些限制；需要检查真实安装和重启的改动使用[安装升级专项手测指南](tests/README.zh.md#verification-installed)。生产发布要求保持不变。
 
 原生原始文件操作仅接受可信应用页面。完成后向该页面返回目标路径；显示位置复用现有 Host 路径打开 API，不提供独立 reveal IPC，也不保留已保存文件历史。下载使用 Chromium URL 下载和原生保存对话框 API；`DSH_DESKTOP_FILE_DOWNLOAD_TIMEOUT_MS` 限定 Chromium 创建下载前的启动期限（300000 毫秒），不限制原生保存对话框的停留时间。仅剪贴板使用的远程图片读取不携带凭据，逐次校验重定向，拒绝应用 Host 及其回环别名，在主框架导航时终止，并使用 `DSH_DESKTOP_IMAGE_READ_TIMEOUT_MS`（30000 毫秒）与 `DSH_DESKTOP_IMAGE_READ_MAX_BYTES`（67108864 字节）。图片复制在转换为 PNG 后使用渲染进程的 Clipboard API。其他可达的 HTTP(S) 目标遵循部署侧网络隔离。[文件操作](../../packages/client/ui-file-actions/README.zh.md) 定义保存和剪贴板行为。
 

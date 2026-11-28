@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
-import { allowAllAccess, contextMenuHook, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
+import { allowAllAccess, contextMenuHook, makeTranslate, responsiveHooks, themeHooks } from '@deepseek-ai/dsh-client-test-runtime'
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { WorkspaceId, WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
-import type { GlobalStandardProps, PropsRenderFactories } from '@deepseek-ai/dsh-client-ui-slots'
+import type { GlobalStandardProps, PropsRenderFactories } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkspacePickerInput } from '@deepseek-ai/dsh-client-ui-workspace/client'
 import { ImportSessionsAction } from '../src/client/ImportSessions.tsx'
@@ -58,7 +58,7 @@ function bench(options: { allowed?: boolean; wide?: boolean; current?: string; i
   const standard: GlobalStandardProps = {
     useSessions: hook(sessions(options.current ?? 's-current')),
     useSessionStatus: unused, useSessionRetainInfo: unused, usePanelInfo: unused, useResource: unused,
-    useContextMenu: contextMenuHook(), useWorkspaces: hook(workspaces),
+    useContextMenu: contextMenuHook(), ...responsiveHooks(), ...themeHooks(), useWorkspaces: hook(workspaces),
     ...allowAllAccess, useRemoteAccess,
   }
   const importArchive = options.importArchive ?? vi.fn<ImportArchive>()

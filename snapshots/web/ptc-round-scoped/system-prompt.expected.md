@@ -14,6 +14,8 @@ Read an existing file before overwriting it with write and prefer edit for targe
 
 Read a file before editing it unless you just created or edited it in this session.
 
+Prefer apply_patch over separate edit calls for changes across files or separated regions. Give every hunk enough surrounding context lines to match one place in the current file. The whole patch is checked first (syntax, hunk matching, missing files) and a rejected patch changes nothing; once applying starts, operations run in order, stop at the first failure, and are not rolled back, so re-read affected files before retrying when needed.
+
 Use the glob tool — not shell find — to discover files by path pattern.
 
 Use the grep tool — not shell grep or rg — to search file contents. Use read on a matched file when you need surrounding context.
@@ -44,6 +46,7 @@ Inside the program:
 - A FAILED tool call rejects with `ToolCallError`, whose `toolName` identifies the failed tool and whose `message` is human-readable — `try/catch` it to handle and continue.
 - Independent read-only calls MAY overlap under `Promise.all` (safe calls run concurrently; mutating calls run alone, in submission order). Sequence dependent work with `await`.
 - Show selected values and images with `inspect(...values)`; every other intermediate result stays out of the conversation, so extract just what you need.
+- Inspecting a tool result directly shows the text that tool call returns; for example, `inspect(await tools.read({ file_path: 'README.md' }))` prints its line-numbered content.
 
 Program-only SDK bindings:
 
@@ -55,6 +58,15 @@ declare class Image { private constructor(); readonly attachmentId: string; read
 declare function inspect(...values: unknown[]): void;
 
 interface ToolArgsMap {
+  /** Create, update, delete, or move UTF-8 text files with one patch; prefer it over multiple edit calls when a change spans several files or separated regions. */
+  apply_patch: {
+    /** Patch text: start with *** Begin Patch and end with *** End Patch. Use *** Add File: path with + lines; *** Update File: path, optionally followed by *** Move to: path, with @@ or @@ context and space-prefixed context, + added, or - removed lines; *** End of File anchors the last hunk to the file end. Use *** Delete File: path to delete. Paths are relative to the Session working directory. */
+    input: string;
+    /** The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval. */
+    sandbox_permissions?: "workspace-write" | "danger-full-access";
+    /** Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request. */
+    justification?: string;
+  } & Record<string, JsonValue>;
   /** Ask the user a concise question when you need confirmation, a choice, or missing information before proceeding. An answer item with empty selected and no custom means the user skipped that question: continue without it, do not ask it again, and do not treat the skip as permission. */
   ask_user_question: {
     /** Questions to ask the user before continuing. */
@@ -269,7 +281,7 @@ interface ToolArgsMap {
     name?: string;
     /** The complete, self-contained task for the subagent. It does not share this conversation's context, so include everything it needs. */
     prompt: string;
-    /** LLM provider id for the subagent; requires `model`. Set only when the task needs a different model; omit `provider`, `model`, and `reasoning_effort` to run the subagent on your current model and reasoning effort. Use a provider id listed by `list_subagent_models`. */
+    /** LLM provider id for the subagent. Set it with `model` only when the task requires a specific model. Use a provider id listed by `list_subagent_models`. */
     provider?: string;
     /** Model id within that provider; requires `provider`. */
     model?: string;
@@ -339,6 +351,27 @@ interface ToolArgsMap {
 }
 
 interface ToolOutputMap {
+  apply_patch: {
+    phase: "commit";
+    cancelled: boolean;
+    operations: ({
+      index: number;
+      kind: "add" | "update" | "delete" | "move";
+      path: string;
+      destination?: string;
+      patchLine: number;
+      status: "completed" | "failed" | "unknown" | "skipped";
+      code?: string;
+      message?: string;
+      hunkLine?: number;
+      changes?: ({
+        path: string;
+        before: string | null;
+        after: string | null;
+      })[];
+    })[];
+    affectedPaths: string[];
+  };
   ask_user_question: {
     answers: {
       id: string;

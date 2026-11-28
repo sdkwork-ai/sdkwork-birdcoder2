@@ -33,6 +33,7 @@
     },
     {
       "path": "../../host/apiproxy"
+      "path": "../../util/values"
     }
   ]
 }

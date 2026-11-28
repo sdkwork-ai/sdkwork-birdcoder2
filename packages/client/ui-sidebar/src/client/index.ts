@@ -2,7 +2,7 @@
 import type {} from '@deepseek-ai/dsh-client-product-analytics/client'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
-import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
+import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
@@ -30,7 +30,7 @@ const SIDEBAR_SECTION_INJECT: SidebarSectionInjected = {
   hooks: { sectionScroller: (_standard, { useSectionScroller }) => useSectionScroller },
 }
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@deepseek-ai/dsh-client-ui-slots/client' {
   interface LocaleNamespaceMap {
     /** Sidebar controls and global panel copy. */
     sidebar: SidebarKey
@@ -96,11 +96,11 @@ export function apply(ctx: ClientContext): void {
   })
   ctx.slots.inject('sidebar', function* () {
     yield ctx.slots.registerFactory({
-      name: 'sidebar.panel.icon', scope: 'root',
+      name: 'sidebar.panel.icon', scope: 'root', inline: true,
       children: { 'sidebar.panellist': { kind: 'list', scope: 'root' } },
     }, PanelIcon)
     yield ctx.slots.registerFactory({
-      name: 'sidebar.panel.trailing', scope: 'root',
+      name: 'sidebar.panel.trailing', scope: 'root', inline: true,
       children: { 'sidebar.panellist.trailing': { kind: 'list', scope: 'root', inline: true } },
     }, PanelTrailing)
     yield ctx.slots.register({

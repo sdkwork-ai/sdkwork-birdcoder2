@@ -8,7 +8,7 @@ English | [中文](2026-11-05-markdown-fence-hoc-slot.zh.md)
 
 A Markdown fence is a fenced code block: an opening line of three or more backticks or tildes followed by an info string, such as `ts title=demo`, then the body and a closing fence. The info string's first word names the fence's language.
 
-The Chat flow renders fences by language, and plugins need to register, replace, or decorate the rendering of one language. Primitives choose fence rendering in fixed branches — `renderCode` in [render.tsx](../../../../packages/client/ui-primitives/src/markdown/render.tsx) sends `math` to KaTeX, [CodeBlock.tsx](../../../../packages/client/ui-primitives/src/markdown/CodeBlock.tsx) colors `diff` / `patch` rows, and other languages go to shiki. [ui-primitives](../../../../packages/client/ui-primitives/README.md) has no Cordis dependency, so its components cannot reach slots, and the other `MarkdownText` callers must keep their rendering unchanged.
+The Chat flow renders fences by language, and plugins need to register, replace, or decorate the rendering of one language. Primitives choose fence rendering in fixed branches — `renderCode` in [render.tsx](../../../../packages/client/ui-primitives/src/client/markdown/render.tsx) sends `math` to KaTeX, [CodeBlock.tsx](../../../../packages/client/ui-primitives/src/client/markdown/CodeBlock.tsx) colors `diff` / `patch` rows, and other languages go to shiki. [ui-primitives](../../../../packages/client/ui-primitives/README.md) has no Cordis dependency, so its components cannot reach slots, and the other `MarkdownText` callers must keep their rendering unchanged.
 
 ## Decision
 
@@ -52,7 +52,7 @@ The API guarantees:
 | Nesting | Ascending `order`, then `priority`, then registration order; lowest `order` outermost |
 | children | Rendered at most once; omitting it replaces everything inside the layer |
 | Crash | The failed occurrence renders `children` for the rest of its mount and the error is reported; the layer stays registered (`abdicate: false`) and other occurrences keep it; the occurrence retries when it remounts |
-| Compilation | One chain per `(host, slot declaration, entryKey)`, shared by every outlet; each ledger version reselects that key's layers and recompiles only when they change, so a registration for another key leaves mounted content in place, while switching an outlet's `entryKey` switches chains |
+| Compilation | Outlets with the same host, spec object, slot name, and `entryKey` [share one compiled chain](../../../../docs/subsystems/slots.md#hoc-layers); each ledger version reselects that key's layers and recompiles only when they change, so a registration for another key leaves mounted content in place, while switching an outlet's `entryKey` switches chains |
 
 These hoc semantics apply to every hoc slot, including `conversation.hero.frame`, whose layers are all wildcards. This note partially supersedes four decisions of [hoc slot kind](2026-11-03-hoc-slot-kind.md): rendering `children` exactly once, rejecting `entryKey`, per-outlet `useMemo` composition, and abdicating a crashed layer.
 

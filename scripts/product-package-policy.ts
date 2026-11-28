@@ -19,8 +19,6 @@ export const PRODUCT_PACKAGE_POLICY: Readonly<Record<string, ProductPackagePolic
   'packages/session-query/tool-session-list': { category: 'optional', reason: 'Explicitly grants model callers read access to runtime Workspace and Session metadata.' },
   'packages/host/authentication-desktop': { category: 'optional', reason: 'Mounted by the private Desktop Host with its parent-process credential, outside default Web profiles.' },
   'packages/core/agent-tool-presentation': { category: 'optional', reason: 'Deprecated selector retained for existing executor configurations.' },
-  'packages/client/script-realm': { category: 'optional', reason: 'Script environment provider registry for explicitly selected Client integrations.' },
-  'packages/client/script-realm-iframe': { category: 'optional', reason: 'Iframe execution provider registered only by an explicitly selected Client plugin.' },
   'packages/browser-use/browser-use': { category: 'optional', reason: 'Service definition used by explicitly selected browser providers.' },
   'packages/computer-use/computer-use': { category: 'optional', reason: 'Service definition used by explicitly selected computer providers.' },
   'packages/lsp/lsp': { category: 'optional', reason: 'Service definition for deployment-configured language servers.' },
@@ -59,7 +57,7 @@ export const PRODUCT_PACKAGE_POLICY: Readonly<Record<string, ProductPackagePolic
   'packages/test-support/remote-mock': { category: 'test', reason: 'Published typed Remote test proxies.' },
   'packages/test-support/session-snapshot': { category: 'test', reason: 'Published Session snapshot replay harness.' },
   'packages/client/web': { category: 'web-distribution', reason: 'Browser boot kernel bundled into the Web distribution.' },
-  'packages/client/ui-dockkit': { category: 'web-distribution', reason: 'Layout library bundled into the Web distribution.' },
+  'packages/client/ui-dockkit': { category: 'web-distribution', reason: 'Dock layout package composed into the Web distribution.' },
   'packages/util/package-manifest': { category: 'declarations', reason: 'Shared package metadata declarations have no runtime mount.' },
   'packages/client/config': { category: 'declarations', reason: 'Types of browser-synced plugin configuration; Client Modules implements them and plugins import them type-only.' },
 }

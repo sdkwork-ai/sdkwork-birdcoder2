@@ -5,6 +5,7 @@ import {
   renderInstallerStrings,
 } from './installer-locales.mjs'
 import { officePackageDirectories } from '../../../scripts/libreoffice-packages.mjs'
+import { sharedTextureAddonNames, verifySharedTextureAddons } from './verify-shared-texture.mjs'
 import { X509Certificate } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
@@ -29,7 +30,10 @@ import {
   resolveWindowsUpdatePublisher,
   scrubWindowsSigningEnvironment,
 } from './windows-sign.mjs'
-import { resolveDesktopAutoUpdateConfig } from '@deepseek-ai/dsh-desktop-publisher/desktop-auto-update-environment.mjs'
+import {
+  resolveDesktopAutoUpdateConfig,
+  resolveDesktopUpdateChannel,
+} from '@deepseek-ai/dsh-desktop-publisher/desktop-auto-update-environment.mjs'
 import { resolveDesktopBuildCommit } from './desktop-build-commit.mjs'
 import { resolveDesktopBuildVersion } from './desktop-build-version.mjs'
 import { resolveDesktopPolicyEnvironment } from './desktop-policy-environment.mjs'
@@ -114,8 +118,7 @@ function writeWindowsInstallerInclude(targetRoot) {
  * @param {NodeJS.ProcessEnv} env - Packaging environment.
  * @param {NodeJS.Platform} hostPlatform - Build-host platform used when no explicit target is present.
  * @param {string} hostArch - Build-host architecture used when no explicit target is present.
- * @param {string | undefined} preparedRuntime - Verified private dsh tree for installed-update qualification; ordinary releases use the target tree.
- * @param {string | undefined} preparedRuntimeVersion - Version that private tree declares, which qualification rewrites away from the product version.
+ * @param {string | undefined} preparedRuntime - Optional isolated dsh runtime directory; omitted uses the target tree.
  * @returns {object} electron-builder configuration.
  * FORK DIVERGENCE: the fork ships the BirdCoder brand (name, icons, artifact
  * spelling), packages six targets including unsigned macOS/Linux release lanes,
@@ -126,7 +129,6 @@ export function createElectronBuilderConfig(
   hostPlatform = process.platform,
   hostArch = process.arch,
   preparedRuntime = undefined,
-  preparedRuntimeVersion = undefined,
 ) {
   // FORK DIVERGENCE: shipped BirdCoder brand icons, one per packaged platform,
   // generated from the canonical `apps/web/public/favicon.png` raster by
@@ -203,6 +205,8 @@ export function createElectronBuilderConfig(
   // pattern below, and an executable inside the archive cannot be spawned.
   const unpack = ['**/*.{node,dylib,dll,so,exe}', '**/*.so.*', '**/spawn-helper', '**/@vscode/ripgrep-*/bin/rg',
     '**/node_modules/@deepseek-ai/node-addon-system-*/bin/**/*',
+  const receiverBase = `lib/native/${resolvedPlatform}-${resolvedArch}/frame-forwarding`
+  const unpack = [`${receiverBase}.json`, '**/*.{node,dylib,dll,so,exe}', '**/*.so.*', '**/spawn-helper', '**/@vscode/ripgrep-*/bin/rg',
     `**/node_modules/@deepseek-ai/libreoffice-kit-${resolvedPlatform}-${resolvedArch}/**/*`,
     // LaunchServices opens the Computer Use helper as an application, so every file of its bundles stays on disk.
     // Both architectures ship: they form one notarized payload whose manifest staging verifies as a whole.
@@ -337,6 +341,7 @@ export function createElectronBuilderConfig(
       // Read by `src/tls-trust.ts` before the first window: this release accepts
       // a gateway certificate it cannot verify.
       ...(insecureTls ? { dshDesktopInsecureTls: true } : {}),
+      dshDesktopUpdateChannel: update?.channel ?? resolveDesktopUpdateChannel(env),
       ...(policy === undefined ? {} : { dshMandatoryUpdatePolicy: policy }),
       ...buildVersion === productVersion ? {} : { version: buildVersion },
       ...packaged === undefined ? {} : { dshBuildCommit: packaged.commit, dshBuildDirty: packaged.dirty },
@@ -395,6 +400,14 @@ export function createElectronBuilderConfig(
       'lib/*.js',
       'lib/*.cjs',
       'lib/welcome/**/*',
+      'lib/preload-app.cjs',
+      'lib/preload-mandatory.cjs',
+      'lib/preload-platform-account.cjs',
+      'lib/preload-update-dialog.cjs',
+      'lib/preload-welcome.cjs',
+      ...sharedTextureAddonNames(resolvedPlatform).map(name => `lib/native/${resolvedPlatform}-${resolvedArch}/${name}.node`),
+      ...(sharedTextureAddonNames(resolvedPlatform).includes('frame-forwarding') ? [`${receiverBase}.json`, `${receiverBase}.LICENSE`] : []),
+      'native/shared-texture/win-delay-load.LICENSE',
       'renderer/**/*',
       windowIcon,
       'package.json',
@@ -459,6 +472,7 @@ export function createElectronBuilderConfig(
       writeUpdateInfo: true,
     },
     beforePack: async context => {
+      await verifySharedTextureAddons(fileURLToPath(new URL('..', import.meta.url)), { platform: resolvedPlatform, arch: resolvedArch })
       const office = await officePackageDirectories(buildPaths.dsh, { platform: resolvedPlatform, arch: resolvedArch })
       const patterns = office.map(directory => `**/${relative(buildPaths.dsh, directory).split(sep).join('/')}/**/*`)
       const existing = context.packager.config.asarUnpack ?? []
@@ -498,6 +512,7 @@ export function createElectronBuilderConfig(
       // release, and a rewritten one for installed-update qualification.
       await verifyDesktopRuntime(buildPaths.dsh,
         preparedRuntimeVersion ?? productVersion, { platform: resolvedPlatform, arch: resolvedArch })
+      await verifyDesktopRuntime(buildPaths.dsh, productVersion, { platform: resolvedPlatform, arch: resolvedArch })
       // Unsigned Windows builds skip electron-builder's afterSign hook.
       if (packagesWindows && unsigned) await verifyWindowsAsarUnpack(buildPaths.dsh, resourcesDir, windowsCode)
     },

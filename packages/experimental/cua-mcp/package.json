@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-cua-mcp",
   "description": "Computer Use as an MCP stdio server: a dsh profile bundle that exposes cua_run_code to external agent harnesses",
-  "version": "0.2.3-alpha.2",
+  "version": "0.2.3-alpha.3",
   "icon": "./icon.svg",
   "publishConfig": {
     "access": "public"
@@ -67,7 +67,7 @@
     "@deepseek-ai/dsh-storage-json": "workspace:*",
     "@deepseek-ai/dsh-subprocess-local": "workspace:*",
     "@deepseek-ai/dsh-system-prompt": "workspace:*",
-    "@deepseek-ai/dsh-tool-executor-native": "workspace:*",
+    "@deepseek-ai/dsh-tool-registry-native": "workspace:*",
     "@deepseek-ai/dsh-tools": "workspace:*",
     "@deepseek-ai/dsh-user-approval": "workspace:*",
     "@deepseek-ai/dsh-user-questions": "workspace:*",

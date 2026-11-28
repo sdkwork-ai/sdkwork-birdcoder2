@@ -1,6 +1,6 @@
 ---
 description: "dsh Web 客户端共享的 React UI 原子组件：控件、图标、Markdown 与数学公式渲染，以及终端/读取/差异/搜索/网页输出卡片（零 Cordis）。"
-kind: "package-library"
+kind: "package-reference"
 ---
 
 # @deepseek-ai/dsh-client-ui-primitives
@@ -29,13 +29,14 @@ kind: "package-library"
 
 `Toast` 在浅色和深色模式下均使用主题的系统提示背景与文字颜色。`Menu` 数据条目与 `MenuItemButton` 组件条目接收功能 owner 提供的有效快捷键，并在末端以无背景的浅灰色文字对齐显示，子菜单也采用同一呈现。菜单行的分割线与该行内容区的左右边缘对齐。主指针为粗指针（`pointer: coarse`）且未使用[键盘导航](#input-modality)时，菜单隐藏这些提示。键盘导航会显示提示，直到下一次指针按下；快捷键绑定始终生效。`ShortcutKeys` 默认以无方块的按键文字显示菜单和行内提示。`tooltip` 变体在深色气泡上使用稍浅的键帽，以加号连接的组合则共用一个填充色块。`Tooltip.shortcutKeys` 将键帽与可选的本地化操作文本垂直居中排列，标签为空时只显示按键。可选的 `className` 供调用方设置交互状态样式。`Modal` 使用框架共享的浮层起点，视口边距至少为 24px。其遮罩不绘制 Windows 顶栏区域，覆盖整个视口的模态层仍阻挡背景点击。`Modal` 与设置外壳通过 `useModalLayer` 共用顶层 Esc 和 Tab 处理，关闭时恢复先前焦点。关闭后保留在 DOM 中的弹窗仅恢复仍停留于内部的焦点，不覆盖已经移到其他位置的焦点。`closeTopModal(document)` 请求前台弹窗当前的关闭操作；上层菜单或未注册的对话框会阻止关闭其后方弹窗。组件通过 `isBehindModal` 避免将焦点移到嵌套弹窗后方。菜单先消费自己的 Esc，再由模态层处理关闭。 `observeComposition` 为局部弹层和录键处理提供相同的 composition-end 与旧版 IME 保护；调用方随交互生命周期释放其 document 监听。
 
-`isMobileDevice()` 识别 iOS 和 Android 手机及平板，供自动聚焦和收起键盘使用。它识别 UA 中的 `Android`、`iPhone`、`iPad` 或 `iPod`，以及报告 `MacIntel` 且触摸点数大于一的 iPad。其他设备（包括 Windows 触屏电脑）返回 false，不受窗口宽度影响。函数缓存首次判断结果，供页面内的所有调用方共享；组件重新挂载会复用该结果，重新加载页面时会再次读取浏览器环境。识别出的移动设备需要用户主动聚焦文本输入框。隐藏移动平台信息的浏览器模式或自定义 UA 可能导致识别失败；未识别的 UA 返回 false。仅凭桌面 UA 无法区分 Android 平板与 Linux 电脑。
+`isMobileDevice()` 识别 iOS 和 Android 手机及平板，供自动聚焦和收起键盘使用。它识别 UA 中的 `Android`、`iPhone`、`iPad` 或 `iPod`，以及报告 `MacIntel` 且触摸点数大于一的 iPad。其他设备（包括 Windows 触屏电脑）返回 false，不受窗口宽度影响。函数缓存首次判断结果，供页面内的所有调用方共享；组件重新挂载会复用该结果，重新加载页面时会再次读取浏览器环境。识别出的移动设备需要用户主动聚焦文本输入框。隐藏移动平台信息的浏览器模式或自定义 UA 可能导致识别失败；未识别的 UA 返回 false。仅凭桌面 UA 无法区分 Android 平板与 Linux 电脑。Slot 组件通过标准 prop [`useMobile`](../ui-responsive/README.zh.md) 读取同一结果。
 
 弹窗自动进入及弹窗、菜单回焦，包括通过 Esc 和应用关闭快捷键触发的回焦，均使用 `focusWithoutRing(element, options?)`，在 Tab 或方向键导航恢复正常焦点样式前抑制外轮廓线。弹窗容器仍不绘制焦点外框。原有边框、阴影和错误状态保持不变。用 `data-modal-autofocus` 标记弹窗的初始控件，让模态层先保存触发控件，再移动焦点。随弹窗挂载的控件不得使用 React `autoFocus`，因为它会在保存触发控件前执行。弹窗容器获得焦点时，Tab 和 Shift+Tab 分别进入第一个和最后一个可聚焦控件。
 
 `LoginPanel` 是产品唯一的登录界面，由桌面欢迎窗（未登录入口为 `variant="landing"`，登录方式页为 `variant="window"`）和 Web 账号弹窗（`variant="dialog"`）共用。它是 fork 自有的（AGENTS.md，“BirdCoder brand assets”）：上游没有对应组件，因此上游合并无法回退这次统一。宿主把它渲染为自己的入口页，把登录方式页作为 `children` 传入，并用操作描述而不是自行设置按钮样式；进行中的操作是 `busy` 加载器，由 `busyLabel` 命名；弹窗变体的角部关闭控件由 `close` 提供。window 变体保持 40px 品牌带、`minmax(0, 1fr)` 身份区和 104px 操作带，因此桌面布局不变；landing 变体用大图标记替代品牌带，并把宿主的产品链接固定在页脚；dialog 变体以间距替代固定操作带，堆叠同样的三条带。
 
 本包是 Web 壳的构建输入。静态 ESM 为 Vite 保留第三方导入，包括 KaTeX 等第三方样式表；本包自身的样式表编译进 `__$dsh_client_module_manifest` 导出，由 renderer 安装；独立消费方自行提供开发依赖（[依赖规则](../AGENTS.md#dependency-declaration)）。
+本包是带 `immediately: true` 的动态插件包，其代码只在浏览器中运行。它的 `/client` 入口 `lib/client.js`（由 `src/client/index.ts` 构建）目前仍导出供其他 bundle require 的实体值，这是会逐步缩减的历史例外（[导出规则](../AGENTS.md#export-discipline-client-plugin-packages)）；浏览器中的 bundle 按包名或 `/client` 子路径取得这些导出，两者指向模块表中的同一行。为兼容仓库外的代码，包根的类型复用 `./client` 的声明，包根运行时 `lib/index.js`（由 `src/index.js` 构建）是只有空 `apply` 的 Host 入口（[包根](../AGENTS.md#hand-written-package-roots)）。因此在 Node 中包根不提供实体值：代码从 `/client` 子路径 import，在浏览器外运行这些值的测试把该子路径解析到源码（[Client 测试运行时](../../test-support/client-runtime/README.zh.md#module-resolution)）；仓库代码只通过 `/client` 引用本包。独立消费方自行提供开发依赖（[依赖规则](../AGENTS.md#dependency-declaration)）。Client 构建把 KaTeX、Shiki 和 Markdown 解析器打包进 `lib/client.js` 及其 chunk。TypeScript、shell 和 JSON 语法随入口登记；其余 Shiki 语言在首次使用时连同它需要的 chunk 一起下载。KaTeX 的字体作为包资源位于 `lib/assets/vendor/katex/dist/fonts/`，每种字形一个文件。
 
 只要 Web 客户端需要标准控件或 agent 输出渲染器，就用这些原子组件拼装功能 UI。它们只经 React 渲染，并从主题取得 `--dsw-*` 设计 token，因此无需导入主题或 slot 系统即可适配任意插件。
 
@@ -62,7 +63,8 @@ kind: "package-library"
 | `MarqueeText`、`useHoverMarquee` | 静止时以省略号截断的单行文字，以及让它滚动显示的 hook：把 hook 返回的指针处理函数展开到所在的行上，指针停在行上时，被截断的文字以 30px/s 匀速移到末尾并停在那里，仍有文字被遮住的边缘渐隐；离开时立即回到开头。移动由样式表的动画完成，hook 每次进入只测量一次溢出宽度。`hold` 让文字在指针不在行上时也保持滚动显示，例如行的菜单打开期间。溢出不超过 8px、触摸指针以及放得下的文字都不滚动；减少动态效果时直接显示末尾。 |
 | `StateDot` | 10px 槽内的绿色 `done`、琥珀色 `warning`、红色 `error`、中性灰色 `idle` 圆点，以及 tertiary 灰色 14px 旋转 `ongoing` loading，其动画在挂载时以及每次动画重启（如列表重排）时固定到文档时间零点，所以所有可见 loading 同相旋转。它是 `aria-hidden` 的，名称由渲染点提供。 `appearance="step"` 以实心勾表示完成、空心圆表示等待。 |
 | `ConnectionIndicator` | 行内连接恢复控件，覆盖断线、重试与已恢复三种状态。 |
-| `DisclosureRow` | 24px 紧凑折叠行，标题与内容左右排列。标题行默认使用 tertiary，悬停时使用 secondary；文字与图标继承该颜色，不受能否展开及开合状态影响，调用方可提供功能专属覆盖。语义状态色保持显式指定。收起时悬停预览向下箭头，展开后持续显示向上箭头。`headerAccessory` 将独立操作放在折叠触发区域和流光之外；有此操作时，标题行收窄到内容宽度。使用浅层 prop 比较进行 memo；内容未变时，保持回调与 React 节点 prop 的引用稳定。 |
+| `DisclosureRow` | 24px 紧凑折叠行，标题与内容左右排列。标题行默认使用 tertiary，悬停时使用 secondary；文字与图标继承该颜色，不受能否展开及开合状态影响，调用方可提供功能专属覆盖。语义状态色保持显式指定。收起时悬停预览向下箭头，展开后持续显示向上箭头。`headerAccessory` 将独立操作放在折叠触发区域和流光之外；有此操作时，标题行收窄到内容宽度。标题行带有 `data-disclosure-row`，调用方可用它提高行、前导图标与标题覆盖类的选择器优先级。使用浅层 prop 比较进行 memo；内容未变时，保持回调与 React 节点 prop 的引用稳定。 |
+| `InspectButton` | 带检查图标的胶囊按钮，用于在过程行的展开内容下方打开其检查器记录。它默认隐藏，直到任一 `[data-inspect-scope]` 祖先被悬停或自身获得键盘焦点；仅触摸设备上始终可见。调用方提供本地化的 `label`。 |
 | `AnimatedRows` | 带键列表的位移动画：移动为 200 ms，进出淡变为 100 ms。列表内发生指针或键盘输入后才启用，遵循减少动态效果设置，加载或替换视图时直接完成。只有同时与列表和浏览器窗口相交的行才做动画，所有行仍保持挂载。为行标记 `data-row-key` 并传入对应的 `rowKeys`，为父容器设置定位以承载不可交互的退出层；`role` 和 `label` 由调用方提供。 |
 | `useRowDragPreview` | 使用不可交互的离屏行副本生成原生拖拽预览。可选的 `inheritedProperties` 列表指定离屏包装层需要复制其计算值的 CSS 自定义属性；省略时不复制。列表引用需保持稳定，因为替换列表会清除活动预览。未列出的自定义属性按预览所在位置的正常继承规则生效。传入设置表面底色的类名；拖拽来自子级手柄时，将行元素传给 `start`；`clear` 和卸载会移除副本。 |
 | `TextShimmer` | 同一道高光从左到右扫过一行的标题、分隔符、摘要与后缀：首次等待 300ms，扫动一秒，再静止 500ms。遮罩覆盖内容宽度，并限制在可见行宽内，相对垂直方向倾斜 15°，峰值区域平坦，两侧柔和渐隐。移动的装饰层始终裁剪在行内，不会扩大可滚动区域。底色继承调用方的颜色，包括悬停变化；主题提供半透明高光。图标和箭头放在 `TextShimmer` 外，只有文字和分隔符参与扫光。字符串子节点沿用稳定的文字接口；嵌套的 `TextShimmer` 共用外层动画。活动期间组合子节点渲染两次，因此不得带副作用或元素 id。分隔符标记 `data-shimmer-decoration`，让填色参与扫光。`DisclosureRow` 将 `contentClassName` 传给文字区域，将 `contentLayoutClassName` 传给内部布局。惰性装饰副本不参与交互、选区和无障碍访问；文字更新保留动画，减少动态效果模式保留静态底色。 |
@@ -87,7 +89,7 @@ kind: "package-library"
 | `UserTextRun`、`ReferenceChip` | 不做解析的行内文本，以及业务已解析的引用标签或激活按钮。 |
 | `CommandText` | 可选中的命令或参数文本；仅横向溢出时添加具名的键盘聚焦目标。 |
 | `TerminalBlock`、`ReadBlock`、`DiffBlock`、`SearchBlock`、`WebBlock` | 与各类工具结果意图对应的 agent 输出卡片。 |
-| `icons/*`、`FishLogo`、`BrandWordmark`、`ReferenceIconRegular`/`ReferenceIconMedium`、`LinkIconRegular`/`LinkIconMedium` | 字形与品牌标识。`IconDragHandleOutlineRegular`/`Medium` 以三条横线表示可拖动的排序手柄。`IconFilesDiffOutlineRegular`/`Medium` 画两页叠放的文件，前页带上加下减，表示一组文件的变更。思考图标的轨道在 16px 视口内保留内边距。“更多”入口使用的 `IconAppsAddOutlineRegular`/`Medium` 接受 `compact`，在卡片尺寸下让方块更靠近。`LinkIconMedium` 用于 14px 的可点击链接分类及已知站点标记。 |
+| `icons/*`、`FishLogo`、`BrandWordmark`、`ReferenceIconRegular`/`ReferenceIconMedium`、`LinkIconRegular`/`LinkIconMedium` | 字形与品牌标识。`IconDragHandleOutlineRegular`/`Medium` 以三条横线表示可拖动的排序手柄；`IconDragDotsFillRegular`/`Medium` 在 8×14 的框内绘制六个圆点，用作整行可拖动的行旁的拖动标记。`IconFilesDiffOutlineRegular`/`Medium` 画两页叠放的文件，前页带上加下减，表示一组文件的变更。思考图标的轨道在 16px 视口内保留内边距。“更多”入口使用的 `IconAppsAddOutlineRegular`/`Medium` 接受 `compact`，在卡片尺寸下让方块更靠近。`LinkIconMedium` 用于 14px 的可点击链接分类及已知站点标记。 |
 | `PermissionIconReadOnlyRegular`/`Medium`、`PermissionIconWorkspaceWriteRegular`/`Medium`、`PermissionIconFullAccessRegular`/`Medium`、`PermissionIconAutoReviewRegular`/`Medium` | 只读、工作区写入、完全访问与自动审查选项使用的权限模式图形。 |
 | `PluginArtworkTerminal`/`Loop`/`Subagent`/`Search`/`Default` | 固定配色的 36×36 插件插画；`Terminal` 为插件卡片和侧边栏开始页入口提供浅蓝色提示符。`Default` 用于没有自有插画的插件。def id 按实例生成，同一插画可在一页中安全重复。 |
 | `GuideArtworkBrowser`/`Files` | 固定配色的 36×36 浏览器与文件夹插画，用于侧栏引导入口。 |
@@ -125,7 +127,7 @@ kind: "package-library"
 
 明确的 `./`、`../`、斜杠或反斜杠开头的路径（包括 UNC），以及 `C:/work/file.ts` 这样的 Windows 盘符路径优先于 URL 解析。其余目标若能被绝对 URL 解析器接受，就保留为 URL：`index.ts:24`、`Makefile:12` 和 `localhost:3000` 均为链接，不补协议，也不预先检查能否打开。文件引用使用 `./index.ts:24`。其他目标视为路径。正文链接禁止 `javascript:`、`vbscript:`、`data:` 和 `blob:`；其余可解析的协议保留原生导航。HTTP(S) 链接保留委托导航和修饰键点击行为。不添加点击后的失败提示。
 
-`MarkdownText` 渲染不可信的 GFM 与 TeX 公式、阻止不安全的链接与图片，并可把已解析的文件提及转换为显式控件。复制位于同一个 `MarkdownText` 文档内且包含已渲染公式的选区时，每个完整公式会以 TeX 源码同时写入剪贴板的纯文本和 HTML 格式，行内公式用 `$…$` 包裹，展示公式用 `$$…$$` 包裹。删除线需要 `~~`；单个 `~`（如 `10~20`）保持字面文本。星号加粗在汉字之后、标点之前可以开启，在标点之后、汉字之前可以闭合，因此 `针对**“重连速度”**，` 与 `**注意：**内容` 无需在标记两侧加空格也能加粗。裸 URL 在非 ASCII 标点或符号（如 `。`、`，`）前结束，紧随其后的中文正文不会并入链接。外层 `MarkdownDelegateProvider` 会接收普通点击产生的已净化 HTTP(S) URL；带修饰键的点击和 Provider 外的链接保留原生外部 anchor 行为。`omitHtml` 不渲染原始 HTML，而不是将其显示为原样文本，用于为 HTML 渲染器编写的文档。当 owner 传入 `pathImages` 词表时，本地媒体路径的图片目标只在落定渲染阶段重写为可展示 URL（与 file mentions 相同的流式门）；不传词表时本地目标保持惰性 alt 文本。重写后的图片支持 HTTP(S)、data、blob 及桌面端 `dsh-app://app/api/file`、`dsh-app://app/api/plugin-market/detail-file` 与 `dsh-app://app/api/plugin-manager/detail-file` 路由；正文直接书写的桌面端 URL 仍保持惰性。加载或解码失败后，图片替换为作者的 alt 文本；alt 为空时显示原始目标路径；`fileImages` 还提供本地化的失败提示前缀。图片源变化后可重新加载。每个挂载的图片会为解析得到的 Host `api/file` 地址追加 `load` 查询参数，因为浏览器在同一文档内会无视 `no-store` 复用相同 URL 的图片；因此覆盖后的文件在新渲染的图片中会加载当前内容，每次重新挂载都会重新请求该文件；Host 文件路由会把该请求重定向到当前文件版本的可缓存地址。回复流式输出时，它冻结已完成的块、按已完成行推进顶层未闭合 fence，并从保存的 Shiki grammar state 为该 fence 增量高亮。已完成的 token 行进入固定大小的 React 分组，后续分片只 reconcile 正在增长的分组；最终全量解析解决跨文档语法时，未变化的 fence 会保留该 DOM。`TerminalBlock`、`ReadBlock`、`DiffBlock`、`SearchBlock` 与 `WebBlock` 把对应的工具结果意图渲染为带复制控件、溢出处理及适用时 ANSI 处理的卡片。`JsonTree` 与 `JsonBlock` 以只读方式检查 JSON 值；`UserTextRun` 渲染不做解析的文本，`ReferenceChip` 渲染业务已解析的标签。显式传入 `onActivate` 后，胶囊成为可由键盘操作的按钮；重复指针点击和已有文本选区不触发激活，键盘激活仍然可用。标签继承所属容器的换行规则。识别和 JSON 变换由 [ui-conversation](../ui-conversation/README.zh.md#sent-user-text) 负责。
+`MarkdownText` 渲染不可信的 GFM 与 TeX 公式、阻止不安全的链接与图片，并可把已解析的文件提及转换为显式控件。复制位于同一个 `MarkdownText` 文档内且包含已渲染公式的选区时，每个完整公式会以 TeX 源码同时写入剪贴板的纯文本和 HTML 格式，行内公式用 `$…$` 包裹，展示公式用 `$$…$$` 包裹。删除线需要 `~~`；单个 `~`（如 `10~20`）保持字面文本。星号加粗在汉字之后、标点之前可以开启，在标点之后、汉字之前可以闭合，因此 `针对**“重连速度”**，` 与 `**注意：**内容` 无需在标记两侧加空格也能加粗。裸 URL 在非 ASCII 标点或符号（如 `。`、`，`）前结束，紧随其后的中文正文不会并入链接。外层 `MarkdownDelegateProvider` 会接收普通点击产生的已净化 HTTP(S) URL；带修饰键的点击和 Provider 外的链接保留原生外部 anchor 行为。`omitHtml` 不渲染原始 HTML，而不是将其显示为原样文本，用于为 HTML 渲染器编写的文档。当 owner 传入 `pathImages` 词表时，本地媒体路径的图片目标只在落定渲染阶段重写为可展示 URL（与 file mentions 相同的流式门）；不传词表时本地目标保持惰性 alt 文本。重写后的图片支持 HTTP(S)、data、blob 及桌面端 `dsh-app://app/api/file`、`dsh-app://app/api/plugin-market/detail-file` 与 `dsh-app://app/api/plugin-manager/detail-file` 路由；正文直接书写的桌面端 URL 仍保持惰性。当委托提供 `fileImages` 时，若段落中的元素只有两张或更多图片，上下相邻两行图片之间保持 16px（紧凑 Markdown 中为 4px），段落内的文字与图片相距半个段落间距，段落与相邻块之间的距离保持不变；带链接的图片，紧排列表项、表格单元格和标题中的图片（这些位置没有段落元素），以及嵌套有序列表中按行内方式渲染的段落，保持行内排版。加载或解码失败后，图片替换为作者的 alt 文本；alt 为空时显示原始目标路径；`fileImages` 还提供本地化的失败提示前缀。图片源变化后可重新加载。每个挂载的图片会为解析得到的 Host `api/file` 地址追加 `load` 查询参数，因为浏览器在同一文档内会无视 `no-store` 复用相同 URL 的图片；因此覆盖后的文件在新渲染的图片中会加载当前内容，每次重新挂载都会重新请求该文件；Host 文件路由会把该请求重定向到当前文件版本的可缓存地址。回复流式输出时，它冻结已完成的块、按已完成行推进顶层未闭合 fence，并从保存的 Shiki grammar state 为该 fence 增量高亮。已完成的 token 行进入固定大小的 React 分组，后续分片只 reconcile 正在增长的分组；最终全量解析解决跨文档语法时，未变化的 fence 会保留该 DOM。`TerminalBlock`、`ReadBlock`、`DiffBlock`、`SearchBlock` 与 `WebBlock` 把对应的工具结果意图渲染为带复制控件、溢出处理及适用时 ANSI 处理的卡片。`JsonTree` 与 `JsonBlock` 以只读方式检查 JSON 值；`UserTextRun` 渲染不做解析的文本，`ReferenceChip` 渲染业务已解析的标签。显式传入 `onActivate` 后，胶囊成为可由键盘操作的按钮；重复指针点击和已有文本选区不触发激活，键盘激活仍然可用。标签继承所属容器的换行规则。识别和 JSON 变换由 [ui-conversation](../ui-conversation/README.zh.md#sent-user-text) 负责。
 
 `MarkdownText` 默认为 `variant="body"`。次级内容使用 `variant="compact"`：其 13px 字号与 20px 行高跟随内容字号设置，各级标题保持同一字号并使用 600 字重，段落与列表采用更紧凑的间距。正文、链接和代码均保持 tertiary 颜色，以点状下划线区分链接。代码标题栏随代码块滚动。表格和公式仍然启用，使用周围文字的字号，并在可用宽度内横向滚动。两个变体共享解析器与流式缓存。 `textInteractionSource` 将已有根元素标记为文本选区交互的来源。
 
@@ -183,22 +185,22 @@ Markdown 链接图标保留完整图标框及内部留白。与前文的外间�
 
 | 文件 | 职责 |
 |---|---|
-| [`src/index.ts`](src/index.ts) | 原子组件公开导出 |
-| [`src/markdown/`](src/markdown/) | Markdown 与数学公式流水线：micromark 解析、KaTeX 排版、增量流式渲染器、`CodeBlock`/`JsonBlock` |
-| [`src/TerminalBlock.tsx`](src/TerminalBlock.tsx) | ANSI 转义解析（`anser`）与终端卡片渲染 |
-| [`src/ReadBlock.tsx`](src/ReadBlock.tsx) / [`src/DiffBlock.tsx`](src/DiffBlock.tsx) | 读取与差异卡片 |
-| [`src/SearchBlock.tsx`](src/SearchBlock.tsx) / [`src/WebBlock.tsx`](src/WebBlock.tsx) | 搜索与网页检索卡片 |
-| [`src/icons/`](src/icons/) | 默认产品图标图形、其 `ICON_SYMBOLS` sprite 文档，以及引用这些 symbol 的与尺寸无关的 `Regular` 和 `Medium` 组件 |
-| [`src/code-highlighting.ts`](src/code-highlighting.ts) | 共享的文件名 grammar 选择与惰性逐行高亮 |
-| [`src/input-modality.ts`](src/input-modality.ts) | 全文档输入模态，发布到 `<html>` |
-| [`src/plugin-artwork.tsx`](src/plugin-artwork.tsx) | 固定配色插件插画，SVG def id 按实例生成 |
-| [`src/useAnchoredMaxHeight.ts`](src/useAnchoredMaxHeight.ts) | 底部锚定浮层的高度限制 |
-| [`src/settings-form/`](src/settings-form/) | 设置页套件：基于设置 scope 的暂存表单模型、值字段与密文字段、表单框架 |
+| [`src/client/index.ts`](src/client/index.ts) | 原子组件公开导出 |
+| [`src/client/markdown/`](src/client/markdown/) | Markdown 与数学公式流水线：micromark 解析、KaTeX 排版、增量流式渲染器、`CodeBlock`/`JsonBlock` |
+| [`src/client/TerminalBlock.tsx`](src/client/TerminalBlock.tsx) | ANSI 转义解析（`anser`）与终端卡片渲染 |
+| [`src/client/ReadBlock.tsx`](src/client/ReadBlock.tsx) / [`src/client/DiffBlock.tsx`](src/client/DiffBlock.tsx) | 读取与差异卡片 |
+| [`src/client/SearchBlock.tsx`](src/client/SearchBlock.tsx) / [`src/client/WebBlock.tsx`](src/client/WebBlock.tsx) | 搜索与网页检索卡片 |
+| [`src/client/icons/`](src/client/icons/) | 默认产品图标图形、其 `ICON_SYMBOLS` sprite 文档，以及引用这些 symbol 的与尺寸无关的 `Regular` 和 `Medium` 组件 |
+| [`src/client/code-highlighting.ts`](src/client/code-highlighting.ts) | 共享的文件名 grammar 选择与惰性逐行高亮 |
+| [`src/client/input-modality.ts`](src/client/input-modality.ts) | 全文档输入模态，发布到 `<html>` |
+| [`src/client/plugin-artwork.tsx`](src/client/plugin-artwork.tsx) | 固定配色插件插画，SVG def id 按实例生成 |
+| [`src/client/useAnchoredMaxHeight.ts`](src/client/useAnchoredMaxHeight.ts) | 底部锚定浮层的高度限制 |
+| [`src/client/settings-form/`](src/client/settings-form/) | 设置页套件：基于设置 scope 的暂存表单模型、值字段与密文字段、表单框架 |
 
 <a id="input-modality"></a>
 ### 输入模态
 
-[`input-modality.ts`](src/input-modality.ts) 为 tooltip 跟踪输入，并在 `<html>` 上发布 `data-input-modality`，供[主题焦点样式](../ui-theme/README.zh.md#understand-the-implementation)使用。`pointerModality()` 在指针输入后为 true，在任意按键后为 false，包括 IME（输入法）组合输入按键；`Tooltip` 据此决定聚焦时是否可以显示气泡。发布的属性保持 `pointer`，直到非组合输入的导航键（Tab、方向键、Home/End、PageUp/PageDown）到达，或非组合输入按键之后焦点移到不同控件。重新聚焦同一控件不会恢复键盘模态。指针输入、IME 组合输入按键和 window blur 都会清除待处理按键；没有待处理按键的焦点变化不改变模态。监听器与文档同寿命；从 Node 导入时不安装监听器。 焦点变化规则只观察传到 window 的事件；shadow root 内部不向外暴露这些事件的额外导航由组件负责。
+[`input-modality.ts`](src/client/input-modality.ts) 为 tooltip 跟踪输入，并在 `<html>` 上发布 `data-input-modality`，供[主题焦点样式](../ui-theme/README.zh.md#understand-the-implementation)使用。`pointerModality()` 在指针输入后为 true，在任意按键后为 false，包括 IME（输入法）组合输入按键；`Tooltip` 据此决定聚焦时是否可以显示气泡。发布的属性保持 `pointer`，直到非组合输入的导航键（Tab、方向键、Home/End、PageUp/PageDown）到达，或非组合输入按键之后焦点移到不同控件。重新聚焦同一控件不会恢复键盘模态。指针输入、IME 组合输入按键和 window blur 都会清除待处理按键；没有待处理按键的焦点变化不改变模态。监听器与文档同寿命；从 Node 导入时不安装监听器。 焦点变化规则只观察传到 window 的事件；shadow root 内部不向外暴露这些事件的额外导航由组件负责。
 
 ### 流式 Markdown
 
@@ -225,7 +227,7 @@ Markdown 链接图标保留完整图标框及内部留白。与前文的外间�
 
 -----
 
-`QuotePreview` 在 composer 与已发送消息之间共享紧凑 quote 摘录和仅截断时显示的行内 HoverCard。原文弹层按文本内容确定宽度，最大为 300px，并限制在视口内。两处均展示原文，除非所有者提供 `QuoteSummary`：此时行内摘录改为显示其 label 和 body，辅助技术以 title 和可选的 detail 代替 label 朗读，每次悬停时弹层显示其 title、可选的 detail 和 body。可编辑草稿可以提供本地化的整条 quote 删除操作。quote 加入最近的 `HoverCardGroup`，使原文弹层互斥显示。该 primitive 不负责识别或导航。
+`QuotePreview` 在 composer 与已发送消息之间共享紧凑 quote 摘录及其行内 HoverCard。单行摘录由 CSS 省略，无论是否被截断，每次悬停都会打开弹层，因此挂载 quote 时不读取布局。原文弹层按文本内容确定宽度，最大为 300px，并限制在视口内。两处均展示原文，除非所有者提供 `QuoteSummary`：此时行内摘录改为显示其 label 和 body，辅助技术以 title 和可选的 detail 代替 label 朗读，弹层显示其 title、可选的 detail 和 body。可编辑草稿可以提供本地化的整条 quote 删除操作。quote 加入最近的 `HoverCardGroup`，使原文弹层互斥显示。该 primitive 不负责识别或导航。
 
 `MarkdownDelegate.getTriggerProps` 接收明确的文件、链接或原图目标并返回手势 props。文件路径与行号通过回调传递。文件引用可提供 `contextMenuProps`；`ImageLightbox.contextMenuProps` 转发原图手势。图片菜单持有焦点时负责 Escape 与 Tab，先返回预览再关闭预览。
 

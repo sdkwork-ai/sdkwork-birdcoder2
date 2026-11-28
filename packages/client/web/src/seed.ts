@@ -64,4 +64,5 @@ export function getStaticModules(): readonly DshClientModuleManifest[] {
     '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/sdkwork-rail-tooltip':
       platform('@deepseek-ai/dsh-client-ui-sdkwork-app-modes/sdkwork-rail-tooltip', SdkworkRailTooltip),
   } satisfies Record<PlatformModule, DshClientModuleManifest>)
+  } satisfies Partial<Record<PlatformModule, DshClientModuleManifest>>)
 }

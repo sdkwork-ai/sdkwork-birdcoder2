@@ -3,7 +3,7 @@ import { describe, expect, onTestFinished, vi } from 'vitest'
 import { createElement, Fragment, useSyncExternalStore } from 'react'
 import { act, cleanup, render } from '@testing-library/react'
 import { createClientTest, webApp } from '@deepseek-ai/dsh-client-test-runtime/src/assembly/index.ts'
-import { Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Modal } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type {} from '@deepseek-ai/dsh-client-shortcuts/client'
 import type { DesktopKeyboardApi, DesktopShortcutInput, ShortcutCommandId } from '@deepseek-ai/dsh-client-shortcuts/protocol'
 import type { createSettingsShellStore } from '../../ui-settings-general/src/client/shell-store.ts'
@@ -37,7 +37,7 @@ describe.skip('assembled shortcut command owners', () => {
     await injected.recording(false)
     const shortcut = shortcuts.catalog.getSnapshot().find(row => row.id === 'shortcuts.open')!
     expect((await injected.edit({ type: 'reset', id: shortcut.id }, shortcuts.config.getSnapshot().revision)).status).toBe('saved')
-    const row = client.ctx.slots.entries('settings.general.item').find(entry => entry.options.id === 'shortcuts')!
+    const row = client.ctx.slots.entries('settings.general.group.interaction.item').find(entry => entry.options.id === 'shortcuts')!
     const rowInjected: Partial<ReferenceInjected> | undefined = row.inject?.()
     expect(rowInjected?.hooks?.catalog).toBe(shortcuts.catalog)
     const ownerIds = ['settings.open', 'shortcuts.open', 'sidebar.left.toggle']

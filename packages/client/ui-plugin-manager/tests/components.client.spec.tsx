@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
+import { contextMenuHook, responsiveHooks, themeHooks } from '@deepseek-ai/dsh-client-test-runtime'
+import { createDocumentPortal } from '@deepseek-ai/dsh-client-ui-renderer/src/client/document-portal.tsx'
 import type { ConfigPageForm } from '../src/client/slot-contract.ts'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
@@ -10,7 +11,7 @@ import { allowAllAccess, bindSnapshotSelector, stubConfigForm } from '@deepseek-
 import type { ConfigForm, ConfigFormSnapshot, SettingsMirrorSnapshot, SettingsSectionOwnerProps, SettingsSectionViewProps } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { ClientEntryState } from '@deepseek-ai/dsh-client-modules/client'
-import { MenuItemButton } from '@deepseek-ai/dsh-client-ui-primitives'
+import { MenuItemButton } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import { StrictMode, type ReactNode } from 'react'
 import type { LocaleSnapshot } from '@deepseek-ai/dsh-client-locale/client'
 import { bundleDetailKey, type BundleDetailsState } from '../src/client/detail-store.ts'
@@ -23,6 +24,9 @@ import type { ConfigLedger } from '../src/client/config-ledger.ts'
 import { rowKey, type InstallState, type PackageRow, type PackageView, type PluginManagerState, type UpdateState, type VersionCheck } from '../src/client/manager-store.ts'
 import { INSTALL_GIT_EXAMPLE, INSTALL_PATH_EXAMPLE, en, zh, type PluginManagerLocaleKey } from '../src/client/locales.ts'
 import type { PluginActivationOwnerProps, PluginAddActionsProps, PluginDetailProps, PluginTabProps, PluginsSubject } from '../src/client/slot-contract.ts'
+
+/** The renderer's portal into this test document, as a mounted Slot receives it. */
+const Portal = createDocumentPortal(document)
 
 beforeEach(() => { localStorage.clear() })
 afterEach(cleanup)
@@ -78,6 +82,7 @@ const IDLE_INSTALL: InstallState = {
 const READY: PluginManagerState = {
   status: 'ready',
   refreshStatus: 'idle',
+  refreshProgress: null,
   packages: [],
   busy: [],
   notice: null,
@@ -147,6 +152,7 @@ function renderTab(
     openUpdate: vi.fn(),
     openGitUpdate: vi.fn(),
     runUpdate: vi.fn(),
+    approveUpdateBuildsAndRetry: vi.fn(),
     closeUpdate: vi.fn(),
     toggleUpdateOutput: vi.fn(),
     loadDetail: vi.fn(),
@@ -164,6 +170,7 @@ function renderTab(
     useResource: unusedStandardHook,
     ...allowAllAccess,
     useContextMenu: contextMenuHook(),
+    ...responsiveHooks({ portal: Portal }), ...themeHooks(),
   }
   const navigation = createNavigationStore().create()
   const props: PluginManagerPageProps = {
@@ -254,7 +261,8 @@ describe('PluginManagerPage', () => {
     expect(screen.getByText(en.clientSyncing).getAttribute('role')).toBe('status')
     const notice = document.querySelector('[data-client-sync-failure]') as HTMLElement
     expect(within(notice).getByRole('alert').textContent).toBe(en.clientSyncFailed)
-    expect(within(notice).getByText('@fixture/live: download failed')).toBeTruthy()
+    expect(notice.querySelector('[data-icon="dsw-icon-warning-outline-regular"]')).not.toBeNull()
+    expect([...within(notice).getByRole('listitem').children].map(part => part.textContent)).toEqual(['@fixture/live', 'download failed'])
     const retry = within(notice).getByRole('button', { name: en.clientSyncRetry })
     expect((retry as HTMLButtonElement).disabled).toBe(true)
     setClientSync({ syncing: false, failures: [{ id: '@fixture/live', message: 'download failed' }] })
@@ -387,6 +395,70 @@ describe('PluginManagerPage', () => {
     fireEvent.click(screen.getByRole('button', { name: en.backToList }))
     expect(navigation.getSnapshot().tab).toBe('installed')
     expect(document.querySelector('[data-plugin-group="bundles"]')).not.toBeNull()
+  })
+
+  it('shows a contributed tab\'s own page under a crumb that names the tab, in place of the header and tabs', () => {
+    const { navigation, setTabs } = renderTab({ packages: [pkg()] }, {}, {
+      'plugins.tab:connectors': (_view, owner) => {
+        const tab = owner as PluginTabProps
+        return tab.page === undefined
+          ? <button type="button" onClick={() => { tab.openPage('new') }}>Add server</button>
+          : <button type="button" onClick={() => { tab.closePage() }}>Save {tab.page}</button>
+      },
+      'plugins.tab:discover': () => 'Discover list',
+    }, {}, [{ id: 'connectors', label: 'Connectors' }, { id: 'discover', label: 'Discover' }])
+    fireEvent.click(screen.getByRole('tab', { name: 'Connectors' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add server' }))
+    expect(navigation.getSnapshot()).toEqual({ tab: 'connectors', view: { kind: 'tabPage', tab: 'connectors', page: 'new' } })
+    // The entry stays and receives its key; the page's title, toolbar, and tabs give way to the crumb.
+    expect(screen.getByRole('button', { name: 'Save new' })).toBeTruthy()
+    expect(document.querySelector('[data-plugin-bar]')).toBeNull()
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
+    expect(screen.queryByRole('tablist')).toBeNull()
+    expect(screen.queryByRole('tabpanel')).toBeNull()
+    const crumb = screen.getByRole('button', { name: en.backToPackage.replace('{name}', 'Connectors') })
+    expect(crumb.textContent).toBe('Connectors')
+    expect(crumb.parentElement?.hasAttribute('data-window-drag')).toBe(true)
+    expect(crumb.parentElement?.children).toHaveLength(1)
+    fireEvent.click(crumb)
+    expect(navigation.getSnapshot()).toEqual({ tab: 'connectors', view: { kind: 'list' } })
+    expect(screen.getByRole('heading', { name: en.title, level: 1 })).toBeTruthy()
+    expect(screen.getByRole('tab', { name: 'Connectors' }).getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByRole('tabpanel', { name: 'Connectors' })).toBeTruthy()
+    // The entry closes its page itself, as after a save.
+    fireEvent.click(screen.getByRole('button', { name: 'Add server' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save new' }))
+    expect(navigation.getSnapshot()).toEqual({ tab: 'connectors', view: { kind: 'list' } })
+    expect(screen.getByRole('tabpanel', { name: 'Connectors' })).toBeTruthy()
+    // A page shows only on the tab that opened it.
+    act(() => { navigation.actions.setView({ kind: 'tabPage', tab: 'connectors', page: 'new' }); navigation.actions.setTab('discover') })
+    expect(screen.getByRole('tabpanel', { name: 'Discover' }).textContent).toBe('Discover list')
+    expect(screen.getByRole('heading', { name: en.title, level: 1 })).toBeTruthy()
+    // A tab that leaves the ledger while its page is open falls back to Installed and its list.
+    act(() => { navigation.actions.setTab('connectors') })
+    expect(screen.getByRole('button', { name: 'Save new' })).toBeTruthy()
+    setTabs([{ id: 'discover', label: 'Discover' }])
+    expect(navigation.getSnapshot().tab).toBe('installed')
+    expect(screen.getByRole('tabpanel', { name: en.installedTab })).toBeTruthy()
+    expect(document.querySelector('[data-plugin-group="bundles"]')).not.toBeNull()
+  })
+
+  it('closes a contributed tab\'s own page when the tab opens a bundle\'s page, whose back button returns to the tab\'s main content', () => {
+    const { navigation } = renderTab({ packages: [pkg()] }, {}, {
+      'plugins.tab:connectors': (_view, owner) => {
+        const tab = owner as PluginTabProps
+        return tab.page === undefined
+          ? <button type="button" onClick={() => { tab.openPage('new') }}>Add server</button>
+          : <button type="button" onClick={() => { tab.openPackage('dsh-better-sidebar') }}>Open bundle</button>
+      },
+    }, {}, [{ id: 'connectors', label: 'Connectors' }])
+    fireEvent.click(screen.getByRole('tab', { name: 'Connectors' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add server' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open bundle' }))
+    expect(document.querySelector('[data-plugin-detail="dsh-better-sidebar"]')).not.toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: en.backToList }))
+    expect(navigation.getSnapshot()).toEqual({ tab: 'connectors', view: { kind: 'list' } })
+    expect(screen.getByRole('button', { name: 'Add server' })).toBeTruthy()
   })
 
   it('shows a confirmed version by name above its spec, as a check and a refusal with retry, without the spec form or another registry', () => {
@@ -612,7 +684,7 @@ describe('PluginManagerPage', () => {
     expect(screen.queryByRole('status', { name: en.loading })).toBeNull()
     expect(screen.getByRole('status').querySelector('[data-state="idle"]')).not.toBeNull()
     set({ status: 'error' })
-    expect(screen.getByRole('alert').querySelector('[data-state="error"]')).not.toBeNull()
+    expect(screen.getByRole('alert').textContent).toBe(en.error)
     fireEvent.click(screen.getByRole('button', { name: en.retry }))
     expect(actions.refresh).toHaveBeenCalledTimes(1)
     fireEvent.click(screen.getByRole('button', { name: en.refresh }))
@@ -756,7 +828,7 @@ describe('PluginManagerPage', () => {
     fireEvent.click(screen.getByRole('button', { name: en.openDetail.replace('{name}', 'dsh-better-sidebar') }))
     expect(screen.queryByRole('alert')).toBeNull()
     set({ status: 'error' })
-    expect(screen.getByRole('alert').querySelector('[data-state="error"]')).not.toBeNull()
+    expect(screen.getByRole('alert').textContent).toBe(en.error)
     fireEvent.click(screen.getByRole('button', { name: en.retry }))
     expect(actions.refresh).toHaveBeenCalledTimes(1)
     // The detail keeps showing the kept data behind the alert.
@@ -822,6 +894,24 @@ describe('PluginManagerPage', () => {
       '@deepseek-ai/dsh-experimental-voice-input-bundle', '@acme/dsh-base', 'dsh-better-sidebar',
     ])
     expect(document.querySelector('[data-plugin-count]')).toBeNull()
+  })
+
+  it.each([false, true])('lists enabled Office preview and opens its details only in Desktop (desktop=%s)', (desktop) => {
+    if (desktop) {
+      vi.stubGlobal('dshDesktop', {})
+      onTestFinished(() => { vi.unstubAllGlobals() })
+    }
+    const name = '@deepseek-ai/dsh-office-frame-forwarding-bundle'
+    const b = renderTab({ packages: [
+      pkg({ name, optional: true, enabled: true }),
+      pkg({ name: '@deepseek-ai/dsh-timeline', optional: true, enabled: false }),
+    ] })
+    const card = `[data-plugin-package="${name}"]`
+    expect(document.querySelector(card) !== null).toBe(desktop)
+    fireEvent.click(screen.getByRole('button', { name: en.moreAction }))
+    expect(document.querySelector(card) !== null).toBe(desktop)
+    act(() => { b.navigation.actions.setView({ kind: 'package', name }) })
+    expect(document.querySelector(`[data-plugin-detail="${name}"]`) !== null).toBe(desktop)
   })
 
   it.each([false, true])('offers persistent terminals after Timeline with enabled=%s', (enabled) => {
@@ -1228,7 +1318,7 @@ describe('PluginManagerPage', () => {
     expect(within(detail).getByText('sidebar', { selector: 'code' })).toBeTruthy()
   })
 
-  it('translates row text, searches current copy and technical identities, and keeps configuration keys unchanged', () => {
+  it('translates row text, searches every declared language and technical identities, and keeps configuration keys unchanged', () => {
     const error = 'locale/zh.json: invalid description'
     const localized = row({
       moduleName: '@acme/dsh-sidebar-widget',
@@ -1240,6 +1330,7 @@ describe('PluginManagerPage', () => {
     })
     const rows = [localized, ...Array.from({ length: 10 }, (_, index) => row({
       rowId: `extra-${String(index)}`, entryId: `include:extra-${String(index)}` as PluginEntryId, moduleName: '@acme/other',
+      ...index === 0 ? { meta: { title: 'Plain extra row' } } : {},
     }))]
     const { actions, setLanguage } = renderTab(
       { packages: [pkg({ meta: { title: { en: 'Personal tools', zh: '个人工具' } }, rows })] },
@@ -1254,6 +1345,11 @@ describe('PluginManagerPage', () => {
       expect(document.querySelectorAll('[data-plugin-row]')).toHaveLength(1)
       expect(screen.getByRole('button', { name: zh.configureRow.replace('{name}', '导航组件') })).toBeTruthy()
     }
+    // A literal title remains matchable alongside the translated ones.
+    fireEvent.change(search, { target: { value: 'Plain extra row' } })
+    expect(document.querySelectorAll('[data-plugin-row]')).toHaveLength(1)
+    expect(document.querySelector('[data-plugin-row="include:extra-0"]')).toBeTruthy()
+    fireEvent.change(search, { target: { value: '' } })
     expect(screen.getByText('sidebar')).toBeTruthy()
     expect(screen.getByText('@acme/dsh-sidebar-widget')).toBeTruthy()
     expect(screen.getByText('侧边导航')).toBeTruthy()
@@ -1270,6 +1366,12 @@ describe('PluginManagerPage', () => {
     expect(screen.getByText(zh.partsFilterEmpty)).toBeTruthy()
     fireEvent.change(search, { target: { value: 'Sidebar component' } })
     setLanguage(en)
+    for (const query of ['导航组件', '侧边导航']) {
+      fireEvent.change(search, { target: { value: query } })
+      expect(document.querySelectorAll('[data-plugin-row]')).toHaveLength(1)
+      expect(screen.getByRole('button', { name: en.configureRow.replace('{name}', 'Sidebar component') })).toBeTruthy()
+    }
+    fireEvent.change(search, { target: { value: 'Sidebar component' } })
     expect(screen.getByRole('button', { name: en.configureRow.replace('{name}', 'Sidebar component') })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: en.configureRow.replace('{name}', 'Sidebar component') }))
     expect(document.querySelector('[data-plugin-row-detail]')?.getAttribute('data-plugin-row-detail')).toBe('dsh-better-sidebar#sidebar')
@@ -1806,8 +1908,16 @@ describe('PluginManagerPage', () => {
     set({ packages: [pkg({ enabled: false, error: { code: 'unsupported-platform' } })] })
     expect(screen.getByText(en.reasonUnsupportedPlatform)).toBeTruthy()
     expect(screen.getByRole('switch', { name: en.enableToggle.replace('{name}', 'dsh-better-sidebar') })).toHaveProperty('disabled', true)
-    set({ packages: [pkg({ enabled: true, error: { code: 'unsupported-platform' } })] })
+    set({ packages: [pkg({ enabled: true, error: { code: 'unsupported-platform', platforms: ['darwin', 'win32'] } })] })
+    expect(screen.getByText('This plugin only supports macOS and Windows.')).toBeTruthy()
     expect(screen.getByRole('switch', { name: en.enableToggle.replace('{name}', 'dsh-better-sidebar') })).toHaveProperty('disabled', false)
+    set({ packages: [pkg({ enabled: false, error: { code: 'unsupported-platform', platforms: ['freebsd'] } })] })
+    expect(screen.getByText('This plugin only supports freebsd.')).toBeTruthy()
+    set({ notice: { kind: 'failed', action: 'enable', error: { code: 'unsupported-platform', platforms: ['darwin', 'win32'] }, reason: '', packageName: 'dsh-better-sidebar', seq: 1 } })
+    expect(screen.getByRole('alert').textContent).toContain('This plugin only supports macOS and Windows.')
+    set({ notice: null, install: { ...IDLE_INSTALL, open: true, spec: 'dsh-cua', phase: 'failed', failure: { error: { code: 'unsupported-platform', platforms: ['darwin', 'win32'] }, reason: '' } } })
+    expect(screen.getByText('This plugin only supports macOS and Windows.')).toBeTruthy()
+    set({ install: IDLE_INSTALL })
     // A bundle that leaves the list drops back to the cards.
     const { version: _version, ...unversioned } = pkg()
     set({ packages: [unversioned] })
@@ -2226,15 +2336,15 @@ describe('PluginManagerPage', () => {
       expect(screen.getByText(sentence)).toBeTruthy()
     }
     // A failure without a kind reads by its code, else in the Host's words; without words, or without a failure at all, generically.
-    set({ install: { ...IDLE_INSTALL, open: true, spec: 'x', phase: 'failed', failure: { reason: '', code: 'not-bundle' } } })
+    set({ install: { ...IDLE_INSTALL, open: true, spec: 'x', phase: 'failed', failure: { reason: '', error: { code: 'not-bundle' } } } })
     expect(screen.getByText(en.reasonNotBundle)).toBeTruthy()
-    set({ install: { ...IDLE_INSTALL, open: true, spec: 'x', phase: 'failed', failure: { reason: 'ERR_PNPM_ADDING_TO_ROOT', code: 'operation-error' } } })
+    set({ install: { ...IDLE_INSTALL, open: true, spec: 'x', phase: 'failed', failure: { reason: 'ERR_PNPM_ADDING_TO_ROOT', error: { code: 'operation-error', diagnostic: 'ERR_PNPM_ADDING_TO_ROOT' } } } })
     expect(screen.getByText('ERR_PNPM_ADDING_TO_ROOT')).toBeTruthy()
     // A compatibility refusal outranks the kind pnpm's exit was classified as.
     set({ install: { ...IDLE_INSTALL, open: true, spec: 'x', phase: 'failed',
-      failure: { reason: '', code: 'incompatible-version', incompatible: [INCOMPATIBLE], kind: 'unknown' } } })
+      failure: { reason: '', error: { code: 'incompatible-version', incompatible: [INCOMPATIBLE] }, kind: 'unknown' } } })
     expect(screen.getByText(`${incompatibleText()} ${en.reasonIncompatibleInstall}`)).toBeTruthy()
-    set({ install: { ...IDLE_INSTALL, open: true, spec: 'x', phase: 'failed', failure: { reason: '', code: 'incompatible-version' } } })
+    set({ install: { ...IDLE_INSTALL, open: true, spec: 'x', phase: 'failed', failure: { reason: '', error: { code: 'incompatible-version' } } } })
     expect(screen.getByText(`${en.reasonIncompatibleVersionUnnamed} ${en.reasonIncompatibleInstall}`)).toBeTruthy()
     set({ install: { ...IDLE_INSTALL, open: true, spec: 'x', phase: 'failed', failure: { reason: 'the transport said so' } } })
     expect(screen.getByText('the transport said so')).toBeTruthy()
@@ -2695,11 +2805,11 @@ describe('PluginManagerPage', () => {
       // A failure names what was being done; a refusal is worded by its code, a silent one generically.
       set({ notice: { kind: 'failed', action: 'enable', reason: 'the tree rejected it', packageName: 'pkg-1', seq: 4 } })
       expect(screen.getByRole('alert').textContent).toContain(en.failedEnable.replace('{reason}', 'the tree rejected it'))
-      set({ notice: { kind: 'failed', action: 'uninstall', code: 'bundle-in-use', reason: '', packageName: 'pkg-1', seq: 5 } })
+      set({ notice: { kind: 'failed', action: 'uninstall', error: { code: 'bundle-in-use' }, reason: '', packageName: 'pkg-1', seq: 5 } })
       expect(screen.getByRole('alert').textContent).toContain(en.failedUninstall.replace('{reason}', en.reasonBundleInUse))
-      set({ notice: { kind: 'failed', action: 'enable', code: 'incompatible-version', incompatible: [INCOMPATIBLE], reason: '', packageName: 'pkg-1', seq: 5 } })
+      set({ notice: { kind: 'failed', action: 'enable', error: { code: 'incompatible-version', incompatible: [INCOMPATIBLE] }, reason: '', packageName: 'pkg-1', seq: 5 } })
       expect(screen.getByRole('alert').textContent).toContain(en.failedEnable.replace('{reason}', `${incompatibleText()} ${en.reasonIncompatibleInstalled}`))
-      set({ notice: { kind: 'failed', action: 'rowDisable', code: 'operation-error', reason: 'EACCES', packageName: 'pkg-1', seq: 6 } })
+      set({ notice: { kind: 'failed', action: 'rowDisable', error: { code: 'operation-error', diagnostic: 'EACCES' }, reason: 'EACCES', packageName: 'pkg-1', seq: 6 } })
       expect(screen.getByRole('alert').textContent).toContain(en.failedRowDisable.replace('{reason}', 'EACCES'))
       set({ notice: { kind: 'failed', action: 'disable', reason: '', packageName: 'pkg-1', seq: 7 } })
       expect(screen.getByRole('alert').textContent).toContain(en.failedDisable.replace('{reason}', en.reasonOperationError))
@@ -3006,7 +3116,7 @@ it('keeps bundle configuration mounted while its operation is pending', () => {
 
 describe('registry versions and updates', () => {
   const MIRROR = 'https://registry.npmmirror.com/'
-  const updatable = (): PackageView => pkg({ update: 'registry', version: '0.16.0', source: 'dsh-better-sidebar@0.16.0' })
+  const updatable = (more: Partial<PackageView> = {}): PackageView => pkg({ update: 'registry', version: '0.16.0', source: 'dsh-better-sidebar@0.16.0', ...more })
   const runtime = '0.8.3'
   const listed = (versions: PluginVersion[], attempts: RegistryAttempt[] = [{ registry: null }]): VersionCheck => ({
     phase: 'done', checkedAt: 0,
@@ -3141,6 +3251,23 @@ describe('registry versions and updates', () => {
     expect(screen.getByText(en.updatesFailed)).toBeTruthy()
   })
 
+  it('counts a manual refresh\'s checks on the Refresh button and announces its progress', () => {
+    const second = updatable({ name: 'dsh-second' })
+    const { set } = renderTab({ packages: [updatable(), second], refreshStatus: 'refreshing', refreshProgress: { phase: 'loading' } })
+    const toolbar = (): HTMLElement => document.querySelector<HTMLElement>('[data-plugin-toolbar]')!
+    const note = (): HTMLElement => within(toolbar()).getByRole('status')
+    const refresh = (): HTMLElement => within(toolbar()).getByRole('button', { name: en.refresh })
+    expect(note().textContent).toBe(en.loading)
+    expect(refresh().textContent).toBe(en.refresh)
+    set({ versions: { 'dsh-better-sidebar': listed([]), 'dsh-second': { phase: 'checking' } }, refreshProgress: { phase: 'checking', current: 2, total: 2 } })
+    expect(note().textContent).toBe(en.refreshChecking.replace('{current}', '2').replace('{total}', '2'))
+    expect(refresh().textContent).toBe(en.refreshCount.replace('{current}', '2').replace('{total}', '2'))
+    // The spinner's minimum hold already shows what the checks found.
+    set({ versions: { 'dsh-better-sidebar': listed([]), 'dsh-second': listed([]) }, refreshProgress: null })
+    expect(note().textContent).toBe(en.updatesNone)
+    expect(refresh().textContent).toBe(en.refresh)
+  })
+
   const base: UpdateState = {
     packageName: 'dsh-better-sidebar', from: '1.3.0', to: '1.4.0', source: { kind: 'registry', registry: MIRROR }, phase: 'confirm', steps: [], result: null, outputOpen: false,
   }
@@ -3230,6 +3357,26 @@ describe('registry versions and updates', () => {
       result: { from: '1.3.0', to: '1.4.0', step: 'install', result: change('failed'), restore: change('applied') },
     } })
     expect([...dialog().querySelectorAll('li')].map(item => item.getAttribute('data-state'))).toEqual(['done', 'done', 'failed', 'done'])
+  })
+
+  it('offers to allow the scripts pnpm blocked for the target and names them once the update succeeds', () => {
+    const blocked = change('failed', { pendingBuilds: ['native', '@scope/other'], packageResult: { exitCode: 1, output: 'ERR_PNPM_IGNORED_BUILDS', truncated: false, logPath: '/l', kind: 'build-blocked' } })
+    const { actions, set } = renderTab({ packages: [updatable()], update: {
+      ...base, phase: 'done', result: { from: '1.3.0', to: '1.4.0', step: 'install', result: blocked, restore: change('applied') },
+    } })
+    const approval = within(dialog()).getByRole('group', { name: en.installApprovalTitle })
+    expect([...approval.querySelectorAll('code')].map(item => item.textContent)).toEqual(['native', '@scope/other'])
+    fireEvent.click(within(approval).getByRole('button', { name: en.installApproveAndRetry }))
+    expect(actions.approveUpdateBuildsAndRetry).toHaveBeenCalledOnce()
+    // A package the reinstallation left uninstalled is not updated again.
+    set({ update: { ...base, phase: 'done', result: { from: '1.3.0', to: '1.4.0', step: 'install', result: blocked, restore: change('failed') } } })
+    expect(within(dialog()).queryByRole('group', { name: en.installApprovalTitle })).toBeNull()
+    // A failure the reinstallation reports offers nothing: only the target's installation is retried with approval.
+    set({ update: { ...base, phase: 'done', result: { from: '1.3.0', to: '1.4.0', step: 'check', result: { ...blocked, changed: false } } } })
+    expect(within(dialog()).queryByRole('group', { name: en.installApprovalTitle })).toBeNull()
+    set({ update: { ...base, phase: 'done', result: { from: '1.3.0', to: '1.4.0', step: 'install', result: change('applied', { approvedBuilds: ['native'] }) } } })
+    expect(within(dialog()).getByText(en.installDoneApproved.replace('{names}', 'native'))).toBeTruthy()
+    expect(within(dialog()).queryByRole('group', { name: en.installApprovalTitle })).toBeNull()
   })
 
   it('shows a failed run\'s output once unfolded and an unknown outcome after a lost answer', () => {

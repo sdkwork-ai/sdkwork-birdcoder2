@@ -17,6 +17,7 @@ import type {
   OwnerIdentityStatus,
   OwnerRelayState,
   OwnerShareList,
+  ReconnectShareRequest,
   RelayConnectivityView,
   RelayPublishView,
   SetRelayRequest,
@@ -61,6 +62,13 @@ export interface OwnerShares {
    * @returns Whether the Relay row still needs a retry.
    */
   stop(request: StopShareRequest): Promise<RemoteResult<StopShareResult>>
+
+  /**
+   * Reconnect an existing share without changing its link or permissions.
+   * @param request - Share to reconnect.
+   * @returns The Host's result for this connection attempt.
+   */
+  reconnect(request: ReconnectShareRequest): Promise<RemoteResult<void>>
 
   /**
    * Change one share's tier, fork switch, or both.
@@ -116,8 +124,8 @@ export interface OwnerShares {
   testRelay(): Promise<RemoteResult<RelayConnectivityView>>
 
   /**
-   * Register one throwaway share to check whether this host may publish.
-   * @param request - Session the throwaway registration names.
+   * Ask the Liveshare server whether this host may publish one Session's share.
+   * @param request - Session the check names.
    * @returns The Relay's decision about this host's credential.
    */
   testPublish(request: TestPublishRequest): Promise<RemoteResult<RelayPublishView>>

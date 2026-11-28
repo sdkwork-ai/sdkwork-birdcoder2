@@ -8,8 +8,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import clsx from 'clsx'
 import {
   Button, IconCheckOutlineRegular, IconChevronDownOutlineRegular, Menu, MenuItemButton, StateDot, Tooltip,
-} from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+} from '@deepseek-ai/dsh-client-ui-primitives/client'
+import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { ForgeCommitList } from '@deepseek-ai/dsh-experimental-forge/types'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 import { rangeStart } from '../commit-range.ts'
@@ -50,8 +50,8 @@ export function commitsLabel(chosen: ForgeCommitRange | null, t: PropsLocale<typ
 }
 
 /**
- * Render the trigger and, while open, the commit list. A click shows one commit; a Shift click shows the commits
- * from the last commit clicked without Shift to the clicked one.
+ * Render the trigger and, while open, the commit list. A click shows one commit; a Shift click shows the commits up to
+ * the clicked one, from the one commit shown, wherever it was chosen, or else from the last commit clicked without Shift.
  * @param props - the shown commits, the listing read, the choose action, and copy.
  * @returns the trigger with its portalled menu, or nothing when the source cannot show single commits.
  */
@@ -94,7 +94,9 @@ export function CommitMenu({ chosen, visible, list, kept, version, choose, t }: 
       return
     }
     const order = commits.commits.map(commit => commit.sha)
-    const start = shift.current && anchor.current !== null && order.includes(anchor.current) ? anchor.current : sha
+    // One commit shown alone starts the run, also when the view's owner chose it and not a click here.
+    const held = chosen !== null && chosen.from === chosen.to ? chosen.from : anchor.current
+    const start = shift.current && held !== null && order.includes(held) ? held : sha
     const [from, to] = order.indexOf(start) <= order.indexOf(sha) ? [start, sha] : [sha, start]
     // Two ends cannot name a run that leaves the first-parent line, so the menu stays open and says why.
     if (rangeStart(commits.commits, { from, to }) === 'not-linear') {

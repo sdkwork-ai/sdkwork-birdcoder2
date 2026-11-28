@@ -324,13 +324,16 @@ describe('WorktreeProgress removed worktree', () => {
     const restore = b.view.getByRole('button', { name: en['missing.restore'] })
     await act(async () => { fireEvent.click(restore) })
     expect(b.view.container.querySelector(`.${css.error}`)?.textContent).toBe(reason)
-    expect(disabled(restore)).toBe(false)
+    // React 19 renders the restoration steps in between, which replaces the missing card's button.
+    const again = b.view.getByRole('button', { name: en['missing.restore'] })
+    expect(disabled(again)).toBe(false)
 
     const retry = Promise.withResolvers<string | undefined>()
     b.restore.mockReturnValueOnce(retry.promise)
     // React 19 renders the restoration card while the first restore settles, which replaces the
     // failed card's buttons; click the one the failed card renders now.
     act(() => { fireEvent.click(b.view.getByRole('button', { name: en['missing.restore'] })) })
+    fireEvent.click(again)
     expect(b.view.getByRole('region', { name: en['restoration.title'] })).toBeTruthy()
     await act(async () => { retry.resolve(undefined) })
     expect(b.restore).toHaveBeenCalledTimes(2)

@@ -13,6 +13,7 @@ import { installMandatoryUpdateOverlay } from './preload-mandatory-overlay.ts'
 import { createDesktopBrowserBridge } from './preload-browser.ts'
 import { exposeSdkworkDesktopBridge } from './iam-preload.ts'
 import type { FileDragHandle } from '@deepseek-ai/dsh-util-file-drag'
+import { createSharedTextureClientExport } from './shared-texture/preload.ts'
 
 function createProductApi(): DshDesktopProductApi {
   return {
@@ -70,6 +71,7 @@ function createProductApi(): DshDesktopProductApi {
         return () => { ipcRenderer.off(DESKTOP_IPC.shortcutsChanged, handle) }
       },
     },
+    textures: createSharedTextureClientExport(ipcRenderer),
     updates: {
       channels: {
         get: () => ipcRenderer.invoke(DESKTOP_IPC.updatesChannelGet) as Promise<DesktopChannelState>,
@@ -92,6 +94,10 @@ function createProductApi(): DshDesktopProductApi {
 }
 
 if (location.protocol === `${SCHEME}:` && location.hostname === 'app') {
+  // Chromium commits about:blank without Electron's cancellable navigation events.
+  navigation.addEventListener('navigate', (event) => {
+    if (new URL(event.destination.url).protocol === 'about:') event.preventDefault()
+  })
   contextBridge.exposeInMainWorld('dshOnboarding', {
     hasApiKey: () => ipcRenderer.invoke(DESKTOP_IPC.onboardingApiKey) as Promise<boolean>,
     setActive: (active: boolean) => { ipcRenderer.send(DESKTOP_IPC.onboardingActive, active) },

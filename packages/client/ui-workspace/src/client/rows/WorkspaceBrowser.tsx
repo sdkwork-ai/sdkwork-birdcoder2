@@ -23,19 +23,19 @@ import {
   IconFlatListOutlineRegular, IconFolderCloseRegular, IconProjectAddOutlineRegular,
   IconQueueOutlineRegular, IconSearchOutlineRegular, IconSlidersTwoOutlineRegular,
   IconWorkspaceTreeOutlineRegular, Menu, Tooltip,
-} from '@deepseek-ai/dsh-client-ui-primitives'
+} from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type {
   SessionListState, SessionSearchResultItem,
 } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { WorkspaceId, WorkspaceView } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import { workspaceDisplayTitle } from '@deepseek-ai/dsh-api-workspace-controller/default-workspace'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { WorkspaceBrowserProps } from '../contract/slots.ts'
 import type { ArchivedFilter, GroupNode, SessionNode, SessionOrderBy, SessionRowState } from '../tree.ts'
 import {
-  deriveFlat, deriveGroups, deriveSearchResults, orderByRecency, sessionSearchIndex, owningGroupKey, owningParentFolder,
-  pinCurrentBlank, reconcileManualOrder, sessionMemberIds, UNGROUPED_KEY,
+  currentRowSessionId, deriveFlat, deriveGroups, deriveSearchResults, orderByRecency, sessionSearchIndex, owningGroupKey,
+  owningParentFolder, pinCurrentBlank, reconcileManualOrder, sessionMemberIds, UNGROUPED_KEY,
 } from '../tree.ts'
 import { ProjectRowItem, SearchResultItem, SessionNodeItem } from './Rows.tsx'
 import type { SessionRowMenuRenderer, WorkspaceRowMenuRenderer } from './Rows.tsx'
@@ -257,6 +257,7 @@ type SessionTreeProps = Pick<
   WorkspaceBrowserProps,
   'useSessionStatus' | 'startSession' | 'open' | 'forkSession' | 'pinSession' | 'unpinSession'
   | 'renderFactorySlot' | 'useContextMenuTarget' | 'useContextMenu'
+  'useSessionStatus' | 'startSession' | 'open' | 'renderFactorySlot' | 'useContextMenuOpener' | 'useContextMenu'
   | 'insertWorkspaceBefore' | 't' | 'usePanelInfo'
   | 'useSessionAccess' | 'useWorkspaceAccess'
 > & PropsRenderSlots<
@@ -336,6 +337,8 @@ function SessionTree({
   workspaceReady, animationResetKey, usePanelInfo, useSessionAccess, useWorkspaceAccess,
   onRenameRequest, onDeleteRequest, onSessionRenameRequest, onSessionArchive,
   renderSlot, renderFactorySlot, useContextMenuTarget, useContextMenu,
+  onSessionRenameRequest,
+  renderSlot, renderFactorySlot, useContextMenuOpener, useContextMenu,
   insertWorkspaceBefore,
   nestWorkspaces, groupExpansion, setGroupExpanded,
   setSessionOrder, home, t, rowMenus,
@@ -345,7 +348,7 @@ function SessionTree({
   const statuses = useSessionStatus(s => s)
   const current = panelActive
     ? undefined
-    : Object.values(list.byId).find(session => (session.retainedBy.mainView ?? 0) > 0)?.id
+    : currentRowSessionId(list)
   const revealGroup = revealSessionId === undefined || !workspaceReady
     ? undefined
     : owningGroupKey(workspaces, revealSessionId)
@@ -573,7 +576,7 @@ function SessionTree({
         <ProjectRowItem
           newShortcut={shortcuts.find(row => row.id === 'session.new')}
           group={group}
-          renderFactorySlot={renderFactorySlot} useContextMenu={useContextMenu} useContextMenuTarget={useContextMenuTarget}
+          renderFactorySlot={renderFactorySlot} useContextMenu={useContextMenu} useContextMenuOpener={useContextMenuOpener}
           useWorkspaceAccess={useWorkspaceAccess}
           containsCurrentDescendant={currentAncestors.has(group.key)}
           home={home}
@@ -651,7 +654,7 @@ function SessionTree({
               onPin={pinSession}
               onUnpin={unpinSession}
               renderFactorySlot={renderFactorySlot} useContextMenu={useContextMenu}
-              useContextMenuTarget={useContextMenuTarget}
+              useContextMenuOpener={useContextMenuOpener}
               onReveal={node.id === revealSessionId && group.key === revealGroup
                 ? () => { onSessionRevealed(node.id) }
                 : undefined}
@@ -718,6 +721,9 @@ function FlatList({
   renderSlot, renderFactorySlot, useContextMenuTarget, useContextMenu, usePanelInfo, setSessionOrder, rowMenus,
   workspaceReady, animationResetKey,
   revealSessionId, onSessionRevealed, home, t,
+  list, sessionIds, rowState, onLeaveArchivedOnly, useSessionStatus, useSessionAccess, open, onSessionRenameRequest,
+  usePanelInfo, setSessionOrder, workspaceReady, animationResetKey,
+  revealSessionId, onSessionRevealed, renderSlot, renderFactorySlot, useContextMenuOpener, useContextMenu, home, t,
 }: Pick<
   SessionTreeProps,
   | 'useSessionStatus'
@@ -729,7 +735,7 @@ function FlatList({
   | 'onSessionRenameRequest'
   | 'onSessionArchive'
   | 'renderSlot'
-  | 'renderFactorySlot' | 'useContextMenuTarget' | 'useContextMenu'
+  | 'renderFactorySlot' | 'useContextMenuOpener' | 'useContextMenu'
   | 'usePanelInfo'
   | 'setSessionOrder'
   | 'workspaceReady'
@@ -756,7 +762,7 @@ function FlatList({
   useNativeDragAcceptance(drag !== null)
   const currentId = panelActive
     ? undefined
-    : Object.values(list.byId).find(session => (session.retainedBy.mainView ?? 0) > 0)?.id
+    : currentRowSessionId(list)
   const commitDrag = (activeDrag: DragState, over: NonNullable<DragState['over']>): void => {
     if (dropCommitted.current) return
     dropCommitted.current = true
@@ -796,7 +802,7 @@ function FlatList({
               onPin={pinSession}
               onUnpin={unpinSession}
               renderFactorySlot={renderFactorySlot} useContextMenu={useContextMenu}
-              useContextMenuTarget={useContextMenuTarget}
+              useContextMenuOpener={useContextMenuOpener}
               onReveal={node.id === revealSessionId
                 ? () => { onSessionRevealed(node.id) }
                 : undefined}
@@ -901,7 +907,7 @@ function SearchResults({
   const pending = currentRemote.status === 'loading'
   const currentId = panelActive
     ? undefined
-    : Object.values(list.byId).find(session => (session.retainedBy.mainView ?? 0) > 0)?.id
+    : currentRowSessionId(list)
 
   return (
     <div className={clsx(css.treeBody, css.wide)}>
@@ -991,6 +997,7 @@ export function WorkspaceBrowser({
   closeAddWorkspace,
   setDirectoryBusy,
   renderFactorySlot, useContextMenuTarget, useContextMenu,
+  renderSlot, renderFactorySlot, useContextMenuOpener, useContextMenu,
   t,
 }: WorkspaceBrowserProps) {
   const rowMenusOccupied = useRowMenus(occupied => occupied)
@@ -1055,6 +1062,8 @@ export function WorkspaceBrowser({
   const currentBlank = mainSessionId !== undefined &&  list.byId[mainSessionId]?.blank
     ? mainSessionId
     : undefined
+  const currentRowId = currentRowSessionId(list)
+  const currentBlank = currentRowId !== undefined && list.byId[currentRowId]?.blank === true ? currentRowId : undefined
   const ungroupedMemberIds = useMemo(() => {
     const accounted = new Set(workspaces.flatMap(workspace => workspace.sessionIds))
     return list.ids.filter(id => list.byId[id] !== undefined && !accounted.has(id))
@@ -1245,7 +1254,7 @@ export function WorkspaceBrowser({
   useEffect(() => {
     if (!wide || !searchExpanded || searchOnExpand) return
     const onClick = (event: MouseEvent): void => {
-      if (!(event.target instanceof Node) || searchRoot.current?.contains(event.target) === true) return
+      if (searchRoot.current?.contains(event.target as Node) === true) return
       searchInput.current?.blur()
       if (normalizedQuery !== '') return
       changeSearchExpanded(false)
@@ -1483,7 +1492,7 @@ export function WorkspaceBrowser({
                 onSessionArchive={onSessionArchive}
                 renderSlot={renderSlot}
                 renderFactorySlot={renderFactorySlot} useContextMenu={useContextMenu}
-                useContextMenuTarget={useContextMenuTarget}
+                useContextMenuOpener={useContextMenuOpener}
                 setSessionOrder={saveSessionOrder}
                 revealSessionId={revealSessionId}
                 onSessionRevealed={acknowledgeSessionReveal}
@@ -1509,7 +1518,7 @@ export function WorkspaceBrowser({
                 unpinSession={unpinSession}
                 renderSlot={renderSlot}
                 renderFactorySlot={renderFactorySlot} useContextMenu={useContextMenu}
-                useContextMenuTarget={useContextMenuTarget}
+                useContextMenuOpener={useContextMenuOpener}
                 workspaces={orderedWorkspaces}
                 ungroupedSessionIds={orderedUngroupedSessionIds}
                 workspaceReady={workspaceReady}

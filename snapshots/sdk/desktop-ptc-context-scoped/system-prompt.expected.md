@@ -48,6 +48,7 @@ Inside the program:
 - A FAILED tool call rejects with `ToolCallError`, whose `toolName` identifies the failed tool and whose `message` is human-readable — `try/catch` it to handle and continue.
 - Independent read-only calls MAY overlap under `Promise.all` (safe calls run concurrently; mutating calls run alone, in submission order). Sequence dependent work with `await`.
 - Show selected values and images with `inspect(...values)`; every other intermediate result stays out of the conversation, so extract just what you need.
+- Inspecting a tool result directly shows the text that tool call returns; for example, `inspect(await tools.read({ file_path: 'README.md' }))` prints its line-numbered content.
 
 Program-only SDK bindings:
 
@@ -105,6 +106,19 @@ interface ToolArgsMap {
     sandbox_permissions?: "workspace-write" | "danger-full-access";
     /** Required with sandbox_permissions: one sentence for the user explaining why this exact command needs the wider access. Use the language of the user’s current request. */
     justification?: string;
+  } & Record<string, JsonValue>;
+  /** Inspect runtime APIs before writing or configuring plugins. Omit query to discover providers, methods, and input schemas; then query an exact entry from that directory. Read-only: cannot invoke business Service methods or modify the runtime. Client queries require a connected page. */
+  cordis_inspect: {
+    query?: {
+      /** Provider platform. */
+      platform: "host" | "client";
+      /** Provider ID from the directory. */
+      provider: string;
+      /** Method name from the directory. */
+      method: string;
+      /** Arguments matching the method's input schema. */
+      input?: JsonValue;
+    };
   } & Record<string, JsonValue>;
   /** Create a persisted goal that keeps this session working across automatic continuation rounds. Use it when the direct human request is a long-running objective, even if the user did not say "goal"; not for single-turn work. */
   create_goal: {
@@ -432,6 +446,7 @@ interface ToolOutputMap {
       runnerFailed?: boolean;
     };
   };
+  cordis_inspect: JsonValue;
   create_goal: {
     goal: null;
   } | {

@@ -5,7 +5,7 @@ import { Context } from '@deepseek-ai/cordis'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { SidebarRightTabRegistry } from '@deepseek-ai/dsh-client-ui-sidebar-right/src/client/tab-registry.ts'
-import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots/client'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { MutableSessionEventSource } from '@deepseek-ai/dsh-api-session-controller/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
@@ -27,6 +27,7 @@ async function fixture(services?: { sessions: object; uiConversation: object; ui
   ctx.provide('sessions', services?.sessions ?? {})
   ctx.provide('uiConversation', services?.uiConversation ?? {})
   ctx.provide('uiSession', services?.uiSession ?? {})
+  ctx.provide('uiResponsive', {})
   const tabs = new SidebarRightTabRegistry(ctx)
   ctx.provide('sidebarRightTabs', tabs)
   ctx.locale.setLocale('en')

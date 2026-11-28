@@ -200,6 +200,10 @@
     - id: session-projection
       name: '@deepseek-ai/dsh-session-projection'
 
+    - id: agent-preset-registry
+      name: '@deepseek-ai/dsh-agent-preset-registry'
+      disabled: true
+
     # Durable KV storage: the storage hub, the json backend, and the
     # schema-validated domain form over them. Session-layer persistence (the
     # projection cache below; workspace in web layers)
@@ -332,9 +336,6 @@
 
     - id: tool-fs
       name: '@deepseek-ai/dsh-tool-fs'
-      config:
-        # Set false to drop the apply_patch tool beside edit.
-        applyPatch: false
 
     - id: tool-fs-search
       name: '@deepseek-ai/dsh-tool-fs-search'
@@ -501,6 +502,11 @@
       name: '@deepseek-ai/dsh-repeat-tool-reminder'
       config:
         thresholds: [3, 5, 8]
+        # Bookkeeping updates between repeated calls must not hide a loop.
+        exclude: [todo_write, team_task_update, update_goal]
+        # Waiting for a subagent, a background job, or a user answer changes
+        # state, so a repeat after one is not a loop.
+        restartCountAfter: [wait_agent, job_output, ask_user_question]
         argumentsPreviewChars: 500
 
     # The shared base enables the stable model-facing web_search and web_fetch
@@ -562,11 +568,11 @@
     - id: tools
       name: '@deepseek-ai/dsh-tools'
 
-    - id: tool-executor-native
-      name: '@deepseek-ai/dsh-tool-executor-native'
+    - id: tool-registry-native
+      name: '@deepseek-ai/dsh-tool-registry-native'
 
-    - id: tool-executor-ptc
-      name: '@deepseek-ai/dsh-tool-executor-ptc'
+    - id: tool-registry-ptc
+      name: '@deepseek-ai/dsh-tool-registry-ptc'
       disabled: true
 
     # The deployment persona is a deployment choice; plan-mode and tool plugins own

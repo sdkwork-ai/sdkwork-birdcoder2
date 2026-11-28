@@ -2,10 +2,10 @@ import { memo, useCallback, useMemo, type KeyboardEvent } from 'react'
 import type { Context } from '@deepseek-ai/cordis'
 import clsx from 'clsx'
 import {
-  IconApiOutlineRegular, IconChevronDownOutlineRegular, IconChevronUpOutlineRegular, IconInspectOutlineRegular,
+  IconApiOutlineRegular, IconChevronDownOutlineRegular, IconChevronUpOutlineRegular, InspectButton,
   CommandText, TerminalBlock, TextShimmer,
-} from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+} from '@deepseek-ai/dsh-client-ui-primitives/client'
+import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { ToolCallViewProps } from '../../contract/slots.ts'
 import {
   isBackgroundShellCall,
@@ -93,7 +93,7 @@ export const BashRow = memo(function BashRow({ toolName, block, sessionId, useSe
       )
       : BASH_ICON
   return (
-    <div className={css.card}>
+    <div className={css.card} data-inspect-scope>
       <div
         className={css.root}
         data-sample="bash"
@@ -156,10 +156,7 @@ export const BashRow = memo(function BashRow({ toolName, block, sessionId, useSe
               </div>
             )}
           {inspect !== undefined && (
-            <button type="button" className={css.inspectButton} onClick={inspect}>
-              <IconInspectOutlineRegular />
-              {t('row.inspect')}
-            </button>
+            <InspectButton label={t('row.inspect')} onClick={inspect} />
           )}
         </div>
       )}

@@ -7,12 +7,12 @@ import { chromium, type Browser } from 'playwright'
 import { expect, it, onTestFailed, onTestFinished } from 'vitest'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-tools'
-import type {} from '@deepseek-ai/dsh-tool-executor-ptc/types'
+import type {} from '@deepseek-ai/dsh-tool-registry-ptc/types'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
   launchWebScaffold, selectedSessionFixture, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
+import { connectFreshWorkspace, expandProgramCalls, newEnglishPage, saveFailureShot } from './support.ts'
 
 const fixture = fileURLToPath(new URL('../../../snapshots/session/cua-run-code/session.v4.jsonl', import.meta.url))
 const snapshotDirectory = fileURLToPath(new URL('../../../snapshots/web/cua-run-code', import.meta.url))
@@ -46,8 +46,8 @@ it.skipIf(mode === 'record')('shows standard CUA programs and their recorded sou
   await connectFreshWorkspace(page, scaffold.workspaceCwd)
   const agent = scaffold.ctx.agents.list()[0]!
   expect(scaffold.ctx.agentPresets.composedPreset(agent.ctx)).toBe('standard')
-  expect(scaffold.ctx.tools.schemas(agent).map(tool => tool.name)).toContain('cua_run_code')
-  expect(scaffold.ctx.tools.schemas(agent).map(tool => tool.name)).not.toContain('cua')
+  expect(scaffold.ctx.tools.getAll(agent).map(tool => tool.name)).toContain('cua_run_code')
+  expect(scaffold.ctx.tools.getAll(agent).map(tool => tool.name)).not.toContain('cua')
   const prompts = fixtureUserPrompts(await readFile(await selectedSessionFixture(fixture), 'utf8'))
   expect(prompts).toHaveLength(1)
   const prompt = prompts.at(0)
@@ -60,8 +60,9 @@ it.skipIf(mode === 'record')('shows standard CUA programs and their recorded sou
   const results = events.filter(event => event.type === 'tool/result')
   expect(results).toHaveLength(2)
   expect(results.every(event => !event.data.message.isError)).toBe(true)
-  expect(events.filter(event => event.type === 'tool/ptc-dispatch')).toHaveLength(12)
-  const calls = page.locator('[data-tool="cua_run_code"]')
+  const subcalls = events.filter(event => event.type === 'tool/ptc-dispatch')
+  expect(subcalls).toHaveLength(13)
+  const calls = page.locator('[data-program-call="cua_run_code"]')
   const description = 'Select and capture the fixture window'
   const turnControl = page.locator('[data-turn-process="1"]')
   await turnControl.waitFor({ state: 'visible' })
@@ -74,11 +75,13 @@ it.skipIf(mode === 'record')('shows standard CUA programs and their recorded sou
   if (await groupControl.getAttribute('aria-expanded') === 'false') await groupControl.click()
   await expect.poll(() => groupControl.getAttribute('aria-expanded')).toBe('true')
   await expect.poll(() => calls.count()).toBe(2)
-  await calls.first().getByRole('button', { name: `Code ${description}`, exact: true }).click()
+  await calls.first().getByRole('button', { name: `${description} 6 tool calls`, exact: true }).click()
+  await calls.first().getByRole('button', { name: 'Source code', exact: true }).click()
   const source = calls.first().locator('pre.shiki')
   await source.waitFor()
   expect(await source.textContent()).toContain('var app = await cua.getApp("test.fixture")')
-  expect(await page.locator('[data-subcalls] [data-tool="cua"]').count()).toBe(12)
+  await expandProgramCalls(page)
+  expect(await page.locator('[data-subcalls] [data-tool="cua"]').count()).toBe(subcalls.length)
   expect(events.filter(event => event.type === 'tool/ptc-dispatch' && event.data.content.some(block => block.type === 'image'))).toHaveLength(1)
   expect(events.filter(event => event.type === 'tool/result'
     && event.data.message.content.some(block => block.type === 'image'))).toHaveLength(1)

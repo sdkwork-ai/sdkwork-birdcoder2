@@ -24,11 +24,11 @@
   en: 6e12ea9c79039360
   zh: 7230ad3bda4515d5
 /deepseek-ai-dsh-tool-fs/use-this-package/configuration:
-  en: 92b0a816b47159e9
-  zh: 1b6ce7b0c7216886
+  en: b5d18581b190e246
+  zh: 4ebbb8927f7745fb
 /deepseek-ai-dsh-tool-fs/use-this-package/policy-and-sandbox-behavior:
-  en: 9bddebaf4aff0a8d
-  zh: fea0196162e3fcd1
+  en: 9b40c5f44582fcef
+  zh: 96a4d91b76676293
 /deepseek-ai-dsh-tool-fs/use-this-package/failures-and-recovery:
   en: c11d53e4d0b9c13f
   zh: 229b232009c42986
@@ -57,8 +57,8 @@
   en: cf78b9dd5596495f
   zh: bd44560f8c2435e8
 /deepseek-ai-dsh-tool-fs/model-experience/system-prompt/what-the-model-sees:
-  en: f715f25f411d50f5
-  zh: 4063a0499dc47466
+  en: e4e76951cbb458c5
+  zh: 79b539b92660aa32
 /deepseek-ai-dsh-tool-fs/model-experience/system-prompt/what-the-model-sees/read-guidance:
   en: f8961df3f3a6a671
   zh: 85c7bd418b40b089
@@ -69,11 +69,11 @@
   en: 28f07502a411303b
   zh: 437897dc99fc4360
 /deepseek-ai-dsh-tool-fs/model-experience/system-prompt/token-effect:
-  en: 7a44cabe439a879a
-  zh: 1adf9bf3de7658b6
+  en: df8820dacc50122a
+  zh: 84bc8177cc0ad16c
 /deepseek-ai-dsh-tool-fs/model-experience/system-prompt/kv-cache-effect:
-  en: 4f1b5639f91405a8
-  zh: f90ffe077a2e52a3
+  en: 42b83f908c5e5070
+  zh: e4e55a55bff50894
 /deepseek-ai-dsh-tool-fs/model-experience/tool-schemas:
   en: 3039bc5e7a796b21
   zh: 6b7a9eaf69c9ea53

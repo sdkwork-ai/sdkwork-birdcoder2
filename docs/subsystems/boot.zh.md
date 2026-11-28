@@ -134,8 +134,10 @@ Holds what CLI app plugins register: for each plugin, the CLI path the model rea
 /**
  * Register the calling plugin's CLI and account: add the CLI's absolute path to required runtime context, run the
  * plugin's account operations one at a time, and show the account on the Plugins page while `connectorAccounts` is
- * loaded. The registration belongs to the calling plugin: unloading that plugin withdraws it, after the active
- * operation and the CLI processes it started have stopped.
+ * loaded. With a `prepare` step, the path stays out of runtime context while the step reports that something is
+ * missing, and each check first runs the step; a check that starts with nothing missing replaces an account the
+ * step left `unprepared` with the registration's first account. The registration belongs to the calling plugin:
+ * unloading that plugin withdraws it, after the active operation and the CLI processes it started have stopped.
  * @param registration - the plugin's CLI, account operations, and Plugins page text.
  * @returns the handle for the plugin's own reads and updates of the account.
  * @throws when the runtime-context name `<name>:cli` is already registered.
@@ -149,7 +151,7 @@ Source: [`packages/connector/cli-account/src/index.ts`](../../packages/connector
 
 ### `ctx.configEditor` — `ConfigEditor`
 
-Persist complete raw configs and apply them through the normal Loader path.
+Persist complete raw configs and profile rows, and apply them through the normal Loader path.
 
 ```ts cordis-catalog
 /** Addressable profile rows; nested Includes have independent configuration ownership.
@@ -158,9 +160,10 @@ Persist complete raw configs and apply them through the normal Loader path.
 entries(): Entry[]
 
 /** Read inherited and explicit profile values for the active entries.
- * @returns Detached layer values alongside their Loader entries.
+ * @returns Detached layer values alongside their Loader entries. `inserted` marks a row that an `insert` item of
+ * the profile patch lists directly; `remove()` accepts only such a row.
  */
-configuration(): Array<{ entry: Entry; inherited: Record<string, unknown>; override: Record<string, unknown> }>
+configuration(): Array<{ entry: Entry; inherited: Record<string, unknown>; override: Record<string, unknown>; inserted: boolean }>
 
 /** Validate, persist, and reconcile a plugin's next config; ordinary fields keep normal lifecycle rules.
  * @param entry Current Loader entry, also used to detect replacement during the write.
@@ -168,6 +171,38 @@ configuration(): Array<{ entry: Entry; inherited: Record<string, unknown>; overr
  * @returns Fulfillment after Loader reconciliation completes.
  */
 async edit( entry: Entry, change: (current: Record<string, unknown>, inherited: Record<string, unknown>) => Record<string, unknown>, ): Promise<void>
+
+/** Persist and reconcile a row's next config whether or not its plugin runs. An active plugin validates the config
+ * as {@link edit} requires. A row that is switched off or failed stores the config as given, and its plugin
+ * validates it when the row next starts. A row that is switched on must be active after the reconciliation, so a
+ * row that fails again, or that waits for a service, rejects the write.
+ * @param entry Current Loader entry, also used to detect replacement during the write.
+ * @param change Derive a raw config from the current entry and its inherited layer.
+ * @returns Fulfillment after Loader reconciliation completes.
+ * @throws When the entry is gone, an active plugin rejects the config, a higher layer overrides the stored config, or
+ * a row that is switched on does not start. In the last case the file gets its prior content back, and the Loader is
+ * reconciled with the prior patches.
+ */
+async editRow( entry: Entry, change: (current: Record<string, unknown>, inherited: Record<string, unknown>) => Record<string, unknown>, ): Promise<void>
+
+/** Add a row at the end of the profile patch, where no existing profile patch item applies to it, and start it.
+ * @param row Row id, module name of the row's plugin, and the row's complete raw config.
+ * @returns Fulfillment after Loader reconciliation completes with the row active, or switched off by a higher layer.
+ * @throws When a row of the composed profile uses the id, a higher layer overrides the stored config, or the row does
+ * not start. In the last case the file gets its prior content back, and the Loader is reconciled with the prior
+ * patches.
+ */
+async insert(row: { id: string; name: string; config: Record<string, unknown> }): Promise<void>
+
+/** Remove a row that an `insert` item of the profile patch lists directly, together with the profile patch's
+ * override items for that row.
+ * @param entry Current Loader entry of the row.
+ * @returns Fulfillment after Loader reconciliation completes.
+ * @throws When the entry is gone, or no `insert` item of the profile patch lists the row: a bundle or a higher
+ * layer adds it. After a rejected reconciliation the file gets its prior content back, and the Loader is reconciled
+ * with the prior patches.
+ */
+async remove(entry: Entry): Promise<void>
 ```
 
 Source: [`packages/boot/config-editor/src/index.ts`](../../packages/boot/config-editor/src/index.ts)
@@ -215,6 +250,69 @@ register<View extends AnyConnectorAccountView>(registration: ConnectorAccountReg
 ```
 
 Source: [`packages/client/ui-connector-account/src/index.ts`](../../packages/client/ui-connector-account/src/index.ts)
+
+<a id="ctxconnectors--connectors"></a>
+
+### `ctx.connectors` — `Connectors`
+
+Streams and changes the MCP server rows of the profile's composition for the Connectors tab, and shows the account of each OAuth server row that is on.
+
+```ts cordis-catalog
+/**
+ * Stream the MCP server rows: the rows of the profile's composition that load the MCP manager's server row plugin,
+ * including rows that are switched off and rows that did not start. A list follows every successful reload of the
+ * composition, every change the plugin manager reports, and every change made through this service.
+ * @param signal - ends the stream.
+ * @returns each list with the revision a change names, or that the profile has no configuration editor, plugin
+ *   manager, credentials, or MCP manager to keep custom servers with.
+ */
+@Remote({ mode: 'stream' }) async* watchServers(signal: AbortSignal): AsyncIterable<CustomServersList>
+
+/**
+ * Save one server from the form. A new server becomes the row `mcp-server-<name>` of the profile patch, switched on;
+ * an edit replaces the config of the row `id` names. The save writes the row, stores the secret values entered in
+ * the form, then deletes the secrets the row stopped using; an edit that drops OAuth removes the grant first. The
+ * first refused step stops the save, so a refused write stores nothing. A row that is switched on must run after the
+ * write: when it does not start, the configuration editor restores the profile patch and the save is refused with
+ * the row's failure, while a row that is switched off is only written. The manager starts a written row at once and
+ * connects it again when a secret it references is stored after that. A save is refused when a reference under the
+ * server's own prefix is used by another row, and it never deletes a reference another row still uses, whether that
+ * row is on or off.
+ * @param draft - the form's values, including newly entered secret values.
+ * @param revision - the revision of the list the save was made on.
+ * @param id - the row to edit; omitted for a new server.
+ * @throws RemoteError `connectors/conflict` when the server rows changed after that revision, or
+ *   `connectors/refused` for a draft the form would not save, a config the row plugin's schema rejects, or the first
+ *   refused step.
+ */
+@Remote saveServer(draft: ServerDraft, revision: string, id?: string): Promise<void>
+
+/**
+ * Remove one server row the profile patch adds: remove an OAuth server's grant, delete the row with its overrides,
+ * then delete the secrets it owned that no other row uses. The first refused step stops the removal. A row the form
+ * cannot read is removed without its grant and secrets.
+ * @param id - the row.
+ * @param revision - the revision of the list the removal was made on.
+ * @throws RemoteError `connectors/conflict` when the server rows changed after that revision, or
+ *   `connectors/refused` for a row the profile patch does not add, or the first refused step.
+ */
+@Remote removeServer(id: string, revision: string): Promise<void>
+
+/**
+ * Switch one server row on or off through the plugin manager, which writes the switch to the profile patch and
+ * reloads the composition. A row that does not start after it is switched on stays switched on and is listed as
+ * failed.
+ * @param id - the row.
+ * @param enabled - whether the row runs.
+ * @param revision - the revision of the list the switch was made on.
+ * @throws RemoteError `connectors/conflict` when the server rows changed after that revision, or
+ *   `connectors/refused` when the switch did not take effect: the row did not start, another patch decides the
+ *   switch, or the composition applies it only after a restart.
+ */
+@Remote setServerEnabled(id: string, enabled: boolean, revision: string): Promise<void>
+```
+
+Source: [`packages/experimental/client-ui-connectors/src/index.ts`](../../packages/experimental/client-ui-connectors/src/index.ts)
 
 <a id="ctxheadlessstartup--headlessstartupvalues"></a>
 
@@ -365,8 +463,8 @@ Manage profile files and apply their declared reload lifecycle.
  * @param name Installed profile dependency name.
  * @param version Exact version newer than the installed one.
  * @param options The registry asked first, as for `listVersions`; the Git spec of `version`, required for and accepted
- * only by a bundle `listBundles` lists with `update: 'git'`; and the request id naming the progress and the target
- * installation's logs and cancellation.
+ * only by a bundle `listBundles` lists with `update: 'git'`; the request id naming the progress and the target
+ * installation's logs and cancellation; and the pending build scripts to allow, saved before anything is removed.
  * @returns The versions, the last step that ran with its result, and the reinstallation when one ran.
  */
 @Remote async updateBundle(name: string, version: string, options?: UpdateBundleOptions): Promise<PluginUpdateResult>
@@ -499,14 +597,16 @@ Source: [`packages/boot/plugin-market/src/index.ts`](../../packages/boot/plugin-
 
 ### `ctx.pluginRecommendations` — `PluginRecommendations`
 
-Catalog lookups for card text and the enabling behind the `enable_official_plugin` card.
+Catalog lookups for card text and the enabling and connector installation behind the `enable_official_plugin` card.
 
 ```ts cordis-catalog
 /**
  * Read the current catalog text for a logged card.
  * @param agent - Exact live root resolved by the Gateway from the Session id.
  * @param cardId - The card's id, never a package supplied by the browser.
- * @returns the plugin's title, description and selection, or a refusal when the card names no available official plugin.
+ * @returns the plugin's title, description and selection, `connector` for an installed official connector,
+ * `installable` with the connector catalog's title and description, in every shipped language, of an official
+ * connector the profile does not hold, or a refusal when the card names no available official plugin.
  */
 @Remote async describe(agent: Agent, cardId: ActionCardId): Promise<RecommendationDetails>
 ```

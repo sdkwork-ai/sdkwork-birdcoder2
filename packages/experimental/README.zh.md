@@ -36,6 +36,9 @@ kind: "package-group"
 
 | 包 | 职责 | ctx 键 |
 |---|---|---|
+| [`office-frame-forwarding-bundle`](office-frame-forwarding-bundle/README.zh.md) | 可选 Desktop 原生 Office 只读预览 | — |
+| [`client-ui-office-frame-forwarding`](client-ui-office-frame-forwarding/README.zh.md) | 授权的原生 Office 只读查看 | `ctx.officePreview` |
+| [`frame-forwarding`](frame-forwarding/README.zh.md) | Host 插件经 Desktop 共享纹理的原生帧转发 | `ctx.frameForwarding` |
 | [`tool-session-query`](tool-session-query/README.zh.md) | 按工作区授权的模型会话搜索、追踪与事件读取 | — |
 | [`session-search`](session-search/README.zh.md) | 可选实验性全局会话搜索工具 | — |
 | [`deepseek-chat-import`](deepseek-chat-import/README.zh.md) | 可选上传 DeepSeek 官网会话导出，存为所选工作区中的会话 | `ctx.deepseekChatImport` |
@@ -49,6 +52,7 @@ kind: "package-group"
 | [`webhook`](webhook/README.zh.md) | 已认证投递分发与 Workspace Session 创建 | `ctx.webhookRuntime` |
 | [`webhook-github`](webhook-github/README.zh.md) | 带签名的 GitHub webhook 入口 | — |
 | [`session-title-all-prompts-llm`](session-title-all-prompts-llm/README.zh.md) | 根据所有人类提示生成会话标题 | — |
+| [`llm-mock`](llm-mock/README.zh.md) | 返回固定回复、无需密钥的模拟模型路由 | — |
 | [`tool-terminal`](tool-terminal/README.zh.md) | 持久终端工具 | — |
 | [`terminal-panel`](terminal-panel/README.zh.md) | Web 侧栏中的 Agent 终端与只读的用户终端工具 | — |
 | [`tool-ralph`](tool-ralph/README.zh.md) | 有界重复委派任务 | — |
@@ -60,11 +64,18 @@ kind: "package-group"
 | [`speech-to-text-sensevoice`](speech-to-text-sensevoice/README.zh.md) | 托管本地 SenseVoice 推理 | — |
 | [`api-speech-to-text`](api-speech-to-text/README.zh.md) | 带认证的临时转写 Remote | `ctx.speechController` |
 | [`client-ui-voice-input`](client-ui-voice-input/README.zh.md) | 麦克风录音与版本检查后的草稿插入 | — |
+| [`client-ui-connectors`](client-ui-connectors/README.zh.md) | 默认禁用的插件页“连接器”标签页：列出、安装和打开官方连接器，并管理自定义 MCP 服务器 | — |
 | [`plugin-market-bundle`](plugin-market-bundle/README.zh.md) | 默认禁用的可选自定义插件索引：索引服务和「发现」标签页 | — |
 | [`liveshare`](liveshare/README.zh.md) | 可选 LiveShare host bundle：通过 Relay 以 `view` 或 `write` 档分享会话，派生与附件上传为独立开关 | 注入 `connection`；通过宿主 Web 资源提供查看页 |
 | [`liveshare-protocol`](liveshare-protocol/README.zh.md) | owner bundle 与 Relay 共用的线路帧与身份契约 | 库与协议，不使用 ctx key |
 | [`voice-input-bundle`](voice-input-bundle/README.zh.md) | 默认禁用的可选语音输入组合 | — |
+| [`text-to-speech`](text-to-speech/README.zh.md) | 具名语音合成 Provider | `ctx.textToSpeech` |
+| [`text-to-speech-deepseek`](text-to-speech-deepseek/README.zh.md) | DeepSeek 云端语音合成 | — |
+| [`read-aloud`](read-aloud/README.zh.md) | 为助手回复规划分段并控速合成的 Remote | `ctx.readAloud` |
+| [`client-ui-read-aloud`](client-ui-read-aloud/README.zh.md) | 消息操作栏中的朗读按钮 | — |
+| [`read-aloud-bundle`](read-aloud-bundle/README.zh.md) | 默认禁用的可选朗读组合 | — |
 | [`client-ui-stats`](client-ui-stats/README.zh.md) | Web 端按轮次与步骤展示上下文、耗时、缓存与工具成本 | — |
+| [`client-ui-sidechat`](client-ui-sidechat/README.zh.md) | `/side` 把对话分出为右侧栏中的侧栏对话 | — |
 | [`auto-review`](auto-review/README.zh.md) | 显式 Web 层，在每个原生或 PTC inner 工具调用前使用同一模型审查 | — |
 | [`subagent-oar`](subagent-oar/README.zh.md) | 通过 OAR 执行外部编程智能体的独立任务 | `ctx.subagents` |
 | [`tool-subagent-oar`](tool-subagent-oar/README.zh.md) | 为每项委派任务选择配置的外部代理 | `ctx.tools` |
@@ -85,10 +96,18 @@ kind: "package-group"
 | [`inspector`](inspector/README.zh.md) | 用于 Host 调试、Client Runtime 检查、网络采集与 Cordis 树的跨 realm CDP hub | `ctx.inspector` |
 | [`session-inspector`](session-inspector/README.zh.md) | 展示原始 Session 日志与 Chat 节点的 Sidebar 表格 | — |
 | [`inspector-profile`](inspector-profile/README.zh.md) | 用于 Session 日志与 Chat 节点检查的可选 Web 组合包 | — |
+| [`im`](im/README.zh.md) | IM 消息接纳、托管会话、共享默认会话与 `im_*` 工具 | `ctx.im` |
+| [`im-session-commands`](im-session-commands/README.zh.md) | IM 聊天斜杠命令 | — |
+| [`im-bundle`](im-bundle/README.zh.md) | 需显式安装的飞书/Lark IM 自动化层 | — |
 | [`tool-worktree`](tool-worktree/README.zh.md) | 创建并进入工作树的可选 bundle 与模型工具 | `ctx.tools` |
 | [`webworker-packer`](webworker-packer/README.zh.md) | 构建浏览器 worker 预览所消费的 gzip 压缩虚拟文件系统（VFS）镜像 | 库与 CLI（命令行界面），不使用 ctx key |
 | [`webworker-runtime`](webworker-runtime/README.zh.md) | 在专用浏览器 worker 中运行 harness 插件树 | 库与 worker 入口，不使用 ctx key |
 | [`worktree`](worktree/README.zh.md) | 创建具名 Git 工作树并改变调用 Session 的当前目录 | `ctx.worktrees` |
+| [`sandbox-policy-git`](sandbox-policy-git/README.zh.md) | 为链接工作树中的 Session 授予仓库 Git 目录的写权限 | — |
+| [`environment-local`](environment-local/README.zh.md) | 通过托管的 Node 进程提供本地执行环境 | 注册到 `ctx.environments` |
+| [`environment-ssh-config`](environment-ssh-config/README.zh.md) | 根据 OpenSSH Host 别名提供执行环境 | 注册到 `ctx.environments` |
+| [`environment`](environment/README.zh.md) | 在另一台机器上的守护进程中运行工具自有的函数，并支持回调 host 端处理函数 | `ctx.environments` |
+| [`environment-ssh`](environment-ssh/README.zh.md) | 通过 OpenSSH 到达执行环境守护进程，并严格检查主机密钥 | 注册到 `ctx.environments` |
 | [`forge`](forge/README.zh.md) | 代码托管提供方注册表，共享变更请求轮询 | `ctx.forge` |
 | [`forge-github`](forge-github/README.zh.md) | 通过宿主 GitHub CLI 读取 pull request 的 GitHub 提供方 | 在 `ctx.forge` 上注册提供方 |
 | [`forge-gitlab`](forge-gitlab/README.zh.md) | 通过宿主 GitLab CLI 读写合并请求的 GitLab 提供方 | 在 `ctx.forge` 上注册提供方 |
@@ -108,6 +127,7 @@ kind: "package-group"
 - [浏览器操作](../../docs/subsystems/browser-use.zh.md)——浏览器提供方选择与 Session 所有权。
 - [Agent Teams 子系统](../../docs/subsystems/agent-team.zh.md)——持久 Team 类型与 `ctx.agentTeams` 服务 API。
 - [实验子树规则](AGENTS.md)——实验状态放宽了什么、不放宽什么。
+- [执行环境子系统](../../docs/subsystems/environment.zh.md)——在远程守护进程中运行工具函数，支持调用 host 端处理函数。
 
 -----
 

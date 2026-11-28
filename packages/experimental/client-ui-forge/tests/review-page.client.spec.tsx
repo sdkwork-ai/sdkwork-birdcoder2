@@ -10,11 +10,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import './fonts-dom.client.ts'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
-import { bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
-import type { SessionAreaProps } from '@deepseek-ai/dsh-client-ui-slots'
+import { bindSnapshotSelector, makeTranslate, responsiveHooks } from '@deepseek-ai/dsh-client-test-runtime'
+import type { SessionAreaProps } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { ChangeRequestSnapshot, ForgeCommitList, ForgeReviewThread, ForgeThreadId } from '@deepseek-ai/dsh-experimental-forge/types'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
+import { RemoteError, type RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import type { ChangeRequestActions } from '../src/client/ChangeRequestCard.tsx'
 import type { ViewAnnotations } from '../src/client/annotations.ts'
@@ -25,7 +25,7 @@ import { en } from '../src/client/locales.ts'
 import type { ReviewChatFace } from '../src/client/review-page/ReviewChat.tsx'
 import { ReviewPage, type ReviewChangesFace, type ReviewPageProps } from '../src/client/review-page/ReviewPage.tsx'
 import { ReviewQueue } from '../src/client/review-queue.ts'
-import { createReviewStore } from '../src/client/review-page/review-store.ts'
+import { changesTabOf, createReviewStore } from '../src/client/review-page/review-store.ts'
 import type { ForgeReviewConversationProps } from '../src/client/slots.ts'
 import type { StreamSnapshot } from '../src/client/source.ts'
 import { ViewedFiles } from '../src/client/viewed-files.ts'
@@ -34,7 +34,8 @@ import type {
   ForgeChangeRequestDiff, ForgeDiffFile, ForgeExtensionState, ForgeReviewChangeRequest, ForgeReviewFrame,
 } from '../src/types.ts'
 import { entry, ready, ref, snapshot } from './client-fixtures.client.ts'
-import { description, fed, frame, host, list, prUrl, reviewed, summary, type Fed } from './review-fixtures.client.ts'
+import { description, failedList, fed, frame, host, list, prUrl, reviewed, summary, type Fed } from './review-fixtures.client.ts'
+import type { ReviewRepository } from '../src/client/review-page/review-lists.ts'
 import { reviewThread } from './thread-fixtures.client.ts'
 
 const t = makeTranslate(en)
@@ -72,7 +73,7 @@ function deferred<T>() {
 /** New side of `src/app.ts`, whose one hunk replaces its fourth line. */
 const APP_TEXT = ['const a1 = 1', 'const a2 = 2', 'const a3 = 3', 'const y = 4', 'const a5 = 5'].join('\n') + '\n'
 const APP: ForgeDiffFile = {
-  path: 'src/app.ts', previousPath: null, status: 'modified', binary: false, oversized: false, untracked: false, layer: 'implementation',
+  path: 'src/app.ts', previousPath: null, status: 'modified', binary: false, oversized: false, untracked: false, submodule: false, layer: 'implementation',
   digest: 'digest', additions: 1, deletions: 1,
   hunks: [{
     oldStart: 3, oldLines: 3, newStart: 3, newLines: 3, lines: [' const a3 = 3', '-const x = 4', '+const y = 4', ' const a5 = 5'],
@@ -90,8 +91,11 @@ const THREAD: ForgeReviewThread = reviewThread({
 /** The reads and writes of a changes view showing #7 with `threads`, each recorded. */
 function changesFaces(threads: readonly ForgeReviewThread[] = []): ReviewChangesFace {
   const local = async (): Promise<never> => await Promise.reject(new Error('no local changes'))
+  // Like the plugin, return one queue for the tab's lifetime rather than a new one per render.
+  const queue = new ReviewQueue('review-page-test')
   return {
     localDiff: vi.fn(local),
+    localWrite: vi.fn(local),
     diffBases: vi.fn(local),
     localText: vi.fn(local),
     localCommits: vi.fn(local),
@@ -107,7 +111,7 @@ function changesFaces(threads: readonly ForgeReviewThread[] = []): ReviewChanges
     })),
     changeRequestReviewWrite: vi.fn(async () => ok({ ok: true as const })),
     submitReview: vi.fn(async () => ok({ ok: true as const, url: URL7 })),
-    reviewQueue: vi.fn(() => new ReviewQueue('review-page-test')),
+    reviewQueue: vi.fn(() => queue),
     openLink: vi.fn(),
     copyPath: vi.fn(),
     createChangeRequest: vi.fn(),
@@ -136,6 +140,7 @@ function renderPage(threads: readonly ForgeReviewThread[] = []) {
     openInMain: vi.fn<ReviewChatFace['openInMain']>(),
     requestWorktree: vi.fn<ReviewChatFace['requestWorktree']>(),
   }
+  const pluginNavigation = createSnapshotStore(false)
   const conversations: ForgeReviewConversationProps[] = []
   const renderSlot = ((_key: string, owner: ForgeReviewConversationProps) => {
     conversations.push(owner)
@@ -146,8 +151,9 @@ function renderPage(threads: readonly ForgeReviewThread[] = []) {
   }
   const props: ReviewPageProps = {
     useLocale: bindSnapshotSelector(createSnapshotStore('en')),
-    openLists: vi.fn((scope: string, signal: AbortSignal) => {
-      const stream = fed<ForgeReviewFrame>(scope, signal)
+    usePluginNavigation: bindSnapshotSelector(pluginNavigation),
+    openLists: vi.fn((repository: ReviewRepository | null, signal: AbortSignal) => {
+      const stream = fed<ForgeReviewFrame>(repository === null ? '' : `${repository.host} ${repository.owner}/${repository.name}`, signal)
       lists.push(stream)
       return stream
     }),
@@ -163,6 +169,9 @@ function renderPage(threads: readonly ForgeReviewThread[] = []) {
       return refresh.promise
     }),
     readDescription: vi.fn(async () => ok(description('Body'))),
+    readActivity: vi.fn(async () => ok(null)),
+    addComment: vi.fn(async () => ok(undefined)),
+    openHostSettings: vi.fn(),
     actionsFor: vi.fn((_url: string, showChanges: () => void): ChangeRequestActions => {
       shown.push(showChanges)
       return { openLink: vi.fn(), copyLink: vi.fn(), retry: vi.fn(), viewChanges: () => { showChanges() } }
@@ -176,6 +185,7 @@ function renderPage(threads: readonly ForgeReviewThread[] = []) {
     actions: store.actions,
     renderSlot,
     SessionProvider,
+    useMediaQuery: responsiveHooks().useMediaQuery,
     t,
   }
   const view = render(<ReviewPage {...props} />)
@@ -190,7 +200,7 @@ function renderPage(threads: readonly ForgeReviewThread[] = []) {
     return element
   }
   return {
-    view, props, store, lists, details, refreshes, shown, changes, chat, conversations, page,
+    view, props, store, lists, details, refreshes, shown, changes, chat, conversations, page, pluginNavigation,
     list: () => last(lists), detail: () => last(details),
   }
 }
@@ -228,7 +238,7 @@ async function quoteComment(section: HTMLElement, body: string): Promise<void> {
 describe('ReviewPage lists', () => {
   it('lists the change requests of every repository beside a placeholder until one is chosen', async () => {
     const b = renderPage()
-    expect(b.props.openLists).toHaveBeenCalledWith('', b.list().signal)
+    expect(b.props.openLists).toHaveBeenCalledWith(null, b.list().signal)
     expect(b.props.openChangeRequest).not.toHaveBeenCalled()
     expect(b.view.getByText('Select a change request')).toBeTruthy()
     b.list().push(frame(host({ authored: list([summary(7)]) })))
@@ -243,9 +253,9 @@ describe('ReviewPage lists', () => {
     fireEvent.click(b.view.getByRole('button', { name: 'Filter' }))
     fireEvent.click(within(document.body).getByRole('menuitem', { name: /^Repository/ }))
     fireEvent.click(within(document.body).getByRole('menuitem', { name: 'octo/demo' }))
-    expect(b.store.getSnapshot().repository).toEqual({ owner: 'octo', name: 'demo' })
+    expect(b.store.getSnapshot().scope).toEqual({ host: 'github.com', owner: 'octo', name: 'demo' })
     expect(b.lists[0]?.disposed).toHaveBeenCalledOnce()
-    expect(b.list().key).toBe('octo/demo')
+    expect(b.props.openLists).toHaveBeenLastCalledWith({ host: 'github.com', owner: 'octo', name: 'demo' }, b.list().signal)
     fireEvent.click(b.view.getByRole('button', { name: 'Filter' }))
     fireEvent.click(within(document.body).getByRole('menuitem', { name: 'Only requests made of me' }))
     expect(b.store.getSnapshot().directOnly).toBe(true)
@@ -277,14 +287,14 @@ describe('ReviewPage lists', () => {
     // A read under way adds what it has read so far; the settled read is the record.
     b.list().push({ ...frame(host({ 'review-requested': list([summary(7)]), 'authored': list(null) })), reading: true })
     await settle()
-    expect(b.store.getSnapshot().repositories).toEqual([{ owner: 'octo', name: 'demo' }])
+    expect(b.store.getSnapshot().repositories).toEqual([{ host: 'github.com', owner: 'octo', name: 'demo' }])
     b.list().push(frame(host({ 'review-requested': list([summary(7)]), 'authored': list([other]) })))
     await settle()
     expect(offered()).toEqual(['All repositories', 'acme/widgets', 'octo/demo'])
     fireEvent.click(within(document.body).getByRole('menuitem', { name: 'acme/widgets' }))
 
     // The chosen repository's lists name only it, before and after its first frame.
-    expect(b.list().key).toBe('acme/widgets')
+    expect(b.list().key).toBe('github.com acme/widgets')
     expect(offered()).toEqual(['All repositories', 'acme/widgets', 'octo/demo'])
     fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
     fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
@@ -298,7 +308,30 @@ describe('ReviewPage lists', () => {
     expect(b.store.getSnapshot().repositories).toHaveLength(2)
     b.list().push(frame(host({ 'review-requested': list([summary(7)]), 'authored': list([]) })))
     await settle()
-    expect(b.store.getSnapshot().repositories).toEqual([{ owner: 'octo', name: 'demo' }])
+    expect(b.store.getSnapshot().repositories).toEqual([{ host: 'github.com', owner: 'octo', name: 'demo' }])
+  })
+
+  it('narrows the lists to one host on the page, without another stream, and offers the settings from a host that failed while they can be opened', async () => {
+    const b = renderPage()
+    b.list().push(frame(
+      host({ 'review-requested': list([summary(7)]) }),
+      host({ authored: list([summary(8)]) }, { forge: 'gitlab', host: 'gitlab.example' }),
+      host({ involved: failedList('unauthenticated') }, { forge: 'gitlab', host: 'gitlab.com' }),
+    ))
+    await settle()
+    expect(b.view.getByRole('status').textContent).toBe('Sign in to gitlab.com to list your change requests')
+    act(() => { b.pluginNavigation.set(true) })
+    fireEvent.click(b.view.getByRole('button', { name: 'Open settings' }))
+    expect(b.props.openHostSettings).toHaveBeenCalledOnce()
+
+    fireEvent.click(b.view.getByRole('button', { name: 'Filter' }))
+    fireEvent.click(within(document.body).getByRole('menuitem', { name: /^Repository/ }))
+    fireEvent.click(within(document.body).getByRole('menuitem', { name: 'gitlab.example' }))
+    expect(b.store.getSnapshot().scope).toEqual({ host: 'gitlab.example' })
+    expect(b.lists).toHaveLength(1)
+    expect(b.lists[0]?.disposed).not.toHaveBeenCalled()
+    expect([...b.view.container.querySelectorAll('[data-forge-review-item]')].map(item => item.getAttribute('data-forge-review-item'))).toEqual([prUrl(8)])
+    expect(b.view.queryByRole('status')).toBeNull()
   })
 
   it('reads every list again once at a time, showing the refresh until it settles', async () => {
@@ -327,13 +360,29 @@ describe('ReviewPage lists', () => {
     b.list().push(frame(host({ authored: list([summary(7)]) })))
     await settle()
     const meta = (): string | null | undefined => b.view.container.querySelector(`.${css.itemMeta}`)?.textContent
-    expect(meta()).toBe('#7·octo·5 min ago')
+    expect(meta()).toBe('#7·octo5min')
     act(() => { vi.advanceTimersByTime(60_000) })
-    expect(meta()).toBe('#7·octo·6 min ago')
+    expect(meta()).toBe('#7·octo6min')
   })
 })
 
 describe('ReviewPage detail', () => {
+  it('offers the host lists for a link no provider serves only while the Plugins page can be opened', async () => {
+    const b = renderPage()
+    b.list().push(frame(host({ 'review-requested': list([summary(7)]) })))
+    await settle()
+    fireEvent.click(b.view.container.querySelector(`[data-forge-review-item="${URL7}"]`) ?? document.body)
+    b.detail().fail(new RemoteError('forgePanel/unrecognized-url', 'no provider serves it', {}))
+    await settle()
+    expect(b.view.getByText('Unknown code host')).toBeTruthy()
+    expect(b.view.queryByRole('button', { name: 'Add host…' })).toBeNull()
+
+    act(() => { b.pluginNavigation.set(true) })
+    fireEvent.click(b.view.getByRole('button', { name: 'Add host…' }))
+
+    expect(b.props.openHostSettings).toHaveBeenCalledOnce()
+  })
+
   it('shows the chosen change request with its card actions, and goes back to the list', async () => {
     const b = renderPage()
     await select(b)
@@ -373,6 +422,44 @@ describe('ReviewPage detail', () => {
     expect(lifetime?.aborted).toBe(false)
     fireEvent.click(b.view.getByRole('button', { name: 'Back to list' }))
     expect(lifetime?.aborted).toBe(true)
+  })
+
+  it('shows the changes of one commit from the commit\'s line in the activity', async () => {
+    const b = renderPage()
+    const sha = 'a'.repeat(40)
+    vi.mocked(b.props.readActivity).mockResolvedValue(ok({
+      items: [{ kind: 'commit', at: '2026-10-09T01:00:00Z', actor: null, sha, title: 'Fix the parser' }], truncated: false, viewerCanComment: false,
+    }))
+    await select(b)
+    fireEvent.click(b.view.getByRole('button', { name: 'Fix the parser, View in Changes' }))
+    expect(b.store.getSnapshot().tab).toBe('changes')
+    expect(b.store.getSnapshot().byTab[changesTabOf(URL7)]?.commits).toEqual({ from: sha, to: sha })
+    await settle()
+    // The first read of the changes view is the commit's, not the whole change request's.
+    expect(vi.mocked(b.changes.changeRequestDiff).mock.calls.map(call => call[1])).toEqual([{ from: sha, to: sha }])
+    expect(b.view.getByRole('tab', { name: /^Changes/ }).getAttribute('aria-selected')).toBe('true')
+  })
+
+  it('ranges a Shift click in the commit picker from the commit its line in the activity opened', async () => {
+    const b = renderPage()
+    const first = 'b'.repeat(40)
+    const commit = (sha: string, parent: string | null) =>
+      ({ sha, parent, title: 'Fix the parser', author: 'octo', authoredAt: '2026-10-08T00:00:00Z' })
+    vi.mocked(b.changes.changeRequestCommits)
+      .mockResolvedValue(ok({ headSha: HEAD, truncated: false, commits: [commit(first, null), commit(HEAD, first)] }))
+    vi.mocked(b.props.readActivity).mockResolvedValue(ok({
+      items: [{ kind: 'commit', at: '2026-10-09T01:00:00Z', actor: null, sha: first, title: 'Fix the parser' }], truncated: false, viewerCanComment: false,
+    }))
+    await select(b)
+    fireEvent.click(b.view.getByRole('button', { name: 'Fix the parser, View in Changes' }))
+    await settle()
+    fireEvent.click(b.view.getByRole('button', { name: 'Commits shown: bbbbbbb' }))
+    await settle()
+    fireEvent.click(within(document.body).getByRole('menuitem', { name: /^aaaaaaa/ }), { shiftKey: true })
+    expect(b.store.getSnapshot().byTab[changesTabOf(URL7)]?.commits).toEqual({ from: first, to: HEAD })
+    await settle()
+    expect(vi.mocked(b.changes.changeRequestDiff).mock.calls.map(call => call[1]))
+      .toEqual([{ from: first, to: first }, { from: first, to: HEAD }])
   })
 
   it('starts the conversation in the chat tab, records it for the change request, and forgets it for a new one', async () => {

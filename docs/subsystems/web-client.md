@@ -25,7 +25,7 @@ The Host writes the composed `WebBootGraph` to `window.__DSH_BOOT__` and install
 
 The Web boot kernel creates the module system, prefetches `immediately` entries, mounts the vendored Cordis Loader, and creates every graph entry. Cordis service injection determines activation; module graph order determines only whether synchronous imports can be materialized. After the complete roster reaches a settled state and the boot audit accepts it (an inactive entry on the browser required list rejects startup; other inactive entries produce one console warning), `ui-renderer` hydrates the framework-free boot DOM and calls the sole context-level `renderSlot('root')` operation. [Client Modules](client-modules.md) owns the graph, bundle route, cache revision, and loader details.
 
-Module construction binds the startup carrier's existing script loader as its Main environment; optional Realm providers do not add a startup phase. Modules retains optional metadata producers and emits module-record changes; [UI Renderer](../../packages/client/ui-renderer/README.md) evaluates stylesheet descriptors and owns their main-document installation. This resource lifecycle is module-level, not a Slot or component mount protocol.
+Modules uses the startup carrier's script loader for the Main Realm. Only a boot graph that requests [script isolation](../../packages/client/modules/README.md#script-isolated-packages) activates the Realm providers before loading the other entries. Modules retains optional metadata producers and emits module-record changes; [UI Renderer](../../packages/client/ui-renderer/README.md) evaluates stylesheet descriptors and owns their main-document installation. This resource lifecycle is module-level, not a Slot or component mount protocol.
 
 ## Remote communication
 
@@ -110,7 +110,7 @@ A follow generation starts with `type: 'baseline'` and every accessible record i
 
 Feature plugin packages may share declarations through `import type`; they do not runtime-import or re-export another feature plugin's values. Cross-package behavior uses injected Cordis services, and cross-package UI uses Slots. Target-specific Conversation Definitions, projection helpers, and final view data stay with their target package even when Chat and Trajectory intentionally implement parallel logic.
 
-Shared runtime values need a narrow static owner with no feature lifecycle, such as `client/store`, `ui-primitives`, or a browser-safe utility package. Transport and generated API assembly may import runtime contributions because assembling one protocol is their explicit responsibility. A feature package may request the runtime values of a row under `packages/api/` through `dsh.client.external`, but never another feature plugin's row.
+Shared runtime values need a narrow static owner with no feature lifecycle, such as `client/store` or a browser-safe utility package. The `/client` value exports of the dynamic plugin packages `ui-slots`, `ui-primitives`, and `ui-dockkit`, which other bundles require through their module-table rows, are a historical exception that will be reduced over time. Transport and generated API assembly may import runtime contributions because assembling one protocol is their explicit responsibility. A feature package may request the runtime values of a row under `packages/api/` through `dsh.client.external`, but never another feature plugin's row.
 
 Use the four detailed references according to the extension being added:
 

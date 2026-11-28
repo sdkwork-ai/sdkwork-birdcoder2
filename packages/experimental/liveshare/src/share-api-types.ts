@@ -117,6 +117,8 @@ export interface OwnerShareView {
   /** Per-plugin endpoint policies this share carries; an empty list means none. */
   readonly viewerPlugins: readonly ViewerPluginPolicy[]
   readonly online: boolean
+  /** True when automatic reconnection has stopped for this offline share. */
+  readonly reconnectStopped?: boolean
   /** Confirmed ACL scope, absent on records written before it was recorded. */
   readonly access?: ShareAccess
 }
@@ -171,6 +173,11 @@ export interface AddShareSessionsRequest {
 export interface ShareSessions {
   readonly shareId: string
   readonly sessionIds: readonly string[]
+}
+
+/** An existing share to reconnect without changing its link. */
+export interface ReconnectShareRequest {
+  readonly shareId: string
 }
 
 /** One stop request. */
@@ -267,7 +274,7 @@ export interface TestPublishRequest {
   readonly sessionId: string
 }
 
-/** Permission check of one throwaway registration. */
+/** Permission check of one publish: what the Liveshare server answers before the share is created. */
 export interface RelayPublishView {
   readonly ok: boolean
   readonly blocking: boolean
@@ -297,6 +304,8 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
   interface RemoteErrorDetailsMap {
     /** No share this host publishes carries the requested id. */
     'liveshareShares/share-not-found': { readonly shareId: string }
+    /** The owner requested reconnection after the share's expiry. */
+    'liveshareShares/share-expired': { readonly shareId: string }
     /** A share-writing request named no share. */
     'liveshareShares/missing-share-id': Record<string, never>
     /** An addition named no usable Session id. */

@@ -2,20 +2,20 @@
 
 [English](office-kit.md) | 中文
 
-[document 包族](../../packages/document/README.zh.md) 在 Node 宿主上渲染、转换 Office 文件并重算工作簿。消费者负责源文件读取授权与展示；共享提供方负责引擎、有界准入、临时输出复用和私有输出存储。[`office_render`、`office_convert` 和 `office_recalculate` 工具](../../packages/document/tool-office/README.zh.md)是面向模型的消费者；提供方本身不创建 Session 事件。
+[document 包族](../../packages/document/README.zh.md) 在 Node 宿主上渲染、转换 Office 文件并重算工作簿。消费者负责源文件读取授权与展示；共享提供方负责引擎、有界准入、临时输出复用和私有输出存储。[`document_render`、`document_convert` 和 `document_recalculate` 工具](../../packages/document/tool-document/README.zh.md)是面向模型的消费者；提供方本身不创建 Session 事件。
 
 ## 所有权
 
 | 所有者 | 职责 |
 |---|---|
-| [office-kit](../../packages/document/office-kit/README.zh.md) | `ctx.officeKit`：共享 LibreOffice 渲染、转换与重算，有界准入、输出缓存和按 Session 划分的输出存储；解析提供方自身的 Kit 入口、从该安装定位的引擎清单，以及映射到 ASAR 解包目录的原生路径 |
-| [tool-office](../../packages/document/tool-office/README.zh.md) | 按需激活的 `office_render`、`office_convert` 和 `office_recalculate` 工具：工具结果中的渲染图片，以及供 shell 复制的转换或重算文件 |
-| [Web bundle](../../packages/bundle/web-app/README.zh.md)与 [SDK bundle](../../packages/bundle/sdk-app/README.zh.md) | 由宿主消费者共享的单个可配置提供方及 `tool-office` |
+| [office-kit](../../packages/document/office-kit/README.zh.md) | `ctx.officeKit`：共享 LibreOffice 渲染、转换与重算，Poppler PDF 渲染，有界准入、输出缓存和按 Session 划分的输出存储；解析提供方自身的 Kit 入口、从该安装定位的引擎清单，以及映射到 ASAR 解包目录的原生路径 |
+| [tool-document](../../packages/document/tool-document/README.zh.md) | 按需激活的 `document_render`、`document_convert` 和 `document_recalculate` 工具：工具结果中的渲染图片，以及供 shell 复制的转换或重算文件 |
+| [Web bundle](../../packages/bundle/web-app/README.zh.md)与 [SDK bundle](../../packages/bundle/sdk-app/README.zh.md) | 由宿主消费者共享的单个可配置提供方及 `tool-document` |
 | [Office 预览 Client](../../packages/client/ui-sidebar-documentpreview/README.zh.md#office-preview) | Office 扩展名选择、PDF 复用和缺失字体提示 |
 
 ## 请求和结果
 
-[`OfficeKitRequest`](../../packages/document/office-kit/src/types.ts)包含已授权的源键与版本、可选 stat 大小、延迟的 `read(signal, maxBytes)` 回调、前台或后台优先级以及 `OfficeExtension`：`doc`、`docx`、`xls`、`xlsx`、`ppt` 或 `pptx`。`OfficeKit.convert(request, signal?)` 返回一个完整 PDF 结果。`renderImages()` 返回选定页、幻灯片或工作表区域的有界 PNG 图片；`convertTo()` 与 `recalculate()` 把输出按请求的属主保存在提供方的 `outputDirectory` 下并返回其 Host 路径。它们的请求类型接受 OpenDocument 输入，图片渲染还接受 PDF。所有方法共用准入和缓存。取消遵循调用方和提供方生命周期；校验、输出和引擎失败以分类的 `OfficeKitError` 拒绝。
+[`OfficeKitRequest`](../../packages/document/office-kit/src/types.ts)包含已授权的源键与版本、可选 stat 大小、延迟的 `read(signal, maxBytes)` 回调、前台或后台优先级以及 `OfficeExtension`：`doc`、`docx`、`xls`、`xlsx`、`ppt` 或 `pptx`。`OfficeKit.convert(request, signal?)` 返回一个完整 PDF 结果。`renderImages()` 返回选定页、幻灯片或工作表区域的有界 PNG 图片；`convertTo()` 与 `recalculate()` 把输出按请求的属主保存在提供方的 `outputDirectory` 下并返回其 Host 路径。它们的请求类型接受 OpenDocument 输入，图片渲染还接受 PDF；可选的 `renderer` 选择 `libreoffice` 或 `poppler`，结果注明所用后端。这四个方法共用准入和缓存。`discoverRuntime()` 不启动引擎即探测已安装 Kit 的运行时元数据，`openDocument()` 在转换队列和缓存之外延迟加载 Kit 的交互式编辑器入口，应用提供方的引擎解析器及字体和归档配置，返回调用方拥有的 `EditorDocument`。取消遵循调用方和提供方生命周期；校验、输出和引擎失败以分类的 `OfficeKitError` 拒绝。
 
 `OfficeKitPriority` 对请求的预览或 QA 使用 `foreground`，对推测工作使用 `background`。`OfficeSourceKey` 为调用方拥有的已授权源定位符增加品牌类型。`OfficeKitGeneration` 表示提供方生命周期，`OfficeKitKey` 表示其内容身份；消费者不解析这两种不透明值。
 
@@ -38,7 +38,7 @@
 
 ## 引擎选择和限制
 
-外部 [`@deepseek-ai/libreoffice-kit`](https://github.com/deepseek-ai/dsh-libreoffice-kit) Node API 选择其预编译引擎。kit 独立维护版本和发布流程，具体归属由[发布归属决策](../../.agents/notes/implemented/architecture/2026-09-14-independent-libreoffice-kit.zh.md)定义。应用构建时安装已发布的 npm 包。应用打包要求目标已声明的原生引擎；kit 未为该目标声明原生引擎时使用 Node WASM。[平台引擎参考](../../packages/document/office-kit/README.zh.md)定义安装和打包规则。元数据无效、必需资源缺失和转换错误都会拒绝请求，不切换引擎。提供方的 Kit 缺失或导入失败时，提供方仍会注册，并以 `unavailable` 拒绝转换。转换在 Host 使用磁盘输入输出路径，不使用浏览器转换引擎或字体 RPC。
+外部 [`@deepseek-ai/libreoffice-kit`](https://github.com/deepseek-ai/dsh-libreoffice-kit) Node API 选择其预编译引擎。kit 独立维护版本和发布流程，具体归属由[发布归属决策](../../.agents/notes/implemented/architecture/2026-09-14-independent-libreoffice-kit.zh.md)定义。应用构建时安装已发布的 npm 包。应用打包要求目标已声明的原生引擎（Linux 上为 `linux-<arch>-glibc`），未声明时拒绝打包，不回退到 Node WASM。[平台引擎参考](../../packages/document/office-kit/README.zh.md)定义安装和打包规则。元数据无效、必需资源缺失和转换错误都会拒绝请求，不切换引擎。提供方的 Kit 缺失或导入失败时，提供方仍会注册，并以 `unavailable` 拒绝转换。转换在 Host 使用磁盘输入输出路径，不使用浏览器转换引擎或字体 RPC。
 
 [Host 提供方配置](../../packages/document/office-kit/README.zh.md#use-this-package)负责并发、期限、输入输出上限、归档上限、图像分辨率和字体访问。原生/WASM 实现和资产分发属于 kit 工作区。系统 LibreOffice 探测、运行时引擎下载、持久输出缓存、写入工作区和面向模型的展示不属于此提供方。
 
@@ -54,7 +54,7 @@ Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnp
 
 ### `ctx.officeKit` — `OfficeKit`
 
-A provider lifetime owns all converters, queued calls, and temporary files.
+A provider lifetime owns all converters, Poppler processes, queued calls, and temporary files.
 
 ```ts cordis-catalog
 /**
@@ -68,12 +68,17 @@ async convert(request: OfficeKitRequest, signal?: AbortSignal): Promise<OfficeKi
 
 /**
  * Render selected pages, slides, or worksheet areas of one document as PNG images. Requests share the admission
- * queue, concurrency, source-byte reservation, and cache with previews, and run at foreground priority.
- * @param request - authorized metadata, deferred bounded source read, selection, and complete-result limits.
+ * queue, concurrency, source-byte reservation, and cache with previews, and run at foreground priority. The backend
+ * is chosen before admission: `request.renderer` exclusively, otherwise the first available entry of the configured
+ * `renderers` order, where the last entry is used without an availability check. A backend that fails after it
+ * starts rejects without trying another. Poppler renders without a LibreOffice converter slot.
+ * @param request - authorized metadata, deferred bounded source read, selection, backend, and complete-result limits.
  * @param signal - caller cancellation; provider disposal also stops active work.
- * @returns caller-owned images in document order whose count, per-image size, and total bytes satisfy the limits.
- * @throws {OfficeKitError} `invalid-request` for a selection the engine rejects, `output-too-large` when the
- * selection exceeds a limit, and the other conversion codes; cancellation rejects with its reason.
+ * @returns caller-owned images in document order whose count, per-image size, and total bytes satisfy the limits,
+ * with the backend that rendered them.
+ * @throws {OfficeKitError} `unsupported-format` for `poppler` with non-PDF input, `unavailable` when the requested
+ * or last configured backend cannot run, `invalid-request` for a selection the engine rejects, `output-too-large`
+ * when the selection exceeds a limit, and the other conversion codes; cancellation rejects with its reason.
  */
 async renderImages(request: OfficeImagesRequest, signal?: AbortSignal): Promise<OfficeImagesResult>
 
@@ -99,6 +104,25 @@ async convertTo(request: OfficeConversionRequest, signal?: AbortSignal): Promise
  * @throws {OfficeKitError} Invalid input, unusable output, or engine failure; cancellation rejects with its reason.
  */
 async recalculate(request: OfficeRecalculationRequest, signal?: AbortSignal): Promise<OfficeFileResult>
+
+/**
+ * Inspect installed LibreOffice Kit runtime metadata without starting an engine.
+ * @returns Runtime metadata when Kit and an engine are available; `undefined` when the provider is disposed,
+ * Kit is missing or unloadable, or Kit reports its runtime unavailable (each distinct failure is logged once).
+ * @throws Unexpected discovery or non-`unavailable` Kit errors.
+ */
+async discoverRuntime(): Promise<RuntimeInfo | undefined>
+
+/**
+ * Open an interactive native Office document through the provider's Kit installation without using the conversion
+ * queue or cache. The caller owns the returned document and must call `close()` when finished.
+ * @param request - Document bytes, format, rendering backend, cancellation signal, progress callback, and optional
+ * per-document limit overrides applied on top of this provider's configured Kit font and archive settings.
+ * @returns Caller-owned interactive editor document.
+ * @throws {OfficeKitError} `unavailable` when the provider is disposed or Kit cannot be loaded; cancellation
+ * rejects with its signal reason; engine opening failures propagate from Kit.
+ */
+async openDocument(request: OfficeEditorRequest): Promise<EditorDocument>
 
 /**
  * Read and convert one Office file using the Session's ordinary filesystem authorization.

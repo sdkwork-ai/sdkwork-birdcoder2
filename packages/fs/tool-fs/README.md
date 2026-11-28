@@ -55,7 +55,7 @@ Field names are snake_case to match Claude Code and existing harness tool schema
 
 ### Configuration
 
-All keys are optional. The `read`, `readImage`, `write`, and `edit` switches default to `true`; set a switch to `false` to omit that tool and its guidance. `applyPatch` defaults to `false`; [`dsh-base`](../../bundle/base/cordis.patch.yml) and the Web `standard` preset enable it on their `tool-fs` rows, while the Web `ptc` and `cordis` presets state `applyPatch: false`, and changing that one line adds or drops the tool beside `edit`. All five tools may be disabled. Enabling `readImage` still requires an attachment store and an image-capable model. Read caps remain validated when `read` is disabled.
+All keys are optional. The `read`, `readImage`, `write`, and `edit` switches default to `true`; set a switch to `false` to omit that tool and its guidance. `applyPatch` defaults to the resolved `edit` value, so a row that keeps `edit` also offers `apply_patch`; set `applyPatch: false` to drop it beside `edit`, or `applyPatch: true` to keep it without `edit`. All five tools may be disabled. Enabling `readImage` still requires an attachment store and an image-capable model. Read caps remain validated when `read` is disabled.
 
 | Key | Default | Meaning |
 |---|---|---|
@@ -63,7 +63,7 @@ All keys are optional. The `read`, `readImage`, `write`, and `edit` switches def
 | `readImage` | `true` | Register `read_image` while an attachment store is mounted |
 | `write` | `true` | Register `write` and its guidance |
 | `edit` | `true` | Register `edit` and its guidance |
-| `applyPatch` | `false` | Register `apply_patch` and its guidance |
+| `applyPatch` | value of `edit` | Register `apply_patch` and its guidance |
 | `readLimit` | `2000` | Default and maximum lines returned by one `read` call |
 | `readMaxLineLength` | `2000` | Characters kept per line before truncation |
 | `readMaxBytes` | `51200` | Byte cap on one `read` call's selected lines; overflow ends the window with a capped footer |
@@ -77,7 +77,7 @@ With `fs-observation-policy` mounted and `read` disabled, `write` can still crea
 
 Path authorization for `read` and `read_image` belongs entirely to `ctx.fs`; media-type declarations and file signatures only decide whether `read_image` accepts the bytes returned by that backend.
 
-With the policy plugin mounted, `write` and `edit` obtain their guard from the `fs/*` intent slots, so an unread target or a stale observation fails with `FS_NOT_OBSERVED` or `FS_STALE_VERSION` and a recovery instruction. Under a confining backend (`fs-sandbox`), `write`/`edit` additionally advertise `sandbox_permissions` and `justification`; a denied mutation returns the `[sandbox: file access denied under <mode> mode]` marker with the same-turn escalation hint, and an approved retry may stamp a strictly wider mode for that one call. When `sandbox_permissions` is omitted or repeats the call's effective mode, `justification` may be omitted, empty, or whitespace-only; no approval is requested. A different mode still requires a non-empty reason, and widening requires approval. A non-empty reason without a mode is rejected. These exceptions do not bypass observation checks or filesystem denials. The justification asks the model to use the language of the current user request.
+With the policy plugin mounted, `write` and `edit` obtain their guard from the `fs/*` intent slots, so an unread target or a stale observation fails with `FS_NOT_OBSERVED` or `FS_STALE_VERSION` and a recovery instruction. Under a confining backend (`fs-sandbox`), `write`/`edit` additionally advertise `sandbox_permissions` and `justification`; a denied mutation returns the `[sandbox: file access denied under <mode> mode]` marker with the same-turn escalation hint, and an approved retry may stamp a strictly wider mode for that one call. When `sandbox_permissions` is omitted or repeats the call's effective mode, `justification` may be omitted, empty, or whitespace-only; no approval is requested. A different mode still requires a non-empty reason, and widening requires approval. A weaker mode is a no-op: the sandbox never narrows a call, so the mutation runs at the effective mode without approval. A non-empty reason without a mode is rejected. These exceptions do not bypass observation checks or filesystem denials. The justification asks the model to use the language of the current user request.
 
 ### Failures and recovery
 
@@ -161,7 +161,7 @@ Read these pages when the package-level contract is not enough. They move from t
 
 #### What the model sees
 
-At assembly time, each guidance section checks `ctx.tools.get(name, scope)` and renders only while its tool is visible to that agent. The write paragraph recommends edit only while edit is visible. The text below is unchanged when all three tools are available; restrictions, their removal, and tool registration changes take effect on the next assembly. The same check works for direct agent restrictions and historical subagent filters restored from descriptors, including PTC capabilities behind `run_code`. The read-before-mutation sentences in write/edit describe the observation policy, not a requirement to invoke the tool named `read`. They remain when `read` is hidden: the policy still guards mutations, and another observing operation, such as `str_replace_editor` with `command: view`, can establish the same file observation. Tool visibility does not disable that precondition.
+Each guidance section is the tool's `guidance`, so it renders in every scope that can call the tool, including PTC capabilities behind `run_code`. A direct agent restriction or a historical subagent filter restored from a descriptor hides the tool and its section. The write paragraph recommends edit when the plugin's configuration enables edit. The read-before-mutation sentences in write/edit describe the observation policy, not a requirement to invoke the tool named `read`. They remain when `read` is hidden: the policy still guards mutations, and another observing operation, such as `str_replace_editor` with `command: view`, can establish the same file observation. Tool visibility does not disable that precondition.
 
 ##### Read guidance
 
@@ -183,11 +183,11 @@ Read a file before editing it unless you just created or edited it in this sessi
 
 #### Token effect
 
-Guidance cost follows the visible tools and their applicable cross-tool recommendations.
+Guidance cost follows the tools the Agent can call and the plugin's cross-tool recommendations; a restriction removes the restricted tool's section.
 
 #### KV Cache effect
 
-Prefix-stable while the visible tool set, plugin scope, and guidance text are unchanged. Restrictions or plugin lifecycle changes may invalidate reuse from the first changed section.
+Prefix-stable while the registered tools, plugin scope, restrictions, and guidance text are unchanged; a restriction removes the restricted tool's section. Plugin lifecycle changes may invalidate reuse from the first changed section.
 
 ### Tool schemas
 

@@ -35,7 +35,7 @@ kind: "package-library"
 
 在显式根上下文中登记的回调和定时器保留其空 store，避免继承无关事务。
 
-验收在 `apps/web/tests/preview-boot.e2e.ts`：静态服务真实构建页面，在 headless Chromium 里驱动 pre-boot 选择面板与 Worker 激活。空白选择验证首次启动；`vfs-example` overlay 提供普通 workspace 文件与明文 persistence 产物，无需模型请求即可验证 Workspace/Session 冷发现、工具呈现、subagent 导航和历史分页。showcase 混排空字符串、纯空白与非空推理块，并包含多行长命令和父路径文件链接；这些是人工构造的 fixture，不是真实模型输出。另一个根 Session `preview-turn-spacing` 含三个多步骤轮次，其正文用于对照收紧后的过程行间距与回复间距。[打包器](../webworker-packer/README.zh.md)在 Node 中根据已提交的历史日志准备当前代后继文件；这些源日志在 overlay 中逐字节保持不变。fixture 生成器负责验收测试的当前投影缓存。选择面板为 WebFS 保留独立的用户授权来源；该 provider 不读取内置 fixture。
+验收在 `apps/web/tests/preview-boot.e2e.ts`：静态服务真实构建页面，在 headless Chromium 里驱动 pre-boot 选择面板与 Worker 激活。空白选择验证首次启动；`vfs-example` overlay 提供普通 workspace 文件与明文 persistence 产物，无需模型请求即可验证 Workspace/Session 冷发现、工具呈现、subagent 导航和历史分页。showcase 混排空字符串、纯空白与非空推理块，并包含多行长命令和父路径文件链接；这些是人工构造的 fixture，不是真实模型输出。另一个根 Session `preview-turn-spacing` 含三个多步骤轮次，其正文用于对照收紧后的过程行间距与回复间距。第三个根 Session `preview-wide-tables` 在消息列起点和列表内展示宽 Markdown 表格，并附一张窄表格作对照。[打包器](../webworker-packer/README.zh.md)在 Node 中根据已提交的历史日志准备当前代后继文件；这些源日志在 overlay 中逐字节保持不变。fixture 生成器负责验收测试的当前投影缓存。选择面板为 WebFS 保留独立的用户授权来源；该 provider 不读取内置 fixture。
 
 [已构建 bundle 导入检查](tests/compile/transform-corpus-check.ts)在库构建后检查裸 Node 导入。Dockkit 例外接受 Node 针对任意样式表报告的未知 `.css` 扩展名错误，而不限定某一固定路径；其他扩展名、错误码或消息，以及意外成功的豁免导入，仍然报错。
 
@@ -63,7 +63,7 @@ kind: "package-library"
 - **Pi Agent 执行不可用**：`@earendil-works/pi-coding-agent` 替代模块允许元数据导入，并以 `ERR_FEATURE_UNAVAILABLE_ON_PLATFORM` 拒绝 SDK 调用。镜像不包含其原生 CLI 与终端 UI 依赖。原生 DSH 仍保留完整的 OAR 运行时注册表。
 - **pi-ai 模型请求不可用**：替代实现暴露已安装提供方标识的固定子集，不包含模型，使适配器能够注册配置元数据。升级 pi-ai 时必须保持这些标识有效；推理入口明确报告 worker host 不支持该调用。
 - **PTC Node 程序不可用**：process shim 用 `/dsh/bin/node` 表示可执行文件身份，使 provider 能够激活，但 Worker 既没有 Node 可执行文件，也没有 `stripTypeScriptTypes`。程序执行会在启动子进程前失败。
-- **Office 转换需要 Node Host**：LibreOffice kit 的替代模块以 `unavailable` 拒绝创建转换器。浏览器镜像排除 kit 及其引擎依赖；Office 预览提示转换不可用。
+- **原生 Office 需要 Node Host**：LibreOffice kit 及 editor 的替代模块以 `unavailable` 拒绝创建转换器和原生会话。浏览器镜像排除 kit 及其引擎依赖；现有浏览器预览保留各格式的回退路径。
 - **HMR 不替换模块**：Worker 的 ES module 缓存始终为空，因此 VFS 中被修改的模块文件仍保持已加载的代码，而 HMR 会照常应用 profile 变更。preview 镜像不会修改模块文件：包操作会因 `execa` 拒绝而失败。
 - **Node internal 模块只提供 HMR 会替换的成员**：CommonJS loader、package reader、`modules` binding 与 `getOrCreateModuleJob` 被调用时拒绝；Worker 自己的 `require` 不经过 CommonJS loader，因此替换 `Module._resolveFilename` 或 `Module._load` 不会改变 Worker 的解析。
 - **CommonJS 的 `require('stream')` 返回模块命名空间，而不是 Node 的 `Stream` 构造函数**：把它传给 `util.inherits` 的代码会在加载时失败。

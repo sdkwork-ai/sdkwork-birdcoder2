@@ -21,8 +21,8 @@
   en: 2fdfe02f2ed4a258
   zh: d748228ece579c4a
 /deepseek-ai-dsh-app-boot/use-this-package/starting-the-app:
-  en: 65bf2834b81f87da
-  zh: c864ac60a3005b99
+  en: 5ffbe87ccaa57f50
+  zh: 146d0224f3ce0e7a
 /deepseek-ai-dsh-app-boot/use-this-package/profiles:
   en: ba1c456bf22d8fc0
   zh: 018bd12bd56912e4
@@ -44,6 +44,8 @@
 /deepseek-ai-dsh-app-boot/understand-the-implementation/design-notes:
   en: 8897f4e182911df4
   zh: 8c5ebb5da7335c4c
+  en: 8c05d8f6db35fd92
+  zh: 2065925d8da763a0
 /deepseek-ai-dsh-app-boot/understand-the-implementation/helper-behavior:
   en: 6fa850d1bb000d0e
   zh: aa83a40a9d3db295
@@ -62,6 +64,8 @@
 /deepseek-ai-dsh-app-boot/known-limitations-and-deferred-work:
   en: 2093d7789f13d439
   zh: b7c4006e8f7d1ecb
+  en: d1abaadd169b14ae
+  zh: dfc7ed3818a88e55
 /deepseek-ai-dsh-app-boot/known-limitations-and-deferred-work/dev-note:
   en: d2f0d68fe29fb750
   zh: 323d21ee73a9e3f6

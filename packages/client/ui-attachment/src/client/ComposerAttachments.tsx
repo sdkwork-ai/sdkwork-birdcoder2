@@ -4,15 +4,15 @@ import type {
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import {
   IconCloseFillRegular, IconRefreshOutlineRegular, IconWarningOutlineRegular, Tooltip,
-} from '@deepseek-ai/dsh-client-ui-primitives'
+} from '@deepseek-ai/dsh-client-ui-primitives/client'
 import { AttachmentRail } from '../AttachmentRail.tsx'
 import type { AttachmentRailItem } from '../AttachmentRail.tsx'
 import { DropOverlay } from '../DropOverlay.tsx'
 import { FileCard } from '../FileCard.tsx'
-import { ImageLightbox } from '@deepseek-ai/dsh-client-ui-primitives'
+import { ImageLightbox } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import { attachmentRailLabels, dropOverlayLabels, fileCardLabels, lightboxLabels } from './labels.ts'
 import { installDocumentDropEvents } from './drop-events.ts'
-import type { InjectFace } from '@deepseek-ai/dsh-client-ui-slots'
+import type { InjectFace } from '@deepseek-ai/dsh-client-ui-slots/client'
 import css from './ComposerAttachments.module.css'
 
 /** Rail item retaining its browser-owned attachment for callbacks. */
@@ -28,12 +28,14 @@ export interface ComposerAttachmentsInjected {
 /** The owner share and locale seat the attachment rail reads from its slot props. */
 type ComposerAttachmentsInput = Pick<ComposerAttachmentsProps,
   | 'attachments' | 'canAcceptDrop' | 'onAddFiles' | 'onRemoveAttachment' | 'uploads' | 'onRetryFile'
-  | 'uploadFailureText' | 'dropLimits' | 't'>
+  | 'uploadFailureText' | 'dropLimits' | 't' | 'useDocumentPortal'>
 
 /** Draft image previews, pending-file cards, drop target, and original-image preview. */
 export function ComposerAttachments({
   attachments, canAcceptDrop, onAddFiles, onRemoveAttachment, uploads, onRetryFile, uploadFailureText, dropLimits, t, readFileDrag,
+  useDocumentPortal,
 }: ComposerAttachmentsInput & InjectFace<ComposerAttachmentsInjected>) {
+  const Portal = useDocumentPortal()
   const [preview, setPreview] = useState<ComposerImageAttachment | null>(null)
   const [dragActive, setDragActive] = useState(false)
   const dragDepth = useRef(0)
@@ -55,6 +57,7 @@ export function ComposerAttachments({
     <>
       {dragActive && (
         <DropOverlay
+          Portal={Portal}
           disabled={!canAcceptDrop}
           labels={dropOverlayLabels(t, canAcceptDrop, dropLimits)}
         />

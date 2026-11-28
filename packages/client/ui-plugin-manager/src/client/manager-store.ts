@@ -12,7 +12,6 @@ import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {
   BundleInfo,
   ChangeResult,
-  IncompatiblePlugin,
   ManagementError,
   PluginEntryId,
   PluginInfo,
@@ -34,7 +33,7 @@ import type {
 } from '@deepseek-ai/dsh-api-remotes/client'
 import { normalizeRegistry, NPMMIRROR_REGISTRY, OFFICIAL_NPM_REGISTRY, REGISTRY_URL } from '@deepseek-ai/dsh-plugin-manager/registry'
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
+import type { HostObservable } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { LocalizedText, PluginLocalizedMeta } from '@deepseek-ai/dsh-package-manifest'
 import type { SettingsDescribeFace, ConfigForms } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { ConfigLedger } from './config-ledger.ts'
@@ -71,11 +70,9 @@ export type ManagerNotice =
     /** What was being done when it failed. */
     readonly action: FailedAction
     /** The Host's refusal, when the Host refused; absent when the transport failed. */
-    readonly code?: ManagementError['code']
+    readonly error?: ManagementError
     /** The Host's diagnostic or the transport's words, shown verbatim; empty when the code says it all. */
     readonly reason: string
-    /** The packages an `incompatible-version` refusal names. */
-    readonly incompatible?: readonly IncompatiblePlugin[]
     readonly packageName?: string
     readonly seq: number
   }
@@ -267,8 +264,8 @@ export interface InstallState {
   /** Why it waits, when the Host says. */
   readonly restartReason?: RestartReason
   /**
-   * The run's failure, once one settled the dialog: the Host's refusal
-   * `code` with its diagnostic as `reason`, or the transport's words alone;
+   * The run's failure, once one settled the dialog: the Host's refusal as
+   * `error` with its diagnostic as `reason`, or the transport's words alone;
    * `kind` classifies a pnpm failure, and `pendingBuilds` names the packages
    * whose install scripts pnpm left undecided, offered for approval.
    * `uncertainty` distinguishes a lost installation reply, an unconfirmed
@@ -276,9 +273,8 @@ export interface InstallState {
    */
   readonly failure: {
     readonly reason: string
-    readonly code?: ManagementError['code']
-    /** The packages an `incompatible-version` refusal names. */
-    readonly incompatible?: readonly IncompatiblePlugin[]
+    /** The Host's refusal, when the Host refused. */
+    readonly error?: ManagementError
     readonly kind?: PluginInstallFailureKind
     /** The step the failed change reached; `enable` means the installation finished and applying the bundle failed. */
     readonly stage?: ChangeResult['stage']
@@ -387,6 +383,27 @@ export interface UpdateState {
   readonly outputOpen: boolean
 }
 
+/**
+ * The build scripts a finished update can be retried with: the pending names of a failed target installation, while the
+ * installed version stayed or was installed again. A package the update left uninstalled is not updated again.
+ * @param update - the update.
+ * @returns The pending names, empty when no retry is offered.
+ */
+export function pendingUpdateBuilds(update: UpdateState): readonly string[] {
+  const result = update.phase === 'done' ? update.result : null
+  if (result?.step !== 'install' || !failedChange(result.result) || (result.restore !== undefined && failedChange(result.restore))) return []
+  return result.result.pendingBuilds ?? []
+}
+
+/**
+ * Whether a change result left its operation undone.
+ * @param change - a step's result.
+ * @returns Whether the step failed or was cancelled.
+ */
+export function failedChange(change: PluginUpdateResult['result']): boolean {
+  return change.application === 'failed' || change.application === 'cancelled'
+}
+
 /** What the tab renders. */
 export interface PluginManagerState {
   /** `unavailable` when the Host runs without a managed profile; `error` keeps the last packages. */
@@ -397,6 +414,14 @@ export interface PluginManagerState {
    * cached refresh failures reported by toast. Background reads do not start the spinner.
    */
   readonly refreshStatus: 'idle' | 'refreshing' | 'failed'
+  /**
+   * What a manual refresh is waiting for: its reads, then the version check of the `current`th of `total` registry
+   * packages; `null` outside a manual refresh and once its reads and checks settled.
+   */
+  readonly refreshProgress:
+    | { readonly phase: 'loading' }
+    | { readonly phase: 'checking'; readonly current: number; readonly total: number }
+    | null
   readonly packages: readonly PackageView[]
   /** Package names and row keys with an action crossing the wire. */
   readonly busy: readonly string[]
@@ -497,6 +522,8 @@ export interface PluginManagerFace {
   openGitUpdate: (target: PluginTabUpdate) => void
   /** Start the confirmed update. */
   runUpdate: () => void
+  /** Allow the build scripts the failed update's target installation left pending and run the same update again. */
+  approveUpdateBuildsAndRetry: () => void
   /** Leave the confirmation or the outcome; a running update keeps its dialog. */
   closeUpdate: () => void
   /** Fold or unfold a failed installation's pnpm output. */
@@ -508,11 +535,9 @@ type Answer<T> =
   | { readonly ok: true; readonly value: T }
   | { readonly ok: false; readonly error: { readonly code: string; readonly message: string; readonly details?: unknown } }
 
-/** A refused answer or a change the Host could not apply, carrying what it said and, for a refusal, its code. */
+/** A refused answer or a change the Host could not apply, carrying what it said and, for a refusal, the Host's error. */
 class RemoteAnswerError extends Error {
-  constructor(
-    readonly reason: string, readonly code?: ManagementError['code'], readonly incompatible?: readonly IncompatiblePlugin[],
-  ) {
+  constructor(readonly reason: string, readonly error?: ManagementError) {
     super(reason)
     this.name = 'RemoteAnswerError'
   }
@@ -525,8 +550,7 @@ function failureOf(
 ): NonNullable<InstallState['failure']> {
   return {
     reason: error?.diagnostic ?? '',
-    ...error === undefined ? {} : { code: error.code },
-    ...error?.incompatible === undefined ? {} : { incompatible: error.incompatible },
+    ...error === undefined ? {} : { error },
     ...kind === undefined ? {} : { kind },
     stage,
     ...enabled === undefined ? {} : { enabled },
@@ -535,14 +559,10 @@ function failureOf(
   }
 }
 
-/** The notice a thrown failure becomes: a refusal keeps its code, anything else its words. */
+/** The notice a thrown failure becomes: a refusal keeps the Host's error, anything else its words. */
 function failedNotice(error: unknown, subject: { action: FailedAction; packageName?: string }, seq: number): ManagerNotice {
-  const code = error instanceof RemoteAnswerError ? error.code : undefined
-  const incompatible = error instanceof RemoteAnswerError ? error.incompatible : undefined
-  return {
-    kind: 'failed', reason: reasonOf(error), ...code === undefined ? {} : { code },
-    ...incompatible === undefined ? {} : { incompatible }, ...subject, seq,
-  }
+  const refusal = error instanceof RemoteAnswerError ? error.error : undefined
+  return { kind: 'failed', reason: reasonOf(error), ...refusal === undefined ? {} : { error: refusal }, ...subject, seq }
 }
 
 /** The runs with every one still open settled at `exitCode`. */
@@ -673,6 +693,8 @@ interface InstallRequest {
 export class PluginManagerController {
   private readonly store: SnapshotStore<PluginManagerState>
   private inFlight: Promise<void> | undefined
+  /** Version checks in flight by package name, so a refresh waits for a check another action started. */
+  private readonly versionChecks = new Map<string, Promise<void>>()
   private rerun = false
   private generation = 0
   private disposed = false
@@ -702,7 +724,7 @@ export class PluginManagerController {
   ) {
     this.details = new BundleDetailController(ctx, () => document.baseURI)
     this.store = createSnapshotStore<PluginManagerState>({
-      status: 'idle', refreshStatus: 'idle', packages: [], busy: [], notice: null,
+      status: 'idle', refreshStatus: 'idle', refreshProgress: null, packages: [], busy: [], notice: null,
       install: IDLE_INSTALL, confirm: null, highlight: null, versions: {}, update: null,
     })
   }
@@ -889,6 +911,11 @@ export class PluginManagerController {
         this.openUpdateDialog(packageName, pkg.version, version, { kind: 'git', spec })
       },
       runUpdate: () => { void this.runUpdate() },
+      approveUpdateBuildsAndRetry: () => {
+        const update = this.getSnapshot().update
+        const pending = update === null ? [] : pendingUpdateBuilds(update)
+        if (pending.length > 0) void this.runUpdate(pending)
+      },
       closeUpdate: () => { if (this.getSnapshot().update?.phase !== 'running') this.patch({ update: null }) },
       toggleUpdateOutput: () => {
         const update = this.getSnapshot().update
@@ -932,33 +959,54 @@ export class PluginManagerController {
     this.patch({ update: { ...update, steps: [...update.steps, progress.step] } })
   }
 
-  /** Read one package's newer versions; a transport failure reads as an unknown refusal. */
-  private async checkVersions(packageName: string): Promise<void> {
-    const { versions, update } = this.getSnapshot()
+  /**
+   * Read one package's newer versions; a transport failure reads as an unknown refusal.
+   * @returns settlement of this check, or of the one already in flight for the package.
+   */
+  private checkVersions(packageName: string): Promise<void> {
+    const inFlight = this.versionChecks.get(packageName)
+    if (inFlight !== undefined) return inFlight
+    const { update } = this.getSnapshot()
     // A check during the package's update would answer for the version being replaced.
-    if (this.disposed || versions[packageName]?.phase === 'checking' || (update?.phase === 'running' && update.packageName === packageName)) return
+    if (this.disposed || (update?.phase === 'running' && update.packageName === packageName)) return Promise.resolve()
     this.patchVersions(packageName, { phase: 'checking' })
-    // The generated Remote takes every business argument before its optional signal; `{}` asks the Host's own plan.
-    const answer = await this.ctx.remote.pluginManager.listVersions(packageName, {})
-    const list: PluginVersionList = answer.ok ? answer.value : { status: 'refused', problem: 'unknown', reason: answer.error.message, attempts: [] }
-    this.patchVersions(packageName, { phase: 'done', list, checkedAt: Date.now() })
+    const check = (async () => {
+      // The generated Remote takes every business argument before its optional signal; `{}` asks the Host's own plan.
+      const answer = await this.ctx.remote.pluginManager.listVersions(packageName, {})
+      const list: PluginVersionList = answer.ok ? answer.value : { status: 'refused', problem: 'unknown', reason: answer.error.message, attempts: [] }
+      this.patchVersions(packageName, { phase: 'done', list, checkedAt: Date.now() })
+    })().finally(() => { this.versionChecks.delete(packageName) })
+    this.versionChecks.set(packageName, check)
+    return check
   }
 
-  /** Check the registry packages one after another, so one click starts at most one package's registry lookups. */
-  private async checkAllVersions(): Promise<void> {
-    for (const pkg of this.getSnapshot().packages.filter(item => item.update === 'registry')) await this.checkVersions(pkg.name)
+  /**
+   * Check the registry packages one after another, so one click starts at most one package's registry lookups.
+   * @param report - called with the 1-based position and the count before each package's check.
+   */
+  private async checkAllVersions(report: (current: number, total: number) => void): Promise<void> {
+    const registry = this.getSnapshot().packages.filter(item => item.update === 'registry')
+    for (const [index, pkg] of registry.entries()) {
+      report(index + 1, registry.length)
+      await this.checkVersions(pkg.name)
+    }
   }
 
-  /** Hand the confirmed update to the Host, keep its outcome, then read the package and a registry package's versions again. */
-  private async runUpdate(): Promise<void> {
+  /**
+   * Hand the confirmed update, or a failed one retried with build approval, to the Host, keep its outcome, then read the
+   * package and a registry package's versions again.
+   * @param approvedBuilds - the pending build scripts the person allowed on the failed outcome.
+   */
+  private async runUpdate(approvedBuilds?: readonly string[]): Promise<void> {
     const update = this.getSnapshot().update
-    if (this.disposed || update === null || update.phase !== 'confirm') return
+    if (this.disposed || update === null || update.phase !== (approvedBuilds === undefined ? 'confirm' : 'done')) return
     const requestId = randomUUID() as PluginInstallRequestId
-    const running: UpdateState = { ...update, phase: 'running', steps: [], requestId, result: null }
+    const running: UpdateState = { ...update, phase: 'running', steps: [], requestId, result: null, outputOpen: false }
     this.patch({ update: running })
     const { source } = update
+    const approval = approvedBuilds === undefined ? {} : { approvedBuilds: [...approvedBuilds] }
     const answer = await this.ctx.remote.pluginManager.updateBundle(update.packageName, update.to,
-      source.kind === 'registry' ? { registry: source.registry, requestId } : { spec: source.spec, requestId })
+      source.kind === 'registry' ? { registry: source.registry, requestId, ...approval } : { spec: source.spec, requestId, ...approval })
     // Nothing closes or replaces a running update before its answer; after disposal `patch` publishes nothing.
     const current = this.getSnapshot().update as UpdateState
     this.patch({ update: { ...current, phase: 'done', ...answer.ok ? { result: answer.value } : { lost: answer.error.message } } })
@@ -1083,15 +1131,17 @@ export class PluginManagerController {
     const startedAt = Date.now()
     this.patch({
       refreshStatus: 'refreshing',
+      refreshProgress: { phase: 'loading' },
       ...this.getSnapshot().notice?.kind === 'refresh-failed' ? { notice: null } : {},
     })
     try {
       await this.load()
-      if (this.getSnapshot().status !== 'error') await this.checkAllVersions()
+      if (this.getSnapshot().status !== 'error') await this.checkAllVersions((current, total) => { this.patch({ refreshProgress: { phase: 'checking', current, total } }) })
     } catch (_error) {
       // A rejected transport request leaves the cached cards available for retry.
       this.patch({ status: 'error' })
     } finally {
+      this.patch({ refreshProgress: null })
       // Hold the spinner to its minimum so a fast read does not flash it, then settle.
       const remaining = REFRESH_SPINNER_MIN_MS - (Date.now() - startedAt)
       if (remaining > 0) await new Promise<void>((resolve) => { setTimeout(resolve, remaining) })
@@ -1498,7 +1548,8 @@ export class PluginManagerController {
 
   /**
    * Run one action under a busy key, turn its failure into the notice, and
-   * re-read the Host afterwards whatever happened.
+   * re-read the Host afterwards whatever happened. The key stays busy until
+   * that read publishes, so a control never shows the pre-action state as settled.
    */
   private async run(
     key: string,
@@ -1512,10 +1563,12 @@ export class PluginManagerController {
     } catch (error) {
       // `patch` drops the notice after disposal.
       this.patch({ notice: failedNotice(error, subject, ++this.noticeSeq) })
+    }
+    try {
+      await this.load()
     } finally {
       this.patch({ busy: this.getSnapshot().busy.filter(entry => entry !== key) })
     }
-    await this.load()
   }
 
   /**
@@ -1529,7 +1582,7 @@ export class PluginManagerController {
     const result = answer.value
     switch (result.application) {
       case 'failed':
-        throw new RemoteAnswerError(result.error?.diagnostic ?? '', result.error?.code, result.error?.incompatible)
+        throw new RemoteAnswerError(result.error?.diagnostic ?? '', result.error)
       case 'cancelled':
         this.patch({ notice: { kind: 'cancelled', seq: ++this.noticeSeq } })
         return

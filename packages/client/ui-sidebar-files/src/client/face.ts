@@ -15,13 +15,13 @@
  */
 import type { ClientRemote, RemoteResult } from '@deepseek-ai/dsh-api-remotes/client'
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { PaneId, TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
+import type { PaneId, TabId } from '@deepseek-ai/dsh-client-ui-dockkit/client'
 import type { SidebarRightTabDefinition, SidebarRightTabNavigation } from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
-import type { HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
+import type { HostObservable } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { childPath, locateFile, relativeFileOf, type DirLevel, type FilesSearchResult, type FilesStoreInstance } from './store.ts'
 import type { WorkspaceFileWatchFrame } from '@deepseek-ai/dsh-api-workspace-files/types'
-import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
+import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import { DirectoryNode } from './directory-node.ts'
 import { FILL_BELOW, FULLSCREEN_QUERY } from './navigator-layout.ts'
 import type { WorkspaceSearchPreferenceBook } from './search-preferences.ts'
@@ -622,7 +622,11 @@ export function filesFace(
         (path, lifetime) => load(paneId, path, lifetime),
         (path, lifetime) => watch(sessionId, path, lifetime),
         (path, error) => {
-          if (pane.root === node) actions.failed(paneId, path, new RemoteError('gateway/internal', error instanceof Error ? error.message : String(error), {}))
+          if (pane.root !== node) return
+          // A Host refusal keeps its code, which selects the line the tree draws for it. The Remote
+          // face throws it from its own copy of the class, so the marker identifies it, not `instanceof`.
+          actions.failed(paneId, path, remoteErrorOf(error)
+            ?? new RemoteError('gateway/internal', error instanceof Error ? error.message : String(error), {}))
         }, signal, kept?.expanded,
       )
       if (kept !== undefined) node.setAutomatic(kept.autoRefresh)
@@ -868,7 +872,8 @@ export function filesFace(
           focusTree(pane)
         }
         const focusin = (event: FocusEvent): void => {
-          edge = event.target instanceof Element && event.target.hasAttribute('data-files-navigator-resize') ? event.target : undefined
+          const target = event.target as Element
+          edge = target.hasAttribute('data-files-navigator-resize') ? target : undefined
         }
         const focusout = (event: FocusEvent): void => {
           if (event.relatedTarget === null) queueMicrotask(handOff)
@@ -883,8 +888,8 @@ export function filesFace(
         // task before the observer or the media query reports the fill.
         let covered: Element | undefined
         const release = (event: FocusEvent): void => {
-          const target = event.target
-          covered = event.relatedTarget === null && target instanceof Element && !navigator.contains(target) && hidden(target)
+          const target = event.target as Element
+          covered = event.relatedTarget === null && !navigator.contains(target) && hidden(target)
             ? target
             : undefined
         }
@@ -913,7 +918,7 @@ export function filesFace(
         const close = (event: KeyboardEvent): void => {
           if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing
             || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
-          if (!(event.target instanceof Node) || !row.contains(event.target)) return
+          if (!row.contains(event.target as Node)) return
           event.preventDefault()
           pane.toggle?.focus()
           actions.shown(paneId, false)

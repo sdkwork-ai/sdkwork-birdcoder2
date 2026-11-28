@@ -1,4 +1,4 @@
-import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
+import * as NativeToolRegistry from '@deepseek-ai/dsh-tool-registry-native'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { Context, symbols, type EffectMeta, type Fiber } from '@deepseek-ai/cordis'
@@ -24,7 +24,7 @@ async function harnessWithLoop(adapter: MockAdapter = new MockAdapter([textRespo
   await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(SystemPrompt, { personaPrefix: 'You are the deployment.' })
   await ctx.plugin(ToolRuntime)
-  await ctx.plugin(NativeToolExecutor)
+  await ctx.plugin(NativeToolRegistry)
   await ctx.plugin(AgentRegistry)
   const loopFiber = await ctx.plugin(AgentLoop, { agents: [] })
   ctx.llm.registerAdapter(['mock'], adapter)
@@ -286,7 +286,7 @@ describe('agent scope lifecycle', () => {
     const { ctx, loopFiber } = await harnessWithLoop()
     onTestFinished(() => ctx.fiber.dispose())
     const cold = ctx.sessions.create(brandString<SessionId>('projection-before-any-agent'))
-    expect(ctx.sessionProjections.checkpoint(cold).inbox?.val).toEqual({ 'next-turn': [], 'next-step': [] })
+    expect(ctx.sessionProjections.snapshot(cold).values.inbox).toEqual({ 'next-turn': [], 'next-step': [] })
     let first!: Awaited<ReturnType<typeof ctx.agents.create>>
     let second!: Awaited<ReturnType<typeof ctx.agents.create>>
     const firstOwner = await ctx.plugin(Object.assign(async (inner: Context) => {

@@ -6,7 +6,8 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import AgentDefaultModelConfig from '@deepseek-ai/dsh-agent-default-model'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { createUserMessage, LlmAdapter } from '@deepseek-ai/dsh-llm'
+import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 import type { SessionId, SessionEvent } from '@deepseek-ai/dsh-session'
 import { MockAdapter, textResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import { apply } from '../src/index.ts'
@@ -23,15 +24,29 @@ afterEach(async () => {
   vi.restoreAllMocks()
 })
 
-async function harness() {
+/** Streams a partial answer, then waits for cancellation. */
+class StalledAdapter extends LlmAdapter {
+  readonly streamed = Promise.withResolvers<undefined>()
+
+  async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+    yield { type: 'block-start', index: 0, blockType: 'text' }
+    yield { type: 'text-delta', index: 0, text: 'partial answer' }
+    this.streamed.resolve(undefined)
+    await new Promise<never>((_resolve, reject) => {
+      options.signal?.addEventListener('abort', () => { reject(new Error('aborted')) }, { once: true })
+    })
+  }
+}
+
+async function harness(adapter: LlmAdapter = new MockAdapter([
+  textResponse('waiting'), textResponse('summary'), textResponse('recovered'),
+])) {
   const context = new Context()
   ctx = context
   await mountAgentLoopTestDependencies(context)
   await context.plugin(AgentLoop, { agents: [] })
   await context.plugin(AgentDefaultModelConfig, { provider: 'mock', model: 'mock' })
-  context.llm.registerAdapter(['mock'], new MockAdapter([
-    textResponse('waiting'), textResponse('summary'), textResponse('recovered'),
-  ]))
+  context.llm.registerAdapter(['mock'], adapter)
   let out = ''
   let err = ''
   internals.stdout = { write: (chunk: string) => { out += chunk; return true } }
@@ -40,8 +55,8 @@ async function harness() {
   context.provide('appExit', exited.resolve)
   return {
     ctx: context,
-    async run(json = false) {
-      apply(context, { task: 'delegate', json })
+    async run(json = false, owner = context) {
+      apply(owner, { task: 'delegate', json })
       return { code: await exited.promise, out, err }
     },
   }
@@ -52,6 +67,23 @@ function followup(parent: Agent): void {
 }
 
 describe('headless terminal failures', () => {
+  it('reports the cancelled turn when its plugin is disposed during a run', async () => {
+    const adapter = new StalledAdapter()
+    const test = await harness(adapter)
+    // Disposal removes the plugin's own listeners before the cancelled turn closes.
+    let result!: ReturnType<typeof test.run>
+    const runner = test.ctx.plugin({ name: 'headless-runner', apply: (runnerCtx: Context) => { result = test.run(true, runnerCtx) } })
+    await adapter.streamed.promise
+    await runner.dispose()
+
+    const { code, out } = await result
+    expect(code).toBe(1)
+    const events = out.trim().split('\n').map(line => JSON.parse(line) as Record<string, unknown>)
+    expect(events.at(-1)).toMatchObject({
+      type: 'final', text: 'partial answer', reason: { kind: 'aborted', reason: { kind: 'disposed' } },
+    })
+  })
+
   it.each([
     { failedEvent: 'turn/start', json: false },
     { failedEvent: 'turn/end', json: false },
@@ -100,9 +132,17 @@ describe('headless terminal failures', () => {
     }).mockResolvedValue(false)
     test.ctx.provide('subagents', { waitForTreeWork } as never)
 
+    // The failed Turn returned the first child result to next-turn; the next
+    // wake runs it, then the second delivery runs in its own Turn, so neither
+    // result is lost to the hook failure and the last answer is the final one.
     await expect(test.run()).resolves.toEqual(recover
-      ? { code: 0, out: 'summary\n', err: '' }
+      ? { code: 0, out: 'recovered\n', err: '' }
       : { code: 1, out: 'waiting\n', err: 'dsh: UNKNOWN: summary hook failed\n' })
+    const [agent] = test.ctx.agents.list()
+    const admitted = (agent?.session.snapshotEvents() ?? [])
+      .flatMap(event => event.type === 'user/message' && event.data.source.kind === 'user' ? [event.data.content] : [])
+    expect(admitted.flatMap(content => content.flatMap(block => block.type === 'text' ? [block.text] : [])))
+      .toEqual(recover ? ['delegate', 'child result', 'child result'] : ['delegate'])
   })
 
   it.each(['turn/start', 'turn/end'] as const)('accepts a recovered summary after a missing %s', async (failedEvent) => {

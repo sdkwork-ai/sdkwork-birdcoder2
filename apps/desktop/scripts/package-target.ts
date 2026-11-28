@@ -650,6 +650,7 @@ export async function packageTarget(
   await execute(invocation.unsigned ? ['run', 'build', '--profile', 'local'] : ['run', 'build:official'], buildEnv, REPOSITORY_ROOT)
   // A failed preparation records itself so the sibling lane stops before its
   // next stage instead of racing the one that already refused.
+  if (target.platform === 'darwin' || target.platform === 'win32') await execute(['run', 'build:native', '--arch', target.arch], buildEnv)
   let preparationFailure: { error: unknown } | undefined
   const executePreparation = async (args: readonly string[], env: NodeJS.ProcessEnv, cwd?: string): Promise<void> => {
     if (preparationFailure !== undefined) throw preparationFailure.error

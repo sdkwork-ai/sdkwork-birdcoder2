@@ -1,6 +1,6 @@
 /** General Settings row for performance and usage detail. */
 
-import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { PerformanceUsageMode } from '../../chat-settings.ts'
 import type { PerformanceUsageInjected } from '../contract/slots.ts'
 import type { ChatKey } from '../locale.ts'
@@ -14,7 +14,7 @@ export interface PerformanceUsageRowInjected extends PerformanceUsageInjected {
 
 /** Full Settings-row props. */
 export type PerformanceUsageRowProps =
-  PropsRuntime<'settings.general.item'>
+  PropsRuntime<'settings.general.group.display.item'>
   & PropsLocale<'chat'>
   & InjectFace<PerformanceUsageRowInjected>
 

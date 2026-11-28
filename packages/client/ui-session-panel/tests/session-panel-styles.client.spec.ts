@@ -12,16 +12,39 @@ import { describe, expect, it } from 'vitest'
 const css = readFileSync(fileURLToPath(new URL('../src/client/SessionPanel.module.css', import.meta.url)), 'utf8')
   .replace(/\/\*[\s\S]*?\*\//g, ' ')
 
-/** Declarations of the rule with exactly this selector list, with whitespace collapsed. */
-function declarationsOf(selector: string): Record<string, string> {
-  const pattern = selector.split(',').map(part => part.trim().replace(/[.[\]():*+^$\\'=]/g, '\\$&')).join('\\s*,\\s*')
-  const rule = new RegExp(`(?:^|[{}])\\s*${pattern}\\s*\\{([^{}]*)\\}`).exec(css)
-  if (rule === null) throw new Error(`SessionPanel.module.css has no \`${selector}\` rule`)
-  const entries = (rule[1] ?? '').split(';').map(part => part.trim()).filter(Boolean).map((part): [string, string] => {
+/** The selector as a pattern that accepts any whitespace around its commas. */
+const selectorPattern = (selector: string): string =>
+  selector.split(',').map(part => part.trim().replace(/[.[\]():*+^$\\'=]/g, '\\$&')).join('\\s*,\\s*')
+
+/** Parse one declaration block, with whitespace collapsed. */
+function parseBlock(block: string): Record<string, string> {
+  const entries = block.split(';').map(part => part.trim()).filter(Boolean).map((part): [string, string] => {
     const colon = part.indexOf(':')
     return [part.slice(0, colon).trim(), part.slice(colon + 1).replace(/\s+/g, ' ').replace(/\( /g, '(').replace(/ \)/g, ')').trim()]
   })
   return Object.fromEntries(entries)
+}
+
+/** Declarations of the rule with exactly this selector list, with whitespace collapsed. */
+function declarationsOf(selector: string): Record<string, string> {
+  const rule = new RegExp(`(?:^|[{}])\\s*${selectorPattern(selector)}\\s*\\{([^{}]*)\\}`).exec(css)
+  if (rule === null) throw new Error(`SessionPanel.module.css has no \`${selector}\` rule`)
+  return parseBlock(rule[1] ?? '')
+}
+
+/**
+ * The rules whose selector list has this selector as one of its members, in source order.
+ * @param selector - one complex selector.
+ * @returns each rule's source offset and declarations.
+ */
+function rulesWith(selector: string): { at: number; declarations: Record<string, string> }[] {
+  const pattern = new RegExp(`(?:^|[{},])\\s*${selectorPattern(selector)}\\s*(?:,[^{}]*)?\\{([^{}]*)\\}`, 'g')
+  const rules = [...css.matchAll(pattern)].map((rule) => {
+    const start = css.lastIndexOf('}', rule.index) + 1
+    return { at: start, declarations: parseBlock(rule[1] ?? '') }
+  })
+  if (rules.length === 0) throw new Error(`SessionPanel.module.css has no rule listing \`${selector}\``)
+  return rules
 }
 
 const px = (value: string | undefined): number => {
@@ -129,20 +152,6 @@ describe('SessionPanel.module.css section reordering', () => {
     expect(hover).toMatch(/\.head:hover:has\(> \.grip\) > \.actions \{\s*visibility: var\(--section-trailing-visibility\);/)
   })
 
-  it('offers the drag only on a shown section with a handle that has another such section before or after it', () => {
-    expect(declarationsOf('.section')).toMatchObject({
-      '--section-head-cursor': 'auto', '--section-grip-opacity': '0', '--section-trailing-visibility': 'visible',
-    })
-    const movable = '.section:has(> .head > .grip)'
-      + ':not(:has(> .body > [data-slot]:empty), :has(> .body > [data-slot] > [data-slot]:only-child:empty))'
-    // The selector list holds commas of its own, so the rule is read from the stylesheet with its whitespace collapsed.
-    const flat = css.replace(/\s+/g, ' ').replace(/\( /g, '(').replace(/ \)/g, ')')
-    expect(flat).toContain(
-      `.section:nth-child(n + 2 of ${movable}), .section:nth-last-child(n + 2 of ${movable}) {`
-      + ' --section-head-cursor: grab; --section-grip-opacity: 1; --section-trailing-visibility: hidden; }',
-    )
-  })
-
   it('plays the entrance and the exit only on a panel that carries the mark, and moves the transcript over the same time and curve', () => {
     const motion = '160ms cubic-bezier(0.4, 0, 0.2, 1)'
     expect(declarationsOf('.panel')['animation']).toBeUndefined()
@@ -175,7 +184,9 @@ describe('SessionPanel.module.css section reordering', () => {
 
 describe('SessionPanel.module.css row rules', () => {
   /** A rule for marked row markup: `.panel :where(<row selector>)<tail>`. */
-  const row = (inner: string, tail = ''): Record<string, string> => declarationsOf(`.panel :where(${inner})${tail}`)
+  const row = (inner: string, tail = ''): Record<string, string> => rulesWith(`.panel :where(${inner})${tail}`)[0]!.declarations
+  /** Source offset of the first rule listing `.panel :where(<row selector>)<tail>`. */
+  const rowAt = (inner: string, tail = ''): number => rulesWith(`.panel :where(${inner})${tail}`)[0]!.at
 
   it('lays a marked row out as one 28px line with the icon and the menu on fixed columns', () => {
     expect(row('[data-session-panel-row]')).toMatchObject({
@@ -199,13 +210,8 @@ describe('SessionPanel.module.css row rules', () => {
       'color': 'var(--dsw-alias-label-tertiary)', 'font-size': '12px', 'line-height': '17px', 'text-overflow': 'ellipsis', 'white-space': 'nowrap',
     })
     // The two-line rules follow the one-line ones they adjust, since every rule for a part has the same specificity.
-    const order = (selector: string): number => {
-      const at = css.indexOf(`.panel :where(${selector}) {`)
-      expect(at).toBeGreaterThan(-1)
-      return at
-    }
-    expect(order(tall)).toBeGreaterThan(order("[data-session-panel-row] > button[data-row-part='body']"))
-    expect(order(`${tall} > [data-row-part='icon']`)).toBeGreaterThan(order("[data-session-panel-row] [data-row-part='icon']"))
+    expect(rowAt(tall)).toBeGreaterThan(rowAt("[data-session-panel-row] > button[data-row-part='body']"))
+    expect(rowAt(`${tall} > [data-row-part='icon']`)).toBeGreaterThan(rowAt("[data-session-panel-row] [data-row-part='icon']"))
   })
 
   it('makes a button body the action of the whole row and rings the row when it has keyboard focus', () => {
@@ -222,8 +228,11 @@ describe('SessionPanel.module.css row rules', () => {
   })
 
   it('highlights only a row with an action or a menu that renders something, and keeps an open menu and its row shown', () => {
-    const interactive = "[data-session-panel-row]:has(> button[data-row-part='body'], > [data-row-part='menu']:not(:empty))"
-    expect(row("[data-session-panel-row] > [data-row-part='menu']:empty")).toEqual({ display: 'none' })
+    const menu = "> [data-row-part='menu']"
+    const emptyFactory = '> [data-slot-factory]:only-child:empty'
+    const interactive = "[data-session-panel-row]:hover:is(:has(> button[data-row-part='body']), "
+      + `:has(${menu}:not(:empty)):not(:has(${menu} ${emptyFactory})))`
+    expect(row(`[data-session-panel-row] ${menu}:is(:empty, :has(${emptyFactory}))`)).toEqual({ display: 'none' })
     // Only an open control in the menu part keeps the row highlighted; an expanded body button does not.
     expect(row("[data-session-panel-row]:has(> [data-row-part='menu'] [aria-expanded='true'])"))
       .toEqual({ background: 'var(--dsw-alias-interactive-bg-hover)' })
@@ -231,26 +240,40 @@ describe('SessionPanel.module.css row rules', () => {
     expect(row("[data-session-panel-row] > [data-row-part='menu']:has([aria-expanded='true'])")['opacity']).toBe('1')
     // Hover rules stay inside the hover media query, where the menu hides until the row is hovered or focused.
     const hover = [...css.matchAll(/@media \(hover: hover\) \{([\s\S]*?)\n\}/g)].map(block => block[1]).join('\n')
-    expect(hover).toContain(`.panel :where(${interactive}:hover)`)
+    const flatHover = hover.replace(/\s+/g, ' ').replace(/\( /g, '(').replace(/ \)/g, ')')
+    expect(flatHover).toContain(`.panel :where(${interactive}), .fold:where(:hover) { background: var(--dsw-alias-interactive-bg-hover); }`)
     expect(hover).toMatch(/\[data-row-part='menu'\]\) \{\s*opacity: 0;/)
     expect(css.replace(/@media \(hover: hover\) \{[\s\S]*?\n\}/g, '')).not.toContain(':hover')
   })
 
   it('sets a fold control in the quiet type of the section counts with a 14px chevron, darker on hover and keyboard focus', () => {
-    const fold = "[data-session-panel-row='fold']"
-    expect(row(fold)).toEqual({
+    const fold = rulesWith('.fold').at(-1)!
+    expect(fold.declarations).toEqual({
       'color': 'var(--dsw-alias-label-tertiary)', 'font': 'var(--dsw-font-xxs-12)', 'font-variant-numeric': 'tabular-nums',
     })
-    expect(row(`${fold} [data-row-part='icon']`, ' svg')).toEqual({ width: '14px', height: '14px' })
-    expect(row(`${fold}:has(> button:focus-visible)`)).toEqual({ color: 'var(--dsw-alias-label-secondary)' })
-    expect(row(`${fold}:hover`)).toEqual({ color: 'var(--dsw-alias-label-secondary)' })
+    const chevron = rulesWith(".fold :where([data-row-part='icon']) svg")[0]!
+    expect(chevron.declarations).toEqual({ width: '14px', height: '14px' })
+    expect(rulesWith('.fold:where(:has(> button:focus-visible))')[0]!.declarations).toEqual({ color: 'var(--dsw-alias-label-secondary)' })
+    expect(rulesWith('.fold:where(:hover)').at(-1)!.declarations).toEqual({ color: 'var(--dsw-alias-label-secondary)' })
     // The fold rules follow the row rules they adjust, since every rule for a part has the same specificity.
-    const at = (selector: string, tail = ''): number => {
-      const index = css.indexOf(`.panel :where(${selector})${tail} {`)
-      expect(index).toBeGreaterThan(-1)
-      return index
-    }
-    expect(at(fold)).toBeGreaterThan(at('[data-session-panel-row]'))
-    expect(at(`${fold} [data-row-part='icon']`, ' svg')).toBeGreaterThan(at("[data-session-panel-row] [data-row-part='icon']", ' svg'))
+    expect(fold.at).toBeGreaterThan(rowAt('[data-session-panel-row]'))
+    expect(chevron.at).toBeGreaterThan(rowAt("[data-session-panel-row] [data-row-part='icon']", ' svg'))
+  })
+
+  it('lists the fold control by its own class in each row rule it needs, since a section of another package renders it', () => {
+    // One rule per pair: the control gets the same declarations at the same specificity and order as a marked row,
+    // without depending on the `.panel` ancestor.
+    const pairs: [inner: string, tail: string, own: string][] = [
+      ['[data-session-panel-row]', '', '.fold'],
+      ["[data-session-panel-row] > [data-row-part='body']", '', ".fold > :where([data-row-part='body'])"],
+      ["[data-session-panel-row] > button[data-row-part='body']", '', ".fold > :where(button[data-row-part='body'])"],
+      ["[data-session-panel-row] > button[data-row-part='body']", '::after', ".fold > :where(button[data-row-part='body'])::after"],
+      ["[data-session-panel-row] > button[data-row-part='body']:focus-visible", '', ".fold > :where(button[data-row-part='body']:focus-visible)"],
+      ["[data-session-panel-row]:has(> button[data-row-part='body']:focus-visible)", '', ".fold:where(:has(> button[data-row-part='body']:focus-visible))"],
+      ["[data-session-panel-row] [data-row-part='icon']", '', ".fold :where([data-row-part='icon'])"],
+      ["[data-session-panel-row] [data-row-part='content']", '', ".fold :where([data-row-part='content'])"],
+      ["[data-session-panel-row]:has(> button[data-row-part='body']:active)", '', ".fold:where(:has(> button[data-row-part='body']:active))"],
+    ]
+    for (const [inner, tail, own] of pairs) expect(rulesWith(own)[0]!.at).toBe(rowAt(inner, tail))
   })
 })

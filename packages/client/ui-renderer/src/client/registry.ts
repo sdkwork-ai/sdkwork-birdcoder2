@@ -16,16 +16,16 @@
  * redundancy. */
 import { Service } from '@deepseek-ai/cordis'
 import type { Context } from '@deepseek-ai/cordis'
-import { SlotCore, StaleAuthorizationError, standardHookPropName } from '@deepseek-ai/dsh-client-ui-slots'
+import { SlotCore, StaleAuthorizationError, standardHookPropName } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type {
   HostObservable, LiveCompositionNode, LocaleFace, OwnerOf, RegisterFactory, SlotEntryDef, SlotMap, SlotRenderer, SlotRendererHost,
   RootStandardSourceContribution, ScopedStandardSourceBinding, SlotScope, SlotScopeAdapter, SlotSpec,
   StandardSourceBinding, StoredFactory,
   StoreDecl, StoreFactory, StoredEntry, StoreInstanceLike,
-} from '@deepseek-ai/dsh-client-ui-slots'
+} from '@deepseek-ai/dsh-client-ui-slots/client'
 import { SlotAssemblyError } from './errors.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@deepseek-ai/dsh-client-ui-slots/client' {
   interface SlotMap {
     /**
      * The built-in render-tree root hole (seeded by SlotCore): the one slot the
@@ -97,18 +97,10 @@ interface ErasedRegisterOptions {
   /** Declared dictionary namespace (the renderer synthesizes the `t` seat from it). */
   locale?: string
   registrant?: string
-  module?: string
+  module?: string | undefined
 }
 
-interface ErasedFactoryOptions {
-  name: string
-  scope: SlotScope
-  children?: Record<string, SlotSpec<SlotEntryDef>>
-  store?: StoreDecl
-  inject?: (...args: never[]) => Record<string, unknown>
-  locale?: string
-  slots?: Record<string, { scope: SlotScope }>
-}
+type ErasedFactoryOptions = Omit<StoredFactory, 'component' | 'registrant' | 'module'>
 
 /** Erased core call face (the service re-erases at its own boundary; the core's typed face targets end callers). */
 interface ErasedCore { register(options: object, component: unknown): () => void }
@@ -127,7 +119,10 @@ function entryName(ctx: Context): string | undefined {
   // The Loader augments fibers with `entry`; this package does not depend on the Loader's types.
   let fiber = ctx.fiber as EntryFiber
   for (;;) {
-    if (fiber.entry !== undefined) return fiber.entry.options.name
+    if (fiber.entry !== undefined) {
+      // A Loader entry may use the package's /client alias; @scope/client is itself a package name.
+      return fiber.entry.options.name.replace(/^((?:@[^/]+\/)?[^@/]+)\/client$/, '$1')
+    }
     const parent = fiber.parent.fiber
     if (parent === fiber) return undefined
     fiber = parent
@@ -503,12 +498,11 @@ export class SlotRegistry extends Service {
     // core's shared-handle scope pinning applies to it harmlessly).
     const store = typeof options.store === 'function' ? options.store() : options.store
     const registrant = options.registrant ?? (this.ctx.fiber as { name?: string } | undefined)?.name
-    const module = entryName(this.ctx)
     const erased: ErasedRegisterOptions = {
       ...options,
       ...(store !== undefined ? { store } : {}),
       ...(registrant !== undefined ? { registrant } : {}),
-      ...(module !== undefined ? { module } : {}),
+      module: entryName(this.ctx),
     }
     // Core write first: all load-time validation (undeclared target,
     // duplicate declaration, kind conflicts, cross-scope handle) throws
@@ -532,6 +526,7 @@ export class SlotRegistry extends Service {
     const erased = {
       ...options,
       ...(registrant === undefined ? {} : { registrant }),
+      module: entryName(this.ctx),
     }
     const dispose = (this._core as ErasedFactoryCore).registerFactory(erased, component)
     const definition = this._core.factory(options.name)
@@ -597,7 +592,7 @@ export class SlotRegistry extends Service {
   /** Validate and atomically publish the current root contribution roster. */
   private rebuildRootBinding(): void {
     const hooks: Record<string, HostObservable<unknown>> = {}
-    const keyedHooks: Record<string, import('@deepseek-ai/dsh-client-ui-slots').KeyedStandardSource> = {}
+    const keyedHooks: Record<string, import('@deepseek-ai/dsh-client-ui-slots/client').KeyedStandardSource> = {}
     const props: Record<string, unknown> = {}
     const finalProps = new Set<string>()
     for (const contribution of this._rootContributions) {

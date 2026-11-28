@@ -77,7 +77,7 @@ declare module '@deepseek-ai/dsh-client-ui-sidebar-right/client' {
   }
 }
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@deepseek-ai/dsh-client-ui-slots/client' {
   interface LocaleNamespaceMap {
     /** Text-preview progress, paging, change, control, and failure lines. */
     sidebarDocumentPreview: import('./locales.ts').SidebarDocumentPreviewKey
@@ -150,3 +150,5 @@ export function apply(ctx: ClientContext, config: SyncedConfig<DocumentPreviewCo
     name: 'sidebar.right.pane.tab.title', key: summaryId, locale: 'documentMarkdown',
   }, SummaryTitle)), 'ui-sidebar-documentpreview: summary title')
 }
+
+export type { OfficeBodyProps } from './office/OfficeBody.tsx'

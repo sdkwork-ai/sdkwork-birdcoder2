@@ -8,7 +8,7 @@ import type { ConversationViewsProps, WorkspaceSelectedHandler } from '@deepseek
 import type { PaneId, SidebarRightTabDefinition } from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type {
   HostObservable, PropsRenderFactories, PropsRenderSlots, PropsRuntime, TranslateNS,
-} from '@deepseek-ai/dsh-client-ui-slots'
+} from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
 import { NS } from '../locales.ts'
@@ -35,7 +35,7 @@ declare module '@deepseek-ai/dsh-api-session-controller/client' {
   }
 }
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@deepseek-ai/dsh-client-ui-slots/client' {
   interface ResourceProtocolMap {
     subagentchat: SubagentChatResource
   }
@@ -195,8 +195,7 @@ export function trackSessionDrags(doc: Document, mounted: () => SessionId | unde
       publish(undefined)
       return
     }
-    const column = event.target instanceof Element ? frameColumnOf(event.target) : undefined
-    publish({ sessionId: id, targets: dropTargets(doc, onScreen, column) })
+    publish({ sessionId: id, targets: dropTargets(doc, onScreen, frameColumnOf(event.target as Element)) })
   }
   const end = (): void => { publish(undefined) }
   // A source row unmounted mid-drag fires dragend on a detached node; the first

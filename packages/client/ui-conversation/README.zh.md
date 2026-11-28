@@ -28,7 +28,7 @@ kind: "package-reference"
 <a id="conversation-assembly"></a>
 ## Conversation 组装
 
-`UiConversation.events` 是 event Definition 的唯一 registry，`UiConversation.views` 是 target snapshot builder 的唯一 registry。两者都拒绝重复 key、保持注册顺序、返回幂等 disposer，并在 contribution roster 变化时重建现有 binding。`UiConversation.binding(bindingOrSessionId)` 为当前 Session Controller binding 返回 identity 稳定的 Conversation binding，不会另开事件源。 View Definition 可以声明 `toolCallFocus`，将工具调用 id 转换为自身的焦点标识。仅当此目标拥有可见的 View 条目时，Conversation 才提供 Inspect 回调；Chat 直接使用回调，不选择目标。
+`UiConversation.events` 是 event Definition 的唯一 registry，`UiConversation.views` 是 target snapshot builder 的唯一 registry。两者都拒绝重复 key、保持注册顺序、返回幂等 disposer，并在 contribution roster 变化时重建现有 binding。`UiConversation.binding(bindingOrSessionId)` 为当前 Session Controller binding 返回 identity 稳定的 Conversation binding，不会另开事件源。View Definition 可以在 `accepts` 中列出自己接受的焦点类型；焦点是以 `kind` 区分的 `ConversationFocus` 值，例如 `{ kind: 'tool-call', callId }` 或 `{ kind: 'request', turn, step }`。仅当接受该类型的目标拥有可见的 View 条目时，Conversation 才提供对应的 Inspect 回调；Chat 直接使用这些回调，不选择目标。
 
 `ConversationBinding.openTurn` 是对象标识稳定的只读来源：最新轮次的开始事件已加载且尚未结束时提供其编号，否则为 `undefined`。在 `conversation` retain 子要素被保留期间，观察到的轮次变化同步发布，即使没有活动视图也是如此。固定停止输入同时读取这个来源、会话运行状态和待处理交互状态。卸载会话绑定会解除其事件源订阅。
 
@@ -50,7 +50,7 @@ shell 选择解析出 target 或 target source 收到首个 subscriber 时，该
 
 Group 注册时缺少 View 目标会报错。已注册的 View Definition 被移除后，其分组计算暂停并清空已发布结果，但保留 Group Definition；重新注册该 View 后，沿现有替换流程从当前已加载时间线重建。切换 View 页签不会移除 View Definition。
 
-target package 通过 declaration merge 扩展 snapshot 与 Location data map，再调用 `ctx.uiConversation.events.register(...)` 和 `ctx.uiConversation.views.register(...)`。target 通过 `ctx.uiConversation.binding(binding).target(targetId)` 读取其 Session-owned source。注册属于 Cordis effect，返回的 disposer 从同一个 registry 移除 contribution。共享的请求检查服务于每个 target：`ctx.uiConversation.inspectSystemPrompt(previous, event)` 将系统消息与位置替换解释为不可变的已加载 surface 状态。它按 surface 顺序拼接所有非空的存活系统节点，为连续重写只保留存活的替换位置；遇到未建立索引的更早端点后，提示词保持不可用，直到向前补页回放提供其顺序。target 自有的 Definition 独立保留历史卡片。`ctx.uiConversation.inspectRequestPrompt(previous, header, system)` 根据该有效提示词分类请求变更；普通消息与流式分片无需处理系统状态。
+target package 通过 declaration merge 扩展 snapshot 与 Location data map，再调用 `ctx.uiConversation.events.register(...)` 和 `ctx.uiConversation.views.register(...)`。target 通过 `ctx.uiConversation.binding(binding).target(targetId)` 读取其 Session-owned source。注册属于 Cordis effect，返回的 disposer 从同一个 registry 移除 contribution。共享的请求检查服务于每个 target：`ctx.uiConversation.inspectSystemPrompt(previous, event)` 将系统消息与位置替换解释为不可变的已加载 surface 状态。它按 surface 顺序拼接所有非空的存活系统节点，为连续重写只保留存活的替换位置；遇到未建立索引的更早端点后，提示词保持不可用，直到向前补页回放提供其顺序。对带章节元数据的消息，它还给出按来源划分的生效指令；对历史中的更新，还给出按来源的解读：新增、更新、清空、调整顺序、移除或未变化，并附关联通知。由位置替换（如压缩或重建的头节点）确立的提示词标记为重建，不带解读。消息引入的节点同样带有此后生效的指令；有效提示词在文本或按来源划分的指令变化时都会更新；只要仍保留不带章节元数据的非空消息，按来源划分的指令就不可用。target 自有的 Definition 独立保留历史卡片。`ctx.uiConversation.inspectRequestPrompt(previous, header, system)` 根据该有效提示词分类请求变更；普通消息与流式分片无需处理系统状态。
 
 <a id="sent-user-text"></a>
 ## 已发送用户文本
@@ -82,7 +82,7 @@ root 作用域的 hoc Slot `conversation.hero.frame` 在所有阶段都包裹滚
 
 上下文占用率入口遵循[统计控件圆角规则](../../../docs/ui-radius.zh.md#radius-scale)。
 
-空闲且草稿为空的普通 Session，在最新轮次以 `RATE_LIMIT`、`SERVER`、`TIMEOUT`、`TRANSPORT`、`EMPTY_RESPONSE` 或 `STREAM_CLOSED` 结束后显示播放按钮。失败工作必须有已准入的普通用户输入和失败请求尝试。点击通过现有 Session prompt API 提交 `content: []`；已有草稿或附件仍使用发送按钮。新轮次正常闭合，使用已提交历史，并记录 `source.kind: 'retry'` 的空 `user/message`。请求被拒绝或传输失败时，草稿保持为空，错误沿用普通提交流程展示。
+空闲且草稿为空的普通 Session，在最新轮次以 `RATE_LIMIT`、`SERVER`、`TIMEOUT`、`TRANSPORT`、`EMPTY_RESPONSE`、`STREAM_CLOSED` 或 `INVALID_TOOL_ARGUMENTS` 结束后显示播放按钮。失败工作必须有已准入的普通用户输入和失败请求尝试。点击通过现有 Session prompt API 提交 `content: []`；已有草稿或附件仍使用发送按钮。新轮次正常闭合，使用已提交历史，并记录 `source.kind: 'retry'` 的空 `user/message`。请求被拒绝或传输失败时，草稿保持为空，错误沿用普通提交流程展示。
 
 Session API 拥有 `conversationContinuation`，Host 准入和浏览器展示共用该投影。它从完整 Session 历史恢复资格，并在空输入继续再次失败时保留资格，不依赖浏览器已加载的历史分页。
 
@@ -96,7 +96,7 @@ composer 在挂载、切换 Session 和解除锁定时使用共享的[文字输�
 
 关闭代码工作工具时，外壳仅隐藏 Trajectory；其他插件贡献的 View 仍然可用。可用 View 少于两个时隐藏 View 标签栏。在 Trajectory 激活时关闭代码工作工具会返回 Chat；已保存的 View 偏好和 Session 记录保持不变。开启后，Trajectory 恢复可用。View 所有者接收可用列表，使导航操作跟随相同的可见性。
 
-root 作用域的 `conversation.session.header.views.actions` list 有注册项时，标签行中的 View 标签之后显示带提示框的**更多会话视图**按钮。它打开的菜单以该 list 的注册项为菜单行。每个注册项接收 `entries`（按注册顺序的头部之外的 View，含 `id`、`label`、`pinned` 与 `active`；不含 Chat）、在本 Session 选择 View 的 `onOpen(id)`、`onPinnedChange(id, pinned)`，以及关闭菜单的 `onDismiss()`。头部在内存中保存所有 Session 共用的已收起 View id 列表；标签栏不显示已收起的 View，并将已注册的 Chat 放在首位，确保它始终留在更多菜单外。插件重新加载时 Pin 选择重置，不读取旧 localStorage 值。标签栏是否显示按可用 View 计算，不按已固定的 View 计算，因此其他 View 全部收起时，标签栏和“更多”仍然显示。收起当前激活的 View 会立即隐藏其标签，但不会切走其内容。更多菜单仅包含头部之外的 View，通过 `active` 标识当前 View。头部读取当前行可用宽度，为更多按钮与内边距预留 48px，每个标签估算 120px，其余 View 按注册顺序进入更多。初次测量后，窗口或侧栏缩放时，头部使用 ResizeObserver 送达的标签行宽度更新分组；当前选中项变化不改变顺序。标签行移除时断开观察。如果环境没有 ResizeObserver，仍按初始宽度计算，但不继续观察。当前 View 收起时，更多按钮高亮。每个标签按字符宽度估算文本宽度；只有估算结果超过 88px 单元格时，才通过提示框提供全名。至少保留一个优先展示的外部标签。未注册 View 的 id 保留在内存 Pin 列表中，直到插件重新加载。
+root 作用域的 `conversation.session.header.views.actions` list 有注册项时，标签行中的 View 标签之后显示带提示框的**更多会话视图**按钮。它打开的菜单以该 list 的注册项为菜单行。每个注册项接收 `entries`（按注册顺序的头部之外的 View，含 `id`、`label`、`pinned` 与 `active`；不含 Chat）、在本 Session 选择 View 的 `onOpen(id)`、`onPinnedChange(id, pinned)`，以及关闭菜单的 `onDismiss()`。头部在内存中保存所有 Session 共用的已收起 View id 列表；标签栏不显示已收起的 View，并将已注册的 Chat 放在首位，确保它始终留在更多菜单外。插件重新加载时 Pin 选择重置，不读取旧 localStorage 值。标签栏是否显示按可用 View 计算，不按已固定的 View 计算，因此其他 View 全部收起时，标签栏和“更多”仍然显示。收起当前激活的 View 会立即隐藏其标签，但不会切走其内容。更多菜单仅包含头部之外的 View，通过 `active` 标识当前 View。头部根据 ResizeObserver 送达的标签行宽度分组，为更多按钮与内边距预留 48px，每个标签估算 120px，其余 View 按注册顺序进入更多。首次送达前所有优先展示的 View 都留在外部，因此窄标签行可能有一帧显示未折叠的标签；头部从不同步读取布局。之后的送达跟随窗口或侧栏缩放更新分组；当前选中项变化不改变顺序。标签行移除时断开观察。如果环境没有 ResizeObserver，所有优先展示的 View 都留在外部。当前 View 收起时，更多按钮高亮。每个标签按字符宽度估算文本宽度；只有估算结果超过 88px 单元格时，才通过提示框提供全名。至少保留一个优先展示的外部标签。未注册 View 的 id 保留在内存 Pin 列表中，直到插件重新加载。
 
 输入框注册「文件」命令动作，负责其标题、可用性和原生文件选择器回调。菜单可用性与实际调用都读取已挂载输入框当前的附件接收策略。输入框卸载或锁定后该动作不可用，插件 dispose（资源释放）时移除注册。回调绑定留在输入模块内部。
 
@@ -115,6 +115,7 @@ root 作用域的 `conversation.session.header.views.actions` list 有注册项�
 blank Session 保留 header 的 leading 与 corner 控件，包括右侧栏展开入口，同时隐藏标题、actions、utilities 和 View tabs。选择 Workspace 会创建这些控件所需的 Session，无需先发送消息。没有选中 Session 时，strict header 不挂载；常驻 header 在所有平台都保留与 blank Session 相同的 40px 行，因此绑定 Workspace 前后 Hero 输入卡片的高度位置不变；在 macOS 桌面上，这一行同时是窗口拖拽行。侧栏各入口仍遵循自身的数据与执行环境要求。 已开始的 Session 在可用 View 少于两个时使用单行标题栏，仅在渲染标签行时保留其高度。标题与 actions 放不下时，标题区域会裁剪它们，并在 utilities 之前渐隐其末端；utilities 始终完整可见且可点击；标题与 actions slot 中的浮层通过 portal 渲染，不受该裁剪影响。
 
 会话页头会在标题旁渲染会话作用域的 `'conversation.session.header.actions'` 列表，并在最右侧渲染独立的 `'conversation.session.header.utilities'` 列表。会话上下文和谱系控件保留在 `actions` 中；可选的会话工具不会改变它们的顺序或位置。编辑器链的 currency 包含当前对话 `session`；ui-subagent 会选取 one-shot 或 parent 不可用的已寻址会话，并按原因显示只读文案，而普通 InputBar 会让所有已寻址 child 仅保留 Send，因为继续执行服务不公开逐 Activation 取消操作，`session.cancel` 也会绕过其所有权。
+Session Header 持有末尾的更多按钮，在 utility 贡献之后渲染共享 `contextMenu.button` factory。本包声明 `sessionHeader` 右键菜单目标 `{ sessionId }`，独立于会话行右键操作；Header 菜单提供者导入本包的 client 类型。只要仍注册有其他 Header 菜单提供者，未挂载导出插件时按钮也可用；没有任何提供者时隐藏。各提供者在菜单打开时决定自己的条目及可用性。[右键菜单](../ui-context-menu/README.zh.md)负责按钮开关与可访问性；[会话日志导出](../../session-query/session-log-export/README.zh.md)负责导出操作与全局下载弹窗。[ui-workspace](../ui-workspace/README.zh.md) 提供复制 Session ID。
 
 Session Header 持有末尾的更多按钮，在 utility 贡献之后渲染共享 `contextMenu.button` factory。本包声明 `sessionHeader` 右键菜单目标 `{ sessionId }`，独立于会话行右键操作；Header 菜单提供者导入本包的 client 类型。只要仍注册有其他 Header 菜单提供者，未挂载导出插件时按钮也可用；没有任何提供者时隐藏。各提供者在菜单打开时决定自己的条目及可用性。[右键菜单](../ui-context-menu/README.zh.md)负责按钮开关与可访问性；[会话日志导出](../../session-query/session-log-export/README.zh.md)负责导出操作与全局下载弹窗。 View 选择规则固定：有效且已注册的持久化选择优先，其次是已注册的 `chat`，否则不渲染 View；绝不选择第一个已注册 View。Shell phase 只组合 Session lifecycle 与 active-target set，不读取任何 target-specific 快照。
 
@@ -125,6 +126,10 @@ Session 首次绑定或缓存的 Session 成为 current 时，shell 会在渲染
 主 occurrence 的活跃 transcript 只在未被内容覆盖的两侧沟槽中提供正文宽度拖拽条；嵌入式 occurrence 省略这些拖拽条。View 如果绘制进沟槽，只将具体的可见元素提到拖拽条上方；透明的全宽包装层保持在下方，不会占用空白沟槽。该规则要求此元素与 Conversation body 之间不能引入中间堆叠上下文；浏览器场景固定了交付 Chromium 的行为。Chat 将该规则用于表格元素，其限定在阅读列内的工具卡片无需提高层级。指针位于拖拽条上时，滚轮仍会滚动 transcript，Ctrl+滚轮则保留为浏览器缩放手势。拖拽条滚动的是 body 内第一个 `[data-conversation-scroll]` 元素；即使有 frame 层包在外面，它也是 body 自己的滚动区。粘滞 composer 拥有完整的底部区带，该区域不是宽度调整目标；已捕获的拖拽会在该区带和沟槽中的表格下方继续，此时指示线被它们遮住。在活跃 transcript 中，即使没有 View 撑满整列，composer 也停在滚动区底部；它在所有状态下保持同一层级，高于 transcript 的吸顶标题与“回到底部”按钮，因此它向上打开的菜单会盖住该按钮；它也从不作为滚动锚定目标。无论下方是什么内容，它都保持自己的合成层，因此成为 fixed 定位后代的包含块：向 `conversation.composer`、`conversation.composer.bar`、`conversation.composer.dock`、`conversation.input.dock` 以及其他 `conversation.input.*` slot 贡献的内容，必须把 fixed 浮层 portal 到 document body，例如使用 `Tooltip` 或 `Menu` 的 `portal`，或 `createPortal`（[拖动手柄与 composer 样式](src/client/skeleton/ConversationRoot.module.css)）。
 
 宽度拖拽条的指示线只在已捕获指针的拖拽期间跟随指针，普通悬停不改变其位置。
+
+<a id="scrollport-marks"></a>
+
+View 在自己的某个元素上标记 `data-conversation-overscroll="none"` 可关闭滚动区域的纵向过度滚动，标记 `data-conversation-scroll-anchor="none"` 可关闭浏览器的滚动锚定。标记只在被标元素位于滚动区域内时生效，因此 View 在自己的内容上声明这些需要，不给滚动区域写样式。
 
 <a id="end-reserve"></a>
 
@@ -144,13 +149,13 @@ Session 首次绑定或缓存的 Session 成为 current 时，shell 会在渲染
 
 每次输入框提交都携带原始发生时间、操作来源、投递意图以及会话模型和运行状态快照，贯穿异步命令裁决。快照还记录会话是否仍为空白，以及会话记录的 Agent preset id。普通消息通知在引用序列化前发出一次，纯附件提交也遵循这一规则；已处理或认领的命令不发出通知。快照读取与通知消费异常不能阻断发送。在桌面端，该通知报告 `send_button_click`，携带 `is_new_session`（会话为空白时为 true）和表示 preset 类别的 `agent_preset`：`cordis` 记为 `creator`；`ptc`、`minimal` 与 `standard` 沿用各自的 id；其他 preset 记为 `other`。会话未记录 preset 时省略 `agent_preset`。不发送自定义 preset 的 id。
 
-默认发送等待 Host 接收：Enter 把草稿文字、引用胶囊和附件一起记入本次 attempt，composer 进入 `sending`，编辑器和附件栏只读，Send 显示发送中，直到 Host 接收该提示词（以回执或带有该请求 id 的 Inbox 行为准，先到者生效）。之后才在回显渲染之前、在同一事务里清空草稿、其附件、occurrence 表和撤销历史；被拒绝或失败时 composer 回到 `plain`，草稿和附件保持不变，因此同一时刻只有一条消息在途。只读输入阶段结束时，如果焦点停在页面 body 上，桌面端将焦点恢复到编辑器，移动端则将焦点移到输入卡片，避免重新弹出键盘。用户在此期间聚焦的其他控件会保留焦点。`sendSession` 在序列化之前用投递模式注册 Session 提交回显（`session.beginSubmission`），保留图片与文件的选择顺序；Host 接收提示词后，Session 才在 `pendingSubmissions` 中公开它，并按注册时的模式与运行状态推导位置，因此空闲发送进入 transcript（文本记录），繁忙时 Queue 进入 QueueDock，繁忙时 Steer 进入 pending-steering 区域。随后让出一帧，文件和已上传的图片引用已暂存凭证；没有上传的图片（例如 continuable 子代理草稿里的图片）经浏览器原生 `FileReader` data-URL 路径编码。命令提交也用同一凭证表示通用文件，因此发送 `/goal` 或 `/plan` 时不会再次读取这些浏览器文件。提示词复用提交 `requestId`；Session 按同一 `rpcId` 关联展示接管，并仅退休回显一次。命令提交保持冻结的 `submitting` 阶段。回显以 observed 退休时，durable 图片缓存立即公开每个预览 URL，读取 admitted 附件后用规范化 URL 替换预览，并在各 URL 停止使用后撤销，同时释放文件卡；已被接收但回显未被观察到就退休的提示词会释放其附件，Session scope 销毁时会释放尚未被 Host 接收的消息的附件。选中的通用文件以及普通 Session 草稿里的图片在加入时就进入同一个先进先出的后台上传队列，发送会等到每一项都取得凭证；`maxConcurrentFileUploads` 是 Host 条目 Config 中的 volatile 字段，默认允许两个 Worker transport 同时运行，调高后立即启动排队中的传输，Conversation 服务在切换 Session 时继续持有排队和运行中的传输操作及字节进度，移除草稿会跳过排队中的传输或中止正在运行的传输。浏览器 shell 暴露 `__DSH_HOST_PATHS__` 时（桌面应用），拖入或粘贴的文件夹以及拖入、选择或粘贴的带真实路径的非图片文件会成为 `@路径` chip，chip 携带 shell 报告的绝对路径，文件位于 Session 目录内时也是如此；图片仍然上传。拖放和粘贴通过浏览器 entry API 识别目录；该 API 不可用或没有返回 entry 时，粘贴项沿用普通文件处理。文件选择器不能选择目录。引用需要启用 `ui-reference` 插件，原路径也必须仍可由模型的文件工具读取。整批文件先校验再插入，保留来源顺序和已选中的文字，引用之间有空白分隔，含空格的路径使用闭合引号。没有该桥的浏览器会拒绝拖入或粘贴的文件夹，桌面端无法获取文件夹路径时单独报错。continuable 子代理允许粘贴和拖入 PNG、JPEG、WebP、GIF 图片，沿用相同的投影限制并以内联方式发送，因为 Host 只为普通 Session 暂存上传；包含通用文件、不支持的图片格式或目录的批次会在进入草稿前整批拒绝。它们的发送同样注册本地回显；continuation 请求携带回显的 `requestId`，Host 把它记录为子会话消息的 `rpcId`。
+默认发送等待 Host 接收：Enter 把草稿文字、引用胶囊和附件一起记入本次 attempt，composer 进入 `sending`，编辑器和附件栏只读，Send 显示发送中，直到 Host 接收该提示词（以回执或带有该请求 id 的 Inbox 行为准，先到者生效）。之后才在回显渲染之前、在同一事务里清空草稿、其附件、occurrence 表和撤销历史；被拒绝或失败时 composer 回到 `plain`，草稿和附件保持不变，因此同一时刻只有一条消息在途。只读输入阶段结束时，如果焦点停在页面 body 上，桌面端将焦点恢复到编辑器，移动端则将焦点移到输入卡片，避免重新弹出键盘。用户在此期间聚焦的其他控件会保留焦点。`sendSession` 在序列化之前用投递模式注册 Session 提交回显（`session.beginSubmission`），保留图片与文件的选择顺序；Host 接收提示词后，Session 才在 `pendingSubmissions` 中公开它，并按注册时的模式与运行状态推导位置，因此空闲发送进入 transcript（文本记录），繁忙时 Queue 进入 QueueDock，繁忙时 Steer 进入 pending-steering 区域。随后让出一帧，文件和已上传的图片引用已暂存凭证；没有上传的图片（例如 continuable 子代理草稿里的图片）经浏览器原生 `FileReader` data-URL 路径编码。命令提交也用同一凭证表示通用文件，因此发送 `/goal` 或 `/plan` 时不会再次读取这些浏览器文件。提示词复用提交 `requestId`；Session 按同一 `rpcId` 关联展示接管，并仅退休回显一次。命令提交保持冻结的 `submitting` 阶段。回显以 observed 退休时，durable 图片缓存立即公开每个预览 URL，读取 admitted 附件后用规范化 URL 替换预览，并在各 URL 停止使用后撤销，同时释放文件卡；已被接收但回显未被观察到就退休的提示词会释放其附件，Session scope 销毁时会释放尚未被 Host 接收的消息的附件。选中的通用文件以及普通 Session 草稿里的图片在加入时就进入同一个先进先出的后台上传队列，发送会等到每一项都取得凭证；`maxConcurrentFileUploads` 是 Host 条目 Config 中的 volatile 字段，默认允许两个 Worker transport 同时运行，调高后立即启动排队中的传输，Conversation 服务在切换 Session 时继续持有排队和运行中的传输操作及字节进度，移除草稿会跳过排队中的传输或中止正在运行的传输。浏览器 shell 暴露 `__DSH_HOST_PATHS__` 时（桌面应用），拖入或粘贴的文件夹以及拖入、选择或粘贴的带真实路径的非图片文件会成为 `@路径` chip，chip 携带 shell 报告的绝对路径，文件位于 Session 目录内时也是如此；图片仍然上传。拖放和粘贴通过浏览器 entry API 识别目录；该 API 不可用或没有返回 entry 时，粘贴项沿用普通文件处理。文件选择器不能选择目录。引用需要启用 `ui-reference` 插件，原路径也必须仍可由模型的文件工具读取。整批文件先校验再插入，保留来源顺序和已选中的文字，引用之间有空白分隔，含空格的路径使用闭合引号。没有该桥的浏览器会拒绝拖入或粘贴的文件夹，桌面端无法获取文件夹路径时单独报错。continuable 子代理允许粘贴、拖入以及通过文件选择器选择 PNG、JPEG、WebP、GIF 图片，沿用相同的投影限制并以内联方式发送，因为 Host 只为普通 Session 暂存上传；包含通用文件、不支持的图片格式或目录的批次会在进入草稿前整批拒绝。它们的发送同样注册本地回显；continuation 请求携带回显的 `requestId`，Host 把它记录为子会话消息的 `rpcId`。
 
 每个已挂载的 composer（包括在右侧栏打开的子代理对话）都加入同一条文档级粘贴路由。焦点不在任何输入框、文本区域或可编辑元素内时，剪贴板带有文件的粘贴会进入最近一次获得焦点的 composer；在其他 composer 获得焦点之前，或最近聚焦的 composer 当前无法接收文件时，则进入主 Conversation 的 composer。已聚焦编辑器内的粘贴仍由该编辑器处理，不含文件的剪贴板文字不会经此插入。位于隐藏或 inert 子树中的 composer（例如折叠的侧栏或未选中的标签页）不会成为目标；打开模态对话框或菜单时，只有其中的 composer 可以成为目标。没有可作为目标的 composer 能接收文件时，粘贴保留浏览器的默认处理。
 
 排队提交的本地回显在禁用的编辑、删除、插话按钮旁显示“发送中…”；折叠后的队列在标题栏保留发送状态。匹配的 Host 队列行替换回显后，各操作按原有的纯文本内容和运行状态要求启用。仅收到提示词确认不会启用队列操作。被拒绝或失败的提交不会公开回显，草稿留在 composer 中并显示错误提示。Agent 接纳阶段的拒绝（`session/prompt-rejected`）显示它自带的文字；若 `presented` 表明拒绝它的插件会在自己的界面里说明，composer 不再提示。
 
-Send 和 Stop 按钮禁用时不显示提示气泡，轮次结束后由 Stop 切换成禁用 Send 的按钮也遵循此规则。普通 composer 运行时，如果草稿为空或输入不可用，主指针操作保持为 Stop。可提交的文字或附件会把同一位置切换为 Send；清空或成功提交草稿后恢复 Stop。消息等待 Host 接收期间，该位置显示发送进度，旁边另有独立的 Stop。繁忙态 Enter 设置为普通 Session 与可继续 child 选择 Queue 或 Steer 投递，运行中的 Send 按钮按 plain Enter 解析出的同一模式投递；当它在普通消息草稿上可用（没有待上传文件）时，其标签以该模式命名（排队发送或插话发送），因此该设置同时约束 Enter 与按钮，而 Cmd/Ctrl+Enter 仍使用另一模式；空闲会话、空草稿与 `/` 命令行保留普通的 Send 标签。它们的 QueueDock 行共享 Edit、Remove 与 Steer，空草稿也共享 steer-all 组合键。One-shot child 继续只读。Plan Mode 与 active goal 不改变附件入口。可继续 child 保留独立的 Send 与 Stop 操作，允许粘贴或拖入图片，但不提供「文件」菜单项；创建者的在线状态不禁用输入，Host 接收失败使用普通提示词错误反馈（[决策](../../../.agents/notes/archived/bug-fix/2026-08-20-running-draft-primary-send.md)、[inbox 控制](../../subagent/subagent/README.zh.md)）。
+Send 和 Stop 按钮禁用时不显示提示气泡，轮次结束后由 Stop 切换成禁用 Send 的按钮也遵循此规则。composer 运行时，如果草稿为空或输入不可用，主指针操作保持为 Stop。可提交的文字或附件会把同一位置切换为 Send；清空或成功提交草稿后恢复 Stop。消息等待 Host 接收期间，该位置显示发送进度，旁边另有独立的 Stop。繁忙态 Enter 设置为普通 Session 与可继续 child 选择 Queue 或 Steer 投递，运行中的 Send 按钮按 plain Enter 解析出的同一模式投递；当它在普通消息草稿上可用（没有待上传文件）时，其标签以该模式命名（排队发送或插话发送），因此该设置同时约束 Enter 与按钮，而 Cmd/Ctrl+Enter 仍使用另一模式；空闲会话、空草稿与 `/` 命令行保留普通的 Send 标签。它们的 QueueDock 行共享 Edit、Remove 与 Steer，空草稿也共享 steer-all 组合键。One-shot child 继续只读。Plan Mode 与 active goal 不改变附件入口。可继续 child 复用同一个主 Stop/Send 位置；创建者的在线状态不禁用输入，Host 接收失败使用普通提示词错误反馈（[决策](../../../.agents/notes/archived/bug-fix/2026-08-20-running-draft-primary-send.md)、[inbox 控制](../../subagent/subagent/README.zh.md)）。
 
 文件标签和可编辑的 skill 引用共用覆盖整个引用的悬停背景，并跟随输入框的行高与文字基线。首次点击立即由已注册的引用来源负责打开预览，包括双击序列的第一次点击。后续点击保留原生文本选择行为；已有非折叠选区时，指针点击不打开预览。预览不改变草稿、剪贴板文本或提交内容。
 
@@ -185,7 +190,7 @@ interface ComposerChainProps {
 
 ```tsx
 import type { ComposerChainProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type { ChainSelect, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { ChainSelect, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 
 interface Request {

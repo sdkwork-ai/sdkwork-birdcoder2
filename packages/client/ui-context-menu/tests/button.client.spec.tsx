@@ -32,7 +32,7 @@ it('shows late registered kinds without preparing actions and withdraws them wit
     {renderFactorySlot('contextMenu.button', { target: target('header'), label: 'Header menu', size: 'sm' })}
     {renderFactorySlot('contextMenu.button', { target: { kind: 'session', value: {
       sessionId: brandString<SessionId>('row'), displayTitle: 'Row',
-    } }, label: 'Row menu', className: 'row-control' })}
+    } }, label: 'Row menu', size: 'row' })}
   </>)
   const view = runtime.renderRoot()
   expect(view.queryByRole('button')).toBeNull()
@@ -59,24 +59,27 @@ it('shows late registered kinds without preparing actions and withdraws them wit
   expect(source.getSnapshot()).toEqual([])
 })
 
-it('shows the label tooltip on the compact toolbar button but not on row buttons', async () => {
+it('shows the label tooltip on the compact toolbar button but not on row or container-styled buttons', async () => {
   const runtime = await SlotTestRuntime.create()
   onTestFinished(() => runtime.dispose())
   runtime.ctx.provide('shortcuts', { catalog: createSnapshotStore([]) } as never)
   runtime.ctx.provide('locale', { register: () => () => {}, bind: () => (key: string) => key } as never)
   await runtime.root.declare({}, ({ renderFactorySlot }) => <>
     {renderFactorySlot('contextMenu.button', { target: target('header'), label: 'Header menu', size: 'sm' })}
-    {renderFactorySlot('contextMenu.button', { target: target('row'), label: 'Row menu' })}
+    {renderFactorySlot('contextMenu.button', { target: target('row'), label: 'Row menu', size: 'row' })}
+    {renderFactorySlot('contextMenu.button', { target: target('panel'), label: 'Panel row menu' })}
   </>)
   await runtime.mount({ inject, apply }, syncedConfig({ resolutionTimeoutMs: 1000 }))
   await runtime.mount({ inject: ['contextMenus'], apply: (ctx: Context) => { ctx.effect(() => ctx.contextMenus.register({
     id: 'header', target: 'header', order: 0, resolve: () => [],
   })) } })
   const view = runtime.renderRoot()
-  const row = view.getByRole('button', { name: 'Row menu' })
-  fireEvent.pointerEnter(row)
-  fireEvent.focus(row)
-  expect(view.queryByRole('tooltip')).toBeNull()
+  for (const name of ['Row menu', 'Panel row menu']) {
+    const row = view.getByRole('button', { name })
+    fireEvent.pointerEnter(row)
+    fireEvent.focus(row)
+    expect(view.queryByRole('tooltip')).toBeNull()
+  }
   fireEvent.focus(view.getByRole('button', { name: 'Header menu' }))
   expect(view.getByRole('tooltip').textContent).toBe('Header menu')
 })
@@ -119,7 +122,8 @@ it('toggles moved buttons by target identity, replaces other targets, and preser
   expect(pressed).not.toHaveBeenCalled()
   expect(focus).toHaveBeenCalledWith({ preventScroll: true })
   expect(open.mock.lastCall?.slice(0, 2)).toEqual([target('one'), { x: 20, y: 58 }])
-  expect(typeof open.mock.lastCall?.[2]?.button).toBe('string')
+  expect(typeof open.mock.lastCall?.[2]?.opener).toBe('string')
+  expect(runtime.ctx.contextMenus.opener.getSnapshot()).toBe(open.mock.lastCall?.[2]?.opener)
   expect(first.getAttribute('aria-expanded')).toBe('true')
   expect(same.getAttribute('aria-expanded')).toBe('false')
   expect(second.getAttribute('aria-expanded')).toBe('false')
@@ -157,6 +161,35 @@ it('toggles moved buttons by target identity, replaces other targets, and preser
   expect(runtime.ctx.contextMenus.active.getSnapshot()).toEqual(target('one'))
   fireEvent.pointerDown(document.body)
   expect(runtime.ctx.contextMenus.active.getSnapshot()).toBeNull()
+})
+
+it('shares one opener between a gesture trigger and its button', async () => {
+  const runtime = await SlotTestRuntime.create()
+  onTestFinished(() => runtime.dispose())
+  runtime.ctx.provide('shortcuts', { catalog: createSnapshotStore([]) } as never)
+  runtime.ctx.provide('locale', { register: () => () => {}, bind: () => (key: string) => key } as never)
+  await runtime.root.declare({}, ({ renderFactorySlot, useContextMenu }) => {
+    const { getTriggerProps } = useContextMenu()
+    return <>
+      <div {...getTriggerProps(target('one'), undefined, 'row')}>Row</div>
+      <div {...getTriggerProps(target('one'))}>Title</div>
+      {renderFactorySlot('contextMenu.button', { target: target('one'), label: 'Row menu', opener: 'row' })}
+    </>
+  })
+  await runtime.mount({ inject, apply }, syncedConfig({ resolutionTimeoutMs: 1000 }))
+  await runtime.mount({ inject: ['contextMenus'], apply: (ctx: Context) => { ctx.effect(() => ctx.contextMenus.register({
+    id: 'header', target: 'header', order: 0, resolve: () => [],
+  })) } })
+  const view = runtime.renderRoot(), button = view.getByRole('button', { name: 'Row menu' })
+  fireEvent.contextMenu(view.getByText('Title'), { clientX: 10, clientY: 10 })
+  expect(runtime.ctx.contextMenus.opener.getSnapshot()).toBeNull()
+  expect(button.getAttribute('aria-expanded')).toBe('false')
+  fireEvent.contextMenu(view.getByText('Row'), { clientX: 50, clientY: 50 })
+  expect(runtime.ctx.contextMenus.opener.getSnapshot()).toBe('row')
+  expect(button.getAttribute('aria-expanded')).toBe('true')
+  fireEvent.click(button)
+  expect(runtime.ctx.contextMenus.active.getSnapshot()).toBeNull()
+  expect(runtime.ctx.contextMenus.opener.getSnapshot()).toBeNull()
 })
 
 it('keeps an open button expanded after its owner updates display metadata in the target', async () => {

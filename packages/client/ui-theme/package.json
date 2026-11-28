@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-theme",
   "description": "Theme plugin: Host bootstrap for the pre-plugin palette; ThemeRuntime for light/dark/system state and icon replacements; --dsw-* token styles and Appearance settings row",
-  "version": "0.2.3-alpha.2",
+  "version": "0.2.3-alpha.3",
   "publishConfig": {
     "access": "public"
   },
@@ -58,7 +58,7 @@
     "@deepseek-ai/dsh-client-ui-settings": "workspace:*",
     "@deepseek-ai/dsh-client-ui-slots": "workspace:*",
     "@deepseek-ai/dsh-host-webserver": "workspace:*",
-    "react": "^18.2.0",
+    "react": "^19.3.1",
     "clsx": "^2.0.0",
     "@deepseek-ai/dsh-settings": "workspace:*"
   },

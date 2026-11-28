@@ -9,10 +9,10 @@ import {
 } from 'react'
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
-import { HoverCard, ImageLightbox, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
+import { HoverCard, ImageLightbox, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives/client'
+import type { MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type { ConvViewProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type {
   StatsCall, StatsCompactionMetrics, StatsEventKind, StatsEventMetrics, StatsSnapshot, StatsStepMetrics,
   LoadOlderResult, StatsToolCount, StatsTurnMetrics,
@@ -23,6 +23,7 @@ import {
   formatTokens, formatTokensDelta, formatTokensShort, formatTps,
 } from './stats-format.ts'
 import { turnContext, type ContextMode, type StatsTotals } from './stats-aggregate.ts'
+import type { StatsPreferences, ViewMode } from './stats-preferences-contract.ts'
 import { isNumber } from './stats-usage.ts'
 import { CALL_LIMIT } from './stats-fold.ts'
 import type { StatsTranslate } from './locales.ts'
@@ -96,12 +97,24 @@ export interface StatsViewInjected {
   hooks: {
     /** This target's snapshot; InjectFace exposes it as `useStats`. */
     stats: ObservableSnapshot<StatsSnapshot>
+    /** Browser-wide table preferences; InjectFace exposes them as `usePreferences`. */
+    preferences: ObservableSnapshot<StatsPreferences>
   }
+  /**
+   * Store one table preference for every Session and the next page load.
+   * @param patch - the preferences this gesture changed.
+   */
+  setPreferences: (patch: Partial<StatsPreferences>) => void
   /**
    * Load one older history page into the published window.
    * @returns whether the page grew, exhausted history, or must be retried.
    */
   loadOlder: () => Promise<LoadOlderResult>
+  /**
+   * Publish the prepared older page.
+   * @returns whether a page was published; false when it was invalidated.
+   */
+  consumeOlder: () => boolean
   /** Cancel a pending open-window wait when this view unmounts. */
   cancel: () => void
   /**
@@ -130,9 +143,6 @@ type ImageLoad =
   | { readonly status: 'loading' }
   | { readonly status: 'failed' }
   | { readonly status: 'ready'; readonly src: string }
-
-/** Open/closed default for turns the user never toggled explicitly. */
-type ViewMode = 'newest' | 'all' | 'none'
 
 /** Step-list presentation of one turn: newest slice or all steps, plus filters. */
 export interface StepViewState {

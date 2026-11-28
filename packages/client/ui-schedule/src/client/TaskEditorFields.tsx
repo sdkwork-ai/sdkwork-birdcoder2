@@ -1,14 +1,14 @@
 /** Fields shared by manual creation and editing inside the existing Rules view. */
 import type { ReactNode } from 'react'
 import { useId, useRef, useState } from 'react'
-import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ScheduleCatalogEntry, SchedulePatch, ScheduleTargetRequest } from '@deepseek-ai/dsh-schedule/client'
 import { Cron, RRule } from '@deepseek-ai/dsh-util-time'
 import clsx from 'clsx'
 import { DEFAULT_WORKSPACE_DIRECTORY, workspaceDisplayTitle } from '@deepseek-ai/dsh-api-workspace-controller/default-workspace'
-import { IconClockOutlineRegular, Input, PathLabel } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconClockOutlineRegular, Input, PathLabel } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import { ClockPicker } from './ClockPicker.tsx'
 import { DatePicker } from './DatePicker.tsx'
 import { defaultTiming, rruleFromDraft, timingFromDraft, timingFromRecord } from './editor-timing.ts'
@@ -140,8 +140,8 @@ export function TaskEditorFields({ draft, onChange, projects, disabled, held, or
   const dateAnchor = useRef<HTMLButtonElement>(null)
   const clockAnchor = useRef<HTMLButtonElement>(null)
   const id = useId()
-  const dateAnchorName = `--dsh-schedule-date-${id.replaceAll(':', '')}`
-  const clockAnchorName = `--dsh-schedule-clock-${id.replaceAll(':', '')}`
+  const dateAnchorName = `--dsh-schedule-date-${id.replace(/[^\w-]/g, '')}`
+  const clockAnchorName = `--dsh-schedule-clock-${id.replace(/[^\w-]/g, '')}`
   const rowId = (name: string): string => `${id}-${name}`
   const change = (patch: Partial<TaskEditorDraft>): void => { onChange({ ...draft, ...patch }) }
   const clock = draft.frequency === 'daily' ? `${draft.dailyTime}:00` : draft.start.slice(11)

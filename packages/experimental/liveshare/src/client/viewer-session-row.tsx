@@ -11,8 +11,8 @@
  */
 
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
-import { IconBranchOutlineRegular, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import { IconBranchOutlineRegular, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives/client'
+import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { SessionProjectionValues } from '@deepseek-ai/dsh-api-session-controller/types'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -35,7 +35,7 @@ function ViewerForkMarker({ sessionId, useSessions, t }: PropsRuntime<'sidebar.s
   const sourceTitle = useSessions(list => lineage ? list.byId[brandString<SessionId>(lineage)]?.title : undefined)
   if (lineage === undefined) return null
   const label = sourceTitle ? t('viewer.row.forkSource', { title: sourceTitle }) : t('viewer.row.fork')
-  return <Tooltip label={label}><span><IconBranchOutlineRegular size={14} /></span></Tooltip>
+  return <Tooltip label={label}><span data-liveshare-fork-marker=""><IconBranchOutlineRegular size={14} /></span></Tooltip>
 }
 /**
  * Register the viewer's branch lineage marker.

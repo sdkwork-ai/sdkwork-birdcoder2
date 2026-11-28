@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /** Account take-over of the frame-wide quota notice, and its generic fallback. */
-import { act, cleanup, render, fireEvent, screen } from '@testing-library/react'
+import { act, cleanup, render, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi, type Mock } from 'vitest'
-import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
+import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { QuotaNoticeOwnerProps } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { AccountView } from '@deepseek-ai/dsh-deepseek-account/types'
 import type { AccountSnapshot } from '../src/client/AccountSection.tsx'
@@ -197,7 +197,8 @@ it.each([en, zh])('takes the balance Modal down when the account signs out', asy
   await act(async () => { setStatus('signed-out') })
   expect(dismiss).toHaveBeenCalledOnce()
   expect(screen.queryByRole('dialog')).toBeNull()
-  expect(screen.queryByRole('alert')).toBeNull()
+  // dismiss() re-renders the root from the entry's effect; React 19 commits that nested render after the act.
+  await waitFor(() => { expect(screen.queryByRole('alert')).toBeNull() })
   expect(spies.open).not.toHaveBeenCalled()
 })
 

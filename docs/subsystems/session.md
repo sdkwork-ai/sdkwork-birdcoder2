@@ -746,8 +746,8 @@ interface TurnEndReasonMap {
   /**
    * The turn failed. `error` is always a structured failure: the `LlmError`
    * facts verbatim, or `{ message: errorChain(error), code }` flattened from
-   * any other error, where `code` is `TOOL_ACTIVATION_FAILED` for a failed
-   * tool condition and `UNKNOWN` otherwise.
+   * any other error under the `UNKNOWN` code. Released logs may also carry
+   * `TOOL_ACTIVATION_FAILED`.
    */
   error: { kind: 'error'; error: LlmFailure }
   /** At least one step reached its output-token ceiling, even if a plugin continued the turn. */
@@ -930,7 +930,8 @@ resolveAgent(sessionId: SessionId): Promise<ApiSessionAgentResult>
 @Remote('selectModel') selectModel(request: SessionSelectModelRequest): Promise<SessionSelectModelValue>
 
 /**
- * Select the first available account model after login when no provider API key is configured.
+ * Make the default an account model after login when no provider API key is configured.
+ * A saved default naming a listed account model is retained with its reasoning effort.
  * @returns after saving the first available model or retaining the existing default.
  */
 @Remote async initializeDefaultModel(): Promise<void>
@@ -982,10 +983,10 @@ workspaceDesktop(): { name: string; available: boolean; fileManager: 'finder' | 
  * Fork one cold-readable exact event prefix into a new Session. An omitted
  * boundary selects the latest completed-turn prefix; an open cut receives
  * synthetic fork closers.
- * @param request - source Session, optional exact inclusive event boundary, and migration preflight choice.
+ * @param request - source Session, optional exact inclusive event boundary, migration preflight choice, and child origin.
  * @returns the new Session identity.
  */
-@Remote('fork') async fork(request: SessionForkRequest): Promise<SessionForkValue>
+@Remote('fork') fork(request: SessionForkRequest): Promise<SessionForkValue>
 
 /**
  * Admit one prompt after explicitly resuming its Session.
@@ -1317,6 +1318,28 @@ Source: [`packages/core/session/src/index.ts`](../../packages/core/session/src/i
 <a id="timeline-events"></a>
 
 ### `timeline/*` events
+
+<a id="timelineinstallation--emit"></a>
+
+#### `timeline/installation` — emit
+
+Collect the Timeline installations that can manage one Agent; the nearest one in the Agent's scope chain owns its planning tools. Each installation answers with its own record. Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): an installation in a preset or Agent scope answers only for Agents in that scope.
+
+```ts cordis-catalog
+/**
+ * Collect the Timeline installations that can manage one Agent; the
+ * nearest one in the Agent's scope chain owns its planning tools. Each
+ * installation answers with its own record.
+ * Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): an installation in a preset or Agent scope answers only for Agents in that scope.
+ * @param installations - receives each answering installation's record.
+ * @mode emit
+ */
+'timeline/installation'(this: Scoped<Agent>, installations: TimelineInstallation[]): void
+```
+
+Types: [Agent](core.md) · [Scoped](scope.md)
+
+Source: [`packages/experimental/timeline/src/delegation.ts`](../../packages/experimental/timeline/src/delegation.ts)
 
 <a id="timelinepriority--emit"></a>
 

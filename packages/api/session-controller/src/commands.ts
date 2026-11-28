@@ -223,8 +223,9 @@ export class SessionCommandController {
   /**
    * Create a new ordinary Session from an exact event prefix. An explicit
    * `atSeq` is the inclusive cut; an omitted value selects the latest
-   * completed-turn prefix. An open cut receives synthetic fork closers.
-   * @param request - source Session and optional exact event boundary.
+   * completed-turn prefix. An open cut receives synthetic fork closers. A
+   * `side` child records the source Session as its `parentSession`.
+   * @param request - source Session, optional exact event boundary, and optional child origin.
    * @returns the new Session identity.
    */
   async fork(request: SessionForkRequest): Promise<SessionForkValue> {
@@ -233,6 +234,19 @@ export class SessionCommandController {
       atSeq = request.atSeq === undefined ? undefined : SessionSeq(request.atSeq)
     } catch {
       throw new RemoteError('gateway/bad-request', 'atSeq must be a non-negative safe integer', {})
+    }
+    // The Remote request is untrusted wire input, so a value outside the declared type is rejected here.
+    const origin: string | undefined = request.origin
+    if (origin !== undefined && origin !== 'side') {
+      throw new RemoteError('gateway/bad-request', 'origin must be "side"', {})
+    }
+    if (request.allowMigration === false && this.ctx.sessions.get(request.sessionId) === undefined) {
+      const stored = await this.ctx.get('sessionPersistence')?.stat(request.sessionId)
+      if (stored?.formatStatus === 'migration-required' && this.ctx.sessions.get(request.sessionId) === undefined) {
+        throw new RemoteError('session/migration-required', 'Open the source Session to complete migration before forking', {
+          sessionId: request.sessionId,
+        })
+      }
     }
     let observed: SessionObservation
     try {
@@ -251,6 +265,10 @@ export class SessionCommandController {
       )
     }
     using source = observed
+    // A side child of a subagent would inherit the delegated approval policy and preset without the delegation.
+    if (request.origin === 'side' && source.header.origin === 'subagent') {
+      throw new RemoteError('gateway/bad-request', 'a subagent Session cannot be the source of a side conversation', {})
+    }
     const boundary = atSeq ?? latestCompletedPrefixBoundary(source.events)
     if (boundary === undefined || source.events[boundary]?.seq !== boundary) {
       throw new RemoteError(
@@ -285,6 +303,8 @@ export class SessionCommandController {
         meta: {
           ...(source.header.cwd === undefined ? {} : { cwd: source.header.cwd }),
           isSeeded: true,
+          // A side conversation records its source so the source can list its side conversations.
+          ...(request.origin === 'side' ? { origin: request.origin, parentSession: request.sessionId } : {}),
           ...(composition.agentPreset === undefined
             ? {}
             : { agentPreset: composition.agentPreset }),
@@ -336,7 +356,8 @@ export class SessionCommandController {
         })
       } catch (error: unknown) {
         if (remoteErrorOf(error) !== undefined) throw error
-        throw new RemoteError('session/agent-busy', 'generation continuation was not accepted', { reason: String(error) })
+        const reason = String(error)
+        throw new RemoteError('session/agent-busy', `generation continuation was not accepted: ${reason}`, { reason })
       }
     }
     const admission = resolvePromptFileReceipts(
@@ -381,7 +402,8 @@ export class SessionCommandController {
         if (error instanceof AttachmentError) {
           throw new RemoteError('session/attachment-invalid', error.message, { reason: error.code })
         }
-        throw new RemoteError('session/agent-busy', 'prompt rejected', { reason: String(error) })
+        const reason = String(error)
+        throw new RemoteError('session/agent-busy', `prompt rejected: ${reason}`, { reason })
       }
       return { accepted: true }
     }
@@ -571,7 +593,8 @@ export class SessionCommandController {
   private async forkWorkspace(source: SessionHeader): Promise<Workspace | undefined> {
     const workspaces = this.ctx.workspaceRegistry.list()
     const direct = workspaces.find(workspace => workspace.sessionIds.includes(source.id))
-    if (direct !== undefined || source.origin !== 'subagent') return direct
+    // A subagent or side child that is not attached itself belongs with its creator's Workspace.
+    if (direct !== undefined || source.parentSession === undefined) return direct
     const lineage = await this.ctx.sessionQuery.traceSession(source.id)
     for (const ancestor of lineage.ancestors) {
       const workspace = workspaces.find(candidate => candidate.sessionIds.includes(ancestor.header.id))

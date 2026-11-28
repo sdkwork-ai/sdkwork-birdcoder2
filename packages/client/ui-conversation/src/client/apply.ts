@@ -5,9 +5,9 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { SyncedConfig } from '@deepseek-ai/dsh-client-config/types'
 import type { ConversationConfig } from '../types.ts'
 import type { ISessions, SessionBinding } from '@deepseek-ai/dsh-api-session-controller/client'
-import { IconPaperclipOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconPaperclipOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import { createSnapshotStore, type BoundActions } from '@deepseek-ai/dsh-client-store'
-import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
+import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 // Type-only service and declaration merges used by this assembly.
 import type {} from '@deepseek-ai/dsh-client-locale/client'
@@ -20,7 +20,7 @@ import { UiConversation } from './conversation/assembly.ts'
 import { UserText, PlainUserText, SessionReference } from './user-text/UserText.tsx'
 import { sessionReferenceRule } from './user-text/session-reference-rule.ts'
 import { collapseWhitespaceRule, trimWhitespaceRule } from './user-text/whitespace-rules.ts'
-import type { ViewTab } from './contract/views.ts'
+import type { ConversationFocus, ConversationFocusKind, ViewTab } from './contract/views.ts'
 import { inputBarChildren } from './contract/slots.ts'
 import type {
   ComposerBarInjected, ConversationInjected, ConversationSessionHeaderInjected, ConversationShellInjected,
@@ -54,7 +54,7 @@ import { createViewPins } from './view-pins.ts'
 import { en, ja, es, fr, de, ru, pt, NS, zh, type ConversationKey } from './locales.ts'
 import { CONVERSATION_SETTINGS_NAMESPACE, type ConversationSettings } from '../submission-settings.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@deepseek-ai/dsh-client-ui-slots/client' {
   interface LocaleNamespaceMap {
     /** Conversation shell, composer, queue, and dock copy. */
     conversation: ConversationKey
@@ -63,10 +63,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 /**
  * Services required by the Conversation plugin. `uiSession.sessionStatus` provides the `useSessionStatus` hook the
- * Conversation shell renders with, so the plugin unloads and reloads with it.
+ * Conversation shell renders with, and `uiResponsive` provides the input bar's `useMobile`, so the plugin unloads and
+ * reloads with them.
  */
 export const inject = [
   'slots', 'sessions', 'fileUpload', 'uiSession', 'uiSession.sessionStatus', 'uiWorkspace', 'locale', 'configForms',
+  'uiResponsive',
 ]
 
 
@@ -164,6 +166,7 @@ export function apply(ctx: Context, config: SyncedConfig<ConversationConfig>): v
   slots.registerFactory({
     name: 'conversation.user.text',
     scope: 'session',
+    inline: true,
     children: {
       'conversation.user.text.node': { kind: 'keyed', scope: 'session', inline: true },
     },
@@ -192,10 +195,10 @@ export function apply(ctx: Context, config: SyncedConfig<ConversationConfig>): v
 
   ctx.effect(() => () => { submissionPolicy.dispose() })
 
-  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
-    name: 'settings.general.item',
+  ctx.slots.inject('settings.general.group.interaction.item', () => ctx.slots.register({
+    name: 'settings.general.group.interaction.item',
     id: 'composer-enter',
-    order: 20,
+    order: 0,
     locale: NS,
     inject: (): EnterBehaviorRowInjected => ({
       hooks: { busyEnter: submissionPolicy.busyEnter },
@@ -408,29 +411,38 @@ export function apply(ctx: Context, config: SyncedConfig<ConversationConfig>): v
     },
     store: conversationStore,
     inject: (sessionId: SessionId, actions: BoundActions<typeof conversationStore>): ConversationSessionInjected => {
-      const openView = (view: string, focus: string): void => {
+      const openView = (view: string, focus: ConversationFocus): void => {
         if (!viewTabs().some(tab => tab.id === view)) return
+        const definition = uiConversation.views.entries().find(entry => entry.target === view)
+        if (definition?.accepts?.includes(focus.kind) !== true) return
         activateView(sessionId, view)
         actions.openView(view, focus)
       }
-      const inspectionTarget = () => uiConversation.views.entries().find(definition =>
-        definition.toolCallFocus !== undefined
+      const inspectionTarget = (kind: ConversationFocusKind) => uiConversation.views.entries().find(definition =>
+        definition.accepts?.includes(kind) === true
         && conversationViews.getSnapshot().some(view => view.id === definition.target),
       )
-      const inspectCall = (callId: string): void => {
-        const target = inspectionTarget()
-        if (target?.toolCallFocus !== undefined) openView(target.target, target.toolCallFocus(callId))
+      const inspect = (focus: ConversationFocus): void => {
+        const target = inspectionTarget(focus.kind)
+        if (target !== undefined) openView(target.target, focus)
+      }
+      const inspectCall = (callId: string): void => { inspect({ kind: 'tool-call', callId }) }
+      const inspectRequest = (turn: number, step: number): void => { inspect({ kind: 'request', turn, step }) }
+      const subscribeInspection = (listener: () => void): () => void => {
+        const disposeViews = conversationViews.subscribe(listener)
+        const disposeDefinitions = uiConversation.views.subscribe(listener)
+        return () => { disposeViews(); disposeDefinitions() }
       }
       return {
         hooks: {
           conversationViews,
           inspectCall: {
-            getSnapshot: () => inspectionTarget() === undefined ? undefined : inspectCall,
-            subscribe: (listener) => {
-              const disposeViews = conversationViews.subscribe(listener)
-              const disposeDefinitions = uiConversation.views.subscribe(listener)
-              return () => { disposeViews(); disposeDefinitions() }
-            },
+            getSnapshot: () => inspectionTarget('tool-call') === undefined ? undefined : inspectCall,
+            subscribe: subscribeInspection,
+          },
+          inspectRequest: {
+            getSnapshot: () => inspectionTarget('request') === undefined ? undefined : inspectRequest,
+            subscribe: subscribeInspection,
           },
         },
         bindDraftPersistence: write => inputHub.shell(sessionId).bindDraftPersistence(write),

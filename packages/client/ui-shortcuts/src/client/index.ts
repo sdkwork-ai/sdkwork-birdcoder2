@@ -1,7 +1,7 @@
 /** Shortcut reference plugin; commands and entry points share one declared store. */
 import type { Context } from '@deepseek-ai/cordis'
 import type { ShortcutCommandId } from '@deepseek-ai/dsh-client-shortcuts/client'
-import { closeTopModal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { closeTopModal } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
@@ -11,7 +11,7 @@ import { ShortcutReference, ShortcutsRow } from './Reference.tsx'
 import { en, ja, es, fr, de, ru, pt, zh } from './locales.ts'
 import { fixedCommands } from './fixed.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@deepseek-ai/dsh-client-ui-slots/client' {
   interface LocaleNamespaceMap {
     /** Shortcut reference and settings entry copy. */
     shortcuts: keyof typeof zh
@@ -39,8 +39,8 @@ export function apply(ctx: Context): void {
   }
   const injected = () => ({ platform: ctx.shortcuts.platform, runtime: ctx.shortcuts.runtime, edit, recording, describeBinding,
     hooks: { catalog: ctx.shortcuts.catalog, config: ctx.shortcuts.config, fixedCatalog: ctx.shortcuts.fixedCatalog } })
-  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
-    name: 'settings.general.item', id: 'shortcuts', order: 16, locale: 'shortcuts', store,
+  ctx.slots.inject('settings.general.group.interaction.item', () => ctx.slots.register({
+    name: 'settings.general.group.interaction.item', id: 'shortcuts', order: 20, locale: 'shortcuts', store,
     inject: injected,
   }, ShortcutsRow))
   ctx.slots.inject('shell.overlay', () => {

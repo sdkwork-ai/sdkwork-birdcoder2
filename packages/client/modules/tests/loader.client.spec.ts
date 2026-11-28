@@ -31,7 +31,9 @@ afterEach(() => {
   for (const el of document.querySelectorAll('style, script')) el.remove()
 })
 
-const row = (id: string, fields: Partial<BootModuleRow> = {}): BootModuleRow =>
+type FixtureRow = Omit<BootModuleRow, 'isolation'>
+
+const row = (id: string, fields: Partial<FixtureRow> = {}): FixtureRow =>
   ({
     id,
     url: comboReference([id], '0'),
@@ -70,7 +72,7 @@ function registrationTarget(pending: ClientBundleRegistration[] = []): ClientMod
  * sink (`null` scripts a bundle that never calls load).
  */
 function bench(
-  entries: BootModuleRow[],
+  entries: FixtureRow[],
   bundles: Record<string, Factory | null> = {},
   opts: {
     seed?: readonly ClientBundleRegistration[]
@@ -81,6 +83,8 @@ function bench(
     chunks?: Record<string, Factory | null>
     /** Remaining transport rejections per URL (the `<script>` error event). */
     transportFailures?: Record<string, number>
+    /** Values the transport rejects with per URL, in order, before it loads the URL. */
+    transportRejections?: Record<string, unknown[]>
     /** URLs whose script loads but registers only the listed ids (a runtime throw after those registrations). */
     registerOnly?: Record<string, string[]>
     resolveAsset?: (reference: string) => string
@@ -96,6 +100,8 @@ function bench(
     if (opts.gated?.includes(url) === true) {
       await new Promise<void>((resolve) => { gates.set(url, resolve) })
     }
+    const rejections = opts.transportRejections?.[url]
+    if (rejections !== undefined && rejections.length > 0) throw rejections.shift()
     if ((transportFailures[url] ?? 0) > 0) {
       transportFailures[url] = (transportFailures[url]) - 1
       throw new Error(`client-modules: bundle script ${url} failed to load`)
@@ -510,11 +516,21 @@ describe('bundle arrival recovery', () => {
     })
     const failure: unknown = await b.loader.import('a', '', {}).then(() => undefined, (error: unknown) => error)
     if (!(failure instanceof Error)) throw new Error('import resolved')
-    expect(failure.message).toContain('could not load "a"')
-    const batchAttempts = failure.message.split(`${APPLICATION_URL}: client-modules: bundle script`).length - 1
-    expect(batchAttempts).toBe(2)
-    expect(failure.message).toContain(`${single('a')}: client-modules: bundle script`)
+    // The batch URL failed twice with one reason, which is written once with its count.
+    expect(failure.message).toBe(
+      `client-modules: could not load "a": bundle script ${APPLICATION_URL} failed to load (2 attempts); `
+      + `bundle script ${single('a')} failed to load`,
+    )
     expect(b.fetched).toEqual([APPLICATION_URL, APPLICATION_URL, single('a')])
+  })
+
+  it('leads an attempt with its URL when the rejection does not name it', async () => {
+    const b = bench([row('a')], { a: () => ({ a: 1 }) }, {
+      transportRejections: { [APPLICATION_URL]: [new Error('socket closed'), 'offline'], [single('a')]: [new Error('socket closed')] },
+    })
+    await expect(b.loader.import('a', '', {})).rejects.toThrow(
+      `client-modules: could not load "a": ${APPLICATION_URL}: socket closed; ${APPLICATION_URL}: offline; ${single('a')}: socket closed`,
+    )
   })
 
   it('a one-resource URL that fails stays retryable on the next import instead of being remembered as a failed batch', async () => {
@@ -610,6 +626,24 @@ describe('require resolution', () => {
     expect((exports as { dep: unknown }).dep).toBe(react)
     expect(await b.loader.import('react', '', {})).toBe(react)
     expect(b.loader.loadCache.get('react')?.exports).toBe(react)
+  })
+
+  // Compatibility commitment: a bundle built outside this repository may require a dynamic Client package by its root.
+  it('returns one exports object for require(<package>) and require(<package>/client) of a dynamic row', async () => {
+    const id = '@deepseek-ai/dsh-client-ui-slots'
+    const packageExports = { resolveSlotLabel: () => undefined }
+    let built = 0
+    const b = bench([row(id), row('consumer')], {
+      [id]: () => { built += 1; return packageExports },
+      consumer: req => ({ root: req(id), client: req(`${id}/client`) }),
+    })
+    await b.loader.prefetch(id)
+    const exports = await b.loader.import('consumer', '', {}) as { root: unknown; client: unknown }
+    expect(exports.root).toBe(packageExports)
+    expect(exports.client).toBe(exports.root)
+    expect(await b.loader.import(`${id}/client`, '', {})).toBe(packageExports)
+    expect(built).toBe(1)
+    expect([...b.loader.loadCache.keys()].filter(key => key.startsWith(id))).toEqual([id])
   })
 
   it('require answers an already-materialized module from the cache', async () => {
@@ -777,9 +811,10 @@ describe('boot manifest wire', () => {
       ],
       batches: [{ phase: 'application', url: 'batch.js', rev: 'batch', entries: ['a', 'b'] }],
     })
+    const isolation = { script: false, style: false }
     expect(manifest.modules).toEqual([
-      { id: 'a', url: 'plugins/a/client.js', initialUrl: 'batch.js', rev: '1', inject: ['b'], external: [] },
-      { id: 'b', url: 'plugins/b/client.js', initialUrl: 'batch.js', rev: '2', inject: [], external: ['react'] },
+      { id: 'a', url: 'plugins/a/client.js', initialUrl: 'batch.js', rev: '1', inject: ['b'], external: [], isolation },
+      { id: 'b', url: 'plugins/b/client.js', initialUrl: 'batch.js', rev: '2', inject: [], external: ['react'], isolation },
     ])
   })
 

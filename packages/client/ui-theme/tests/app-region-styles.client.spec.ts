@@ -48,7 +48,7 @@ const SIDEBAR = 'client/ui-sidebar/src/client/SidebarRoot.module.css'
 const FORK_SIDEBAR = 'client/ui-sdkwork-sidebar/src/client/SidebarRoot.module.css'
 const FRAME = 'client/ui-layout/src/client/AppFrame.module.css'
 const CONVERSATION = 'client/ui-conversation/src/client/skeleton/ConversationRoot.module.css'
-const DOCKKIT = 'client/ui-dockkit/src/components/dockkit.module.css'
+const DOCKKIT = 'client/ui-dockkit/src/client/components/dockkit.module.css'
 const PLUGIN_MANAGER = 'client/ui-plugin-manager/src/client/PluginManagerPage.module.css'
 const PLATFORM_OVERLAY = 'client/ui-settings-account/src/client/PlatformOverlay.module.css'
 
@@ -117,7 +117,7 @@ const CHROME_ROWS: readonly ChromeRow[] = [
   {
     file: DOCKKIT,
     selector: '.tabStrip',
-    markup: 'client/ui-dockkit/src/components/TabPanel.tsx',
+    markup: 'client/ui-dockkit/src/client/components/TabPanel.tsx',
     height: ['height', '28px'],
     inset: ['padding', '10px 6px 0 var(--dsh-dockkit-strip-inline-start, 10px)'],
   },

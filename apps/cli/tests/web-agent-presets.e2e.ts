@@ -1,4 +1,4 @@
-import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
+import { executeToolFixture, stepToolNames } from '@deepseek-ai/dsh-tool-testkit'
 import { agentPresetProjectionDefinition } from '@deepseek-ai/dsh-agent-preset-registry'
 import type {} from '@deepseek-ai/dsh-tool-subagent/model-selection-settings'
 import { createRequire } from 'node:module'
@@ -34,10 +34,12 @@ import type { GenerateOptions, LlmResolvedModelInfo, StreamChunk } from '@deepse
 import type {} from '@deepseek-ai/dsh-compaction-basic'
 import { codePointLength } from '@deepseek-ai/dsh-compaction-tool-result-pruner'
 import type {} from '@deepseek-ai/dsh-skill'
-import type {} from '@deepseek-ai/dsh-tools'
+import { projectToolSchema } from '@deepseek-ai/dsh-tools'
+import { ToolStep } from '@deepseek-ai/dsh-tools/pipeline'
 // Type-only: resolves `ctx.get('sessionProjections')` and `ctx.get('tokenMeter')`.
 import type {} from '@deepseek-ai/dsh-session-projection'
 import type {} from '@deepseek-ai/dsh-token-meter'
+import type {} from '@deepseek-ai/dsh-plan-mode'
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url))
 const { boot } = createRequire(import.meta.url)(join(REPO_ROOT, 'packages/boot/app-boot/lib/index.js')) as typeof import('@deepseek-ai/dsh-app-boot')
@@ -231,11 +233,16 @@ async function bootWeb(
   })
 }
 
-const toolNames = (ctx: Context, agent?: Agent): string[] =>
-  ctx.tools.schemas(agent).map(schema => schema.name).sort()
+/** Tools an Agent's next step can call, directly or from programs; without an Agent, the deployment root's entries. */
+const toolNames = async (ctx: Context, agent?: Agent): Promise<string[]> => agent === undefined
+  ? ctx.tools.getAll().map(tool => tool.name).sort()
+  : stepToolNames(await ctx.systemPrompt.assemble({ scope: agent, agent, toolStep: ToolStep.capture(ctx.tools, agent) }))
+
+/** Model-facing schemas of the tools one Agent sees, without execution callbacks. */
+const toolSchemas = (ctx: Context, agent: Agent) => ctx.tools.getAll(agent).map(tool => projectToolSchema(tool, true))
 
 function toolParameterNames(ctx: Context, agent: Agent, toolName: string): string[] {
-  const schema = ctx.tools.schemas(agent).find(tool => tool.name === toolName)
+  const schema = ctx.tools.getAll(agent).find(tool => tool.name === toolName)
   if (schema === undefined) throw new Error(`missing tool schema ${toolName}`)
   const properties = schema.parameters.properties
   if (typeof properties !== 'object' || properties === null || Array.isArray(properties)) {
@@ -250,9 +257,9 @@ beforeAll(async () => {
 }, 120_000)
 
 describe('the shipped Web composition', () => {
-  it('registers the directory and conditional Team tools in the global layer', () => {
-    // Team registrations are shared; session mode controls their step-time availability.
-    expect(toolNames(ctx)).toEqual(['team_task_create', 'team_task_get', 'team_task_list', 'team_task_update'])
+  it('registers the directory and conditional Team tools in the global layer', async () => {
+    // Team tools are registered once; each Agent sees them only while its Session runs in Team mode.
+    expect(await toolNames(ctx)).toEqual(['team_task_create', 'team_task_get', 'team_task_list', 'team_task_update'])
   })
 
   it('keeps the token meter and its context-meter projections on the host plane', async () => {
@@ -298,7 +305,7 @@ describe('the shipped Web composition', () => {
     try {
       for (const enabled of [false, true]) {
         await ctx.agentTeams.setEnabled(handle.agent, enabled)
-        const names = toolNames(ctx, handle.agent)
+        const names = await toolNames(ctx, handle.agent)
         expect(names).not.toContain('interrupt_agent')
         expect(names).toEqual(expect.arrayContaining(['send_message', 'list_agents', 'wait_agent']))
       }
@@ -331,8 +338,8 @@ describe('the shipped Web composition', () => {
         setup: agentCtx => configured.agentPresets.mount(agentCtx, preset).then(() => undefined),
       })
       try {
-        expect(toolNames(configured)).not.toContain('interrupt_agent')
-        expect(toolNames(configured, handle.agent)).toEqual(expect.arrayContaining([
+        expect(await toolNames(configured)).not.toContain('interrupt_agent')
+        expect(await toolNames(configured, handle.agent)).toEqual(expect.arrayContaining([
           'interrupt_agent', 'send_message', 'list_agents', 'wait_agent',
         ]))
       } finally { await handle.dispose() }
@@ -350,12 +357,14 @@ describe('the shipped Web composition', () => {
       // layer mounts cleanly and simply contributes nothing. `glob`/`grep` are
       // excluded for the reason the TUI composition e2e excludes them — they
       // depend on ripgrep being present on the machine.
-      expect(toolNames(ctx, handle.agent).filter(name => name !== 'glob' && name !== 'grep')).toEqual([
-        'ask_user_question', 'bash', 'cordis_inspect', 'create_goal', 'edit', 'exit_plan_mode',
-        'get_goal', 'job_kill', 'job_list', 'job_output', 'list_agents', 'list_subagent_models', 'office_convert', 'office_recalculate', 'office_render', 'plugin_manager', 'present', 'read', 'read_image',
+      // Plan, Office, and Team tools are absent until their providers add them for this Agent;
+      // the Web tools are added when its creation finds the route ready.
+      expect((await toolNames(ctx, handle.agent)).filter(name => name !== 'glob' && name !== 'grep')).toEqual([
+        'apply_patch', 'ask_user_question', 'bash', 'cordis_inspect', 'create_goal', 'edit',
+        'get_goal', 'job_kill', 'job_list', 'job_output', 'list_agents', 'list_subagent_models', 'plugin_manager', 'present', 'read', 'read_image',
         'schedule_create', 'schedule_edit', 'schedule_list', 'schedule_view',
         'send_message', 'skill',
-        'subagent', 'subagent_fork', 'team_task_create', 'team_task_get', 'team_task_list', 'team_task_update', 'todo_write', 'update_goal', 'wait_agent', 'web_fetch', 'web_search',
+        'subagent', 'subagent_fork', 'todo_write', 'update_goal', 'wait_agent', 'web_fetch', 'web_search',
         'workflow', 'write',
       ])
       expect(ctx.commands.find(handle.agent, 'goal')).toBeDefined()
@@ -394,7 +403,7 @@ describe('the shipped Web composition', () => {
       setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'standard').then(() => undefined),
     })
     try {
-      expect(toolNames(ctx, disabled.agent)).toContain('list_subagent_models')
+      expect(await toolNames(ctx, disabled.agent)).toContain('list_subagent_models')
       expect(toolParameterNames(ctx, disabled.agent, 'subagent')).toEqual(expect.arrayContaining([
         'model', 'provider', 'reasoning_effort',
       ]))
@@ -404,7 +413,7 @@ describe('the shipped Web composition', () => {
       for (const agent of [disabled.agent, enabled.agent]) {
         expect(agent.session.snapshotEvents().some(event => event.type === 'subagent/model-selection-policy')).toBe(false)
       }
-      expect(toolNames(ctx, enabled.agent)).toContain('list_subagent_models')
+      expect(await toolNames(ctx, enabled.agent)).toContain('list_subagent_models')
       expect(toolParameterNames(ctx, enabled.agent, 'subagent')).toEqual(expect.arrayContaining([
         'model', 'provider', 'reasoning_effort',
       ]))
@@ -438,14 +447,17 @@ describe('the shipped Web composition', () => {
     const other = target === 'standard' ? 'ptc' : 'standard'
     for (const preset of [other, target, other, target]) {
       await ctx.agentPresets.select(agent, preset)
-      expect(toolNames(ctx, agent)).toEqual(expect.arrayContaining(['subagent', 'subagent_fork']))
+      expect(await toolNames(ctx, agent)).toEqual(expect.arrayContaining(['subagent', 'subagent_fork']))
     }
-    expect(ctx.tools.schemas(agent)).toEqual(ctx.tools.schemas(direct.agent))
-    const assembly = await ctx.systemPrompt.assemble({ scope: agent })
+    expect(toolSchemas(ctx, agent)).toEqual(toolSchemas(ctx, direct.agent))
+    const assembly = await ctx.systemPrompt.assemble({ scope: agent, toolStep: ToolStep.capture(ctx.tools, agent) })
     if (target === 'ptc') {
-      const sdk = assembly.sections.find(section => section.name === 'tools:sdk')?.text ?? ''
-      expect(sdk).toContain('subagent:')
-      expect(sdk).toContain('subagent_fork:')
+      // Under a PTC root both Agents declare only run_code; their program bindings must match too.
+      const sdkOf = (sections: typeof assembly.sections) => sections.find(section => section.name === 'tools:sdk')?.text ?? ''
+      const directAssembly = await ctx.systemPrompt.assemble({ scope: direct.agent, toolStep: ToolStep.capture(ctx.tools, direct.agent) })
+      expect(sdkOf(assembly.sections)).toContain('subagent:')
+      expect(sdkOf(assembly.sections)).toContain('subagent_fork:')
+      expect(sdkOf(assembly.sections)).toBe(sdkOf(directAssembly.sections))
     }
     direct.agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Reply with Ready.' }], source: { kind: 'user' } }))
     await direct.agent.whenIdle()
@@ -471,7 +483,7 @@ describe('the shipped Web composition', () => {
       expect(assembly.sections).toEqual([
         { name: 'deployment:persona-prefix', order: 0, text: MINIMAL_PROMPT, complete: true },
       ])
-      expect(assembly.tools.map(tool => tool.name)).toEqual(['bash', 'read_image', 'team_task_create', 'team_task_get', 'team_task_list', 'team_task_update'])
+      expect(assembly.tools.map(tool => tool.name)).toEqual(['bash', 'read_image'])
       expect(assembly.tools.find(tool => tool.name === 'bash')?.description).toBe(MINIMAL_BASH_DESCRIPTION)
       expect(ctx.commands.find(handle.agent, 'goal')).toBeUndefined()
       // serviceFor reports preset-owned providers; unisolated consumers inherit the host fs.
@@ -548,7 +560,7 @@ describe('the shipped Web composition', () => {
       const last = adapter.requests.at(-1)
       expect(last?.messages.flatMap(message => message.content)
         .some(block => block.type === 'text' && block.text.includes('Preserve the requested project task.'))).toBe(true)
-      expect(toolNames(ctx, handle.agent)).toEqual(['bash', 'read_image', 'team_task_create', 'team_task_get', 'team_task_list', 'team_task_update'])
+      expect(await toolNames(ctx, handle.agent)).toEqual(['bash', 'read_image'])
     } finally {
       await handle.dispose()
     }
@@ -592,16 +604,16 @@ describe('the shipped Web composition', () => {
       setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'minimal').then(() => undefined),
     })
     try {
-      expect(toolNames(ctx, minimal.agent)).toEqual(['bash', 'read_image', 'team_task_create', 'team_task_get', 'team_task_list', 'team_task_update'])
-      expect(toolNames(ctx, full.agent).length).toBeGreaterThan(10)
+      expect(await toolNames(ctx, minimal.agent)).toEqual(['bash', 'read_image'])
+      expect((await toolNames(ctx, full.agent)).length).toBeGreaterThan(10)
       expect(ctx.agentPresets.serviceFor(minimal.agent, 'compaction'))
         .not.toBe(ctx.agentPresets.serviceFor(full.agent, 'compaction'))
 
       await minimal.dispose()
 
       // Tearing the minimal session down leaves the full one whole.
-      expect(toolNames(ctx, full.agent).length).toBeGreaterThan(10)
-      expect(toolNames(ctx)).toEqual(['team_task_create', 'team_task_get', 'team_task_list', 'team_task_update'])
+      expect((await toolNames(ctx, full.agent)).length).toBeGreaterThan(10)
+      expect(await toolNames(ctx)).toEqual(['team_task_create', 'team_task_get', 'team_task_list', 'team_task_update'])
     } finally {
       await full.dispose()
     }
@@ -643,7 +655,7 @@ describe('the shipped Web composition', () => {
       setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'cordis').then(() => undefined),
     })
     try {
-      const tools = toolNames(ctx, handle.agent)
+      const tools = await toolNames(ctx, handle.agent)
       expect(tools).toEqual(expect.arrayContaining([
         'cordis_inspect', 'plugin_manager',
       ]))
@@ -707,6 +719,7 @@ describe('the shipped Web composition', () => {
         expect(cordisPersona).toEqual(standardPersona.map(section => section.name === 'deployment:persona-prefix'
           ? { ...section, text: `${section.text} You help the user customize DeepSeek Harness itself.` }
           : section))
+        expect(await toolNames(ctx, handle.agent)).toContain('apply_patch')
         const definition = composeEntries([webPatches('Creator persona')])
           .find(row => row.id === 'preset-cordis')!.config as import('@deepseek-ai/dsh-agent-preset-registry').PresetDefinition
         const unregister = await ctx.agentPresets.register({
@@ -721,8 +734,8 @@ describe('the shipped Web composition', () => {
             setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'cordis-coding-only').then(() => undefined),
           })
           try {
-            expect(ctx.tools.schemas(handle.agent).toSorted((left, right) => left.name.localeCompare(right.name)))
-              .toEqual(ctx.tools.schemas(codingOnly.agent).toSorted((left, right) => left.name.localeCompare(right.name)))
+            expect(toolSchemas(ctx, handle.agent).toSorted((left, right) => left.name.localeCompare(right.name)))
+              .toEqual(toolSchemas(ctx, codingOnly.agent).toSorted((left, right) => left.name.localeCompare(right.name)))
           } finally { await codingOnly.dispose() }
         } finally { await unregister() }
       } finally {
@@ -743,23 +756,23 @@ describe('the shipped Web composition', () => {
       setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'standard').then(() => undefined),
     })
     try {
-      // One tool reaches the MODEL: the transport. The registry's catalog for
-      // this agent is unchanged — PTC mode collapses the presentation, not
-      // the capabilities — so the assembly is what carries the claim.
-      const assembly = await ctx.systemPrompt.assemble({ scope: coded.agent })
+      // One tool reaches the MODEL: the transport. Programs still reach the
+      // Agent's tools — PTC mode collapses the presentation, not the
+      // capabilities — so the SDK in the assembly carries the claim.
+      const assembly = await ctx.systemPrompt.assemble({ scope: coded.agent, toolStep: ToolStep.capture(ctx.tools, coded.agent) })
       expect(assembly.tools.map(tool => tool.name)).toEqual(['run_code'])
-      expect(toolNames(ctx, coded.agent)).not.toContain('str_replace_editor')
+      expect(await toolNames(ctx, coded.agent)).not.toContain('str_replace_editor')
       expect(ctx.commands.find(coded.agent, 'goal')).toBeDefined()
       const sdk = assembly.sections.find(section => section.name === 'tools:sdk')?.text ?? ''
       expect(sdk).not.toContain('str_replace_editor')
-      expect(sdk).toContain('web_search')
+      expect(await toolNames(ctx, coded.agent)).toContain('apply_patch')
+      expect(sdk).toContain('apply_patch')
       // Like `standard`, PTC manages plugins when the Host provides an editable profile.
-      expect(toolNames(ctx, coded.agent)).toContain('plugin_manager')
-      expect(sdk).toContain('plugin_manager')
+      expect(await toolNames(ctx, coded.agent)).toContain('plugin_manager')
 
       // The presentation is this agent's alone: the deployment default is
       // native, and the session composed from `standard` still sees it.
-      const nativeAssembly = await ctx.systemPrompt.assemble({ scope: native.agent })
+      const nativeAssembly = await ctx.systemPrompt.assemble({ scope: native.agent, toolStep: ToolStep.capture(ctx.tools, native.agent) })
       expect(nativeAssembly.tools.map(tool => tool.name)).toContain('bash')
       expect(nativeAssembly.tools.map(tool => tool.name)).not.toContain('run_code')
       expect(nativeAssembly.sections.some(section => section.name === 'tools:sdk')).toBe(false)
@@ -776,7 +789,7 @@ describe('the shipped Web composition', () => {
     })
     try {
       // Editing the live runtime is opt-in per session, not ambient.
-      expect(toolNames(ctx, handle.agent)).not.toContain('cordis_define')
+      expect(await toolNames(ctx, handle.agent)).not.toContain('cordis_define')
     } finally {
       await handle.dispose()
     }
@@ -866,7 +879,7 @@ describe('the shipped Web composition', () => {
       // stays the preset's choice — minimal mounts no `tool-skill`, so its
       // tool table has no loader even though the global layer is readable.
       expect((await ctx.skills.list({ scope: handle.agent })).map(skill => skill.name)).toContain('dsh-badge')
-      expect(toolNames(ctx, handle.agent)).toEqual(['bash', 'read_image', 'team_task_create', 'team_task_get', 'team_task_list', 'team_task_update'])
+      expect(await toolNames(ctx, handle.agent)).toEqual(['bash', 'read_image'])
     } finally {
       await handle.dispose()
     }
@@ -912,7 +925,7 @@ describe('preset-selected delegation through the Web Loader', () => {
         const views: Array<{ preset: string; names: string[] }> = []
         for (const preset of ['delegate-b', 'delegate-a', 'delegate-b', 'delegate-a', 'ptc', 'standard', 'delegate-a']) {
           await configured.agentPresets.select(agent, preset)
-          views.push({ preset, names: toolNames(configured, agent) })
+          views.push({ preset, names: await toolNames(configured, agent) })
         }
         agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Reply with Ready.' }], source: { kind: 'user' } }))
         await agent.whenIdle()
@@ -950,7 +963,7 @@ describe.each(['web', 'desktop'] as const)('%s native subagent bundles', (surfac
       setup: owner => productCtx.agentPresets.mount(owner, preset).then(() => undefined),
     })
     try {
-      return toolNames(productCtx, handle.agent).filter(name => /(?:subagent|custom)_(?:codex|claude_code)$/.test(name))
+      return (await toolNames(productCtx, handle.agent)).filter(name => /(?:subagent|custom)_(?:codex|claude_code)$/.test(name))
     } finally { await handle.dispose() }
   }
 
@@ -1054,8 +1067,8 @@ describe('the standard preset documentation skill', () => {
         setup: agentCtx => testCtx.agentPresets.mount(agentCtx, 'ptc').then(() => undefined),
       })
       expect((await testCtx.skills.get('dsh-doc', { cwd: root, scope: ptc.agent }))?.path).toBe(definition.path)
-      const schemas = testCtx.tools.schemas(standardAgent.agent)
-      expect(schemas).toEqual(testCtx.tools.schemas(baseline.agent))
+      const schemas = toolSchemas(testCtx, standardAgent.agent)
+      expect(schemas).toEqual(toolSchemas(testCtx, baseline.agent))
       expect(schemas.map(tool => tool.name)).toContain('cordis_inspect')
       for (const handle of [baseline, standardAgent]) {
         handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Reply ready.' }], source: { kind: 'user' } }))
@@ -1093,13 +1106,15 @@ describe('the standard preset documentation skill', () => {
       expect(standardAgent.agent.session.snapshotEvents().filter(event => event.type === 'tool/call')).toEqual([])
       const profileManifest = join(root, 'profiles/spec/package.json')
       const before = await readFile(profileManifest, 'utf8')
+      // The completed steps may have added route-ready Web tools; loading the skill adds none.
+      const beforeLoad = toolSchemas(testCtx, standardAgent.agent)
       const loaded = await executeToolFixture(testCtx, {
         agent: standardAgent.agent, callId: brandString<ToolCallId>('standard-doc-load'),
         name: 'skill', arguments: { name: 'dsh-doc' }, signal: new AbortController().signal,
       })
       expect(loaded.isError).toBe(false)
       expect(loaded.content.some(block => block.type === 'text' && block.text.includes(definition.content))).toBe(true)
-      expect(testCtx.tools.schemas(standardAgent.agent)).toEqual(schemas)
+      expect(toolSchemas(testCtx, standardAgent.agent)).toEqual(beforeLoad)
       expect(await readFile(profileManifest, 'utf8')).toBe(before)
     } finally {
       try { await docCtx?.fiber.dispose() } finally {
@@ -1164,10 +1179,11 @@ describe('a user preset declared from the shipped cordis rows', () => {
   }
 
   it('mounts beside the shipped `cordis` preset and reads the shared Host inspect providers', async () => {
-    // The Host inspect providers are one process-global set registered by the
-    // host composition (`@deepseek-ai/dsh-tool-cordis/host`); each preset's
-    // `tool-cordis` row only registers the tools. Before that split the copy
-    // failed to mount: its row re-registered provider "Service".
+    // The Host inspect providers are one process-global set that the host
+    // composition's `cordis-host-runner` row registers; each preset's
+    // `tool-cordis` row only registers the tools. The registry rejects a
+    // duplicate provider id, so a preset row that registered providers would
+    // fail to mount beside another preset.
     const root = await mkdtemp(join(tmpdir(), 'dsh-copied-preset-'))
     const cordis = composeEntries([webPatches('test')]).find(row => row.id === 'preset-cordis')!.config as import('@deepseek-ai/dsh-agent-preset-registry').PresetDefinition
     const copyCtx = await bootWeb(root, [{ insert: [{
@@ -1185,7 +1201,7 @@ describe('a user preset declared from the shipped cordis rows', () => {
       })
       try {
         for (const handle of [shipped, copied]) {
-          expect(toolNames(copyCtx, handle.agent)).toEqual(expect.arrayContaining([
+          expect(await toolNames(copyCtx, handle.agent)).toEqual(expect.arrayContaining([
             'cordis_inspect', 'plugin_manager',
           ]))
         }
@@ -1270,6 +1286,28 @@ describe('a user preset declared from the shipped cordis rows', () => {
 })
 
 describe('a switch survives the session', () => {
+  it('offers the target preset\'s per-Agent tools when a blank Session switches to a preset another Session runs', async () => {
+    const create = (id: string, preset: string) => ctx.agents.create({
+      sessionId: brandString<SessionId>(id),
+      meta: { agentPreset: preset },
+      setup: agentCtx => ctx.agentPresets.mount(agentCtx, preset).then(() => undefined),
+    })
+    // The standard preset's Plan and Web services are already running for another Session.
+    const other = await create('preset-switch-running', 'standard')
+    const blank = await create('preset-switch-blank', 'ptc')
+    try {
+      expect(ctx.agentPresets.serviceFor(blank.agent, 'planMode')?.set(blank.agent, true)).toBe('committed')
+      expect(await ctx.agentPresets.select(blank.agent, 'standard')).toBe('standard')
+      // Plan offers its exit tool at once; the Web readiness check settles asynchronously.
+      await expect.poll(() => ToolStep.capture(ctx.tools, blank.agent).declarations.map(tool => tool.name))
+        .toEqual(expect.arrayContaining(['exit_plan_mode', 'web_fetch']))
+      expect(ToolStep.capture(ctx.tools, other.agent).declarations.map(tool => tool.name)).not.toContain('exit_plan_mode')
+    } finally {
+      await blank.dispose()
+      await other.dispose()
+    }
+  })
+
   it('records the choice so the log states what the agent runs', async () => {
     const handle = await ctx.agents.create({
       sessionId: brandString<SessionId>('preset-switch-logged'),
@@ -1317,8 +1355,8 @@ describe('a forked session', () => {
       // Composing nothing would leave the child empty: this layer moved every
       // model-facing row out of the host plane, so there is nothing to inherit
       // for free any more.
-      expect(toolNames(ctx, child.agent)).toEqual(toolNames(ctx, parent.agent))
-      expect(toolNames(ctx, child.agent).length).toBeGreaterThan(0)
+      expect(await toolNames(ctx, child.agent)).toEqual(await toolNames(ctx, parent.agent))
+      expect((await toolNames(ctx, child.agent)).length).toBeGreaterThan(0)
     } finally {
       await child.dispose()
       await parent.dispose()
@@ -1343,11 +1381,11 @@ describe('a delegated child', () => {
       },
     })
     try {
-      expect(toolNames(ctx, child.agent)).toEqual(toolNames(ctx, parent.agent))
+      expect(await toolNames(ctx, child.agent)).toEqual(await toolNames(ctx, parent.agent))
       // The shipped `standard` preset is the whole coding agent; an empty
       // child here is the defect, and equality alone would not catch it.
-      expect(toolNames(ctx, child.agent)).toContain('bash')
-      expect(ctx.tools.schemas(child.agent)).toEqual(ctx.tools.schemas(parent.agent))
+      expect(await toolNames(ctx, child.agent)).toContain('bash')
+      expect(toolSchemas(ctx, child.agent)).toEqual(toolSchemas(ctx, parent.agent))
       const calls = [
         ['schedule_create', {
           title: 'Check', prompt: 'Check', rrule: 'DTSTART:20990101T010000Z\nRRULE:FREQ=DAILY;COUNT=1', target: 'this_session',
@@ -1357,7 +1395,7 @@ describe('a delegated child', () => {
         ['schedule_edit', { id: 'task-1', action: 'update', title: 'Check' }],
       ] as const
       for (const [name, args] of calls) {
-        expect(toolNames(ctx, child.agent)).toContain(name)
+        expect(await toolNames(ctx, child.agent)).toContain(name)
         const result = await executeToolFixture(ctx, {
           callId: brandString<ToolCallId>(`child-${name}`), signal: new AbortController().signal,
           name, arguments: args, agent: child.agent,
@@ -1388,7 +1426,7 @@ describe('a delegated child', () => {
     try {
       // The live scope chain is the authority, not the parent's creation
       // header — which still names `standard`.
-      expect(toolNames(ctx, child.agent)).toEqual(toolNames(ctx, parent.agent))
+      expect(await toolNames(ctx, child.agent)).toEqual(await toolNames(ctx, parent.agent))
       expect(child.agent.session.header.agentPreset).toBe('minimal')
     } finally {
       await child.dispose()
@@ -1411,7 +1449,7 @@ describe('the default preset as a user setting', () => {
       })
       try {
         // An omitted preset id resolves the stored default instead of the composed default.
-        expect(toolNames(ctx, handle.agent)).toEqual(['bash', 'read_image', 'team_task_create', 'team_task_get', 'team_task_list', 'team_task_update'])
+        expect(await toolNames(ctx, handle.agent)).toEqual(['bash', 'read_image'])
       } finally {
         await handle.dispose()
       }
@@ -1457,7 +1495,7 @@ describe('a profile patch stored before Developer tools owned preset selection',
       setup: agentCtx => legacy.agentPresets.mount(agentCtx).then(() => undefined),
     })
     try {
-      expect(toolNames(legacy, handle.agent)).toEqual(['bash', 'read_image', 'team_task_create', 'team_task_get', 'team_task_list', 'team_task_update'])
+      expect(await toolNames(legacy, handle.agent)).toEqual(['bash', 'read_image'])
     } finally {
       await handle.dispose()
     }

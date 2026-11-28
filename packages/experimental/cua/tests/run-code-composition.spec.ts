@@ -21,9 +21,9 @@ import SessionStore, { type SessionId } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import Subprocess from '@deepseek-ai/dsh-subprocess-local'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
-import * as PtcToolExecutor from '@deepseek-ai/dsh-tool-executor-ptc'
-import type {} from '@deepseek-ai/dsh-tool-executor-ptc/types'
+import * as NativeToolRegistry from '@deepseek-ai/dsh-tool-registry-native'
+import * as PtcToolRegistry from '@deepseek-ai/dsh-tool-registry-ptc'
+import type {} from '@deepseek-ai/dsh-tool-registry-ptc/types'
 import ToolRuntime, { defineTool } from '@deepseek-ai/dsh-tools'
 import WorkingDirectory from '@deepseek-ai/dsh-working-directory'
 import { expect, it, onTestFinished, vi } from 'vitest'
@@ -83,7 +83,7 @@ async function setup(programs: readonly string[], platform = 'macos', selectorPi
     tools: ToolRuntime, agents: AgentRegistry, agentLoop: AgentLoop, agentPresets: AgentPresets,
     fs: FileSystem, workingDirectory: WorkingDirectory, subprocess: Subprocess,
     sandbox: Sandbox, sandboxPolicy: SandboxPolicy, sharedRuntime: NodeRuntime,
-    attachments: LocalAttachmentStore, computerUse: ComputerUseRegistry, native: NativeToolExecutor,
+    attachments: LocalAttachmentStore, computerUse: ComputerUseRegistry, native: NativeToolRegistry,
     standard: {
       inject: ['agentPresets'],
       async * apply(owner: Context) {
@@ -112,7 +112,7 @@ async function setup(programs: readonly string[], platform = 'macos', selectorPi
           getGuidance: () => COMMON_GUIDANCE,
           acceptsPidSelector: selectorPid !== undefined, heldInputState,
           ...disposeNative ? { disposeNative: () => disposeNative(native.state) } : {},
-          capabilities: { platform, methods: ['getCapabilities', 'listApps', 'getApp', 'getState', 'click', 'screenshot', 'sendKeyEvent', 'toggleMouse'],
+          capabilities: { platform, methods: ['getCapabilities', 'listApps', 'findApps', 'getApp', 'getState', 'click', 'screenshot', 'sendKeyEvent', 'toggleMouse'],
             appLevelAccessibility: platform !== 'windows', keyboard: platform === 'windows' ? ['window'] : ['app'], browser: false, coordinateSpace: 'screenshot-pixels' },
           permissionParameters: (_method, permission, locale) => ({ permission, locale }),
         })
@@ -200,7 +200,7 @@ it('presents the object API, retains raw bindings and CUA objects, and preserves
   expect(JSON.stringify(agent.session.deriveMessages())).not.toContain(png)
 
   await provider.dispose()
-  expect(ctx.tools.schemas(agent).map(tool => tool.name)).toEqual(['outside_cua'])
+  expect(ctx.tools.getAll(agent).map(tool => tool.name)).toEqual(['outside_cua'])
   expect((await ctx.systemPrompt.assemble({ scope: agent })).sections.some(section => section.name === 'computer-use:dsh-cua')).toBe(false)
   expect(native.state).toEqual({ count: 2, openedChannels: 1, closedChannels: 1 })
   expect(() => process.kill(first.pid, 0)).toThrow()
@@ -358,8 +358,20 @@ it.each([
   const result = agent.session.deriveMessages().find(message => message.role === 'tool')
   expect(result?.isError).toBe(false)
   expect(JSON.parse(result!.content.filter(block => block.type === 'text').map(block => block.text).join('')))
-    .toEqual([{ id: 'test.fixture', displayName: 'Fixture', isRunning: true, ...expectedProcess }])
+    .toEqual([{ id: 'test.fixture', displayName: 'Fixture', identity: null, isRunning: true, ...expectedProcess }])
   expect(native.calls.filter(call => call.method === 'getApp').map(call => call.params.selector)).toEqual([selector])
+})
+
+it('uses the running application list for the top-level state summary', async () => {
+  const { agent, run, native } = await setup(['inspect(JSON.stringify(await cua.getState()))'])
+  await run()
+  const result = agent.session.deriveMessages().find(message => message.role === 'tool')
+  expect(result?.isError).toBe(false)
+  expect(JSON.parse(result!.content.filter(block => block.type === 'text').map(block => block.text).join(''))).toEqual({
+    apps: [{ id: 'test.fixture', displayName: 'Fixture', identity: null, isRunning: true }], browsers: [],
+  })
+  expect(native.calls.map(({ method, params }) => ({ method, params })))
+    .toEqual([{ method: 'listApps', params: {} }])
 })
 
 it('forwards per-read accessibility limits to the Windows backend', async () => {
@@ -412,7 +424,7 @@ it.each([
   const program = (code: string) => tool === 'run_code'
     ? `await tools.cua_run_code({ code: ${JSON.stringify(code)}, description: "Use the fixture" })` : code
   const f = await setup([program(holdProgram)], 'macos', undefined, true, true)
-  if (tool === 'run_code') await f.agent.ctx.plugin(PtcToolExecutor)
+  if (tool === 'run_code') await f.agent.ctx.plugin(PtcToolRegistry)
   f.model.toolName = tool
   const removePolicy = f.ctx.on('tools/post-execute', async (exec, _result, next) => exec.name === tool
     ? { kind: 'block', feedback: [{ type: 'text', text: 'Policy rejected output' }], info: { name: 'HookError', code: 'HOOK_BLOCKED' } }
@@ -474,7 +486,7 @@ it.each([
 it('cleans up a rejected nested program even when its enclosing run_code handles the failure', async () => {
   const f = await setup([`try { await tools.cua_run_code({ code: ${JSON.stringify(holdProgram)}, description: "Hold W" }) } catch { inspect("handled") }`],
     'macos', undefined, true, true)
-  await f.agent.ctx.plugin(PtcToolExecutor)
+  await f.agent.ctx.plugin(PtcToolRegistry)
   f.model.toolName = 'run_code'
   f.ctx.on('tools/post-execute', async (exec, _result, next) => exec.name === 'cua_run_code' && exec.parent
     ? { kind: 'block', feedback: [{ type: 'text', text: 'Nested policy refusal' }] } : next())
@@ -804,7 +816,7 @@ it('waits and reports cleanup refusal when user stop arrives as the program retu
 
 it('emits only the final outer reminder for a nested CUA program', async () => {
   const f = await setup([`await tools.cua_run_code({ code: ${JSON.stringify(holdProgram)}, description: "Hold W" })`], 'macos', undefined, true, true)
-  await f.agent.ctx.plugin(PtcToolExecutor)
+  await f.agent.ctx.plugin(PtcToolRegistry)
   f.model.toolName = 'run_code'
   await f.run()
   expect(reminders(f.agent)).toHaveLength(1)

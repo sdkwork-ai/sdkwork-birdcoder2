@@ -2,15 +2,23 @@
  * When a Relay handshake response ends one registration for good.
  *
  * The Relay answers a gateway handshake it will not establish with an HTTP status instead of
- * upgrading. A credential the Relay does not accept (401), one it forbids for this share (403), or a
- * share it no longer serves (410), or an unsupported protocol (426) ends this registration.
+ * upgrading. A credential the Relay does not accept (401), one it forbids for this share (403), a
+ * share it no longer serves (404 or 410), or an unsupported protocol (426) ends this registration.
  * Reconnecting with the same token and protocol reaches the same answer, so the share stays offline and the status becomes its diagnostic
  * instead of a silent retry. Every other failure — a Relay that is down (5xx), a rate limit, a
- * timeout, a refused socket — is transient and keeps the ordinary reconnect schedule.
+ * timeout, a refused socket — is transient and keeps the ordinary reconnect schedule, bounded by
+ * {@link RELAY_TRANSIENT_ATTEMPT_LIMIT} attempts and {@link RELAY_TRANSIENT_WINDOW_MS} of elapsed
+ * time so an unavailable Relay cannot be retried forever.
  */
 
 /** The Relay handshake statuses that end a registration for good. */
-const RELAY_REFUSAL_STATUSES: readonly number[] = [401, 403, 410, 426]
+const RELAY_REFUSAL_STATUSES: readonly number[] = [401, 403, 404, 410, 426]
+
+/** Failed dials allowed without an intervening admission. */
+export const RELAY_TRANSIENT_ATTEMPT_LIMIT = 20
+
+/** Maximum time from the first unadmitted dial, including handshakes and backoff delays. */
+export const RELAY_TRANSIENT_WINDOW_MS = 3_600_000
 
 /**
  * Read one handshake status as a decision about the registration it carried.
@@ -22,24 +30,4 @@ export function relayRefusal(status: number | undefined): string | undefined {
     return `relay refused registration status=${String(status)}`
   }
   return undefined
-}
-
-/** The one form every permanent refusal reaches a Host as; nothing else composes it. */
-const RELAY_REFUSAL_MESSAGE = /^relay refused registration status=(\d+)$/u
-
-/**
- * Read one reported registration failure as the Relay status that decided it.
- *
- * The gateway reports a permanent refusal exactly as `relayRefusal` composes it, and every other
- * failure it reports — a status it did not refuse with, a dropped socket, a timeout — is worth
- * another attempt. A Host reading the message can therefore tell the owner to act on this address
- * instead of promising a retry that reaches the same answer, and can say which status decided it.
- * @param message - Failure the gateway reported for one registration.
- * @returns The refusing status, or undefined when the failure is worth retrying.
- */
-export function relayRefusalStatus(message: string): number | undefined {
-  const match = RELAY_REFUSAL_MESSAGE.exec(message)
-  if (match === null) return undefined
-  const status = Number(match[1])
-  return RELAY_REFUSAL_STATUSES.includes(status) ? status : undefined
 }

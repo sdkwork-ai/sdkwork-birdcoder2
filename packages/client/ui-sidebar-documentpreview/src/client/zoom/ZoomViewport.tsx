@@ -1,7 +1,7 @@
 /** Shared zoom viewport, gesture handling, anchoring, and fit-width measurement. */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent,
   type ReactNode, type RefCallback } from 'react'
-import { DOCUMENT_ZOOM, ZoomControls, type ZoomControlsHandle } from '@deepseek-ai/dsh-client-ui-primitives'
+import { DOCUMENT_ZOOM, ZoomControls, type ZoomControlsHandle } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import { FIT_WIDTH, type ZoomLabels, type ZoomPreference } from './types.ts'
 import css from './ZoomViewport.module.css'
 
@@ -21,8 +21,8 @@ function pointerAnchor(clientX: number, clientY: number): PointerAnchor | undefi
   const lookup: unknown = Reflect.get(document, 'elementFromPoint')
   if (typeof lookup !== 'function') return undefined
   const hit: unknown = Reflect.apply(lookup, document, [clientX, clientY])
-  const surface = hit instanceof Element ? hit.closest<HTMLElement>('[data-document-zoom-surface]') : null
-  if (surface === null) return undefined
+  const surface = (hit as Element | null)?.closest<HTMLElement>('[data-document-zoom-surface]')
+  if (surface == null) return undefined
   const bounds = surface.getBoundingClientRect()
   return { surface, x: clientX - bounds.left, y: clientY - bounds.top, clientX, clientY }
 }
@@ -64,6 +64,8 @@ export function ZoomViewport(props: ZoomViewportProps): ReactNode {
   const controls = useRef<ZoomControlsHandle>(null)
   const pinchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const controlsHideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const pinchTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const controlsHideTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const pointerInRevealZone = useRef(false)
   const controlsActive = useRef(false)
   const clearControlsHide = useCallback((): void => {

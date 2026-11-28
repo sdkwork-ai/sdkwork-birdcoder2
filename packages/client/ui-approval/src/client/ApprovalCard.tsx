@@ -1,7 +1,7 @@
 /** Shared approval presentation; each caller retains its decision policy and answer channel. */
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { Button, StateDot } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { FactoryComponentPropsOf } from '@deepseek-ai/dsh-client-ui-slots'
+import { Button, StateDot } from '@deepseek-ai/dsh-client-ui-primitives/client'
+import type { FactoryComponentPropsOf } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type {} from './contract/slots.ts'
 import css from './ApprovalPanel.module.css'
 import { ApprovalWarning } from './ApprovalWarning.tsx'
@@ -18,6 +18,7 @@ export function ApprovalCard(props: FactoryComponentPropsOf<'conversation.approv
 function ApprovalFlow(props: FactoryComponentPropsOf<'conversation.approval.card'>) {
   const { requestKey, title, description, subject, warning, allowLabel, canAnswer, onAllow, onReject, onAlways, t } = props
   const detail = props.callId === undefined ? null : props.renderSlot('conversation.approval.detail', { callId: props.callId })
+  const Portal = props.useDocumentPortal()
   const [answered, setAnswered] = useState(false)
   const waiting = useRef(false)
   const active = useRef(true)
@@ -71,7 +72,7 @@ function ApprovalFlow(props: FactoryComponentPropsOf<'conversation.approval.card
           </div>}
           <div className={css.heading}>
             <div className={css.headline}>{title}</div>
-            {warning !== undefined && <ApprovalWarning warning={warning} />}
+            {warning !== undefined && <ApprovalWarning warning={warning} Portal={Portal} />}
           </div>
           {description !== undefined && <p className={css.description}>{description}</p>}
           {detail !== null && <div className={css.command}>{detail}</div>}

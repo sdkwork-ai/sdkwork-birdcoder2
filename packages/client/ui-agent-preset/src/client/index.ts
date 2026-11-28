@@ -46,7 +46,7 @@ import { en, ja, es, fr, de, ru, pt, zh, type AgentPresetSettingsKey } from './l
 import { AGENT_PRESET_SETTINGS_NS, AgentPresetSettingsController } from './settings-store.ts'
 import { analyticsMode } from './analytics.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@deepseek-ai/dsh-client-ui-slots/client' {
   interface LocaleNamespaceMap {
     /** Agent-preset surface copy. */
     'settings.agentPreset': AgentPresetSettingsKey
@@ -61,9 +61,9 @@ export type { AgentPresetSectionState, PresetView } from './section-store.ts'
 export type { AgentPresetOption, AgentPresetSettingsState } from './settings-store.ts'
 export { AGENT_PRESET_SETTINGS_NS, writeDefaultPreset } from './settings-store.ts'
 
-/** Required services (cordis fiber inject). */
+/** Required services (cordis fiber inject); `uiResponsive` owns the hero chip's `useMediaQuery` prop. */
 export const inject = [
-  'slots', 'sessions', 'locale', 'remote', 'remote.agentPresets', 'remote.settings', 'configForms',
+  'slots', 'sessions', 'locale', 'remote', 'remote.agentPresets', 'remote.settings', 'configForms', 'uiResponsive',
 ]
 
 /**

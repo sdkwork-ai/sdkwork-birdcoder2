@@ -21,20 +21,23 @@
   en: d6f0d5c795be936a
   zh: dfbc8b6e1b7c646c
 /deepseek-ai-dsh-client-ui-renderer/use-this-package/for-business-plugins:
-  en: 15a2bfee2c0bd051
-  zh: 0c5b336fc5afbbc6
+  en: 197c17930f44e13b
+  zh: e4cf607f09abb82a
+/deepseek-ai-dsh-client-ui-renderer/use-this-package/scope-one-package-s-styles:
+  en: 72d9880daed45421
+  zh: 9a7f49496dd767b9
 /deepseek-ai-dsh-client-ui-renderer/understand-the-implementation:
   en: 0de0a8ad857b93f6
   zh: 98a0fae2d6606a7d
 /deepseek-ai-dsh-client-ui-renderer/understand-the-implementation/activation-and-mount:
-  en: 52189263772ec1a4
-  zh: 0a186c33ea37d61e
+  en: b19992fdc2dcb485
+  zh: 0ae1394d9d6b8810
 /deepseek-ai-dsh-client-ui-renderer/understand-the-implementation/slot-bindings:
   en: 6ab26cf5744a23d4
   zh: 84a531322a724a84
 /deepseek-ai-dsh-client-ui-renderer/understand-the-implementation/identity:
-  en: 2a349d500ead79cb
-  zh: ac49c8b1d73dcd6c
+  en: 8cff0e66d61d4ef4
+  zh: ad954ce018299a37
 /deepseek-ai-dsh-client-ui-renderer/further-exploration:
   en: 9c13fe9139ad4add
   zh: 137924a6c57edfd4
@@ -45,8 +48,8 @@
   en: ca75c51c89c2c9b0
   zh: de54f3467ef3b9be
 /deepseek-ai-dsh-client-ui-renderer/known-limitations-and-deferred-work:
-  en: f91f62badb7857c6
-  zh: f99ca35f9cfa933c
+  en: fbf0e9a88a5ea067
+  zh: 7d2ef260bced1988
 /deepseek-ai-dsh-client-ui-renderer/known-limitations-and-deferred-work/dev-note:
   en: e67f633dc6fe7773
   zh: 3bb0c20c93f16f98

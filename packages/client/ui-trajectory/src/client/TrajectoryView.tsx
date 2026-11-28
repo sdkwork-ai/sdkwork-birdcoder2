@@ -5,9 +5,9 @@ import type {
   AssistantBlock, AssistantMessageNode, ConvViewProps, MessageImageLoader,
   ToolCallBlock,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type { InjectFace, PropsLocale, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
+import type { InjectFace, PropsLocale, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { JsonTreeProps } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { JsonTreeProps } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import {
   TrajectoryTable,
   type TrajectoryRequestNumber,
@@ -131,6 +131,19 @@ function addUsage(
   }
 }
 
+/**
+ * Find the first resident node of one model request. A request that failed
+ * before any output has no Assistant node, so its start event decides.
+ */
+function requestNodeIndex(snapshot: TrajectorySnapshot, focus: { readonly turn: number; readonly step: number }): number {
+  const assistant = snapshot.eventNodes.findIndex(node => node.kind === 'assistant'
+    && node.turn === focus.turn && node.step === focus.step)
+  if (assistant >= 0) return assistant
+  const request = snapshot.requests.find(candidate => candidate.purpose === 'assistant'
+    && candidate.turn === focus.turn && candidate.step === focus.step)
+  return request === undefined ? -1 : snapshot.eventNodes.findLastIndex(node => node.seq <= request.startSeq)
+}
+
 export function TrajectoryView({
   useSession, useTrajectory, useDuration, watchToolResult, loadOlder, loadImage, setActualDuration,
   viewRequest, completeViewRequest, renderSlot, t, jsonStringWrapping,
@@ -198,13 +211,18 @@ export function TrajectoryView({
   const runningCalls = inspection.runningCalls
   const requests = inspection.requests
   const callSchemas = inspection.callSchemas
-  const inspectCallId = viewRequest?.view === 'trajectory' ? viewRequest.focus : null
-  const inspectNodeIndex = useMemo(() => inspectCallId === null
-    ? -1
-    : completeInspection.eventNodes.findIndex(node => node.kind === 'assistant'
-      ? node.blocks.some(block => block.kind === 'tool-call' && block.callId === inspectCallId)
-      : node.kind === 'tool-result' && containsCall([node], inspectCallId)),
-  [completeInspection.eventNodes, inspectCallId])
+  const focus = viewRequest?.view === 'trajectory' ? viewRequest.focus : null
+  // Focus kinds are merge-extensible; kinds this View does not accept reveal nothing.
+  const inspectRequestFocus = useMemo(() => focus?.kind === 'request' ? { turn: focus.turn, step: focus.step } : null, [focus])
+  const inspectCallId = focus?.kind === 'tool-call' ? focus.callId : null
+  const inspectNodeIndex = useMemo(() => inspectRequestFocus !== null
+    ? requestNodeIndex(completeInspection, inspectRequestFocus)
+    : inspectCallId === null
+      ? -1
+      : completeInspection.eventNodes.findIndex(node => node.kind === 'assistant'
+        ? node.blocks.some(block => block.kind === 'tool-call' && block.callId === inspectCallId)
+        : node.kind === 'tool-result' && containsCall([node], inspectCallId)),
+  [completeInspection, inspectCallId, inspectRequestFocus])
   useEffect(() => {
     if (inspectNodeIndex < 0 || inspectNodeIndex >= historyStartIndex) return
     setHistoryNodeLimit(limit => limit + historyStartIndex - inspectNodeIndex)
@@ -609,6 +627,7 @@ export function TrajectoryView({
           collapsedTools={collapsedTools}
           onToggleTool={toggleTool}
           inspectCallId={inspectCallId}
+          inspectRequest={inspectRequestFocus}
           onInspectApplied={completeViewRequest}
         />
       </div>

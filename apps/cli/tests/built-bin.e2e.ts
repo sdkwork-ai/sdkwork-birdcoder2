@@ -652,6 +652,31 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)', 
     }
   })
 
+  it.each([
+    { args: ['--version'], code: 0 },
+    { args: ['--help'], code: 0 },
+    { args: ['plugin', '--help'], code: 0 },
+    { args: ['--bogus'], code: 1 },
+    { args: ['plugin', '--profile', 'web', 'version-exemptions'], code: 0 },
+    { args: ['plugin', '--profile', 'web', 'version-exemptions', 'extra'], code: 1 },
+  ])('drains the event loop through beforeExit for $args', async ({ args, code }) => {
+    const home = mkdtempSync(join(tmpdir(), 'dsh-before-exit-'))
+    const hook = `data:text/javascript,${encodeURIComponent("process.once('beforeExit', (exitCode) => { process.stderr.write(`[beforeExit:${String(exitCode)}]`) })")}`
+    try {
+      const result = await execa(process.execPath, ['--import', hook, dshBin, ...args], {
+        input: '',
+        timeout: SPAWN_TIMEOUT_MS,
+        killSignal: 'SIGKILL',
+        reject: false,
+        env: { ...process.env, DSH_HOME: home },
+      })
+      expect(result.exitCode).toBe(code)
+      expect(result.stderr).toContain(`[beforeExit:${String(code)}]`)
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+
   it.skipIf(process.platform === 'win32')('runs through an installed-style symlink', async () => {
     const installation = mkdtempSync(join(tmpdir(), 'dsh-bin-link-'))
     const installedBin = join(installation, 'dsh')
@@ -1285,7 +1310,7 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)', 
         ['session-title', '@deepseek-ai/dsh-session-title'],
         ['system-prompt', '@deepseek-ai/dsh-system-prompt'],
         ['tools', '@deepseek-ai/dsh-tools'],
-        ['tool-executor-native', '@deepseek-ai/dsh-tool-executor-native'],
+        ['tool-registry-native', '@deepseek-ai/dsh-tool-registry-native'],
         ['mcp-resources', '@deepseek-ai/dsh-mcp-resources'],
         ['agent', '@deepseek-ai/dsh-agent'],
         ['llm-retry', '@deepseek-ai/dsh-llm-retry'],

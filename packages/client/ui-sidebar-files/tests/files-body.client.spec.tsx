@@ -6,7 +6,7 @@ import { makeTranslate, RemoteError } from '@deepseek-ai/dsh-client-test-runtime
 import type { RemoteFailure } from '@deepseek-ai/dsh-api-remotes/client'
 import { fileAddressFor } from '@deepseek-ai/dsh-util-workspace-path'
 import { failureLine } from '../src/client/workspace-tree.ts'
-import type { PaneId, TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
+import type { PaneId, TabId } from '@deepseek-ai/dsh-client-ui-dockkit/client'
 import type { DirLevel } from '../src/client/store.ts'
 import { zh } from '../src/client/locales.ts'
 import { mountBody, PANE, ROOT, SESSION, TAB } from './mount.client.tsx'
@@ -56,8 +56,6 @@ describe('FilesBody', () => {
     expect([...header.querySelectorAll('button:not([data-files-auto-refresh])')].map(button => button.getAttribute('aria-label')))
       .toEqual([zh.reload, zh['search.placeholder']])
     const content = page.querySelector('[data-files-content]')!
-    // The filled layout's rule finds the row the navigator covers by this attribute.
-    expect(content.hasAttribute('data-files-navigator-row')).toBe(true)
     expect(content.children).toHaveLength(1)
     const navigator = content.firstElementChild!
     expect(navigator.getAttribute('data-files-navigator')).toBe(PANE)

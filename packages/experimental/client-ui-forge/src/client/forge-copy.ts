@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import type { ForgeDescription } from '@deepseek-ai/dsh-experimental-forge/types'
-import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { NS } from './locales.ts'
 
 /** The `forge` and `noun` parameters of copy that names the code host; a type alias so it passes as notice parameters. */
@@ -46,4 +46,14 @@ export function useForgeCopy(translate: TranslateNS<typeof NS>, url: string | nu
  */
 function hostOf(url: string): string {
   return /^[a-z][a-z\d+.-]*:\/\/([^/?#]+)/i.exec(url)?.[1] ?? url
+}
+
+/**
+ * Name the action that opens a change request on its code host.
+ * @param translate - forge panel copy.
+ * @param forge - product name of the code host, or null when no provider names one.
+ * @returns the label that names the code host, or the one that names the browser without a name.
+ */
+export function openOnLabel(translate: TranslateNS<typeof NS>, forge: string | null): string {
+  return forge === null ? translate('change.view') : translate('change.viewOn', { forge })
 }

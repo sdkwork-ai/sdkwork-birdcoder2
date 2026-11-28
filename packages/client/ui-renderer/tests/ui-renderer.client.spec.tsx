@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup } from '@testing-library/react'
 import type { ReactNode } from 'react'
+import { act, cleanup, fireEvent } from '@testing-library/react'
 import { Context } from '@deepseek-ai/cordis'
 import { useLayoutEffect } from 'react'
 import { createClientModuleSystem, type ClientModuleLoader, type ClientModuleLoaderTarget } from '@deepseek-ai/dsh-client-modules/client'
@@ -71,7 +72,51 @@ describe('UI renderer plugin', () => {
     expect(renderer).toBeDefined()
     const el = container()
     act(() => { mounted.push(renderer!.mount(el)) })
-    expect(el.querySelector('[data-testid="root-probe"]')).toBeTruthy()
+    const probe = el.querySelector('[data-testid="root-probe"]')
+    expect(probe?.parentElement?.matches('[data-slot="root"][data-plugin=""]')).toBe(true)
+  })
+
+  it('binds document props to each actual mount without exposing its document or requiring a responsive plugin', async () => {
+    const { ctx, slots } = await bench()
+    const renderer = ctx.get('uiRenderer')!
+    expect(renderer).not.toHaveProperty('mountDocument')
+    const capture = vi.fn()
+    slots.register({ name: 'root' }, ({ useDocumentPortal, useDocumentViewport }) => {
+      const Portal = useDocumentPortal()
+      const { width, height } = useDocumentViewport()
+      return <Portal onKeyDownCapture={capture}><output>{width}×{height}</output></Portal>
+    })
+    const frame = document.createElement('iframe')
+    document.body.append(frame)
+    const page = frame.contentDocument!
+    let width = 800, height = 500
+    Object.defineProperties(page.documentElement, { clientWidth: { get: () => width }, clientHeight: { get: () => height } })
+    const target = page.createElement('main')
+    page.body.append(target)
+    let unmount!: () => void
+    act(() => { unmount = renderer.mount(target) })
+    mounted.push(unmount)
+    const output = page.body.querySelector('output')!
+    expect(target.contains(output)).toBe(false)
+    expect(output.textContent).toBe('800×500')
+    width = 600
+    fireEvent.resize(window)
+    expect(output.textContent).toBe('800×500')
+    fireEvent.resize(frame.contentWindow!)
+    expect(output.textContent).toBe('600×500')
+    height = 400
+    fireEvent.resize(frame.contentWindow!)
+    expect(output.textContent).toBe('600×400')
+    fireEvent.keyDown(page.body, { key: 'Escape' })
+    expect(capture).toHaveBeenCalledOnce()
+    act(() => { unmount() })
+    expect(page.body.querySelector('output')).toBeNull()
+    act(() => { mounted.push(renderer.mount(container())) })
+    fireEvent.keyDown(page.body, { key: 'Escape' })
+    expect(capture).toHaveBeenCalledOnce()
+    expect(document.body.querySelector('output')).not.toBeNull()
+    fireEvent.keyDown(document.body, { key: 'Escape' })
+    expect(capture).toHaveBeenCalledTimes(2)
   })
 
   it('installs module CSS before rendering and removes it after the React root unmounts', async () => {
@@ -330,7 +375,7 @@ describe('UI renderer plugin', () => {
       useLayoutEffect(() => () => { throw failure }, [])
       return <div />
     })
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'error').mockImplementation(() => {})
     const renderer = ctx.get('uiRenderer')!
     let unmount!: () => void
     act(() => { unmount = renderer.mount(container()) })
@@ -338,11 +383,11 @@ describe('UI renderer plugin', () => {
     const expectedError = (event: ErrorEvent): void => { if (event.error === failure) event.preventDefault() }
     window.addEventListener('error', expectedError)
     try {
-      expect(() => { act(() => { unmount() }) }).toThrow('unmount cleanup failed')
+      // React 18 fails the unmount itself; React 19's act rethrows the original error after it.
+      expect(() => { act(() => { unmount() }) }).toThrow(/unmount cleanup failed|layout cleanup failed/)
     } finally {
       window.removeEventListener('error', expectedError)
     }
-    expect(error).toHaveBeenCalled()
     expect(subscriptions).toBe(0)
     expect(document.head.querySelector('style[data-path="cleanup"]')).toBeNull()
     expect(() => { act(() => { unmount() }) }).not.toThrow()

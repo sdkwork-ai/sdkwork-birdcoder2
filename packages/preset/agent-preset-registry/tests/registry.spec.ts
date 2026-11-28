@@ -7,7 +7,9 @@ import { omitsGeneratedPage } from '../../../settings/settings/tests/live-config
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import AgentPresets from '../src/index.ts'
-import type { Context } from '@deepseek-ai/cordis'
+import { Context } from '@deepseek-ai/cordis'
+import SessionStore, { type SessionId } from '@deepseek-ai/dsh-session'
+import { brandString } from '@deepseek-ai/dsh-brand'
 
 const contexts: Context[] = []
 afterEach(async () => { for (const ctx of contexts.splice(0)) await ctx.fiber.dispose() })
@@ -25,10 +27,10 @@ describe('declarative preset revisions', () => {
     expect(ctx.agentPresets.inspectCompositions(ctx)).toEqual([])
     expect(ctx.agentPresets.inspectCompositions(first.ctx).map(row => row.id)).toEqual(['standard'])
     expect(ctx.agentPresets.inspectCompositions(second.ctx).map(row => row.id)).toEqual(['minimal'])
-    expect(ctx.tools.schemas(first).map(row => row.name)).toEqual(['standard'])
-    expect(ctx.tools.schemas(second).map(row => row.name)).toEqual(['minimal'])
-    expect(ctx.tools.schemas(third).map(row => row.name)).toEqual(['standard'])
-    expect(ctx.tools.schemas()).toEqual([])
+    expect(ctx.tools.getAll(first).map(row => row.name)).toEqual(['standard'])
+    expect(ctx.tools.getAll(second).map(row => row.name)).toEqual(['minimal'])
+    expect(ctx.tools.getAll(third).map(row => row.name)).toEqual(['standard'])
+    expect(ctx.tools.getAll()).toEqual([])
     const prompt = await ctx.systemPrompt.assemble(assembleContextFor(first))
     expect(prompt.sections.map(row => row.name)).toContain('preset:standard')
     expect(prompt.sections.map(row => row.name)).not.toContain('preset:minimal')
@@ -52,7 +54,7 @@ describe('declarative preset revisions', () => {
     await child.dispose()
     expect(ctx.agentPresets.inspectCompositions()).toHaveLength(1)
     const fresh = await agentOn(ctx, 'fresh')
-    expect(ctx.tools.schemas(fresh).map(row => row.name)).toEqual(['replacement'])
+    expect(ctx.tools.getAll(fresh).map(row => row.name)).toEqual(['replacement'])
   })
 
   it('removes definitions without revoking live bindings', async () => {
@@ -241,6 +243,25 @@ it('ignores a retired modeSelectionEnabled field in the user patch', async () =>
   expect((await ctx.agentPresets.remoteExportList()).presets.find(row => row.id === 'minimal')?.isDefault).toBe(true)
   // Neither read nor rewritten: the raw entry keeps the key it was loaded with.
   expect(live.entry.options.config).toMatchObject({ selectedDefault: 'minimal', modeSelectionEnabled: false })
+})
+
+it('mounts without a default and fails only a caller that names no preset', async () => {
+  const ctx = new Context()
+  contexts.push(ctx)
+  await ctx.plugin(Loader)
+  await ctx.plugin(SessionProjectionRegistry)
+  await ctx.plugin(SessionStore)
+  await ctx.plugin(AgentRegistry)
+  await ctx.plugin(AgentPresets, {})
+
+  expect(ctx.agentPresets.defaultId).toBeUndefined()
+  expect(await ctx.agentPresets.list()).toEqual([])
+  const session = ctx.sessions.create(brandString<SessionId>('no-default'), { meta: { agentPreset: 'recorded' } })
+  expect(ctx.agentPresets.presetForSession(session)).toBe('recorded')
+  for (const request of [() => ctx.agentPresets.resolve(), () => ctx.agentPresets.acquireScope()]) {
+    await expect(request()).rejects.toMatchObject({ code: 'agent-preset/no-default', details: { available: [] } })
+  }
+  await expect(ctx.agentPresets.resolve('named')).rejects.toMatchObject({ code: 'agent-preset/not-found' })
 })
 
 it('keeps its own instance off the generated Settings pages', () => omitsGeneratedPage(async (ctx) => {

@@ -34,12 +34,21 @@ const root = resolve(import.meta.dirname, '..')
 // Publication rules cover these package trees; dependency rules read all pnpm members.
 const workspaceGlobs = [
   { dir: 'vendor', depth: 1 },
+  { dir: 'vendor/im', depth: 1 },
   { dir: 'packages', depth: 2 },
   { dir: 'native', depth: 1 },
   { dir: 'native/system/packages', depth: 1 },
   { dir: 'apps', depth: 1 },
 ] as const
 const vendoredPackages = new Set([
+  '@deepseek-ai/cordis-plugin-im-core',
+  '@deepseek-ai/cordis-plugin-im-adapter-lark',
+  '@deepseek-ai/cordis-plugin-im-adapter-qq',
+  '@deepseek-ai/cordis-plugin-im-markdown',
+  '@deepseek-ai/satori-element',
+  '@deepseek-ai/cordis-element',
+  '@deepseek-ai/cordis-plugin-http',
+  '@deepseek-ai/cordis-fetch-file',
   '@deepseek-ai/cordis',
   '@deepseek-ai/cosmokit',
   '@deepseek-ai/schemastery',
@@ -73,6 +82,7 @@ const desktopPublisherDirectory = 'apps/desktop-publisher'
  */
 const standardReleaseMemberDirectory = new RegExp(
   `^(?:packages/(?!experimental/)[^/]+/[^/]+|apps/(?!desktop(?:-host)?$|${pluginMarketGeneratorDirectory.slice('apps/'.length)}$|${desktopPublisherDirectory.slice('apps/'.length)}$|sdkwork-birdcoder2-[^/]+$)[^/]+|vendor/[^/]+)$`,
+  `^(?:packages/(?!experimental/)[^/]+/[^/]+|apps/(?!desktop(?:-host)?$|${pluginMarketGeneratorDirectory.slice('apps/'.length)}$|${desktopPublisherDirectory.slice('apps/'.length)}$)[^/]+|vendor/(?:im/)?[^/]+)$`,
   'u',
 )
 /** Installable application assembled by electron-builder rather than published to npm. */
@@ -195,7 +205,6 @@ export function readWorkspaceManifests(repositoryRoot: string): WorkspaceManifes
 const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   // Tools entry points share error classes and invocation stages through runtime chunks.
   '@deepseek-ai/dsh-tools': ['lib/pipeline.js', 'lib/shared-*.js'],
-  '@deepseek-ai/dsh-tool-executor-ptc': ['lib/run-code.js', 'lib/_chunks/*.js'],
   // The embedded OAR implementation retains its upstream license.
   '@deepseek-ai/dsh-experimental-subagent-oar': ['LICENSE-OAR'],
   // CUA publishes its client API and attributed native source for local macOS builds.
@@ -213,13 +222,7 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   ],
   // Owned Worker bundles import this public bootstrap before their business entry.
   '@deepseek-ai/dsh-app-boot': ['lib/worker/profile-resolution-bootstrap.js'],
-  // Statically linked client libraries keep their stylesheets next to the emitted
-  // JavaScript, which imports them by relative path: the compile shell runs
-  // them through its own CSS pipeline, so the sheets are published artifacts.
-  // The glob covers whichever sheets a package emits; sourcemaps stay
-  // unpublished, as everywhere else in the repository.
-  '@deepseek-ai/dsh-client-ui-primitives': ['lib/**/*.css'],
-  '@deepseek-ai/dsh-client-ui-dockkit': ['lib/**/*.css'],
+  '@deepseek-ai/dsh-client-ui-primitives': ['lib/client.*.js'],
   '@deepseek-ai/dsh-client-ui-sidebar-documentpreview': ['lib/client.*.js'],
   '@deepseek-ai/dsh-client-ui-sidebar-terminal': ['lib/client.*.js'],
   '@deepseek-ai/dsh-client-web': ['lib/**/*.css', 'lib/apply-injections.js'],
@@ -245,9 +248,15 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   '@deepseek-ai/dsh-creation-recommendations': ['references/*.md', 'skills/*.md'],
   // Official-plugin recommendations ship the skill text their provider loads.
   '@deepseek-ai/dsh-plugin-recommendations': ['skills/*.md'],
+  // The SQLite Session provider path-loads its compactor and reads packaged SQL at run time.
+  '@deepseek-ai/dsh-session-persistence-sqlite': ['lib/worker.cjs', 'resources/sql/**/*.sql'],
   // The Web Host mounts the default-off settings owner independently of the
   // delegation-tool instances.
   '@deepseek-ai/dsh-tool-subagent': ['lib/model-selection-settings.js'],
+  // A provider row is a separate Loader entry of the adapter package.
+  '@deepseek-ai/dsh-llm-pi-ai': ['lib/provider-row.js'],
+  // A server row is a separate Loader entry of the manager package.
+  '@deepseek-ai/dsh-mcp-manager': ['lib/server-row.js'],
   // The JSONL backend resolves its private verification Worker relative to
   // import.meta.url; it is shipped without a public package subpath.
   '@deepseek-ai/dsh-session-persistence-jsonl': ['lib/worker.cjs'],
@@ -264,6 +273,8 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   '@deepseek-ai/dsh-sdkwork-builtin-skills': ['assets'],
   '@deepseek-ai/dsh-skill-office': ['assets'],
   '@deepseek-ai/dsh-subprocess': ['lib/control.js'],
+  // The execution environment daemon is copied alone to another machine as its own bundle.
+  '@deepseek-ai/dsh-environment': ['lib/daemon.js'],
   // SSH launches a private helper and shares wire definitions and TLS setup
   // between that helper and the connection owner.
   '@deepseek-ai/dsh-ssh': [
@@ -612,12 +623,15 @@ export function checkWorkspaceManifest({ dir, manifest }: WorkspaceManifest): st
     if (manifest.main !== 'lib/index.js') {
       errors.push(`${label}: package.json must set "main": "lib/index.js"`)
     }
-    if (manifest.types !== 'lib/types/index.d.ts') {
-      errors.push(`${label}: package.json must set "types": "lib/types/index.d.ts"`)
+    // The package root may reuse the declarations of its own `./client` entry.
+    const clientTypes = exportFields(manifest.exports?.['./client'])?.types
+    const rootTypes = typeof clientTypes === 'string' ? ['./lib/types/index.d.ts', clientTypes] : ['./lib/types/index.d.ts']
+    if (!rootTypes.includes(`./${manifest.types}`)) {
+      errors.push(`${label}: package.json must set "types": ${rootTypes.map(path => `"${path.replace(/^\.\//, '')}"`).join(' or ')}`)
     }
     const rootEntry = exportFields(manifest.exports?.['.'])
-    if (rootEntry?.types !== './lib/types/index.d.ts') {
-      errors.push(`${label}: package.json exports["."].types must be "./lib/types/index.d.ts"`)
+    if (typeof rootEntry?.types !== 'string' || !rootTypes.includes(rootEntry.types)) {
+      errors.push(`${label}: package.json exports["."].types must be ${rootTypes.map(path => `"${path}"`).join(' or ')}`)
     }
     if (rootEntry?.default !== './lib/index.js') {
       errors.push(`${label}: package.json exports["."].default must be "./lib/index.js"`)
@@ -626,9 +640,21 @@ export function checkWorkspaceManifest({ dir, manifest }: WorkspaceManifest): st
       && !hasExportPair(manifest, './pipeline', './lib/types/pipeline.d.ts', './lib/pipeline.js')) {
       errors.push(`${label}: exports["./pipeline"] must expose lib/types/pipeline.d.ts and lib/pipeline.js`)
     }
-    if (manifest.name === '@deepseek-ai/dsh-tool-executor-ptc'
-      && !hasExportPair(manifest, './run-code', './lib/types/run-code.d.ts', './lib/run-code.js')) {
-      errors.push(`${label}: exports["./run-code"] must expose lib/types/run-code.d.ts and lib/run-code.js`)
+    if (manifest.name === '@deepseek-ai/dsh-llm-pi-ai') {
+      if (!hasExportPair(manifest, './provider', './lib/types/provider-row.d.ts', './lib/provider-row.js')) {
+        errors.push(`${label}: exports["./provider"] must expose lib/types/provider-row.d.ts and lib/provider-row.js`)
+      }
+      if (manifest.exports?.['./provider/locale/*.json'] !== './locale/provider/*.json') {
+        errors.push(`${label}: exports["./provider/locale/*.json"] must be "./locale/provider/*.json"`)
+      }
+    }
+    if (manifest.name === '@deepseek-ai/dsh-mcp-manager') {
+      if (!hasExportPair(manifest, './server', './lib/types/server-row.d.ts', './lib/server-row.js')) {
+        errors.push(`${label}: exports["./server"] must expose lib/types/server-row.d.ts and lib/server-row.js`)
+      }
+      if (manifest.exports?.['./server/locale/*.json'] !== './locale/server/*.json') {
+        errors.push(`${label}: exports["./server/locale/*.json"] must be "./locale/server/*.json"`)
+      }
     }
     const expectedFiles = expectedDshPackageFiles(manifest, detailDocumentFiles(join(root, dir)))
     if (!sameStringList(manifest.files, expectedFiles)) {

@@ -1,7 +1,7 @@
 /** Desktop channel selection; persistence and updater transitions remain in Electron. */
 import { useState } from 'react'
-import { Menu, Toast, IconWarningOutlineRegular, IconLoadingOutlineRegular, IconChevronDownOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import { Menu, Toast, IconWarningOutlineRegular, IconLoadingOutlineRegular, IconChevronDownOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives/client'
+import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { DesktopChannelSource } from './desktop-channel-source.ts'
 import type { DesktopUpdateChannel } from '../types.ts'
 import css from './DesktopChannelRow.module.css'
@@ -18,9 +18,11 @@ export interface DesktopChannelRowInjected {
  * @returns The General settings row.
  */
 export function DesktopChannelRow({ useChannel, select, t }:
-  PropsRuntime<'settings.general.item'> & PropsLocale<'settings'> & InjectFace<DesktopChannelRowInjected>) {
+  PropsRuntime<'settings.general.group.updates.item'> & PropsLocale<'settings'> & InjectFace<DesktopChannelRowInjected>) {
   const { state, failed, pending } = useChannel(value => value)
   const [open, setOpen] = useState(false)
+  const visible = state?.unlocked === true || pending !== undefined || failed || state?.error !== undefined
+  if (!visible) return null
   const busy = pending !== undefined || state?.changing === true
   const channel = pending ?? state?.channel
   return <div className={css.row} role="group" aria-label={t('desktop.channel.title')}>

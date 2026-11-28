@@ -101,13 +101,13 @@ The package is built on one separation: the public `Agent` surface and registry 
 
 ### Durable inbox
 
-`Agent.inbox` exposes only the structural `Inbox` interface and the projection vocabulary stays in this package. dsh-agent-loop owns the package-internal `ReactLoopInbox` and the standard `inbox` projection; the loop service acquires one registration for the durable `agent/inbox/spliced` fold and gives each inbox a state-reading callback. The registry remains the sole owner of the live `{ 'next-turn', 'next-step' }` state. Reconstruction rejects unsafe or out-of-range splice coordinates and duplicate `MessageId` values across both pending lists and reports the offending event seq.
+`Agent.inbox` exposes the structural `Inbox` interface. The [standard inbox projection](../agent-loop/README.md#returned-input) maintains both queues and the claims available for recovery. Reconstruction rejects unsafe or out-of-range splice coordinates and duplicate `MessageId` values across both pending lists and reports the offending event seq.
 
 `Inbox` exposes pending `nextTurn` and `nextStep` messages and mutates them through `append`, `prepend`, `replace`, `remove`, `clear`, and `splice`. Ordinary removals and `clear()` are durable cancellations. At a step boundary, the loop's internal implementation claims pending input through pure deletion splices. Live notifications are deliberately per-message and minimal: `agent/inbox/inserted { message }`, `agent/inbox/claimed { message, turn }`, and `agent/inbox/discarded { message }`.
 
 ### Durable model selection
 
-`Model` and the `modelSelection` projection types live here. The default driver creates each `AgentModel` and owns projection registration alongside its inbox. Each instance binds the Session, live options, and a projection reader; it holds no second copy of the choice. The loop captures a detached selection before step preparation and retains it across retries.
+`Model` and the `modelSelection` projection types live here. The default driver creates each `AgentModel` and owns projection registration alongside its inbox. Each instance binds the Session, live options, and a projection reader; it holds no second copy of the choice. The projection includes inherited fork history: `lastUsed` is the latest request in the log, and `pending` is a later choice not yet consumed by a matching request. The loop captures a detached selection before step preparation and retains it across retries.
 
 ### Source map
 
@@ -118,7 +118,7 @@ The package is built on one separation: the public `Agent` surface and registry 
 | [`src/types.ts`](src/types.ts) | `AgentOptions`, cancellation causes, and inbox projection vocabulary |
 | [`src/dispatch.ts`](src/dispatch.ts) | `agentEvents` fused dispatcher and `assembleContextFor(agent)` |
 | [`src/model-selection.ts`](src/model-selection.ts) | `AgentModel`, its durable projection, and `installModelSelection` switch notices |
-| [`src/consumed-work.ts`](src/consumed-work.ts) | `foldConsumedWork(events)`: what the log's consumed work became |
+| [`src/consumed-work.ts`](src/consumed-work.ts) | `foldConsumedWork(events)` reports the outcome of consumed work. Its incremental form `foldConsumedWorkForEvent(state, event)` retains turn numbers only until those turns close |
 | [`src/archive-admission.ts`](src/archive-admission.ts) | The `turn` family of the Workspace registry's archive admission: a running turn and its user-cause cancel |
 
 ### Registry and lifecycle

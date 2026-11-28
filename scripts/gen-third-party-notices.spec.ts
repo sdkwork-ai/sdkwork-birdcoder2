@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { describe, expect, it } from 'vitest'
@@ -17,6 +17,7 @@ import {
   parseVendoredRows,
   render,
   tierExternalDeps,
+  VENDORED_TREES,
   virtualManifest,
 } from './gen-third-party-notices.ts'
 
@@ -98,6 +99,7 @@ describe('tierExternalDeps', () => {
       '@deepseek-ai/libreoffice-kit', '@deepseek-ai/libreoffice-kit-wasm',
       '@deepseek-ai/libreoffice-kit-darwin-arm64', '@deepseek-ai/libreoffice-kit-darwin-x64',
       '@deepseek-ai/libreoffice-kit-win32-arm64', '@deepseek-ai/libreoffice-kit-win32-x64',
+      '@deepseek-ai/libreoffice-kit-linux-arm64-glibc', '@deepseek-ai/libreoffice-kit-linux-x64-glibc',
     ]) {
       expect(() => { assertRuntimeLicenses([{ name, license: 'MPL-2.0' }]) }).not.toThrow()
       expect(() => { assertRuntimeLicenses([{ name, license: 'GPL-3.0-only' }]) }).toThrow(name)
@@ -268,12 +270,13 @@ describe('parseVendoredRows', () => {
     expect(parseVendoredRows('| `cordis/` | `@deepseek-ai/cordis` | cordis | 4.0.0 | https://example.com | `abc123` |\n')).toEqual([])
   })
 
-  it('covers every vendored directory, so no package can drop out of the notices', () => {
-    const parsed = new Set(parseVendoredRows(readFileSync(resolve(root, 'vendor/README.md'), 'utf8')).map(row => row.npmName))
-    const onDisk = readdirSync(resolve(root, 'vendor'), { withFileTypes: true })
-      .filter(entry => entry.isDirectory())
-      .map(entry => (JSON.parse(readFileSync(resolve(root, 'vendor', entry.name, 'package.json'), 'utf8')) as Manifest).name)
+  it.each(VENDORED_TREES)('covers every directory of $directory, so no package can drop out of the notices', ({ directory, readme }) => {
+    const parsed = new Set(parseVendoredRows(readFileSync(resolve(root, readme), 'utf8')).map(row => row.npmName))
+    const onDisk = readdirSync(resolve(root, directory), { withFileTypes: true })
+      .filter(entry => entry.isDirectory() && existsSync(resolve(root, directory, entry.name, 'package.json')))
+      .map(entry => (JSON.parse(readFileSync(resolve(root, directory, entry.name, 'package.json'), 'utf8')) as Manifest).name)
 
+    expect(onDisk.length).toBeGreaterThan(0)
     expect([...onDisk].sort()).toEqual([...parsed].sort())
   })
 })

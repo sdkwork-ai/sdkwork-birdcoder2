@@ -101,13 +101,13 @@ await handle.agent.whenIdle()
 
 ### 持久 inbox
 
-`Agent.inbox` 只暴露结构型 `Inbox` 接口，投影词汇仍位于本包。dsh-agent-loop 持有包内部的 `ReactLoopInbox` 与标准 `inbox` 投影；loop 服务为持久 `agent/inbox/spliced` fold 获取一份注册，并向每个 inbox 提供状态读取回调。注册表继续作为实时 `{ 'next-turn', 'next-step' }` 状态的唯一所有者。重建过程会拒绝不安全或越界的 splice 坐标，以及跨两份待处理列表重复的 `MessageId`，并报告出错事件的 seq。
+`Agent.inbox` 暴露结构型 `Inbox` 接口。[标准 inbox 投影](../agent-loop/README.zh.md#returned-input) 维护两个队列与可恢复的领取。重建过程会拒绝不安全或越界的 splice 坐标，以及跨两个待处理队列重复的 `MessageId`，并报告出错事件的 seq。
 
 `Inbox` 暴露待处理的 `nextTurn` 与 `nextStep` 消息，并通过 `append`、`prepend`、`replace`、`remove`、`clear` 与 `splice` 变更它们。普通删除和 `clear()` 都是持久取消。在步骤边界，循环的内部实现会通过纯删除 splice 领取待处理输入。实时通知刻意采用逐消息的最小载荷：`agent/inbox/inserted { message }`、`agent/inbox/claimed { message, turn }` 与 `agent/inbox/discarded { message }`。
 
 ### 持久模型选择
 
-`Model` 和 `modelSelection` 投影类型在本包定义。默认驱动器与 inbox 一起创建每个 `AgentModel` 并拥有投影注册。每个实例绑定 Session、实时选项和投影读取器，不维护选择的第二份副本。循环在步骤准备前捕获独立选择，并在重试间保留它。
+`Model` 和 `modelSelection` 投影类型在本包定义。默认驱动器与 inbox 一起创建每个 `AgentModel` 并拥有投影注册。每个实例绑定 Session、实时选项和投影读取器，不维护选择的第二份副本。投影包含继承的 fork 历史：`lastUsed` 是日志中最近一次请求的模型，`pending` 是尚未被匹配请求消费的后续选择。循环在步骤准备前捕获独立选择，并在重试间保留它。
 
 ### 源码地图
 
@@ -118,7 +118,7 @@ await handle.agent.whenIdle()
 | [`src/types.ts`](src/types.ts) | `AgentOptions`、取消原因与收件箱投影词汇 |
 | [`src/dispatch.ts`](src/dispatch.ts) | `agentEvents` 融合分发器与 `assembleContextFor(agent)` |
 | [`src/model-selection.ts`](src/model-selection.ts) | `AgentModel`、持久投影与 `installModelSelection` 切换提示 |
-| [`src/consumed-work.ts`](src/consumed-work.ts) | `foldConsumedWork(events)`：日志消费掉的工作最终怎样了 |
+| [`src/consumed-work.ts`](src/consumed-work.ts) | `foldConsumedWork(events)` 报告已消费工作的结果。逐事件版本 `foldConsumedWorkForEvent(state, event)` 在轮次结束时释放该轮次编号 |
 | [`src/archive-admission.ts`](src/archive-admission.ts) | Workspace 注册表归档准入中的 `turn` 族：运行中的回合及其用户原因取消 |
 
 ### 注册表与生命周期

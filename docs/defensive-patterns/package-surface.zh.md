@@ -11,7 +11,7 @@
 - Loader 四件套及其准确形态见 [cordis-primer.zh.md](../cordis-primer.zh.md#loader-configuration)。
 - 判定条件：函数插件的入口（`src/index.ts`）导出了四件套以外的实体；在四件套旁边加了默认导出，或两种形态被混用；`/client` 入口导出了实现值、或让另一个功能插件导入了实现值；fixture 用相对路径引用其他包。
 - 边界：只约束 Loader 插件入口。内部模块、工具函数与 hooks 照常导出值；Host 入口的 Service Definition 类与错误类型是应有的导出；测试 fixture 也留在本包内——用相对路径伸进别的包的 `src` 会绕过 `exports` 映射与包边界检查。
-- 例外：无默认例外；确需破例须经对应领域专家确认。
+- 例外：须经对应领域专家确认。
 
 合规的入口——四件套，同包测试路径以注释记录，而不是加出第五个导出。
 
@@ -44,7 +44,7 @@ import { isSurfaceEligibleType } from '../../core/session/src/surface.ts'
 
 ## 包只有两类，且两类都是动态插件包
 
-新增包要么是 Host 包，要么是 Host + Client 包，两类都是动态插件包；没有第三种形态可选，也没有例外。shell 经 [packages/client/web/src/platform.ts](../../packages/client/web/src/platform.ts) 的 `PLATFORM_MODULES` 播种的静态客户端库——`client-store`、`ui-slots`、`ui-primitives`、`ui-dockkit`——以及 [packages/util/](../../packages/util/) 下的零依赖库先于本条规则存在，且**已关闭**：它们照原样继续工作，新增包永不加入其中。只有真正的双面包才拆编译面，生成物进 `lib`，`include`、`external` 与 roster 清单由扫描 workspace 得出，不手写。手写清单或新造编译面会让构建产物与清单不再一致，此后每个新增包都得各自维护清单。
+新增包要么是 Host 包，要么是 Host + Client 包，两类都是动态插件包；没有第三种形态可选，也没有例外。`ui-slots`、`ui-primitives`、`ui-dockkit` 是带 `immediately: true` 的 Host + Client 包；它们 `/client` 入口的实体导出是会逐步缩减的历史例外，不是先例（[导出规则](../../packages/client/AGENTS.md#export-discipline-client-plugin-packages)）。shell 播种的静态客户端库 `client-store` 以及 [packages/util/](../../packages/util/) 下的零依赖库先于本条规则存在，且**已关闭**：它们照原样继续工作，新增包永不加入其中。只有真正的双面包才拆编译面，生成物进 `lib`，`include`、`external` 与 roster 清单由扫描 workspace 得出，不手写。手写清单或新造编译面会让构建产物与清单不再一致，此后每个新增包都得各自维护清单。
 
 - 判定条件：新增包未按动态插件包形态构建（static link 打包、手写的全 external 清单）；出现第三种 `tsconfig` 变体；手写 `include`、`external` 或 roster 清单。
 - 形态不要照抄数字，就地复算：先列 `packages/*/*` 下的 `tsconfig.json`，再列同时带 `tsconfig.client.json` 与 `tsconfig.host.json` 的包，最后列声明 `dsh.client` 的包。
@@ -79,7 +79,8 @@ import { isSurfaceEligibleType } from '../../core/session/src/surface.ts'
 - 标准键，每个键在全仓只有一个含义，统计口径是 `packages/*/*/package.json` 与 `apps/*/package.json`：`.`（包主入口）、`./package.json`（工具链访问，不是语义导出）、`./src/*`（测试与工具的源码透传，文档状态仍待定）、`./client`（浏览器入口，与 `dsh.client` 声明配对）、`./types`（类型入口）、`./typert`（typert 类型运行时）、`./remote`（`@Remote` 调用面）、`./locale/*.json`（本地化资源）、`./cordis.patch.yml`（`dsh.bundle` 声明的 bundle 补丁层）。这里不列各键的包数，因为下一个包就会让它过期；下面的复算命令会打印当前数字。
 - 集合之外的键（`./brand` 5 个包、`./worker` 4 个、`./startup`、`./runner`、`./protocol` 各 2 个，另有大量一次性键）没有文档含义，属待核项，不是可照抄的先例。
 - `dsh-tools` 另行提供 `./pipeline`，用于复用调用阶段与批量调度。主入口与 pipeline bundle 共享运行时 chunk，以保持错误类的身份一致；工作区检查验证导出目标与发布文件。
-- `dsh-tool-executor-ptc` 提供 `./run-code`，用于共享程序工具工厂、显式指定运行时及调用上限，并传入私有可调用工具定义。工作区检查验证其导出目标与发布文件。
+- `dsh-llm-pi-ai` 提供 `./provider`，用于它的提供方条目插件：这是第二个 Loader 入口，配置层以 `@deepseek-ai/dsh-llm-pi-ai/provider` 指名；另提供 `./provider/locale/*.json`，用于该插件的 locale 资源。条目插件向适配器入口的注册表注册，因此两个入口位于同一个包。工作区检查验证其导出目标与发布文件。
+- `dsh-mcp-manager` 提供 `./server`，用于它的服务器条目插件：这是第二个 Loader 入口，配置层以 `@deepseek-ai/dsh-mcp-manager/server` 指名；另提供 `./server/locale/*.json`，用于该插件的 locale 资源。条目插件向管理器入口的注册表注册，因此两个入口位于同一个包。工作区检查验证其导出目标与发布文件。
 - 判定条件：改动是否新增了标准集合以外的 export 键？
 - 例外：无默认例外；新增键须先改正家文档与检查，并取得对应领域专家确认。
 - 复算分布：
@@ -152,13 +153,13 @@ Restating a required-devDependency package list or the field rules on this page 
 内部依赖写法按包族决定：`@deepseek-ai/dsh` 与 `@deepseek-ai/dsh-*` 用 `workspace:*`，其余内部包用 `workspace:~`，`workspace:^` 已退出。同一个依赖名在所有 workspace 内写法一致，不一致是扫描硬失败，不是评审可以放行的警告。写法统一才能保持一条解析路径，避免同一个依赖出现重复实例以及随之而来的解析差异。
 
 - 判定在 [verify-package-dependencies.ts](../../scripts/verify-package-dependencies.ts) 的 `workspaceRange()`：`@deepseek-ai/dsh` 与 `@deepseek-ai/dsh-*` 包族取 `workspace:*`，其余内部包取 `workspace:~`；扫描遍历受管清单，比对同一依赖名的每一处声明。
-- 边界：同命名空间但不是 workspace 成员的包按普通第三方版本范围声明，不受包族规则约束——`@deepseek-ai/libreoffice-kit` 在 `packages/bundle/web-app/package.json`（devDependencies）和 `packages/document/office-kit/package.json`（dependencies）中声明为 `0.2.3`。
+- 边界：同命名空间但不是 workspace 成员的包按普通第三方版本范围声明，不受包族规则约束——`@deepseek-ai/libreoffice-kit` 在 `packages/bundle/web-app/package.json`（devDependencies）和 `packages/document/office-kit/package.json`（dependencies）中声明为 `0.2.4`。
 - 分布不在此复述；下面的复算命令会打印 `workspace:*`、`workspace:~`、`workspace:^` 的当前数量，以及族规则之外的精确版本声明。
 - 例外：门禁机械判定；确需例外意味着修改扫描与策略文件，并须经对应领域专家确认、在改动上说明理由。
 - 复算：
 
 ```sh
-python3 -c "import json,glob,collections; c=collections.Counter(); [c.update([r]) for p in glob.glob('apps/*/package.json')+glob.glob('packages/*/*/package.json')+glob.glob('vendor/*/package.json') for s in ('dependencies','devDependencies','optionalDependencies','peerDependencies') for n,r in (json.load(open(p)).get(s) or {}).items() if n.startswith('@deepseek-ai/')]; print(c.most_common())"
+python3 -c "import json,glob,collections; c=collections.Counter(); [c.update([r]) for p in glob.glob('apps/*/package.json')+glob.glob('packages/*/*/package.json')+glob.glob('vendor/*/package.json')+glob.glob('vendor/im/*/package.json') for s in ('dependencies','devDependencies','optionalDependencies','peerDependencies') for n,r in (json.load(open(p)).get(s) or {}).items() if n.startswith('@deepseek-ai/')]; print(c.most_common())"
 ```
 
 每个包族各用其写法，非成员的例外保持普通版本范围。
@@ -168,7 +169,7 @@ python3 -c "import json,glob,collections; c=collections.Counter(); [c.update([r]
   "dependencies": {
     "@deepseek-ai/dsh-base": "workspace:*",
     "@deepseek-ai/cordis": "workspace:~",
-    "@deepseek-ai/libreoffice-kit": "0.2.3"
+    "@deepseek-ai/libreoffice-kit": "0.2.4"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-typert-registry": "workspace:*"

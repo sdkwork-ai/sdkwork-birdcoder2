@@ -13,6 +13,7 @@ import type { Transport } from '@modelcontextprotocol/client'
 import type Settings from '@deepseek-ai/dsh-settings'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
+import { NativeToolRegistry } from '@deepseek-ai/dsh-tools/pipeline'
 import { CredentialProvider, credentialRef } from '@deepseek-ai/dsh-credentials'
 import type {
   CredentialInfo, CredentialKey, CredentialRecord, CredentialRecordEntry, CredentialRecordInfo,
@@ -80,6 +81,7 @@ import { apply as applyMcpClient, Config as ClientConfig } from '@deepseek-ai/ds
 import { connectionStatusIn as connectionStatusOf } from '@deepseek-ai/dsh-mcp-client/src/status.ts'
 import McpServerManager from '@deepseek-ai/dsh-mcp-manager/src/index.ts'
 import type { Config, McpManagedServerStatus } from '@deepseek-ai/dsh-mcp-manager/src/index.ts'
+import * as McpServerRow from '@deepseek-ai/dsh-mcp-manager/src/server-row.ts'
 import { managerProfile } from './profile-fixture.ts'
 
 /** Minimal real credential provider: reference half backed by a map. */
@@ -154,6 +156,7 @@ async function mountWorld(options?: {
   await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
+  ctx.tools.setRoot(new NativeToolRegistry())
   let credentials: MemoryCredentials | undefined
   if (options?.withCredentials === true) {
     await ctx.plugin(MemoryCredentials)
@@ -1071,6 +1074,30 @@ describe('mcp-manager', () => {
     expect(manager.list().map(view => view.name)).toEqual(['base'])
   })
 
+  it('registers a server row for its lifetime and removes the server when the row is disposed', async () => {
+    const { ctx, manager } = await mountWorld({ managerConfig: { servers: { base: stdioEntry() } }, withSettings: false })
+    const row = ctx.plugin(McpServerRow, { serverName: 'docs', transport: 'stdio', command: 'echo' })
+    await row.await()
+    await waitForState(manager, 'docs', 'connected')
+    expect(manager.list().map(view => [view.name, view.configured])).toEqual([['base', true], ['docs', true]])
+    expect(ctx.tools.get('mcp__docs__remote')).toBeDefined()
+    await row.dispose()
+    expect(ctx.tools.get('mcp__docs__remote')).toBeUndefined()
+    expect(manager.list().map(view => view.name)).toEqual(['base'])
+  })
+
+  it('refuses a server row that names a configured server or carries the enabled field', async () => {
+    const { ctx, manager } = await mountWorld({ managerConfig: { servers: { base: stdioEntry() } }, withSettings: false })
+    const taken = ctx.plugin(McpServerRow, { serverName: 'base', transport: 'stdio', command: 'echo' })
+    await expect(taken.await()).rejects.toThrow('mcp-manager: server "base" is already configured or registered')
+    // A config file can carry the key although the row's Config type has no such field.
+    const copied = ctx.plugin(McpServerRow, {
+      serverName: 'docs', transport: 'stdio', command: 'echo', enabled: false,
+    } as Parameters<typeof McpServerRow.Config>[0])
+    await expect(copied.await()).rejects.toThrow('$.enabled expected nullable but got false')
+    expect(manager.list().map(view => view.name)).toEqual(['base'])
+  })
+
   it('rejects a registration that takes a configured or registered name or carries an invalid entry', async () => {
     const { manager } = await mountWorld({ managerConfig: { servers: { base: stdioEntry() } }, withSettings: false })
     expect(() => manager.register('base', { transport: 'stdio', command: 'echo' })).toThrow('already configured or registered')
@@ -1135,6 +1162,73 @@ describe('mcp-manager', () => {
     const waiting = stream.next()
     await managerFiber.dispose()
     await expect(waiting).resolves.toEqual({ done: true, value: undefined })
+  })
+
+  it('settles at once when no server is listed, without waiting for the signal', async () => {
+    const { manager } = await mountWorld({ withSettings: false })
+    await expect(manager.whenSettled(new AbortController().signal)).resolves.toEqual([])
+  })
+
+  it('settles when a server in its first connection attempt connects', async () => {
+    const connecting = Promise.withResolvers<undefined>()
+    mockConnect.mockImplementationOnce(() => connecting.promise)
+    const { ctx, manager } = await mountWorld({ withSettings: false, managerConfig: { servers: { slow: stdioEntry() } } })
+    let pending: string[] | undefined
+    const settled = manager.whenSettled(new AbortController().signal).then((names) => { pending = names })
+    await vi.waitFor(() => { expect(mockConnect).toHaveBeenCalledOnce() })
+    expect(pending).toBeUndefined()
+    connecting.resolve(undefined)
+    await settled
+    expect(pending).toEqual([])
+    expect(ctx.tools.get('mcp__slow__remote')).toBeDefined()
+  })
+
+  it('counts a failed first attempt and a disabled entry as settled', async () => {
+    mockConnect.mockRejectedValue(new Error('connection refused'))
+    const { manager } = await mountWorld({ withSettings: false, managerConfig: { servers: {
+      down: stdioEntry(),
+      off: stdioEntry({ enabled: false }),
+    } } })
+    await expect(manager.whenSettled(new AbortController().signal)).resolves.toEqual([])
+    expect(manager.list().map(({ name, status }) => [name, status.state])).toEqual([['down', 'reconnecting'], ['off', 'disabled']])
+  })
+
+  it('returns the servers still in their first attempt when the signal aborts', async () => {
+    const connecting = Promise.withResolvers<undefined>()
+    onTestFinished(() => { connecting.resolve(undefined) })
+    mockConnect.mockImplementationOnce(() => connecting.promise)
+    const { manager } = await mountWorld({ withSettings: false, managerConfig: { servers: { slow: stdioEntry() } } })
+    await expect(manager.whenSettled(AbortSignal.abort())).resolves.toEqual(['slow'])
+    const caller = new AbortController()
+    const waiting = manager.whenSettled(caller.signal)
+    await vi.waitFor(() => { expect(mockConnect).toHaveBeenCalledOnce() })
+    caller.abort()
+    await expect(waiting).resolves.toEqual(['slow'])
+  })
+})
+
+describe('server row schema', () => {
+  it.each([
+    [{ startupTimeoutMs: 0 }],
+    [{ startupTimeoutMs: -5 }],
+    [{ enabled: false }],
+    [{ enabled: true }],
+  ])('refuses %j when the row loads instead of at mount', (patch) => {
+    expect(() => {
+      McpServerRow.Config({ serverName: 'a', transport: 'stdio', command: 'echo', ...patch })
+    }).toThrow()
+  })
+
+  it('requires a server name', () => {
+    expect(() => {
+      McpServerRow.Config({ transport: 'stdio', command: 'echo' } as Parameters<typeof McpServerRow.Config>[0])
+    }).toThrow()
+  })
+
+  it('resolves the registration defaults beside the server name, without the dictionary entry\'s enabled field', () => {
+    expect(McpServerRow.Config({ serverName: 'a', transport: 'stdio', command: 'echo', startupTimeoutMs: 5_000 })).toEqual({
+      serverName: 'a', transport: 'stdio', command: 'echo', args: [], env: {}, cwd: '', url: '', headers: {}, startupTimeoutMs: 5_000, toolLoading: 'eager',
+    })
   })
 })
 

@@ -33,12 +33,18 @@ export const HIDDEN_BUNDLES: ReadonlySet<string> = new Set([
   '@deepseek-ai/dsh-cua-mcp',
 ])
 
+/** Bundles whose plugin manager cards and details require the Desktop renderer. */
+export const DESKTOP_ONLY_BUNDLES: ReadonlySet<string> = new Set([
+  '@deepseek-ai/dsh-office-frame-forwarding-bundle',
+])
+
 /**
  * The optional bundles the plugin manager's main and More lists rank first, in this order. {@link MORE_BUNDLES}, not
  * this list, decides whether a bundle appears on the main list.
  */
 export const EXTENSION_BUNDLES: readonly string[] = [
   '@deepseek-ai/dsh-experimental-voice-input-bundle',
+  '@deepseek-ai/dsh-read-aloud-bundle',
   '@deepseek-ai/dsh-experimental-plugin-market-bundle',
   '@deepseek-ai/dsh-experimental-auto-review',
 ]
@@ -58,6 +64,7 @@ export const MORE_BUNDLES: readonly string[] = [
   '@deepseek-ai/dsh-experimental-badge-skill-bundle',
   '@deepseek-ai/dsh-experimental-ralph-bundle',
   '@deepseek-ai/dsh-deepseek-chat-import',
+  '@deepseek-ai/dsh-office-frame-forwarding-bundle',
   '@deepseek-ai/dsh-subagent-codex',
   '@deepseek-ai/dsh-subagent-claude-code',
 ]
@@ -69,6 +76,7 @@ export const EXPERIMENTAL_BUNDLES: ReadonlySet<string> = new Set([
   '@deepseek-ai/dsh-timeline',
   '@deepseek-ai/dsh-experimental-terminal-bundle',
   '@deepseek-ai/dsh-experimental-voice-input-bundle',
+  '@deepseek-ai/dsh-read-aloud-bundle',
   '@deepseek-ai/dsh-experimental-auto-review',
   '@deepseek-ai/dsh-experimental-inspector-profile',
   '@deepseek-ai/dsh-experimental-forge-bundle',
@@ -81,4 +89,6 @@ export const EXPERIMENTAL_BUNDLES: ReadonlySet<string> = new Set([
   '@deepseek-ai/dsh-experimental-plugin-market-bundle',
   '@deepseek-ai/dsh-experimental-liveshare',
   '@deepseek-ai/dsh-deepseek-chat-import',
+  '@deepseek-ai/dsh-client-ui-connectors',
+  '@deepseek-ai/dsh-office-frame-forwarding-bundle',
 ])

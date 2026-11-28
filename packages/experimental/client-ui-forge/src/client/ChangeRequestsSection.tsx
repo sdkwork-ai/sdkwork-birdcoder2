@@ -3,12 +3,14 @@
 import { useCallback, useRef, type ReactNode } from 'react'
 import {
   Button, HoverCardGroup, IconWarningTriangleOutlineRegular, MarqueeText, useHoverMarquee,
-} from '@deepseek-ai/dsh-client-ui-primitives'
+} from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type {
   HostObservable, InjectFace, PropsLocale, PropsRenderFactories, PropsRenderSlots, PropsRuntime, PropsStore,
-} from '@deepseek-ai/dsh-client-ui-slots'
+} from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { ForgeReadiness, MergeRequest } from '@deepseek-ai/dsh-experimental-forge/types'
 import type { PanelDetailsProps } from '@deepseek-ai/dsh-client-ui-session-panel/client'
+// Type-only: the `useMediaQuery` standard prop merge.
+import type {} from '@deepseek-ai/dsh-client-ui-responsive/client'
 import type { ForgePanelState } from '../types.ts'
 import { ChangeRequestCard, type ChangeRequestActions } from './ChangeRequestCard.tsx'
 import type { createChangeRequestsSectionStore } from './change-requests-store.ts'
@@ -37,6 +39,8 @@ export interface ChangeRequestsSectionInjected {
   readonly markReady: (entry: ChangeRequestEntry) => Promise<void>
   /** Merge a change request as `request` describes; settles once the outcome is reported. */
   readonly merge: (entry: ChangeRequestEntry, request: MergeRequest) => Promise<void>
+  /** Turn a change request's automatic merge on or off; settles once the outcome is reported. */
+  readonly autoMerge: NonNullable<ChangeRequestActions['autoMerge']>
   /** Read the complete checks of an opened change request. */
   readonly readChecks: NonNullable<ChangeRequestActions['readChecks']>
   /** Rerun the failed checks or one check; settles once the outcome is reported. */
@@ -154,16 +158,17 @@ function SignInRow({ need, copyText, t }: {
  * expands or collapses keeps that choice in the Session's store, across
  * updates and while the panel is hidden. Viewing changes closes the panel's
  * overlay.
- * @param props - panel snapshot hooks, card actions, panel owner values, the store, and copy.
+ * @param props - panel snapshot hooks, card actions, panel owner values, the media query hook, the store, and copy.
  * @returns the cards, or null with neither bound change requests nor a sign-in to complete.
  */
 export function ChangeRequestsSection({
-  usePanel, useLocale, dismissOverlay, refresh, remove, markReady, merge, readChecks,
+  usePanel, useLocale, dismissOverlay, refresh, remove, markReady, merge, autoMerge, readChecks,
   rerunChecks, requestReviews, reviewerCandidates, updateBranch, openLink, copyText, viewChanges, useStore, actions: store, renderSlot,
-  renderFactorySlot, t,
+  renderFactorySlot, useMediaQuery, t,
 }: ChangeRequestsSectionProps): ReactNode {
   const snapshot = usePanel(current => current)
   const locale = useLocale(value => value)
+  const coarsePointer = useMediaQuery('(pointer: coarse)')
   const chosen = useStore(current => current.expanded)
   const unfolded = useStore(current => current.unfolded)
   const renderDetails = useCallback(
@@ -174,7 +179,7 @@ export function ChangeRequestsSection({
   const signIn = signInNeedOf(state)
   if (signIn === null && state.changeRequests.length === 0) return null
   const actions: ChangeRequestActions = {
-    openLink, copyLink: copyText, retry: () => { void refresh() }, remove, markReady, merge, readChecks,
+    openLink, copyLink: copyText, retry: () => { void refresh() }, remove, markReady, merge, autoMerge, readChecks,
     rerunChecks, requestReviews, reviewerCandidates, updateBranch,
     viewChanges: (entry) => {
       viewChanges(entry)
@@ -206,6 +211,7 @@ export function ChangeRequestsSection({
                 now={now}
                 actions={actions}
                 locale={locale}
+                coarsePointer={coarsePointer}
                 t={t}
               />
             ))}

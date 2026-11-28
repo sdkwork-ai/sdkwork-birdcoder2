@@ -21,7 +21,7 @@ import { managerState, subagentManager } from './manager-internals.ts'
 import * as SubagentFork from '@deepseek-ai/dsh-subagent-fork-in-process'
 import * as SubagentSpawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
 import { MockAdapter, textResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
-import SubagentRuntime, { SUBAGENT_DESCRIPTOR_VERSION, snapshotSubagentDescriptor } from '../src/index.ts'
+import SubagentRuntime, { SUBAGENT_DESCRIPTOR_VERSION } from '../src/index.ts'
 import { TestSessionQuery } from './test-session-query.ts'
 import { loadStoredSession } from './persistence-helpers.ts'
 import { brandString } from '@deepseek-ai/dsh-brand'
@@ -192,11 +192,9 @@ describe('continuable child presets', () => {
       mode: 'continuable',
       provider: 'separate',
       label: 'preset work',
-      agentProvider: 'mock',
-      agentModel: 'mock',
     })
     expect(adapter.requests[0]?.tools?.map(tool => tool.name)).toEqual(['reviewing_only'])
-    expect(ctx.tools.schemas(parent).map(tool => tool.name)).toEqual(['preset_only'])
+    expect(ctx.tools.getAll(parent).map(tool => tool.name)).toEqual(['preset_only'])
   })
 
   it('restores an explicit same-as-parent selection after the parent switches and the provider unloads', async () => {
@@ -214,7 +212,7 @@ describe('continuable child presets', () => {
       .toEqual([['preset_only'], ['preset_only']])
     expect(stored.events.filter(event => event.type === 'agent-preset/selected')).toHaveLength(1)
     expect(stored.events.filter(event => event.type === 'subagent/descriptor')).toHaveLength(1)
-    expect(ctx.tools.schemas(parent).map(tool => tool.name)).toEqual(['reviewing_only'])
+    expect(ctx.tools.getAll(parent).map(tool => tool.name)).toEqual(['reviewing_only'])
   })
 
   it('restores a nested target with its own preset while its creator remains offline', async () => {
@@ -236,7 +234,7 @@ describe('continuable child presets', () => {
     expect(restored).toEqual([leaf.childId])
     expect(adapter.requests.filter(request => request.sessionId === leaf.childId)
       .map(request => request.tools?.map(tool => tool.name))).toEqual([['reviewing_only'], ['reviewing_only']])
-    expect(ctx.tools.schemas(parent).map(tool => tool.name)).toEqual(['preset_only'])
+    expect(ctx.tools.getAll(parent).map(tool => tool.name)).toEqual(['preset_only'])
     expect(ctx.agents.get(creator.childId)).toBeUndefined()
   })
 
@@ -274,11 +272,11 @@ describe('continuable child presets', () => {
         ...(agentPreset === undefined ? {} : { agentPreset }),
       },
       setup: (childCtx, child) => {
-        child.session.append('subagent/descriptor', snapshotSubagentDescriptor({
-          mode: 'continuable', provider: 'separate', label: 'historical',
+        child.session.append('subagent/descriptor', {
+          version: 3, mode: 'continuable', provider: 'separate', label: 'historical',
           agentProvider: 'mock', agentModel: 'mock', persona: 'Historical child persona.',
           toolFilter: { allow: [] },
-        }))
+        })
         ctx.agentPresets.composeFrom(childCtx, parent.ctx)
       },
     })
@@ -338,7 +336,7 @@ describe('continuable child presets', () => {
       code: 'NOT_RESUMABLE', cause: { code: 'agent-preset/not-found' },
     })
     expect(adapter.requests).toHaveLength(2)
-    expect(ctx.tools.schemas(parent).map(tool => tool.name)).toEqual(['reviewing_only'])
+    expect(ctx.tools.getAll(parent).map(tool => tool.name)).toEqual(['reviewing_only'])
   })
 
   it.each(['missing', 'broken'] as const)('refuses an independent cold resume when its preset is %s', async (failure) => {
@@ -359,7 +357,7 @@ describe('continuable child presets', () => {
     expect(adapter.requests).toHaveLength(1)
     expect(stored.events.slice(0, created.events.length)).toEqual(created.events)
     expect(stored.events.slice(created.events.length)).toMatchObject([{ type: 'session/end-seed', data: {} }])
-    expect(ctx.tools.schemas(parent).map(tool => tool.name)).toEqual(['preset_only'])
+    expect(ctx.tools.getAll(parent).map(tool => tool.name)).toEqual(['preset_only'])
   })
 
   it('refuses restoration when a recorded preset selection cannot be projected', async () => {

@@ -1,8 +1,8 @@
 /** Searchable editable shortcut reference and its General Settings row. */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Button, IconCloseOutlineRegular, IconRefreshOutlineRegular, Modal, ShortcutKeys, Tooltip, Toast, focusWithoutRing, isBehindModal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconCloseOutlineRegular, IconRefreshOutlineRegular, Modal, ShortcutKeys, Tooltip, Toast, focusWithoutRing, isBehindModal } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import { TextSearchIndex } from '@deepseek-ai/dsh-util-text-search'
-import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { ObservableSnapshot, PropsStore } from '@deepseek-ai/dsh-client-store'
 import type { ShortcutCatalogEntry, ShortcutPlatform, Shortcuts } from '@deepseek-ai/dsh-client-shortcuts/client'
 import { ShortcutEditor } from './Editor.tsx'
@@ -52,7 +52,7 @@ const coreActionOrder = new Map<string, number>([
  * @param props - shared dialog action and localized labels.
  * @returns the settings row.
  */
-export function ShortcutsRow({ actions, t, useCatalog }: PropsRuntime<'settings.general.item'> & Store & Locale & InjectFace<ReferenceInjected>) {
+export function ShortcutsRow({ actions, t, useCatalog }: PropsRuntime<'settings.general.group.interaction.item'> & Store & Locale & InjectFace<ReferenceInjected>) {
   const shortcut = useCatalog(rows => rows.find(row => row.id === 'shortcuts.open'))
   return <div className={css.setting}>
     <div className={css.settingText}>
@@ -155,7 +155,9 @@ export function ShortcutReference({
   return <><Modal open={open} onClose={closeReference} title={t('title')} headless
     shortcutModal="shortcuts" className={css.dialog}>
     <div className={css.contents} onPointerDownCapture={(event) => {
-      if (target === null || busy || !(event.target instanceof Element) || event.target.closest('button, input, a, [contenteditable="true"], [role="group"]') !== null) return
+      // A text target has no `closest`, so it keeps the editor open like a control does.
+      if (target === null || busy
+        || (event.target as Partial<Element>).closest?.('button, input, a, [contenteditable="true"], [role="group"]') !== null) return
       event.preventDefault()
       closeEditor()
     }}>

@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
-import { contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
+import { contextMenuHook, responsiveHooks, themeHooks } from '@deepseek-ai/dsh-client-test-runtime'
 import { useState, type ComponentProps } from 'react'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { allowAllAccess, bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
-import { Menu, MenuItemButton } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Menu, MenuItemButton } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import { CreatePluginMenuItem } from '../src/client/CreatePluginMenuItem.tsx'
 import type { AgentPresetSettingsState } from '../src/client/settings-store.ts'
 import { en } from '../src/client/locales.ts'
@@ -32,6 +32,7 @@ function view(roster: Partial<AgentPresetSettingsState> = {}, inMenu = false) {
     useSessionRetainInfo: unusedHook, useWorkspaces: unusedHook, useResource: unusedHook,
     ...allowAllAccess,
     useContextMenu: contextMenuHook(),
+    ...responsiveHooks(), ...themeHooks(),
     load, startCreatorDraft, onDismiss,
   }
   function TestMenu() {

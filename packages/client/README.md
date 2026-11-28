@@ -62,6 +62,7 @@ The kernel packages boot and serve the page; the UI feature packages present it.
 | [`ui-sdkwork-image-preview/`](ui-sdkwork-image-preview/README.md) | Draws images in the right Sidebar's document tab with format sniffing, a zoom and rotation stage, and a baseline TIFF decoder | `ctx.documentPreviews` |
 | [`ui-sdkwork-video-preview/`](ui-sdkwork-video-preview/README.md) | Plays video in the right Sidebar's document tab with container and codec identification from the bytes and a full transport bar | `ctx.documentPreviews` |
 | [`ui-sdkwork-audio-preview/`](ui-sdkwork-audio-preview/README.md) | Plays audio in the right Sidebar's document tab with container, codec, tag and cover-art reading from the bytes | `ctx.documentPreviews` |
+| [`ui-responsive/`](ui-responsive/README.md) | Gives every Slot component the page's media-query answers and device class as `useMediaQuery` and `useMobile` | — |
 | [`ui-dockkit/`](ui-dockkit/README.md) | Provides docking layout operations and React components | — |
 | [`ui-sidebar/`](ui-sidebar/README.md) | Presents workspace and session navigation | — |
 | [`ui-sidebar-right/`](ui-sidebar-right/README.md) | Owns the right Sidebar and its tab types | `ctx.sidebarRight`, `ctx.sidebarRightTabs` |

@@ -10,7 +10,7 @@
 
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { Checkbox } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Checkbox } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type { SettingsSchemaOperations } from './schema-operations.ts'
 import type { ModelsKey } from './locales.ts'
 import styles from './ModelsSection.module.css'
@@ -36,6 +36,7 @@ const MODE_HINTS: ReadonlyMap<string, ModelsKey> = new Map([['always', 'retryAlw
 /** Labels of known failure codes; a code without one shows verbatim. */
 const CODE_LABELS: ReadonlyMap<string, ModelsKey> = new Map([
   ['EMPTY_RESPONSE', 'retryCodeEmptyResponse'],
+  ['INVALID_TOOL_ARGUMENTS', 'retryCodeInvalidToolArguments'],
   ['RATE_LIMIT', 'retryCodeRateLimit'],
   ['SERVER', 'retryCodeServer'],
   ['TIMEOUT', 'retryCodeTimeout'],
@@ -212,8 +213,6 @@ export interface RetryPolicyEditorProps {
   failure: RetryPolicyFailure | undefined
   /** Id of the element showing the failure message. */
   failureId: string
-  /** Show the failure message below the fields; otherwise the owner shows it. */
-  showFailure: boolean
   /** Section copy. */
   t: (key: ModelsKey) => string
   /** Disable edits. */
@@ -409,7 +408,7 @@ export function RetryPolicyEditor(props: RetryPolicyEditorProps): ReactNode {
       </select>
       {hint === undefined ? null : <span className={styles['advancedHint']}>{t(hint)}</span>}
       {branch === undefined ? null : <div className={styles['retryBody']}>{fields(branch, branch, [])}</div>}
-      {failure === undefined || !props.showFailure
+      {failure === undefined
         ? null
         : <p id={props.failureId} className={styles['error']}>{failure.message}</p>}
     </div>

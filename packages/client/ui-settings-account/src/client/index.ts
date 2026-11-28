@@ -39,12 +39,24 @@ export type { AccountSnapshot } from './AccountSection.tsx'
 export type { AccountKey } from './locales.ts'
 export type { AccountUi, AccountUiState, AccountNotificationsOwnerProps } from './account-ui.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@deepseek-ai/dsh-client-ui-slots/client' {
   interface LocaleNamespaceMap { 'settings.account': AccountKey }
 }
 
-/** Services required by account settings. */
-export const inject = ['slots', 'locale', 'remote', 'remote.account', 'remote.session', 'theme', 'configForms', 'remoteAccess']
+declare module '@deepseek-ai/cordis' {
+  interface Context {
+    /** Cross-plugin entry to the account sign-in dialog; present while this Peer may watch the account. */
+    accountSignIn: {
+      /** Show the sign-in dialog and start a browser attempt; call it from the user's click so the tab can preopen. */
+      open(): void
+    }
+  }
+}
+
+/** Services required by account settings; `uiResponsive` owns the desktop introduction's `useMediaQuery` prop. */
+export const inject = [
+  'slots', 'locale', 'remote', 'remote.account', 'remote.session', 'theme', 'configForms', 'remoteAccess', 'uiResponsive',
+]
 /** Register account UI in Desktop and plain Web clients. @param ctx - client plugin context. */
 export function apply(ctx: Context): void {
   const desktop = 'dshDesktop' in globalThis
@@ -226,10 +238,6 @@ export function apply(ctx: Context): void {
         getSnapshot: () => snapshot,
         subscribe: (listener) => { listeners.add(listener); return () => { listeners.delete(listener) } },
       },
-      theme: {
-        getSnapshot: () => ctx.theme.getTheme(),
-        subscribe: listener => ctx.on('theme/change', listener),
-      },
     },
     async start() {
       publish({ ...snapshot, loginVisible: true, loginFailed: false })
@@ -333,6 +341,12 @@ export function apply(ctx: Context): void {
     name: 'settings.launcher', locale: 'settings.account', inject: () => operations,
     children: { 'settings.launcher.notifications': { kind: 'single', scope: 'root' } },
   }, AccountMenu)))
+  ctx.remoteAccess.whenAccess('account/watch', () => {
+    const withdraw = ctx.reflect.provide('accountSignIn', { open: () => { void operations.start().catch((_shownInDialog: unknown) => {
+      // start() already published loginFailed, which the sign-in dialog renders for this attempt.
+    }) } })
+    return () => { void withdraw() }
+  })
   ctx.remoteAccess.whenAccess('account/watch', () => ctx.slots.inject('settings.notice', () => ctx.slots.register({
     name: 'settings.notice', inject: () => operations,
     children: { 'settings.launcher.notifications': { kind: 'single', scope: 'root' } },

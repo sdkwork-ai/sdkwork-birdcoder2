@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-`dsh-agent-loop` 创建全新 agent 或恢复持久化会话，随后通过模型请求、流式响应、工具执行和持久会话历史驱动每个轮次。标准 agent 组合应挂载本包；声明式条目会在启动时启动 agent，公开的 `ctx.agents` API 则支持以编程方式创建和恢复 agent。所选工具执行器负责分发、并发、取消和工具日志。取消会保留已经流式交付给用户的文本。只有标准的「调用模型、运行工具、重复」生命周期无法满足需求时，才应选择自定义 `Agent` 实现。
+`dsh-agent-loop` 创建全新 agent 或恢复持久化会话，随后通过模型请求、流式响应、工具执行和持久会话历史驱动每个轮次。标准 agent 组合应挂载本包；声明式条目会在启动时启动 agent，公开的 `ctx.agents` API 则支持以编程方式创建和恢复 agent。Agent 所选的根注册表负责分发、并发、取消和工具日志。取消会保留已经流式交付给用户的文本。只有标准的「调用模型、运行工具、重复」生命周期无法满足需求时，才应选择自定义 `Agent` 实现。
 
 ## 目录
 
@@ -52,7 +52,7 @@ kind: "package-reference"
 | `agents[].sessionId` | — | 确切身份：首次使用创建，重新挂载时恢复已实体化的历史 |
 | `agents[].resumeSessionId` | — | 加载这个持久化会话而不是创建新会话；与 `sessionId` 互斥 |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-agent-loop) 列出所有接受的字段。`maxParallelToolCalls` 仍是 volatile 正整数 Config 字段，默认值为 `10`；`1` 表示串行执行。循环在每个批次调用 `execute()` 时传入当前值，其优先级高于执行器配置。实时修改从下一个批次生效；`agents` 仍是启动配置。
+生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-agent-loop) 列出所有接受的字段。`maxParallelToolCalls` 仍是 volatile 正整数 Config 字段，默认值为 `10`；`1` 表示串行执行。循环在每个批次调用 `execute()` 时传入当前值，其优先级高于根注册表自身的上限。实时修改从下一个批次生效；`agents` 仍是启动配置。
 
 配置式恢复会在发布前将声明的路由记录为 Session 选择。程序化恢复保留 Session 选择，除非其 setup 显式记录另一条路由；仅传入初始 `agentOptions` 不会覆盖已有历史。
 
@@ -72,7 +72,7 @@ const handle = await ctx.agents.create({
 
 ### 一个步骤做什么
 
-每个步骤发送派生 Session 历史及其可见工具 schema。系统消息包含初始指令及后续段更新。工具调用经过受守卫的流水线，每项模型可见事实都在派生请求前记录。循环把完整的原始调用批次传给 `ctx.tools.execute()`；内置执行器保留模型顺序的结果和独占屏障。取消会中止当前活动，并在未设置 `keepInbox` 时清空待处理工作；中断的流会结算已送达文本。
+每个步骤发送派生 Session 历史及其可见工具 schema。系统消息包含初始指令及后续段更新。工具调用经过受守卫的流水线，每项模型可见事实都在派生请求前记录。循环把完整的原始调用批次传给 `ctx.tools.execute()`；内置根注册表保留模型顺序的结果和独占屏障。取消会中止当前活动，并在未设置 `keepInbox` 时清空待处理工作；中断的流会结算已送达文本。
 
 -----
 
@@ -102,7 +102,7 @@ const handle = await ctx.agents.create({
 |---|---|
 | [`src/index.ts`](src/index.ts) | 插件入口：`AgentLoop` 服务、配置 schema、声明式 agent 启动、工厂注册 |
 | [`src/agent.ts`](src/agent.ts) | 具体 `ReactLoopAgent` 驱动器：收件箱、轮次／步骤状态机、取消 |
-| [`src/inbox.ts`](src/inbox.ts) | 包内部的 `ReactLoopInbox`：持久投影、结构化命令与仅供循环使用的领取状态 |
+| [`src/inbox.ts`](src/inbox.ts) | `ReactLoopInbox` 以及维护队列和领取落定的共享投影 |
 | [`src/runtime-context.ts`](src/runtime-context.ts) | 逐步骤运行时上下文快照处理 |
 
 ### 创建与拆除
@@ -119,7 +119,7 @@ loop 在发布工厂前等待必需的注册完成。它对模型选择和 inbox
 
 ### 轮次与步骤流程
 
-驱动器在其整个生命周期内拥有一个 agent，并在 `ctx.agents.withInitiator(agent, ...)` 内运行。`AgentLoop` 在服务生命周期内注册标准 `inbox` 投影，因此冷读取在没有 Agent 和所有 Agent 卸载后都可用。它还拥有 `modelSelection`，并为每个 Agent 构建 `AgentModel`，实现公开的 [Model API](../agent/README.zh.md#model-selection)。其包内部 `ReactLoopInbox` 使用该共享投影执行结构化命令与仅供 loop 使用的领取操作。在轮次边界，它先打开持久轮次，再原子领取待处理的 next-step 输入与一条排队提示词；在步骤之间则只领取 next-step 输入。驱动器组装提示词与工具，并运行 `agent/pre-step`；fallback 在监听器执行后投影运行时上下文。被拒绝的决定或空的首批输入不打开步骤。接纳后的首次尝试先记录 `step/start`，再运行 `agent/request` waterfall 与 `prepareCall()`；这两个异步阶段都看不到待提交的系统提示词与已接纳用户消息进入历史，在任一阶段取消都不会提交这两者。每次尝试都会刷新已注册运行时事实，并保留该步骤已准入的工具与模型选择。首次尝试追加组装的 `systemUpdates()` 返回的写入，并提交已接纳的 `user/message` 批次，并原位替换循环自有上下文候选。循环恢复被移除的运行时上下文、按需记录 header 与 context，再派生并冻结请求，通过该绑定的已准备调用发起流式请求。重试复用已提交历史，不重复组装、`agent/pre-step` 或用户消息准入。已记录压缩摘要之后的下一次尝试（包括重试）追加 `systemUpdates()` 根据同一批已捕获段返回的重建写入。组装之后的来源变化留到下一次组装处理。请求由 `header.config`、`deriveMessages()` 与 `header.tools` 构成，不携带 `system` 字段。每次模型尝试会发出一个进程本地 `start`，仅在匹配的持久 assistant-frame 结算之后发出各个 `chunk`，并恰好发出一个终态 `end`；最终组装或消息追加失败时以 `aborted` 结算，`committed` 则出现在持久 `assistant/message` 之后。每次成功的模型调用都恰好追加一个 message 锚点，被取消的流则追加带 `interrupted: true` 的锚点并携带已交付前缀，使下一次请求包含用户看到的内容。在步骤内，独占调用形成屏障，并行安全调用使用有界滚动池；策略、持久结果与结果上下文保持模型顺序。
+驱动器在其整个生命周期内拥有一个 agent，并在 `ctx.agents.withInitiator(agent, ...)` 内运行。`AgentLoop` 在服务生命周期内注册标准 `inbox` 投影，因此冷读取在没有 Agent 和所有 Agent 卸载后都可用。它还拥有 `modelSelection`，并为每个 Agent 构建 `AgentModel`，实现公开的 [Model API](../agent/README.zh.md#model-selection)。其包内部 `ReactLoopInbox` 使用该共享投影执行结构化命令与仅供 loop 使用的领取操作。在轮次边界，它先打开持久轮次，再原子领取待处理的 next-step 输入与一条排队提示词；在步骤之间则只领取 next-step 输入。驱动器把所选根注册表的条目捕获为该步骤的 `ToolStep`，以该 `ToolStep` 组装提示词，并运行 `agent/pre-step`；fallback 在监听器执行后投影运行时上下文。被拒绝的决定或空的首批输入不打开步骤。接纳后的首次尝试先记录 `step/start`，再运行 `agent/request` waterfall 与 `prepareCall()`；这两个异步阶段都看不到待提交的系统提示词与已接纳用户消息进入历史，在任一阶段取消都不会提交这两者。每次尝试都会刷新已注册运行时事实，并保留该步骤的 `ToolStep` 与模型选择。首次尝试追加组装的 `systemUpdates()` 返回的写入，并提交已接纳的 `user/message` 批次，并原位替换循环自有上下文候选。循环恢复被移除的运行时上下文、按需记录 header 与 context，再派生并冻结请求，通过该绑定的已准备调用发起流式请求。重试复用已提交历史，不再次捕获工具，也不重复组装、`agent/pre-step` 或用户消息准入。已记录压缩摘要之后的下一次尝试（包括重试）追加 `systemUpdates()` 根据同一批已捕获段返回的重建写入。组装之后的来源变化留到下一次组装处理。请求由 `header.config`、`deriveMessages()` 与 `header.tools` 构成，不携带 `system` 字段。每次模型尝试会发出一个进程本地 `start`，仅在匹配的持久 assistant-frame 结算之后发出各个 `chunk`，并恰好发出一个终态 `end`；最终组装或消息追加失败时以 `aborted` 结算，`committed` 则出现在持久 `assistant/message` 之后。每次成功的模型调用都恰好追加一个 message 锚点，被取消的流则追加带 `interrupted: true` 的锚点并携带已交付前缀，使下一次请求包含用户看到的内容。在步骤内，独占调用形成屏障，并行安全调用使用有界滚动池；策略、持久结果与结果上下文保持模型顺序。
 
 系统提示词组装由系统服务负责。它捕获来源文本和生命周期；组装的 `systemUpdates()` 在调用时将其与该 Session 的已提交准入比较。循环在首次尝试中、在新接纳用户消息之前追加返回的写入。首次提交即使没有指令也包含系统头节点；空头节点保留在日志中，但不进入派生模型消息。提交前的拒绝或取消不会写入头节点。压缩后的下一次已接纳模型尝试先清空保留的系统增量，再以其组装的完整提示词替换初始系统节点。这些普通 `system/message` 替换属于该开放步骤。头节点重置完成待处理的重建；此前的拒绝或取消会使重建在重启后仍保持待处理。因此，空闲压缩会保持保留的系统显示，直到另一次模型尝试发生。[system-prompt 包](../system-prompt/README.zh.md) 拥有贡献与准入语义。
 
@@ -130,6 +130,14 @@ loop 在发布工厂前等待必需的注册完成。它对模型选择和 inbox
 `turn/end` 声明的类型是 `TurnEndCancelCause`；取消时，循环在其中记录一份新的 `AgentCancelCause`，保留调用方的 `kind` 和 hook 的 `reason` 文本。实时 `AbortSignal.reason` 仍是调用方的那个对象，传输层可能向其添加属性——Node 的 fetch 会给它赋一个 `stack`——因此这份拷贝既让该调用栈不进入日志，也让结束事件保持可追加。
 
 最终适配器选择、分发与迭代失败以终止结束的形式到达并进入 `agent/request-error`；处理该失败的监听器返回 `{ kind: 'retry' }` 且不调用 `next()`，未被处理的失败则是终态。Middleware、结果处理、工具及其他扩展失败仍会抛出并直接关闭轮次——插件失败结束的是轮次，不是循环。取消后未分发的模型工具调用会收到合成的 `tool/call` 加 `ABORTED_BEFORE_DISPATCH` 结果对。
+
+<a id="returned-input"></a>
+
+`inbox` 投影从同一组 splice 推导队列和已领取的消息。Host 检查点保存队列以及为尚未开启的步骤领取的消息。这些消息来自当前轮次，或来自因中断而结束的最近一个轮次。客户端视图提供队列。
+
+如果轮次在 `step/start` 前因失败或保留队列的 Stop 而结束，inbox 在循环记录 `turn/end` 前把已领取的整批消息按领取顺序放回 next-turn 队首；inbox 根据自己的 `clear()` 和 `claim()` 调用做决定，循环不持有放回状态。放回的输入等待正常唤醒。步骤开始、轮次被阻止或正常结束、以及清空队列的取消都会落定领取。Session 从中断轮次恢复时，inbox 在 `agent/created` 前放回为尚未开启的步骤领取的消息；fork 保留父会话的队列，但不放回父会话轮次留下的未开启领取。每次唤醒都在步骤开始前失败的消息留在队首，直到原因修复或拥有者移除它。
+
+如果 Goal 驱动拒绝了回到队首的轮次，本次唤醒会结束，其余输入继续排队。
 
 关闭失败步骤之前，驱动器为每个尚无结果的 assistant 工具调用记录错误结果。已有 `tool/call` 记录但尚无已提交结果的调用获得 `TOOL_OUTCOME_UNKNOWN`；没有调用记录的请求获得 `TOOL_NOT_STARTED`。已提交的结果保持完整，已启动的派发先结算再恢复，轮次保留原始失败。这些结果让后续请求使用配对完整的工具历史，而不自动重试结果不明的操作。
 

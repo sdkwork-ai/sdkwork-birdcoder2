@@ -12,6 +12,8 @@
 
 import { existsSync, globSync, readFileSync } from 'node:fs'
 import { dirname, relative, resolve } from 'node:path'
+import { globSync, readFileSync } from 'node:fs'
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { Script } from 'node:vm'
 import ts from 'typescript'
 import type { DshBundleManifest } from '../packages/util/package-manifest/src/types.ts'
@@ -128,7 +130,7 @@ function validateClientHalvesDeclared(): string[] {
 
 /**
  * No shipped agent preset may repeat an unscoped row the host composition still runs.
- * Tool executors select through the mounting scope and may appear on both planes.
+ * Root tool registries select through the mounting scope and may appear on both planes.
  *
  * A preset contributes what ONE session adds to the host's registries. A row
  * active on both planes is therefore mounted twice — once per process and once
@@ -204,8 +206,8 @@ export function exclusivePlaneRowIds(rows: unknown): Set<string> {
     }
     if (!isRecord(value)) return
     if (typeof value.id === 'string' && typeof value.name === 'string'
-      && value.name !== '@deepseek-ai/dsh-tool-executor-native'
-      && value.name !== '@deepseek-ai/dsh-tool-executor-ptc') ids.add(value.id)
+      && value.name !== '@deepseek-ai/dsh-tool-registry-native'
+      && value.name !== '@deepseek-ai/dsh-tool-registry-ptc') ids.add(value.id)
     walk(value.insert)
     if (isCordisGroupEntry(value)) walk(value.config)
   }
@@ -418,13 +420,30 @@ export function bundlePluginDependencyErrors(
 }
 
 /**
+ * Decide whether one resolved configured specifier stays in the source plane.
+ * @param packageDirectory - Absolute directory of the workspace package the specifier names.
+ * @param resolvedFileName - File the tsconfig `paths` facade resolved the specifier to, or undefined when it did not resolve.
+ * @returns Whether the file is a `.ts`/`.tsx` source of that package or any file under its `src/`, such as the
+ *   hand-written `src/index.js` Host entry that tsx loads for a package root mapped to `src`; a declaration or
+ *   JavaScript file under built `lib/`, or a file of another package, is the artifact-plane fallback.
+ */
+export function resolvesToPackageSource(packageDirectory: string, resolvedFileName: string | undefined): boolean {
+  if (resolvedFileName === undefined) return false
+  const inside = (directory: string): boolean => {
+    const path = relative(directory, resolvedFileName)
+    return path !== '' && !path.startsWith('..') && !isAbsolute(path)
+  }
+  if (!inside(packageDirectory)) return false
+  return inside(join(packageDirectory, 'src')) || (/\.tsx?$/u.test(resolvedFileName) && !resolvedFileName.endsWith('.d.ts'))
+}
+
+/**
  * Every configured specifier of a local workspace package must resolve through
- * the tsconfig `paths` facade to a `.ts`/`.tsx` source file. The `dsh` source
+ * the tsconfig `paths` facade into that package's `src/`. The `dsh` source
  * launch (tsx) and vitest resolve in the source plane; without a `paths` match
  * they fall back to package `exports`, which reach built `lib/` — present on a
  * built dev tree, absent on a clean one — so a missing mapping boots locally
- * yet breaks every clean checkout. Anything but a `.ts`/`.tsx` hit (a `.d.ts`
- * or `.js` under built `lib/`) is that artifact-plane fallback, not source.
+ * yet breaks every clean checkout.
  */
 function validateSourcePlaneResolution(): string[] {
   const violations: string[] = []
@@ -450,19 +469,19 @@ function validateSourcePlaneResolution(): string[] {
     directoryExists: path => ts.sys.directoryExists(path),
     getCurrentDirectory: () => root,
   }
-  const sourceExtensions = new Set<string>([ts.Extension.Ts, ts.Extension.Tsx])
   const containingFile = resolve(root, 'scripts/verify-cordis-config.ts')
-  const locationsBySpecifier = new Map<string, Set<string>>()
+  const locationsBySpecifier = new Map<string, { readonly directory: string; readonly files: Set<string> }>()
   for (const reference of pluginReferences) {
     const packageName = packageNameFromSpecifier(reference.name)
-    if (packageName === undefined || !localPackages.has(packageName)) continue
-    const locations = locationsBySpecifier.get(reference.name) ?? new Set<string>()
-    locations.add(reference.file)
+    const directory = packageName === undefined ? undefined : localPackages.get(packageName)
+    if (directory === undefined) continue
+    const locations = locationsBySpecifier.get(reference.name) ?? { directory, files: new Set<string>() }
+    locations.files.add(reference.file)
     locationsBySpecifier.set(reference.name, locations)
   }
-  for (const [specifier, locations] of locationsBySpecifier) {
+  for (const [specifier, { directory, files: locations }] of locationsBySpecifier) {
     const resolved = ts.resolveModuleName(specifier, containingFile, options, host).resolvedModule
-    if (resolved !== undefined && sourceExtensions.has(resolved.extension)) continue
+    if (resolvesToPackageSource(directory, resolved?.resolvedFileName)) continue
     violations.push(`${[...locations].join(', ')}: ${specifier} does not resolve to workspace source through tsconfig.base.json paths (add a mapping so the tsx source launch does not depend on built lib/)`)
   }
   return violations
@@ -524,7 +543,7 @@ function readManifest(path: string, repoRoot: string = root): PackageManifest {
 }
 
 function localPackageDirectories(): Map<string, string> {
-  const manifests = globSync(['packages/*/*/package.json', 'vendor/*/package.json'], { cwd: root })
+  const manifests = globSync(['packages/*/*/package.json', 'vendor/*/package.json', 'vendor/im/*/package.json'], { cwd: root })
   const packages = new Map<string, string>()
   for (const manifestPath of manifests) {
     const manifest = readManifest(manifestPath)

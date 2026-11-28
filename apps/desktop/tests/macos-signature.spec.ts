@@ -106,6 +106,7 @@ describe('desktop macOS release signature', () => {
         // while the upload plan publishes `nightly.yml` alongside it for the
         // runtime's `updater.channel` selection (desktop-upload-plan.spec
         // asserts both feed names; the config comment records the decision).
+        channel: 'stable',
       }],
     })
     expect(typeof config.artifactBuildCompleted).toBe('function')

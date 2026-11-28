@@ -39,7 +39,7 @@ import clsx from 'clsx'
 import {
   Button, IconCheckOutlineRegular, IconChevronRightOutlineRegular, IconEditOutlineRegular, IconFolderCloseRegular, IconFolderOpenRegular,
   IconPlusOutlineRegular, Modal,
-} from '@deepseek-ai/dsh-client-ui-primitives'
+} from '@deepseek-ai/dsh-client-ui-primitives/client'
 import type { DirectoryEntry, DirectoryListing } from '@deepseek-ai/dsh-api-remotes/client'
 import type { Translate } from '@deepseek-ai/dsh-client-locale/client'
 import css from './DirectoryBrowser.module.css'
@@ -807,7 +807,7 @@ export function DirectoryBrowser({ open, listDirectory, createDirectory, onOpen,
           const card = event.currentTarget.closest('[role="dialog"]')
           /* v8 ignore next -- narrowing guard: this scope always renders inside the Modal card. */
           if (card === null) return
-          if (event.relatedTarget instanceof Node && card.contains(event.relatedTarget)) return
+          if (card.contains(event.relatedTarget)) return
           // The user moved focus out of the card themselves: cancel without
           // re-parking (a lingering Enter-failure flag must not yank focus
           // back either).

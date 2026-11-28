@@ -10,10 +10,12 @@ import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-api-remote-access/remote'
 import type { RemoteEndpoint } from '@deepseek-ai/dsh-api-remote-access/client'
 import type {} from '@deepseek-ai/dsh-client-hmr/remote'
+import type {} from '@deepseek-ai/dsh-client-ui-connectors/remote'
 import type {} from '@deepseek-ai/dsh-cua/remote'
 import type {} from '@deepseek-ai/dsh-experimental-api-speech-to-text/remote'
 import type {} from '@deepseek-ai/dsh-experimental-claude-code-mods/remote'
 import type {} from '@deepseek-ai/dsh-experimental-client-ui-cot-translation/remote'
+import type {} from '@deepseek-ai/dsh-read-aloud/remote'
 import { VIEWER_ENDPOINT_CLASSES, type ViewerEndpointClass } from '../endpoint-classification.ts'
 
 /**

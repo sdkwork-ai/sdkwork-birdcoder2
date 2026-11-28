@@ -19,10 +19,10 @@
   config:
     maxBytes: 65536
 
-- id: tool-executor-native
+- id: tool-registry-native
   disabled: false
 
-- id: tool-executor-ptc
+- id: tool-registry-ptc
   disabled: true
 
 - id: system-prompt
@@ -38,8 +38,6 @@
       name: '@deepseek-ai/dsh-cordis-host-runner'
       config:
         clientInspectTimeoutMs: 100
-    - id: cordis-inspect-providers
-      name: '@deepseek-ai/dsh-tool-cordis/host'
     - id: tool-cordis
       name: '@deepseek-ai/dsh-tool-cordis'
     - id: llm-replay

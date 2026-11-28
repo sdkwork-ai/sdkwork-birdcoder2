@@ -2,6 +2,7 @@
 // WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
 // so the literal is the value under assertion rather than a binding this build resolves
 import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
+import * as NativeToolRegistry from '@deepseek-ai/dsh-tool-registry-native'
 import { accountStub } from '../../../account/deepseek-account/tests/account-stub.ts'
 import type { AnonymousUserId } from '@deepseek-ai/dsh-anonymous-user-id'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
@@ -27,6 +28,8 @@ import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import LocalCredentials from '@deepseek-ai/dsh-credentials-local'
 import { profileComposition } from '../../../settings/settings/tests/profile-composition.ts'
 import SessionStore, { type SessionId } from '@deepseek-ai/dsh-session'
+import DeepSeekLlmApiExtensionRegistry from '@deepseek-ai/dsh-deepseek-llm-api-extensions'
+import * as SessionLogDeepSeek from '@deepseek-ai/dsh-session-log-deepseek'
 import { DeepSeekAdapter } from '../src/adapter.ts'
 import { object } from '../src/replay.ts'
 import { DeepSeekFileStore } from '../src/file-store.ts'
@@ -66,6 +69,12 @@ async function send(agent: Agent, text: string) {
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
     'saved-notice': { kind: 'saved-notice' }
+  }
+}
+
+declare module '@deepseek-ai/dsh-deepseek-llm-api-extensions/types' {
+  interface DeepSeekLlmApiHeaderMap {
+    'x-deepseek-harness-test-credential': string
   }
 }
 
@@ -388,7 +397,7 @@ describe('Cordis provider composition', () => {
       ['@deepseek-ai/dsh-agent', AgentRegistry], ['@deepseek-ai/dsh-agent-loop', AgentLoop],
       ['@deepseek-ai/dsh-session', SessionStore], ['@deepseek-ai/dsh-session-projection', SessionProjectionRegistry],
       ['@deepseek-ai/dsh-system-prompt', SystemPrompt], ['@deepseek-ai/dsh-tools', ToolRuntime],
-      ['@deepseek-ai/dsh-tool-executor-native', NativeToolExecutor],
+      ['@deepseek-ai/dsh-tool-registry-native', NativeToolRegistry],
     ])
     // The importer supplies source modules while Loader still owns configuration and effects.
     for (const name of modules.keys()) {
@@ -683,8 +692,13 @@ it.each([
   // The stand-in releases the credential by exact destination; the real service owns origin validation in its own suite.
   ctx.provide('deepseekAccount', accountStub({ token: url => url === 'https://api.deepseek.com' ? 'account-token' : undefined }))
   await ctx.plugin(LlmRuntime)
+  await ctx.plugin(SessionStore)
+  await ctx.plugin(DeepSeekLlmApiExtensionRegistry)
+  await ctx.plugin(SessionLogDeepSeek, { enabled: false })
   await ctx.plugin(DeepSeekAuth)
   await ctx.plugin(expected === 'account-token' ? AccountProvider : Messages, { baseURL })
+  const parent = ctx.sessions.create()
+  const child = ctx.sessions.create(undefined, { meta: { origin: 'subagent', parentSession: parent.id } })
   const request = vi.fn<typeof fetch>((_input, init) => {
     const headers = new Headers(init?.headers)
     expect(headers.has('authorization')).toBe(false)
@@ -694,6 +708,24 @@ it.each([
     return Promise.resolve(new Response(sse(textEvents), { status: 200 }))
   })
   vi.stubGlobal('fetch', request)
-  await assemble(ctx.llm.stream(options({ provider: expected === 'account-token' ? 'deepseek-account' : 'deepseek-official' })))
+  await assemble(ctx.llm.stream(options({ provider: expected === 'account-token' ? 'deepseek-account' : 'deepseek-official', sessionId: child.id })))
   expect(request).toHaveBeenCalledOnce()
+  const headers = new Headers(request.mock.calls[0]?.[1]?.headers)
+  expect(headers.get('x-deepseek-harness-session-type')).toBe('subagent')
+  expect(headers.get('x-deepseek-harness-subagent-parent-session-id')).toBe(parent.id)
+})
+
+it('keeps the route credential when a registered header reuses its name', async () => {
+  const { ctx } = await context()
+  await ctx.plugin(DeepSeekLlmApiExtensionRegistry)
+  const name = 'x-deepseek-harness-test-credential'
+  ctx.deepseekLlmApiExtensions.registerHeader(name, { value: () => 'plugin-value' })
+
+  const http = await endpoint()
+  const llm = adapter({ baseURL: http.url }, {
+    resolveHeaders: request => ctx.deepseekLlmApiExtensions.headers(request),
+    resolveAuth: async () => ({ headers: { [name]: 'route-value' } }),
+  })
+  await assemble(llm.stream(options()))
+  expect(http.requests[0]?.headers[name]).toBe('route-value')
 })

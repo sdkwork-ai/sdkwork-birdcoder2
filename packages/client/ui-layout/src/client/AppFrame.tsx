@@ -26,6 +26,8 @@ import {
   RIGHTBAR_MIN, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_COLLAPSED, SIDEBAR_DEFAULT, SIDEBAR_DRAWER_BREAKPOINT,
 } from './columns.ts'
 import type { AppModeId } from './modes.ts'
+} from '@deepseek-ai/dsh-client-ui-slots/client'
+import { CENTER_MIN, clampWidth, computeColumns, RIGHTBAR_DEFAULT_RATIO, RIGHTBAR_MAX_RATIO, RIGHTBAR_MIN, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_COLLAPSED, SIDEBAR_DEFAULT, SIDEBAR_DRAWER_BREAKPOINT } from './columns.ts'
 import { DocumentTitle } from './DocumentTitle.tsx'
 import type { createLayoutStore } from './stores.ts'
 import css from './AppFrame.module.css'
@@ -52,8 +54,18 @@ export type AppFrameProps =
  * string is falsy for a boolean attribute, so the columns stayed interactive
  * behind the mask. The boolean form renders the attribute.
  */
+ * Inert attribute props. React 18 forwards `inert` only as a string, and React 19 treats an empty
+ * string as false; a non-empty string sets the attribute under both. Typed `object` because React 18's
+ * DOM types omit `inert` and React 19's declare it boolean.
+ */
+function inertProps(inert: boolean): object {
+  return inert ? { inert: 'inert' } : {}
+}
+
+/** Center column grid item (session-body building block). */
 function CenterColumn(props: { children?: ReactNode; inert: boolean }) {
   return <div className={css.centerCol} inert={props.inert || undefined}>{props.children}</div>
+  return <div className={css.centerCol} {...inertProps(props.inert)}>{props.children}</div>
 }
 
 /** Subscribe to the main key without subscribing the column frame to each panel id. */
@@ -89,6 +101,7 @@ function ConversationMarker({ usePanelInfo, frameRef }: Pick<PropsRuntime<'root'
  */
 function RightbarColumn(props: { children?: ReactNode; inert: boolean }) {
   return <div className={css.rightbarCol} data-rightbar-col inert={props.inert || undefined}>{props.children}</div>
+  return <div className={css.rightbarCol} data-rightbar-col {...inertProps(props.inert)}>{props.children}</div>
 }
 
 /**
@@ -335,11 +348,13 @@ export function AppFrame({
   const sidebarWidth = drawer
     ? Math.min(layoutInfo.sidebar || SIDEBAR_DEFAULT, Math.max(0, viewport - 48))
     : cols.sidebar
+  const sidebarAnimating = animateTracks && !dragging
   const sidebar = useMemo(() => renderSlot('sidebar', {
     collapsed: sidebarCollapsed,
     width: sidebarWidth,
     drawer,
-  }), [renderSlot, sidebarCollapsed, sidebarWidth, drawer])
+    animating: sidebarAnimating,
+  }), [renderSlot, sidebarCollapsed, sidebarWidth, drawer, sidebarAnimating])
   const main = useMemo(() => (
     <MainPanel usePanelInfo={usePanelInfo} renderSlot={renderSlot} />
   ), [usePanelInfo, renderSlot])
@@ -405,6 +420,8 @@ export function AppFrame({
         style={drawer ? { width: sidebarWidth } : undefined}
         inert={drawer && sidebarCollapsed || undefined}>
         {sidebarVisible && sidebar}
+        {...inertProps(drawer && sidebarCollapsed)}>
+        {sidebar}
       </div>
       <>
         {codeMode
@@ -420,6 +437,7 @@ export function AppFrame({
         </RightbarColumn>
       </>
       <div className={css.bottomRow} data-shell-bottom inert={drawerOpen || undefined}>
+      <div className={css.bottomRow} data-shell-bottom {...inertProps(drawerOpen)}>
         {renderSlot('shell.bottom', {})}
       </div>
       <div className={css.overlayLayer} data-shell-overlay>
@@ -427,6 +445,7 @@ export function AppFrame({
       </div>
       {leadingMounted && (
         <div className={css.leadingSeat} data-shell-leading inert={drawerOpen || undefined}>
+        <div className={css.leadingSeat} data-shell-leading {...inertProps(drawerOpen)}>
           {leading}
         </div>
       )}

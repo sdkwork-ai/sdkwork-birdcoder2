@@ -19,6 +19,8 @@ import './fonts-dom.client.ts'
 afterEach(cleanup)
 
 const t = makeTranslate(en)
+/** The opening action of a change request whose provider names itself GitHub. */
+const OPEN_ON_GITHUB = t('change.viewOn', { forge: 'GitHub' })
 const NOW = Date.parse('2026-10-09T12:00:00Z')
 /** Minus sign (U+2212) the diff size puts before the deleted line count. */
 const MINUS = '−'
@@ -34,7 +36,7 @@ function card(value: ForgePanelChangeRequest, options: { expanded?: boolean; act
   const view = render(
     <ul>
       <ChangeRequestCard locale="en" entry={value} expanded={options.expanded ?? false} onToggle={onToggle} now={NOW} actions={actions}
-        t={options.t ?? t} />
+        coarsePointer={false} t={options.t ?? t} />
     </ul>,
   )
   const item = view.container.querySelector('[data-forge-change]')
@@ -180,7 +182,7 @@ describe('collapsed ChangeRequestCard', () => {
     expect(within(b.item).queryByText(en['change.row.changes'])).toBeNull()
     expect(within(b.item).queryByText('+12')).toBeNull()
     expect(b.menuButton().getAttribute('aria-label')).toBe('Actions for #7')
-    b.choose(en['change.view'])
+    b.choose(OPEN_ON_GITHUB)
     b.choose(en['change.copy'])
     b.choose(en['change.remove'])
     expect(b.openLink).toHaveBeenCalledWith('https://github.com/octo/demo/pull/7')
@@ -347,7 +349,7 @@ describe('expanded ChangeRequestCard', () => {
     expect(within(b.item).getByText('+12,345')).toBeTruthy()
     expect(within(b.item).getByText(`${MINUS}3`)).toBeTruthy()
 
-    b.choose(en['change.view'])
+    b.choose(OPEN_ON_GITHUB)
     b.choose(en['change.copy'])
     b.choose(en['change.remove'])
     expect(b.openLink).toHaveBeenCalledWith('https://github.com/octo/demo/pull/7#web')
@@ -533,7 +535,8 @@ describe('expanded ChangeRequestCard', () => {
     if (change === 'close') fireEvent.click(within(b.item).getByText(en['change.row.checks']))
     else if (change === 'unmount') b.view.unmount()
     else b.view.rerender(<ul><ChangeRequestCard entry={entry(1, { ...partial, headSha: 'b'.repeat(40) })} expanded onToggle={b.onToggle}
-      now={NOW} locale="en" actions={{ openLink: b.openLink, copyLink: b.copyLink, retry: b.retry, readChecks }} t={t} /></ul>)
+      now={NOW} locale="en" actions={{ openLink: b.openLink, copyLink: b.copyLink, retry: b.retry, readChecks }} coarsePointer={false}
+      t={t} /></ul>)
     expect(signal.aborted).toBe(true)
     await act(async () => { pending.resolve(snapshot(1, { checks: [check('late result', { state: 'failure' })] })); await Promise.resolve() })
     expect(screen.queryByText('late result')).toBeNull()
@@ -572,7 +575,7 @@ describe('expanded ChangeRequestCard', () => {
     expect(b.status.textContent).toBe('#1')
     expect(within(b.item).queryByText(en['change.row.checks'])).toBeNull()
     expect(within(b.item).queryByText('+12')).toBeNull()
-    expect(b.menuItems()).toEqual([en['change.view'], en['change.copy'], en['change.remove']])
+    expect(b.menuItems()).toEqual([OPEN_ON_GITHUB, en['change.copy'], en['change.remove']])
     b.choose(en['change.copy'])
     expect(b.copyLink).toHaveBeenCalledWith('https://github.com/octo/demo/pull/1')
   })
@@ -585,8 +588,21 @@ describe('expanded ChangeRequestCard', () => {
     expect(b.menuButton().getAttribute('aria-label')).toBe('Actions for Change 3')
     b.choose(en['change.remove'])
     expect(b.remove).toHaveBeenCalledOnce()
+    // Without a provider the action names the browser, and carries the leaving arrow.
     b.choose(en['change.view'])
     expect(b.openLink).toHaveBeenCalledWith('https://example.test/review/latest#web')
+  })
+
+  it('marks the opening action with the provider\'s mark, and with the arrow for a change request no provider serves', () => {
+    const mark = 'svg[viewBox="-2 -2 28 28"]'
+    const b = card(entry(1, snapshot(1)))
+    fireEvent.click(b.menuButton())
+    expect(screen.getByRole('menuitem', { name: OPEN_ON_GITHUB }).querySelector(mark)).not.toBeNull()
+    cleanup()
+    const other = card(unserved('https://example.test/review/latest'))
+    fireEvent.click(other.menuButton())
+    const open = screen.getByRole('menuitem', { name: en['change.view'] })
+    expect([open.querySelector(mark), open.querySelector('svg') === null]).toEqual([null, false])
   })
 
   it('closes the actions menu on Escape', () => {
@@ -600,7 +616,7 @@ describe('expanded ChangeRequestCard', () => {
 
   it('omits removal on a surface without a Session binding', () => {
     const b = card(entry(1, snapshot(1)), { expanded: true, actions: { remove: undefined } })
-    expect(b.menuItems()).toEqual([en['change.view'], en['change.copy']])
+    expect(b.menuItems()).toEqual([OPEN_ON_GITHUB, en['change.copy']])
   })
 })
 
@@ -685,7 +701,7 @@ describe('ChangeRequestCard actions', () => {
     const merge = vi.fn<NonNullable<ChangeRequestActions['merge']>>(async () => {})
     const actions: ChangeRequestActions = { openLink: vi.fn(), copyLink: vi.fn(), retry: vi.fn(), merge }
     const view = (headSha: string) => <ChangeRequestCard locale="en" entry={entry(7, snapshot(7, { mergeReady: true, headSha }))}
-      expanded onToggle={vi.fn()} now={NOW} actions={actions} t={t} />
+      expanded onToggle={vi.fn()} now={NOW} actions={actions} coarsePointer={false} t={t} />
     const rendered = render(view(head))
     const button = screen.getByRole('button', { name: en['change.merge'] })
     fireEvent.click(button)
@@ -711,6 +727,7 @@ describe('ChangeRequestCard actions', () => {
           onToggle={vi.fn()}
           now={NOW}
           actions={actions}
+          coarsePointer={false}
           t={t}
         />
       </ul>
@@ -735,6 +752,75 @@ describe('ChangeRequestCard actions', () => {
   ] as const)('offers neither action when %s', (_label, overrides) => {
     const b = card(entry(7, snapshot(7, overrides)), { expanded: true, actions: { markReady: vi.fn(async () => {}) } })
     expect(b.menuItems()).not.toContain(en['change.markReady'])
+    expect(within(b.item).queryByRole('button', { name: en['change.merge'] })).toBeNull()
+  })
+
+  it('offers the automatic merge of a change request the host would not merge yet, with the outlined button and the same menu', async () => {
+    const pending = deferred()
+    const autoMerge = vi.fn<NonNullable<ChangeRequestActions['autoMerge']>>(() => pending.promise)
+    const off = { enabled: false, method: null, enabledBy: null, canEnable: true, canDisable: false }
+    const value = entry(7, snapshot(7, { mergeReady: false, mergeMethods: ['squash', 'merge'], headSha: head, autoMerge: off }))
+    const b = card(value, { expanded: true, actions: { autoMerge } })
+    expect(within(b.item).queryByRole('button', { name: en['change.merge'] })).toBeNull()
+    const button = within(b.item).getByRole('button', { name: en['change.autoMerge'] })
+    expect([button.classList.contains(css.autoMergeAction ?? ''), button.classList.contains(css.mergeAction ?? '')]).toEqual([true, false])
+    fireEvent.click(button)
+    expect(within(screen.getByRole('menu')).getByText('Merge #7 into main once its requirements are met')).toBeTruthy()
+    expect(mergeRows()).toEqual([
+      'Squash and mergeCombine every commit into one ✓', 'Create a merge commitKeep every commit and add a merge commit', 'Enable auto-merge',
+    ])
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Enable auto-merge' }))
+    expect(autoMerge).toHaveBeenCalledWith(value, { enabled: true, method: 'squash', headSha: head })
+    expect(button.hasAttribute('disabled')).toBe(true)
+    await act(async () => {
+      pending.resolve()
+      await pending.promise
+    })
+    expect(button.hasAttribute('disabled')).toBe(false)
+  })
+
+  it('shows an automatic merge that is on, and cancels it where the user may', async () => {
+    const autoMerge = vi.fn<NonNullable<ChangeRequestActions['autoMerge']>>(async () => {})
+    const on = { enabled: true, method: 'merge' as const, enabledBy: 'mona', canEnable: false, canDisable: true }
+    const value = entry(7, snapshot(7, { mergeReady: false, autoMerge: on }))
+    const b = card(value, { expanded: true, actions: { autoMerge } })
+    const button = within(b.item).getByRole('button', { name: en['change.autoMergeOn'] })
+    expect(button.getAttribute('data-forge-auto-merge')).toBe('on')
+    fireEvent.click(button)
+    expect(within(screen.getByRole('menu')).getByText('Method: Create a merge commit · Enabled by mona')).toBeTruthy()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Cancel auto-merge' }))
+    expect(autoMerge).toHaveBeenCalledWith(value, { enabled: false })
+    expect(screen.queryByRole('menu')).toBeNull()
+    await act(async () => { await Promise.resolve() })
+    cleanup()
+
+    // A surface that cannot change it, and a user who may not, see the state without the cancellation.
+    for (const [actions, state] of [[{}, on], [{ autoMerge }, { ...on, canDisable: false }]] as const) {
+      const shown = card(entry(7, snapshot(7, { mergeReady: false, autoMerge: state })), { expanded: true, actions })
+      fireEvent.click(within(shown.item).getByRole('button', { name: en['change.autoMergeOn'] }))
+      expect(screen.queryByRole('menuitem', { name: 'Cancel auto-merge' })).toBeNull()
+      fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
+      expect(screen.queryByRole('menu')).toBeNull()
+      cleanup()
+    }
+  })
+
+  it('merges now instead of showing the automatic merge once the host would merge', () => {
+    const on = { enabled: true, method: 'merge' as const, enabledBy: null, canEnable: false, canDisable: true }
+    const actions = { merge: vi.fn(async () => {}), autoMerge: vi.fn(async () => {}) }
+    const b = card(entry(7, snapshot(7, { mergeReady: true, autoMerge: on })), { expanded: true, actions })
+    expect(within(b.item).getByRole('button', { name: en['change.merge'] })).toBeTruthy()
+    expect(within(b.item).queryByRole('button', { name: en['change.autoMergeOn'] })).toBeNull()
+  })
+
+  it.each([
+    ['the surface cannot turn it on', {}, { mergeMethods: ['merge'] as const }],
+    ['the repository allows no merge method', { autoMerge: vi.fn(async () => {}) }, { mergeMethods: [] as const }],
+  ])('offers no automatic merge when %s, and no merge it cannot run', (_label, actions, overrides) => {
+    const off = { enabled: false, method: null, enabledBy: null, canEnable: true, canDisable: false }
+    const b = card(entry(7, snapshot(7, { mergeReady: false, autoMerge: off, ...overrides })), { expanded: true, actions })
+    expect(within(b.item).queryByRole('button', { name: en['change.autoMerge'] })).toBeNull()
+    // The card names no merge the host would refuse; the review page does.
     expect(within(b.item).queryByRole('button', { name: en['change.merge'] })).toBeNull()
   })
 
@@ -804,7 +890,7 @@ describe('change request number formatting', () => {
     const value = entry(7, snapshot(7, { additions: 1234, deletions: 5678 }))
     const actions: ChangeRequestActions = { openLink: vi.fn(), copyLink: vi.fn(), retry: vi.fn(), viewChanges: vi.fn() }
     const view = (locale: string) => <ChangeRequestCard locale={locale} entry={value} expanded onToggle={vi.fn()}
-      now={NOW} actions={actions} t={t} />
+      now={NOW} actions={actions} coarsePointer={false} t={t} />
     const rendered = render(view('de'))
     expect(screen.getByText('+1.234')).toBeTruthy()
     expect(screen.getByText('−5.678')).toBeTruthy()

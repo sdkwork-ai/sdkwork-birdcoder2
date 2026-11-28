@@ -16,7 +16,7 @@ import type { SourcedAnnotation } from '../src/client/annotations.ts'
 import type { FileThreads, ThreadActions } from '../src/client/ReviewThreads.tsx'
 import { reviewThread } from './thread-fixtures.client.ts'
 
-const file: ForgeDiffFile = { path: 'a.txt', previousPath: null, status: 'modified', binary: false, oversized: false, untracked: false, layer: 'implementation', digest: 'digest', additions: 3, deletions: 2,
+const file: ForgeDiffFile = { path: 'a.txt', previousPath: null, status: 'modified', binary: false, oversized: false, untracked: false, submodule: false, layer: 'implementation', digest: 'digest', additions: 3, deletions: 2,
   hunks: [{ oldStart: 2, oldLines: 3, newStart: 2, newLines: 4, lines: [' same', '-old first', '-old last', '+new first', '+new last', '+'] }] }
 const source = { kind: 'local' as const, scope: 'branch', base: 'origin/main', baseRef: null, commits: null }
 const t = makeTranslate(en)
@@ -27,8 +27,8 @@ function mount(overrides: Partial<DiffFileProps> = {}) {
   const records = new ReviewQueue('diff-review')
   const review: ReviewActions = { source, addToInput, records, onQuoted: (item) => { records.recordAgent(item) } }
   const handlers = {
-    toggle: vi.fn(), reveal: vi.fn(), expand: vi.fn(), readContext: vi.fn(), view: vi.fn(), actions: () => [], section: vi.fn(),
-    nextThread: vi.fn(),
+    toggle: vi.fn(), reveal: vi.fn(), expand: vi.fn(), readContext: vi.fn(), view: vi.fn(), write: vi.fn(), actions: () => [],
+    section: vi.fn(), nextThread: vi.fn(),
     reach: new SectionReach(), annotation: vi.fn(() => null), fileMenu: vi.fn(() => null), unfold: vi.fn(),
   }
   const props: DiffFileProps = { file, visible: true, expanded: true, large: false, revealed: false,
@@ -357,7 +357,8 @@ function annotation(key: string, place: SourcedAnnotation['annotation']['place']
 /** File threads whose cards share inert actions. */
 function lineThreads(lines: FileThreads['lines']): FileThreads {
   const actions: ThreadActions = {
-    author: null, addToInput: () => true, openLink: vi.fn(), readText: vi.fn(), inputFailed: vi.fn(), focused: null, writes: null,
+    author: null, addToInput: () => true, openLink: vi.fn(), forge: 'github', readText: vi.fn(), inputFailed: vi.fn(), focused: null,
+    writes: null,
   }
   return { lines, file: [], outdated: [], unresolved: lines.length, actions }
 }

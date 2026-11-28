@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-conversation",
   "description": "Target-neutral Conversation assembly, shell, composer, queue, and view navigation",
-  "version": "0.2.3-alpha.2",
+  "version": "0.2.3-alpha.3",
   "publishConfig": {
     "access": "public"
   },
@@ -38,7 +38,8 @@
         "@deepseek-ai/dsh-client-ui-session-status",
         "@deepseek-ai/dsh-client-ui-settings",
         "@deepseek-ai/dsh-client-ui-workspace",
-        "@deepseek-ai/dsh-client-ui-context-menu"
+        "@deepseek-ai/dsh-client-ui-context-menu",
+        "@deepseek-ai/dsh-client-ui-responsive"
       ],
       "platform": "web"
     }
@@ -85,9 +86,9 @@
     "@deepseek-ai/dsh-workspace": "workspace:*",
     "@deepseek-ai/dsh-file-reference": "workspace:*",
     "@deepseek-ai/dsh-util-workspace-path": "workspace:*",
-    "react": "^18.2.0",
+    "react": "^19.3.1",
     "@lexical/headless": "^0.49.0",
-    "react-dom": "^18.2.0",
+    "react-dom": "^19.3.1",
     "lexical": "^0.49.0",
     "clsx": "^2.0.0",
     "@lexical/utils": "^0.49.0",
@@ -103,7 +104,8 @@
     "@deepseek-ai/dsh-brand": "workspace:*",
     "zod": "4.6.6",
     "@deepseek-ai/dsh-client-ui-context-menu": "workspace:*",
-    "@deepseek-ai/dsh-client-config": "workspace:*"
+    "@deepseek-ai/dsh-client-config": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-responsive": "workspace:*"
   },
   "files": [
     "locale/*.json",

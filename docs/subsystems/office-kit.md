@@ -2,20 +2,20 @@
 
 English | [中文](office-kit.zh.md)
 
-The [document package family](../../packages/document/README.md) renders, converts, and recalculates Office files on the Node Host. Consumers authorize source reads and own presentation; the shared provider owns the engine, bounded admission, transient output reuse, and the private output store. The [`office_render`, `office_convert`, and `office_recalculate` tools](../../packages/document/tool-office/README.md) are the model-facing consumers; the provider itself creates no Session event.
+The [document package family](../../packages/document/README.md) renders, converts, and recalculates Office files on the Node Host. Consumers authorize source reads and own presentation; the shared provider owns the engine, bounded admission, transient output reuse, and the private output store. The [`document_render`, `document_convert`, and `document_recalculate` tools](../../packages/document/tool-document/README.md) are the model-facing consumers; the provider itself creates no Session event.
 
 ## Ownership
 
 | Owner | Responsibility |
 |---|---|
-| [office-kit](../../packages/document/office-kit/README.md) | `ctx.officeKit`: shared LibreOffice rendering, conversion, and recalculation, bounded admission, output caching, and the per-Session output store; resolution of the provider's own Kit entry, engine manifests from that installation, and native paths mapped to ASAR unpacked directories |
-| [tool-office](../../packages/document/tool-office/README.md) | The on-demand `office_render`, `office_convert`, and `office_recalculate` tools: rendered images in tool results and converted or recalculated files returned for a shell copy |
-| [Web bundle](../../packages/bundle/web-app/README.md) and [SDK bundle](../../packages/bundle/sdk-app/README.md) | One configurable provider and `tool-office` shared by Host consumers |
+| [office-kit](../../packages/document/office-kit/README.md) | `ctx.officeKit`: shared LibreOffice rendering, conversion, and recalculation, Poppler PDF rendering, bounded admission, output caching, and the per-Session output store; resolution of the provider's own Kit entry, engine manifests from that installation, and native paths mapped to ASAR unpacked directories |
+| [tool-document](../../packages/document/tool-document/README.md) | The on-demand `document_render`, `document_convert`, and `document_recalculate` tools: rendered images in tool results and converted or recalculated files returned for a shell copy |
+| [Web bundle](../../packages/bundle/web-app/README.md) and [SDK bundle](../../packages/bundle/sdk-app/README.md) | One configurable provider and `tool-document` shared by Host consumers |
 | [Office preview Client](../../packages/client/ui-sidebar-documentpreview/README.md#office-preview) | Office extension selection, PDF reuse, and missing-font notices |
 
 ## Requests and results
 
-[`OfficeKitRequest`](../../packages/document/office-kit/src/types.ts) contains an already-authorized source key/version, optional stat size, a deferred `read(signal, maxBytes)` callback, foreground/background priority, and a `OfficeExtension`: `doc`, `docx`, `xls`, `xlsx`, `ppt`, or `pptx`. `OfficeKit.convert(request, signal?)` returns one complete PDF result. `renderImages()` returns bounded PNG images of selected pages, slides, or worksheet areas; `convertTo()` and `recalculate()` save the output under the provider's `outputDirectory` for the request's owner and return its Host path. Their request types accept OpenDocument inputs, and image rendering accepts PDF. All methods share admission and caching. Cancellation follows the caller and provider lifetimes; validation, output, and engine failures reject with a classified `OfficeKitError`.
+[`OfficeKitRequest`](../../packages/document/office-kit/src/types.ts) contains an already-authorized source key/version, optional stat size, a deferred `read(signal, maxBytes)` callback, foreground/background priority, and a `OfficeExtension`: `doc`, `docx`, `xls`, `xlsx`, `ppt`, or `pptx`. `OfficeKit.convert(request, signal?)` returns one complete PDF result. `renderImages()` returns bounded PNG images of selected pages, slides, or worksheet areas; `convertTo()` and `recalculate()` save the output under the provider's `outputDirectory` for the request's owner and return its Host path. Their request types accept OpenDocument inputs, and image rendering accepts PDF; an optional `renderer` selects `libreoffice` or `poppler`, and the result names the renderer used. Those four methods share admission and caching. `discoverRuntime()` inspects installed Kit runtime metadata without starting an engine, and `openDocument()` lazily loads Kit's interactive editor entry with the provider's engine resolver and font/archive configuration outside the conversion queue and cache, returning a caller-owned `EditorDocument`. Cancellation follows the caller and provider lifetimes; validation, output, and engine failures reject with a classified `OfficeKitError`.
 
 `OfficeKitPriority` is `foreground` for requested preview/QA and `background` for speculation. `OfficeSourceKey` brands the caller-owned authorized source locator. `OfficeKitGeneration` brands a provider lifetime, and `OfficeKitKey` brands its content identity; neither opaque value is parsed by consumers.
 
@@ -38,7 +38,7 @@ The `api/remotes` assembly mounts the conversion service's generated Remote desc
 
 ## Engine selection and limits
 
-The external [`@deepseek-ai/libreoffice-kit`](https://github.com/deepseek-ai/dsh-libreoffice-kit) Node API selects its precompiled engines. The kit has an independent version and release workflow, defined by the [release ownership decision](../../.agents/notes/implemented/architecture/2026-09-14-independent-libreoffice-kit.md). Application builds install the published npm packages. Application packaging requires the target’s declared native engine, or Node WASM when the kit declares no native engine for that target. The [platform engine reference](../../packages/document/office-kit/README.md) defines installation and packaging. Invalid metadata, missing required assets, and conversion errors reject without switching engines. When the provider's Kit is absent or fails to import, the provider still registers and rejects conversions as `unavailable`. Conversion uses disk input and output paths on the Host, with no browser conversion engine or font RPC.
+The external [`@deepseek-ai/libreoffice-kit`](https://github.com/deepseek-ai/dsh-libreoffice-kit) Node API selects its precompiled engines. The kit has an independent version and release workflow, defined by the [release ownership decision](../../.agents/notes/implemented/architecture/2026-09-14-independent-libreoffice-kit.md). Application builds install the published npm packages. Application packaging requires the target’s declared native engine (`linux-<arch>-glibc` on Linux) and rejects targets without one instead of falling back to Node WASM. The [platform engine reference](../../packages/document/office-kit/README.md) defines installation and packaging. Invalid metadata, missing required assets, and conversion errors reject without switching engines. When the provider's Kit is absent or fails to import, the provider still registers and rejects conversions as `unavailable`. Conversion uses disk input and output paths on the Host, with no browser conversion engine or font RPC.
 
 The [Host provider configuration](../../packages/document/office-kit/README.md#use-this-package) owns concurrency, deadlines, input/output limits, archive limits, image resolution, and font access. Native/WASM implementation and asset distribution belong to the kit workspace. System LibreOffice discovery, runtime engine downloads, persistent output caching, workspace writes, and model-facing presentation are outside this provider.
 
@@ -54,7 +54,7 @@ Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnp
 
 ### `ctx.officeKit` — `OfficeKit`
 
-A provider lifetime owns all converters, queued calls, and temporary files.
+A provider lifetime owns all converters, Poppler processes, queued calls, and temporary files.
 
 ```ts cordis-catalog
 /**
@@ -68,12 +68,17 @@ async convert(request: OfficeKitRequest, signal?: AbortSignal): Promise<OfficeKi
 
 /**
  * Render selected pages, slides, or worksheet areas of one document as PNG images. Requests share the admission
- * queue, concurrency, source-byte reservation, and cache with previews, and run at foreground priority.
- * @param request - authorized metadata, deferred bounded source read, selection, and complete-result limits.
+ * queue, concurrency, source-byte reservation, and cache with previews, and run at foreground priority. The backend
+ * is chosen before admission: `request.renderer` exclusively, otherwise the first available entry of the configured
+ * `renderers` order, where the last entry is used without an availability check. A backend that fails after it
+ * starts rejects without trying another. Poppler renders without a LibreOffice converter slot.
+ * @param request - authorized metadata, deferred bounded source read, selection, backend, and complete-result limits.
  * @param signal - caller cancellation; provider disposal also stops active work.
- * @returns caller-owned images in document order whose count, per-image size, and total bytes satisfy the limits.
- * @throws {OfficeKitError} `invalid-request` for a selection the engine rejects, `output-too-large` when the
- * selection exceeds a limit, and the other conversion codes; cancellation rejects with its reason.
+ * @returns caller-owned images in document order whose count, per-image size, and total bytes satisfy the limits,
+ * with the backend that rendered them.
+ * @throws {OfficeKitError} `unsupported-format` for `poppler` with non-PDF input, `unavailable` when the requested
+ * or last configured backend cannot run, `invalid-request` for a selection the engine rejects, `output-too-large`
+ * when the selection exceeds a limit, and the other conversion codes; cancellation rejects with its reason.
  */
 async renderImages(request: OfficeImagesRequest, signal?: AbortSignal): Promise<OfficeImagesResult>
 
@@ -99,6 +104,25 @@ async convertTo(request: OfficeConversionRequest, signal?: AbortSignal): Promise
  * @throws {OfficeKitError} Invalid input, unusable output, or engine failure; cancellation rejects with its reason.
  */
 async recalculate(request: OfficeRecalculationRequest, signal?: AbortSignal): Promise<OfficeFileResult>
+
+/**
+ * Inspect installed LibreOffice Kit runtime metadata without starting an engine.
+ * @returns Runtime metadata when Kit and an engine are available; `undefined` when the provider is disposed,
+ * Kit is missing or unloadable, or Kit reports its runtime unavailable (each distinct failure is logged once).
+ * @throws Unexpected discovery or non-`unavailable` Kit errors.
+ */
+async discoverRuntime(): Promise<RuntimeInfo | undefined>
+
+/**
+ * Open an interactive native Office document through the provider's Kit installation without using the conversion
+ * queue or cache. The caller owns the returned document and must call `close()` when finished.
+ * @param request - Document bytes, format, rendering backend, cancellation signal, progress callback, and optional
+ * per-document limit overrides applied on top of this provider's configured Kit font and archive settings.
+ * @returns Caller-owned interactive editor document.
+ * @throws {OfficeKitError} `unavailable` when the provider is disposed or Kit cannot be loaded; cancellation
+ * rejects with its signal reason; engine opening failures propagate from Kit.
+ */
+async openDocument(request: OfficeEditorRequest): Promise<EditorDocument>
 
 /**
  * Read and convert one Office file using the Session's ordinary filesystem authorization.

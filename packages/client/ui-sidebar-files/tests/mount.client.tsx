@@ -13,13 +13,13 @@ import type { RenderResult } from '@testing-library/react'
 import { onTestFinished, vi } from 'vitest'
 import type { Mock } from 'vitest'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
-import { contextMenuHook, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
+import { contextMenuHook, makeTranslate, responsiveHooks, themeHooks } from '@deepseek-ai/dsh-client-test-runtime'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SidebarRightTabActions, SidebarRightTabInfo } from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import { TreeFixture } from './tree-fixture.client.tsx'
 import type { FileTreeInput } from '../src/client/FileTree.tsx'
-import type { FactoryComponentPropsOf } from '@deepseek-ai/dsh-client-ui-slots'
-import type { PaneId, TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
+import type { FactoryComponentPropsOf } from '@deepseek-ai/dsh-client-ui-slots/client'
+import type { PaneId, TabId } from '@deepseek-ai/dsh-client-ui-dockkit/client'
 import { filesFace } from '../src/client/face.ts'
 import type { FilesInjected } from '../src/client/face.ts'
 import { FileNavigator } from '../src/client/FileNavigator.tsx'
@@ -166,6 +166,7 @@ function harness(placement: Placement, controller: AbortController, book: Worksp
     renderSlot: () => null,
     openMenu,
     useContextMenu: contextMenuHook(openMenu),
+    ...responsiveHooks(), ...themeHooks(),
     renderFactorySlot: (name: string, input: object) => name === 'sidebar.files.tree' ? <TreeFixture {...input as FileTreeInput} t={t} /> : null,
     sessionId: SESSION,
     useSessions: <S,>(sel: (s: SessionListState) => S) => sel(sessionsAt(placement.cwd)),

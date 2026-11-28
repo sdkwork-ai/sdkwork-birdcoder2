@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-agent-loop-testkit",
   "description": "Prerequisite mounting, production AgentLoop drivers, and Inbox stubs for tests",
-  "version": "0.2.3-alpha.2",
+  "version": "0.2.3-alpha.3",
   "publishConfig": {
     "access": "public"
   },
@@ -42,8 +42,8 @@
     "@deepseek-ai/dsh-fs-local": "workspace:*"
   },
   "dependencies": {
-    "@deepseek-ai/dsh-tool-executor-native": "workspace:*",
-    "@deepseek-ai/dsh-tool-executor-ptc": "workspace:*"
+    "@deepseek-ai/dsh-tool-registry-native": "workspace:*",
+    "@deepseek-ai/dsh-tool-registry-ptc": "workspace:*"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-brand": "workspace:*",

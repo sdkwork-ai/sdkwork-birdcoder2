@@ -1,15 +1,15 @@
 // @vitest-environment jsdom
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
-import * as primitives from '@deepseek-ai/dsh-client-ui-primitives'
+import * as primitives from '@deepseek-ai/dsh-client-ui-primitives/client'
 import {
   IconAlarmClockOutlineRegular, IconApiOutlineRegular, IconArchiveOutlineRegular, IconFolderCloseRegular,
   IconAppsAddOutlineMedium, IconGoalOutlineRegular, IconSendOutlineRegular,
-} from '@deepseek-ai/dsh-client-ui-primitives'
-import { ICON_ARTWORK, type IconGlyph, type IconWeight } from '../src/icons/artwork.ts'
+} from '@deepseek-ai/dsh-client-ui-primitives/client'
+import { ICON_ARTWORK, type IconGlyph, type IconWeight } from '../src/client/icons/artwork.ts'
 import {
   BrowseOutlineArtwork, ChatLinesOutlineArtwork, CodeBracketsArtwork, FolderCloseArtwork, GlobeOutlineArtwork,
-} from '../src/icons/shared-artwork.tsx'
+} from '../src/client/icons/shared-artwork.tsx'
 
 afterEach(cleanup)
 

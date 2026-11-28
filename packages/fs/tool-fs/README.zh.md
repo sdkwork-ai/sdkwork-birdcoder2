@@ -55,7 +55,7 @@ kind: "package-reference"
 
 ### 配置
 
-所有键均为可选。`read`、`readImage`、`write` 和 `edit` 开关默认为 `true`；将开关设为 `false` 可省略对应工具及其指导文本。`applyPatch` 默认为 `false`；[`dsh-base`](../../bundle/base/cordis.patch.yml) 与 Web 的 `standard` preset 在各自的 `tool-fs` 行上开启它，而 Web 的 `ptc`、`cordis` preset 显式写出 `applyPatch: false`，改这一行即可在 `edit` 旁加入或去掉该工具。允许关闭全部五个工具。启用 `readImage` 仍需要附件存储和支持图片输入的模型。关闭 `read` 时仍会校验读取上限。
+所有键均为可选。`read`、`readImage`、`write` 和 `edit` 开关默认为 `true`；将开关设为 `false` 可省略对应工具及其指导文本。`applyPatch` 默认取解析后的 `edit` 值，因此保留 `edit` 的行也会提供 `apply_patch`；设为 `false` 可在 `edit` 旁去掉它，设为 `true` 可在没有 `edit` 时保留它。允许关闭全部五个工具。启用 `readImage` 仍需要附件存储和支持图片输入的模型。关闭 `read` 时仍会校验读取上限。
 
 | 键 | 默认值 | 含义 |
 |---|---|---|
@@ -63,7 +63,7 @@ kind: "package-reference"
 | `readImage` | `true` | 附件存储挂载时注册 `read_image` |
 | `write` | `true` | 注册 `write` 及其指导文本 |
 | `edit` | `true` | 注册 `edit` 及其指导文本 |
-| `applyPatch` | `false` | 注册 `apply_patch` 及其提示 |
+| `applyPatch` | `edit` 的值 | 注册 `apply_patch` 及其提示 |
 | `readLimit` | `2000` | 一次 `read` 调用返回的默认和最大行数 |
 | `readMaxLineLength` | `2000` | 每行截断前保留的字符数 |
 | `readMaxBytes` | `51200` | 一次 `read` 调用所选行的字节上限；溢出时以「已达上限」footer 结束窗口 |
@@ -77,7 +77,7 @@ kind: "package-reference"
 
 `read` 与 `read_image` 的路径授权完全由 `ctx.fs` 负责；媒体类型声明和文件签名只决定 `read_image` 是否接受该后端返回的字节。
 
-挂载策略插件后，`write` 与 `edit` 从 `fs/*` 意图槽位取得防护，因此未读目标或陈旧观察会以 `FS_NOT_OBSERVED` 或 `FS_STALE_VERSION` 及恢复指令失败。使用施加沙箱限制的后端（`fs-sandbox`）时，`write`/`edit` 还会公开 `sandbox_permissions` 与 `justification`；被拒绝的变更返回 `[sandbox: file access denied under <mode> mode]` 标记与同轮次升级提示，获批的重试可以在该次调用中加盖严格更宽的模式。省略 `sandbox_permissions` 或重复当前调用的生效模式时，`justification` 可以省略、为空字符串或仅含空白，且不会请求审批。不同模式仍需非空理由，升权还需审批。没有模式却提供非空理由会被拒绝。这些例外不会绕过观察检查或文件系统拒绝。理由字段提示模型使用用户当前提问的语言。
+挂载策略插件后，`write` 与 `edit` 从 `fs/*` 意图槽位取得防护，因此未读目标或陈旧观察会以 `FS_NOT_OBSERVED` 或 `FS_STALE_VERSION` 及恢复指令失败。使用施加沙箱限制的后端（`fs-sandbox`）时，`write`/`edit` 还会公开 `sandbox_permissions` 与 `justification`；被拒绝的变更返回 `[sandbox: file access denied under <mode> mode]` 标记与同轮次升级提示，获批的重试可以在该次调用中加盖严格更宽的模式。省略 `sandbox_permissions` 或重复当前调用的生效模式时，`justification` 可以省略、为空字符串或仅含空白，且不会请求审批。不同模式仍需非空理由，升权还需审批。更弱的模式是空操作：沙箱永远不会收窄一次调用，因此变更无需审批即以生效模式执行。没有模式却提供非空理由会被拒绝。这些例外不会绕过观察检查或文件系统拒绝。理由字段提示模型使用用户当前提问的语言。
 
 ### 失败与恢复
 
@@ -161,7 +161,7 @@ kind: "package-reference"
 
 #### 模型看到的内容
 
-组装时，每个指导段落通过 `ctx.tools.get(name, scope)` 检查对应工具，仅在该 agent 可见时输出。write 段落仅在 edit 可见时推荐 edit。三个工具都可用时，下方原文保持不变；限制的施加、解除和工具注册变化在下次组装时生效。同一检查适用于直接限制 agent 和从历史 descriptor 恢复的 subagent 过滤器，也适用于通过 `run_code` 暴露的 PTC 能力。 write/edit 中的先读后改句子描述观察策略，并非要求调用名为 `read` 的工具。隐藏 `read` 时仍保留这些句子：策略继续保护修改操作，其他产生观察记录的操作（例如 `str_replace_editor` 的 `command: view`）也能建立同一文件观察记录。工具可见性不会禁用该前置条件。
+每个使用指引段落都是该工具的 `guidance`，因此会在每个可以调用该工具的作用域中渲染，包括通过 `run_code` 暴露的 PTC 能力。直接施加于 agent 的限制，或从 descriptor 恢复的历史 subagent 过滤器，会隐藏工具及其段落。插件配置启用 edit 时，write 段落推荐 edit。write/edit 中的先读后改句子描述观察策略，并非要求调用名为 `read` 的工具。隐藏 `read` 时仍保留这些句子：策略继续保护修改操作，其他产生观察记录的操作（例如 `str_replace_editor` 的 `command: view`）也能建立同一文件观察记录。工具可见性不会禁用该前置条件。
 
 ##### Read 指导
 
@@ -183,11 +183,11 @@ Read a file before editing it unless you just created or edited it in this sessi
 
 #### Token 影响
 
-指导成本取决于可见工具及其适用的跨工具推荐。
+使用指引成本取决于 Agent 可以调用的工具和该插件的跨工具推荐；限制会移除受限工具的段。
 
 #### KV Cache 影响
 
-可见工具集合、插件作用域和指导文本不变时，前缀保持稳定。限制或插件生命周期变化可能从首个变化的段落开始使复用失效。
+已注册的工具、插件作用域、限制和使用指引文本不变时，前缀保持稳定；限制会移除被限制工具的段落。插件生命周期变化可能从首个变化的段落开始使复用失效。
 
 ### 工具 schema
 

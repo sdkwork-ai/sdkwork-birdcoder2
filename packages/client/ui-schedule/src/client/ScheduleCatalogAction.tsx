@@ -6,8 +6,8 @@ import {
   IconClockOutlineRegular,
   IconTrashOutlineRegular,
   useDismissOnOutsidePointer,
-} from '@deepseek-ai/dsh-client-ui-primitives'
-import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+} from '@deepseek-ai/dsh-client-ui-primitives/client'
+import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { ScheduleId, ScheduleCatalogEntry } from '@deepseek-ai/dsh-schedule/client'
 import type { CatalogInjected } from './catalog-source.ts'
@@ -54,7 +54,7 @@ function SessionScheduleCatalog({
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const catalogRef = useRef<HTMLUListElement>(null)
-  const anchorName = `--dsh-schedule-catalog-${useId().replaceAll(':', '')}`
+  const anchorName = `--dsh-schedule-catalog-${useId().replace(/[^\w-]/g, '')}`
 
   useDismissOnOutsidePointer(rootRef, open, setOpen, catalogRef)
 

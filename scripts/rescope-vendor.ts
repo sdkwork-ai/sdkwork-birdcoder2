@@ -37,13 +37,24 @@ const root = resolve(import.meta.dirname, '..')
 
 /** One vendored package's directory, upstream npm name, and rescoped name. */
 interface Rename {
+  /** Directory relative to the manifest README that lists the package. */
   readonly directory: string
   readonly upstream: string
   readonly scoped: string
+  /** The README holding this package's manifest-table row; `vendor/README.md` when absent. */
+  readonly manifest?: string
 }
 
-/** The mapping this codemod applies; `vendor/README.md` carries the same table. */
+/** The mapping this codemod applies; `vendor/README.md` and `vendor/im/README.md` carry the same tables. */
 const RENAMES: readonly Rename[] = [
+  { directory: 'core', upstream: '@satorijs/core', scoped: '@deepseek-ai/cordis-plugin-im-core', manifest: 'vendor/im/README.md' },
+  { directory: 'adapter-lark', upstream: '@satorijs/adapter-lark', scoped: '@deepseek-ai/cordis-plugin-im-adapter-lark', manifest: 'vendor/im/README.md' },
+  { directory: 'adapter-qq', upstream: '@satorijs/adapter-qq', scoped: '@deepseek-ai/cordis-plugin-im-adapter-qq', manifest: 'vendor/im/README.md' },
+  { directory: 'markdown', upstream: '@satorijs/markdown', scoped: '@deepseek-ai/cordis-plugin-im-markdown', manifest: 'vendor/im/README.md' },
+  { directory: 'element', upstream: '@satorijs/element', scoped: '@deepseek-ai/satori-element', manifest: 'vendor/im/README.md' },
+  { directory: 'element', upstream: '@cordisjs/element', scoped: '@deepseek-ai/cordis-element' },
+  { directory: 'http', upstream: '@cordisjs/http', scoped: '@deepseek-ai/cordis-plugin-http' },
+  { directory: 'fetch-file', upstream: '@cordisjs/fetch-file', scoped: '@deepseek-ai/cordis-fetch-file' },
   { directory: 'cordis', upstream: 'cordis', scoped: '@deepseek-ai/cordis' },
   { directory: 'cosmokit', upstream: 'cosmokit', scoped: '@deepseek-ai/cosmokit' },
   { directory: 'schemastery', upstream: 'schemastery', scoped: '@deepseek-ai/schemastery' },
@@ -78,6 +89,11 @@ interface GenericSkip {
 }
 
 const GENERIC_SKIPS: readonly GenericSkip[] = [
+  // Preserve the Cordis plugin metadata key and keyword; dependency keys have exact edits below.
+  { file: 'vendor/element/package.json', upstream: ['cordis'] },
+  { file: 'vendor/http/package.json', upstream: ['cordis'] },
+  { file: 'vendor/im/core/package.json', upstream: ['cordis'] },
+  { file: 'vendor/im/markdown/package.json', upstream: ['cordis'] },
   // `Symbol.for('schemastery')` and the `vendor:` metadata field are upstream identifiers.
   { file: 'vendor/schemastery/src/index.ts', upstream: ['schemastery'] },
   // Narrows a Standard Schema by the same upstream `vendor:` identifier.
@@ -85,6 +101,8 @@ const GENERIC_SKIPS: readonly GenericSkip[] = [
   // Native schema detection and its fixture share the vendored runtime's Symbol.for identifier.
   { file: 'packages/boot/app-boot/src/config-schema/native.ts', upstream: ['schemastery'] },
   { file: 'packages/boot/app-boot/tests/config-schema.spec.ts', upstream: ['schemastery'] },
+  // Directory name under `node_modules/@deepseek-ai`, not an unscoped package reference.
+  { file: 'apps/web/tests/client-config-sync.e2e.ts', upstream: ['schemastery'] },
   // The codemod's positive and negative fixtures contain both package spellings.
   { file: 'scripts/rescope-vendor.spec.ts', upstream: RENAMES.map(rename => rename.upstream), fixture: true },
   // Asserts the vendored-manifest table, which gains an upstream-name column.
@@ -103,6 +121,7 @@ const GENERIC_SKIPS: readonly GenericSkip[] = [
   { file: 'apps/web/tests/agent-preset-authoring.e2e.ts', upstream: ['cordis'] },
   { file: 'apps/web/tests/creator-persona.e2e.ts', upstream: ['cordis'] },
   { file: 'packages/preset/agent-preset-registry/tests/session.spec.ts', upstream: ['cordis'] },
+  // Preset selection, reminder policy and UI copy use the same product id.
   { file: 'packages/experimental/cua/tests/agent-scopes.spec.ts', upstream: ['cordis'] },
   { file: 'packages/extensions/creation-recommendations/src/index.ts', upstream: ['cordis'] },
   { file: 'packages/extensions/creation-recommendations/tests/creation.spec.ts', upstream: ['cordis'] },
@@ -110,6 +129,7 @@ const GENERIC_SKIPS: readonly GenericSkip[] = [
   // Preset selection, reminder policy and UI copy use the same product id.
   { file: 'apps/cli/tests/optional-bundle-transitions.e2e.ts', upstream: ['cordis'] },
   { file: 'apps/web/tests/agent-preset-selection.e2e.ts', upstream: ['cordis'] },
+  { file: 'apps/web/tests/creator-persona.e2e.ts', upstream: ['cordis'] },
   { file: 'apps/web/tests/developer-tools-settings.e2e.ts', upstream: ['cordis'] },
   { file: 'docs/tool-catalog.md', upstream: ['cordis'] },
   { file: 'docs/tool-catalog.zh.md', upstream: ['cordis'] },
@@ -152,14 +172,14 @@ const GENERIC_SKIPS: readonly GenericSkip[] = [
   { file: 'packages/extensions/cordis-client-runner/src/client/runtime.ts', upstream: ['cordis'] },
   { file: 'packages/extensions/cordis-client-runner/tests/orchestrator.client.spec.ts', upstream: ['cordis'] },
   { file: 'packages/extensions/cordis-client-runner/tests/plugin.client.spec.ts', upstream: ['cordis'] },
+  { file: 'packages/extensions/cordis-host-runner/src/api-catalog.ts', upstream: ['cordis'] },
   { file: 'packages/extensions/cordis-host-runner/src/index.ts', upstream: ['cordis'] },
+  { file: 'packages/extensions/cordis-host-runner/src/inspect-providers.ts', upstream: ['cordis'] },
   { file: 'packages/extensions/cordis-host-runner/src/inspect-registry.ts', upstream: ['cordis'] },
   { file: 'packages/extensions/cordis-host-runner/src/types.ts', upstream: ['cordis'] },
   { file: 'packages/extensions/cordis-host-runner/tests/helpers.ts', upstream: ['cordis'] },
   { file: 'packages/extensions/cordis-host-runner/tests/runner.spec.ts', upstream: ['cordis'] },
   { file: 'packages/extensions/cordis-host-runner/tests/versioning.spec.ts', upstream: ['cordis'] },
-  { file: 'packages/extensions/tool-cordis/src/api-catalog.ts', upstream: ['cordis'] },
-  { file: 'packages/extensions/tool-cordis/src/providers.ts', upstream: ['cordis'] },
   { file: 'packages/extensions/ui-cordis/src/client/index.ts', upstream: ['cordis'] },
   { file: 'packages/extensions/ui-cordis/src/client/inventory.ts', upstream: ['cordis'] },
   // Inspector fixtures use the same extension event domain.
@@ -211,6 +231,20 @@ const POSTCONDITIONS: readonly PostCondition[] = [
  * quote a neighbouring line the generic pass would rewrite.
  */
 const EXACT_EDITS: readonly ExactEdit[] = [
+  {
+    id: 'http-framework-dependencies',
+    file: 'vendor/http/package.json',
+    find: '"cordis": "workspace:~"',
+    replace: '"@deepseek-ai/cordis": "workspace:~"',
+    expect: 2,
+  },
+  {
+    id: 'im-core-framework-dependencies',
+    file: 'vendor/im/core/package.json',
+    find: '"cordis": "workspace:~"',
+    replace: '"@deepseek-ai/cordis": "workspace:~"',
+    expect: 2,
+  },
   {
     id: 'loader-diff-schemastery-import',
     file: 'vendor/loader/src/config/diff.ts',
@@ -285,7 +319,7 @@ const EXACT_EDITS: readonly ExactEdit[] = [
     id: 'root-agents-vendored-name-contract',
     file: 'AGENTS.md',
     find: 'vendored packages keep upstream names and are `private: true`. `cordis` is a peerDependency (+ dev) of every harness package.',
-    replace: 'vendor is [rescoped](docs/rescope.md) and `private: true`. Harness packages declare `@deepseek-ai/cordis` in `peerDependencies`/`devDependencies`.',
+    replace: 'vendor is [rescoped](docs/rescope.md) and published. Harness packages declare `@deepseek-ai/cordis` in `peerDependencies`/`devDependencies`.',
     expect: 1,
   },
   {
@@ -458,8 +492,8 @@ const VENDORED_LIBRARY = /^@deepseek-ai\\/(?:(?:cosmokit|schemastery)(?:\\/|$)|c
   },
   // The manifest table's name column plus the new upstream-name column, one edit per row.
   ...RENAMES.map(rename => ({
-    id: `vendor-readme-row-${rename.directory}`,
-    file: 'vendor/README.md',
+    id: `vendor-readme-row-${rename.manifest === undefined ? '' : 'im-'}${rename.directory}`,
+    file: rename.manifest ?? 'vendor/README.md',
     find: `| \`${rename.directory}/\` | \`${rename.upstream}\` | `,
     replace: `| \`${rename.directory}/\` | \`${rename.scoped}\` | \`${rename.upstream}\` | `,
     expect: 1,
@@ -483,7 +517,7 @@ export function isRescopeExcluded(file: string): boolean {
   if (file === 'pnpm-lock.yaml') return true // regenerated by pnpm install
   // Raw npm registry resolution; only gen-dependency-catalog --refresh replaces this evidence.
   if (file === 'scripts/dependency-catalog/package-lock.json') return true
-  if (/^vendor\/[^/]+\/(README\.md|LICENSE)$/.test(file)) return true // upstream files kept verbatim
+  if (/^vendor\/(?:im\/)?[^/]+\/(README\.md|LICENSE)$/.test(file)) return true // upstream files kept verbatim
   return !EXTENSIONS.some(extension => file.endsWith(extension))
 }
 
@@ -625,7 +659,7 @@ export function rescopeText(text: string, file: string, reverse = false): { text
 }
 
 function classify(file: string): string {
-  if (/^vendor\/[^/]+\/package\.json$/.test(file)) return 'vendor manifest name'
+  if (/^vendor\/(?:im\/)?[^/]+\/package\.json$/.test(file)) return 'vendor manifest name'
   if (file.endsWith('package.json')) return 'package.json dependencies'
   if (/\.(ts|tsx|js|mjs|cjs|tpl)$/.test(file)) return 'code specifiers'
   if (/\.(yml|yaml)$/.test(file)) return 'YAML plugin names'

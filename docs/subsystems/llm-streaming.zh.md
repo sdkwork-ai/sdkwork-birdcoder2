@@ -870,11 +870,17 @@ interface LlmCallConfigAdapterDefaults {
 
 `ctx.deepseekLlmApiExtensions` 是用于向 `deepseek-official` 请求添加顶层字段的提供方特定注册表。贡献插件通过 `register(field, provider)` 认领一个字段；适配器在序列化基础正文后调用 `prepare(request)`，并在 HTTP 前合并返回字段。已准备的 `accept()` 事务会在 2xx 后运行，因此贡献方可以提交交付状态，而不会把传输失败或提供方拒绝当作接受。贡献方准备时抛错会被记录并在该次请求中省略，接受失败只记录告警而不使请求失败；与基础字段冲突时使用 `REQUEST_EXTENSION` 并使模型请求失败。合并后的正文无法序列化时，请求不带扩展字段发出，跳过接受，并由提供方插件记录被省略的字段名。
 
+贡献插件还通过 `registerHeader(name, provider)` 认领一个 `x-deepseek-harness-` 请求标头；适配器会为每条模型请求加入 `headers(request)` 返回的值。随附组合通过 [`session-log-deepseek`](../../packages/session/session-log-deepseek/README.zh.md#subagent-headers) 注册 subagent 归因标头。
+
 [协议参考](../deepseek-llm-api-wire-extensions.zh.md)定义确切的请求标头、扩展事务、字段版本和接收方义务。随附组合会将 [`dsh_session_log`](../../packages/session/session-log-deepseek/README.zh.md) 注册为无损增量权威日志后缀，并将 [`dsh_plugin_packages`](../../packages/llm/plugin-package-inventory-deepseek/README.zh.md) 注册为完整存活 Loader 包集合。这些字段仍位于模型消息之外，也不会进入 pi-ai 适配器路径。
 
 ## Pi-ai 请求头
 
 `PiAiRequestHeaderContext` 包含已准备调用的 provider、model、解析后的模型 `baseURL`，以及可选 Session id 和辅助用途。它不可变且不含消息或认证字段，与本次请求独有的 `Headers` 一起传入同步的 `llm-pi-ai/request-headers` waterfall。[适配器的请求头文档](../../packages/llm/llm-pi-ai/README.zh.md#request-headers)定义贡献的所有权、应用标识的优先级与失败行为。此扩展点仅适用于 pi-ai 推理请求。
+
+## Pi-ai 提供方条目
+
+`llm-pi-ai` 适配器条目在自己的 `providers` 字典中配置路由。需要添加路由而又不重写该字典的配置层，改为写一个 `@deepseek-ai/dsh-llm-pi-ai/provider` 的 Loader 条目。该条目通过 `ctx.piAiProviders.register` 向适配器条目注册自己的路由键和 `PiAiProviderProfile`，并得到一个 `PiAiProviderRegistration`：调用它会撤回路由，`replace` 则就地应用变更后的 profile。多处声明同一条路由时，组合后条目列表中位置最靠后的那处生效，字典按适配器条目所在的位置计。[适配器 README](../../packages/llm/llm-pi-ai/README.zh.md#add-a-route-from-another-composition-layer) 说明条目的配置及其对部署方 home patch 的意义。
 
 ## 服务与提供方约定
 
@@ -1003,7 +1009,7 @@ Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnp
 
 ### `ctx.deepseekLlmApiExtensions` — `DeepSeekLlmApiExtensionRegistry`
 
-Registry of independently owned top-level fields for official DeepSeek requests.
+Registry of independently owned top-level fields and request headers for official DeepSeek requests.
 
 ```ts cordis-catalog
 /**
@@ -1023,6 +1029,25 @@ register<K extends keyof DeepSeekLlmApiExtensionMap>( field: K, provider: DeepSe
  * @returns detached fields and their idempotent joint acceptance transaction.
  */
 async prepare(request: DeepSeekLlmApiExtensionRequest): Promise<PreparedDeepSeekLlmApiExtensions>
+
+/**
+ * Register the sole provider of one request header for the calling fiber.
+ * The adapter reserves its user-id, session-id, and compact headers.
+ * @param name - declaration-merged lowercase `x-deepseek-harness-` header of hyphen-separated ASCII letters and digits.
+ * @param provider - synchronous request-time value computation.
+ * @returns disposer that releases the header.
+ */
+registerHeader<K extends keyof DeepSeekLlmApiHeaderMap>( name: K, provider: DeepSeekLlmApiHeaderProvider<DeepSeekLlmApiHeaderMap[K]>, ): () => Promise<void>
+
+/**
+ * Compute every currently registered header for one model request. A provider that
+ * returns `undefined` contributes nothing. A provider that throws, or returns a value
+ * other than non-empty printable ASCII without leading or trailing whitespace, is
+ * omitted from this request; the first such omission per header is logged.
+ * @param request - request identity and auxiliary purpose.
+ * @returns frozen header names and values to add to the HTTP request.
+ */
+headers(request: DeepSeekLlmApiHeaderRequest): Readonly<Record<string, string>>
 ```
 
 Source: [`packages/llm/deepseek-llm-api-extensions/src/index.ts`](../../packages/llm/deepseek-llm-api-extensions/src/index.ts)
@@ -1154,6 +1179,13 @@ async listModels(provider: string): Promise<LlmModelInfo[]>
  * @returns detached documented model metadata in adapter-preferred order.
  */
 async documentedModels(provider: string): Promise<LlmModelInfo[]>
+ * Report whether a registered provider advertises a model in its current
+ * catalog. Catalog-driven entry points use it to accept only listed models.
+ * @param provider - provider route to inspect.
+ * @param model - provider-owned model id.
+ * @returns false when the provider is unregistered or its catalog omits the model.
+ * @throws the provider's catalog failure, unchanged.
+async isModelInCatalog(provider: string, model: string): Promise<boolean>
 
 /**
  * Resolve and validate all metadata from the adapter that owns one exact
@@ -1209,6 +1241,25 @@ stream(options: GenerateOptions): AsyncIterable<StreamChunk>
 Types: [FileAttachmentRef](attachment.zh.md) · [ImageAttachmentRef](attachment.zh.md) · [ImageRequestTarget](attachment.zh.md)
 
 Source: [`packages/llm/llm/src/index.ts`](../../packages/llm/llm/src/index.ts)
+
+<a id="ctxpiaiproviders--piaiproviders"></a>
+
+### `ctx.piAiProviders` — `PiAiProviders`
+
+Service through which provider rows add their routes to the pi-ai adapter.
+
+```ts cordis-catalog
+/**
+ * Register one provider route for the calling plugin; the registration is withdrawn with that plugin.
+ * @param provider - route key.
+ * @param profile - the route's profile. Catalog defects are kept as diagnostics on the route; any other
+ * invalid field throws.
+ * @returns the registration handle.
+ */
+register(provider: string, profile: PiAiProviderProfile): PiAiProviderRegistration
+```
+
+Source: [`packages/llm/llm-pi-ai/src/registry.ts`](../../packages/llm/llm-pi-ai/src/registry.ts)
 
 <a id="llm-events"></a>
 

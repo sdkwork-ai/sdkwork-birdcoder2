@@ -1,9 +1,9 @@
 /** One settings card for Subagent delegation limits and model authorization. */
 
 import { useId } from 'react'
-import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
-import { SettingsForm } from '@deepseek-ai/dsh-client-ui-primitives'
+import { SettingsForm } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import { formLabels } from './locales.ts'
 import { SubagentLimitsFields } from './SubagentLimitsFields.tsx'
 import { SubagentModelSelectionFields } from './SubagentModelSelectionFields.tsx'
@@ -43,7 +43,8 @@ export function SubagentCard(props: SubagentCardProps) {
           <section className={css.section} aria-labelledby={`${headingId}-models`}>
             <h3 className={css.heading} id={`${headingId}-models`}>{t('subagentModelSelectionTitle')}</h3>
             <SubagentModelSelectionFields t={t} state={{ ...models, saving: state.saving }}
-              toggleEnabled={props.toggleEnabled} toggleModel={props.toggleModel} retryCatalog={props.retryCatalog} />
+              toggleEnabled={props.toggleEnabled} toggleModel={props.toggleModel} retryCatalog={props.retryCatalog}
+              selectDefault={props.selectDefault} />
           </section>
         )
         : null}

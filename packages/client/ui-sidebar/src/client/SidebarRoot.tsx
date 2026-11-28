@@ -25,8 +25,8 @@ import {
   BirdLogo, IconAppsAddOutlineRegular, IconNewChatOutlineMedium, IconNewChatOutlineRegular,
   IconPanelLeftOutlineRegular, IconPinFillRegular, focusWithoutRing, isBehindModal, isDarwinDesktop, Menu, ShortcutKeys, Toast,
   Tooltip, useModalLayer, writeClipboard,
-} from '@deepseek-ai/dsh-client-ui-primitives'
-import type { InjectFace, PropsRenderFactories, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+} from '@deepseek-ai/dsh-client-ui-primitives/client'
+import type { InjectFace, PropsRenderFactories, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type {
   SidebarPanelActionsOwnerProps, SidebarPanelMetadata, SidebarRootComponentProps, SidebarRootInjected, SidebarSectionHookContext,
   SidebarSectionOwnerProps,
@@ -148,6 +148,7 @@ export function SidebarRoot({
   collapsed,
   width,
   drawer,
+  animating,
   startSession,
   toggleSidebar,
   selectPanel,
@@ -289,6 +290,7 @@ export function SidebarRoot({
         !drawer && collapsed && wide && css.fading, !pointerInside && css.quietBars,
       )}
       style={wide ? { width: !drawer && collapsed ? lastWideWidth.current : width } : undefined}
+      data-sidebar-animating={animating || undefined}
       onPointerEnter={trackPointer}
       onPointerMove={trackPointer}
       onPointerLeave={() => { setPointerInside(false) }}

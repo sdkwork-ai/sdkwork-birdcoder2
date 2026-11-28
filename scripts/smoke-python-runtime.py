@@ -93,7 +93,7 @@ LEGACY_CUSTOM_DISABLED_ROWS = (
     "tool-fs",
     "tool-fs-search",
     "tool-goal",
-    "tool-office",
+    "tool-document",
     "tool-plugin-manager",
     "tool-schedule",
     "tool-skill",
@@ -263,8 +263,8 @@ def write_advanced_profile_patch(
 ) -> Path:
     """Write the shared custom, snapshot, and restart profile patch."""
     return write_profile_patch(root, name, sessions, [
-        {"id": "tool-executor-native", "disabled": mode != "native"},
-        {"id": "tool-executor-ptc", "disabled": mode != "ptc"},
+        {"id": "tool-registry-native", "disabled": mode != "native"},
+        {"id": "tool-registry-ptc", "disabled": mode != "ptc"},
         {
             "id": "system-prompt",
             "config": {
@@ -284,8 +284,6 @@ def write_advanced_profile_patch(
         },
         {"insert": [
             {"id": "ptc-runtime", "name": "@deepseek-ai/dsh-ptc-runtime-node"},
-            {"id": "cordis-host-runner", "name": "@deepseek-ai/dsh-cordis-host-runner"},
-            {"id": "cordis-tool", "name": "@deepseek-ai/dsh-tool-cordis"},
         ]},
     ])
 
@@ -1129,15 +1127,19 @@ def smoke_sdk_office(executable: Path) -> None:
         assert not (office.parent / "primary").exists(), "Office download unexpectedly prepared the authoring environment"
         adapter = office / "node_modules/@deepseek-ai/libreoffice-kit/package.json"
         native = stem.removeprefix("deepseek-harness-sdk-runtime-").replace("win-", "win32-").replace("macos-", "darwin-")
+        if native.startswith("linux-"):
+            native = f"{native}-glibc"
         declared = json.loads(adapter.read_text(encoding="utf-8")).get("optionalDependencies", {})
-        selected = native if f"@deepseek-ai/libreoffice-kit-{native}" in declared else "wasm"
-        expected_backend = "wasm" if selected == "wasm" else "native"
+        expected_package = f"@deepseek-ai/libreoffice-kit-{native}"
+        if expected_package not in declared:
+            raise AssertionError(f"Kit manifest must declare native engine {expected_package}: {sorted(declared)}")
+        expected_backend = "native"
         engines = [
-            json.loads(manifest.read_text())["engine"]["kind"]
+            (manifest.parent.name, json.loads(manifest.read_text())["engine"]["kind"])
             for manifest in (office / "node_modules/@deepseek-ai").glob("libreoffice-kit-*/prebuilds.json")
         ]
-        if engines != [expected_backend]:
-            raise AssertionError(f"Office sidecar must contain only {expected_backend}: {engines}")
+        if engines != [(f"libreoffice-kit-{native}", expected_backend)]:
+            raise AssertionError(f"Office sidecar must contain only {expected_package} ({expected_backend}): {engines}")
         plugin = root / "office.mjs"
         shutil.copy2(Path(__file__).resolve().parent / "fixtures/python-sdk-office.mjs", plugin)
         documents = checks["copy_documents"](root)
@@ -1526,7 +1528,6 @@ def smoke_sdk_dynamic_tools(base_url: str, executable: Path, update_snapshots: b
         task = root / "dynamic-tool-task.txt"
         task.write_text("Call snapshot_ping once.\n", encoding="utf-8")
         patch = write_profile_patch(root, "dynamic-tools.patch.yml", sessions, [
-            {"id": "tool-fs", "config": {"applyPatch": True}},
             {"id": "llm-deepseek", "config": {"models": [
                 {"id": "smoke-model", "toolUpdate": "addition-only"},
             ]}},

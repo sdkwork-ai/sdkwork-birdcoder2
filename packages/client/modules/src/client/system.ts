@@ -4,13 +4,15 @@
  * documented on the public interfaces in `./manifest.ts`; this file owns the
  * state tables and the load/materialize machinery.
  */
-import { stripClientSuffix } from './manifest.ts'
+import { CLIENT_CHUNK_FILE } from '../chunks.ts'
+import { NO_ISOLATION, stripClientSuffix } from './manifest.ts'
 import { ClientEntries } from './entries.ts'
+import { PackageRealms } from './isolated-realms.ts'
 import { MainScriptRealm } from './main-realm.ts'
 import { notifySubscribers } from './notify.ts'
 import type {
-  BootManifest, BootModuleRow, ClientBundleRegistration, ClientBundleRequire, ClientModuleLoader, ClientModuleRecord,
-  ClientModuleSystemOptions,
+  BootManifest, BootModuleRow, ClientAsyncRequireOptions, ClientBundleRegistration, ClientBundleRequire, ClientModuleLoader,
+  ClientModuleRecord, ClientModuleSystemOptions,
 } from './manifest.ts'
 
 /** Replace the rev query while preserving absolute, protocol-relative, or path-relative form. */
@@ -21,11 +23,68 @@ function atRevision(url: string, rev: string): string {
   return url.replace(/([?&]rev=)[^&#]*/, `$1${encodeURIComponent(rev)}`)
 }
 
-const CLIENT_CHUNK = /^client\.[A-Za-z0-9][A-Za-z0-9._-]*\.js$/
-
 /** The message of a thrown value: an Error's message, anything else stringified. */
 function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
+}
+
+/** Leads this module's messages; a failure quoted inside another message drops it. */
+const MESSAGE_PREFIX = 'client-modules: '
+
+/**
+ * One failed transport attempt as it reads inside the import failure.
+ * @param url - the bundle URL the attempt requested.
+ * @param error - what the transport rejected with.
+ * @returns the rejection's message, led by the URL unless the message already names it.
+ */
+function describeAttempt(url: string, error: unknown): string {
+  const message = describeError(error)
+  const reason = message.startsWith(MESSAGE_PREFIX) ? message.slice(MESSAGE_PREFIX.length) : message
+  return reason.includes(url) ? reason : `${url}: ${reason}`
+}
+
+/**
+ * Join the failed attempts of one import in the order they first occurred.
+ * @param failures - one description per attempt.
+ * @returns the descriptions separated by `; `, a repeated one written once with its count.
+ */
+function describeAttempts(failures: readonly string[]): string {
+  const counts = new Map<string, number>()
+  for (const failure of failures) counts.set(failure, (counts.get(failure) ?? 0) + 1)
+  return [...counts].map(([failure, count]) => count === 1 ? failure : `${failure} (${count} attempts)`).join('; ')
+}
+
+/** File name of a package-local chunk specifier (`./client.<name>.js`), or undefined for any other specifier. */
+function chunkFileOf(specifier: string): string | undefined {
+  const fileName = specifier.slice(2)
+  return specifier.startsWith('./') && CLIENT_CHUNK_FILE.test(fileName) ? fileName : undefined
+}
+
+/**
+ * Chunk file names of a `deps` list.
+ * @param specifiers - `./client.<name>.js` specifiers.
+ * @param subject - Registration or request named in the error.
+ * @returns The file names, in list order.
+ * @throws {Error} when an entry names no package-local chunk.
+ */
+function chunkFilesOf(specifiers: readonly string[], subject: string): string[] {
+  return specifiers.map((specifier) => {
+    const fileName = chunkFileOf(specifier)
+    if (fileName === undefined) throw new Error(`client-modules: invalid chunk dependency ${JSON.stringify(specifier)} of ${subject}`)
+    return fileName
+  })
+}
+
+/**
+ * Wait for every started task to end, then reject with the first failure in list order. A failure therefore never
+ * leaves a sibling task running past the caller's wait.
+ * @param tasks - Started tasks.
+ * @throws The reason of the first task in the list that rejected.
+ */
+async function settleAll(tasks: readonly Promise<void>[]): Promise<void> {
+  for (const result of await Promise.allSettled(tasks)) {
+    if (result.status === 'rejected') throw result.reason
+  }
 }
 
 /** Internal module-table key for one package-local chunk. */
@@ -61,10 +120,12 @@ export class ClientModuleSystem implements ClientModuleLoader {
   readonly entries: ClientEntries
   readonly loadCache = new Map<string, ClientModuleRecord>()
   readonly mainRealm: MainScriptRealm
+  private readonly packageRealms: PackageRealms
+  readonly installRealmRegistry: PackageRealms['installRealmRegistry']
   /** Previous records of packages under replacement, by package id, until their old runtime is released. */
   private readonly replaced = new Map<string, ClientModuleRecord[]>()
   private readonly moduleListeners = new Set<() => void>()
-  private readonly factories = new Map<string, { manifest: ClientBundleRegistration; factory: ClientBundleRegistration['factory']; rev: string | undefined }>()
+  private readonly factories = new Map<string, { manifest: ClientBundleRegistration; factory: ClientBundleRegistration['factory']; isolation: BootModuleRow['isolation']; rev: string | undefined }>()
   private readonly bootstrapIds = new Set<string>()
   private readonly staticIds = new Set<string>()
   /** In-flight script transport per URL. */
@@ -90,6 +151,9 @@ export class ClientModuleSystem implements ClientModuleLoader {
    */
   constructor(options: ClientModuleSystemOptions) {
     this.manifest = options.manifest
+    this.mainRealm = new MainScriptRealm(options.loadBundle)
+    this.packageRealms = new PackageRealms(this.mainRealm, { __ModuleLoader__: options.registrationTarget })
+    this.installRealmRegistry = this.packageRealms.installRealmRegistry
     this.entries = new ClientEntries(this, {
       update: (manifest, managed) => { this.updateManifest(manifest, managed) },
       invalidateForReplacement: (id, rev) => {
@@ -101,7 +165,6 @@ export class ClientModuleSystem implements ClientModuleLoader {
       },
       prune: (roots) => { this.prune(roots) },
     })
-    this.mainRealm = new MainScriptRealm(options.loadBundle)
     this.resolveAsset = options.resolveAsset ?? (reference => reference)
 
     for (const row of options.manifest.modules) {
@@ -113,6 +176,7 @@ export class ClientModuleSystem implements ClientModuleLoader {
     this.loadCache.set(bootstrapId, {
       id: bootstrapId,
       ownerId: bootstrapId,
+      isolation: NO_ISOLATION,
       exports: options.bootstrapModule.exports,
       edges: new Set(),
     })
@@ -148,9 +212,12 @@ export class ClientModuleSystem implements ClientModuleLoader {
     notifySubscribers(this.moduleListeners, 'modules')
   }
 
-  /** Stop accepting script execution and await the startup carrier's pending operations. */
-  dispose(): Promise<void> {
-    return this.mainRealm.dispose()
+  /** Close the script environments and wait for any script already in flight. */
+  async dispose(): Promise<void> {
+    const [main, packages] = await Promise.allSettled([
+      this.mainRealm.dispose(), this.packageRealms.dispose(), ...this.pendingArrival.values(),
+    ])
+    for (const result of [main, packages]) if (result.status === 'rejected') throw result.reason
   }
 
   private resolveModuleId(specifier: string): string {
@@ -161,26 +228,32 @@ export class ClientModuleSystem implements ClientModuleLoader {
   /** Register one bundle factory, rejecting a script that executes twice without invalidation. */
   private register(registration: ClientBundleRegistration): void {
     const ownerId = registration.id
-    if (registration.chunk !== undefined && !CLIENT_CHUNK.test(registration.chunk)) {
+    if (registration.chunk !== undefined && !CLIENT_CHUNK_FILE.test(registration.chunk)) {
       throw new Error(`client-modules: invalid package-local chunk ${JSON.stringify(registration.chunk)}`)
     }
     const id = registration.chunk === undefined ? ownerId : chunkId(ownerId, registration.chunk)
+    // A malformed dependency list fails the registering script instead of a later arrival.
+    chunkFilesOf(registration.deps ?? [], `"${id}"`)
     if (this.loadCache.has(id) || this.factories.has(id)) {
       const registrationName = registration.chunk === undefined ? registration.id : id
       throw new Error(`client-modules: duplicate factory registration for "${registrationName}" (bundle executed twice without invalidate?)`)
     }
+    const row = this.graphRows.get(ownerId)
+    if (row !== undefined) this.packageRealms.registered(ownerId)
     this.factories.set(id, {
       manifest: registration,
       factory: registration.factory,
-      rev: this.reloadTargets.get(ownerId)?.rev ?? this.graphRows.get(ownerId)?.rev,
+      isolation: this.staticIds.has(ownerId) || this.bootstrapIds.has(ownerId) ? NO_ISOLATION
+        : this.factories.get(ownerId)?.isolation ?? row?.isolation ?? NO_ISOLATION,
+      rev: this.reloadTargets.get(ownerId)?.rev ?? row?.rev,
     })
   }
 
   /** Run one shared script transport per URL. */
-  private loadShared(url: string): Promise<void> {
+  private loadShared(url: string, row: BootModuleRow): Promise<void> {
     let transport = this.pendingArrival.get(url)
     if (transport === undefined) {
-      transport = this.mainRealm.execute({ url })
+      transport = this.packageRealms.execute(row, url)
         .then(() => { this.executedBundleUrls.add(url) })
         .finally(() => { this.pendingArrival.delete(url) })
       this.pendingArrival.set(url, transport)
@@ -188,9 +261,33 @@ export class ClientModuleSystem implements ClientModuleLoader {
     return transport
   }
 
+  /** Dependencies and transport retries can outlast the graph row that requested them. */
+  private arrivalRow(id: string): BootModuleRow {
+    const row = this.graphRows.get(id)
+    if (!row) throw new Error(`client-modules: package "${id}" was removed before its script could load`)
+    return row
+  }
+
   /**
-   * Load one graph row so its factory is registered (idempotent per in-flight
-   * arrival). A batch script is one classic script that registers every
+   * Register one graph row's entry and every package-local chunk its
+   * registration requires. A batch script can register the entry without this
+   * row's own download, so the chunk step runs for an entry that was already
+   * registered as well. An owner invalidation while the chunks download drops
+   * the entry and the chunks registered so far, so the arrival restarts from
+   * the entry under the new revision.
+   */
+  private async arrive(row: BootModuleRow): Promise<void> {
+    await this.arriveScript(row)
+    const deps = this.factories.get(row.id)?.manifest.deps
+    if (deps === undefined) return
+    const generation = this.generations.get(row.id) ?? 0
+    await this.arriveChunks(row.id, chunkFilesOf(deps, `"${row.id}"`), generation)
+    if ((this.generations.get(row.id) ?? 0) !== generation) await this.arrive(this.arrivalRow(row.id))
+  }
+
+  /**
+   * Load one graph row's entry script so its factory is registered (idempotent
+   * per in-flight arrival). A batch script is one classic script that registers every
    * package in sequence, and {@link register} rejects a second registration,
    * so the two failure kinds differ: a transport failure (`error` event, nothing
    * executed) is retried once on the same URL; a script that loaded without
@@ -203,18 +300,22 @@ export class ClientModuleSystem implements ClientModuleLoader {
    * failed batch costs at most three requests per missing row and never fails
    * the rows that were registered.
    */
-  private async arrive(row: BootModuleRow): Promise<void> {
+  private async arriveScript(row: BootModuleRow): Promise<void> {
     const { id } = row
+    if (row.isolation.script && this.staticIds.has(id)) {
+      throw new Error(`client-modules: "${id}" is loaded by the page shell and cannot isolate its scripts`)
+    }
     if (this.loadCache.has(id) || this.factories.has(id)) return
     const reload = this.reloadTargets.get(id)
     const preferred = reload?.url ?? row.initialUrl
     const fallback = reload === undefined && row.url !== preferred ? row.url : undefined
     const failures: string[] = []
     const attempt = async (url: string): Promise<'registered' | 'transport-failed' | 'not-registered'> => {
+      this.arrivalRow(id)
       try {
-        await this.loadShared(url)
+        await this.loadShared(url, row)
       } catch (error) {
-        failures.push(`${url}: ${describeError(error)}`)
+        failures.push(describeAttempt(url, error))
         return 'transport-failed'
       }
       if (this.factories.has(id)) return 'registered'
@@ -240,7 +341,7 @@ export class ClientModuleSystem implements ClientModuleLoader {
     }
     if (outcome !== 'registered' && fallback !== undefined) outcome = await attempt(fallback)
     if (outcome !== 'registered') {
-      throw new Error(`client-modules: could not load "${id}": ${failures.join('; ')}`)
+      throw new Error(`client-modules: could not load "${id}": ${describeAttempts(failures)}`)
     }
     if (reload !== undefined && this.reloadTargets.get(id) === reload) {
       this.reloadTargets.delete(id)
@@ -273,7 +374,7 @@ export class ClientModuleSystem implements ClientModuleLoader {
       const dependency = this.graphRows.get(packageName)
       if (dependency !== undefined) await this.arriveDependency(row.id, dependency, [], visited)
     }
-    await this.arrive(row)
+    await this.arrive(this.arrivalRow(row.id))
   }
 
   /** Arrive one dependency, naming the consumer it failed for so a cascade reads as a chain, not as 44 unrelated failures. */
@@ -310,7 +411,7 @@ export class ClientModuleSystem implements ClientModuleLoader {
       const exports = registered.factory(this.makeRequire(registered.manifest.id, edges, () => {
         if (this.loadCache.get(id)?.edges === edges) this.publishModules()
       }))
-      record = { id, ownerId: registered.manifest.id, exports, edges,
+      record = { id, ownerId: registered.manifest.id, isolation: registered.isolation, exports, edges,
         ...(registered.manifest.meta === undefined ? {} : { meta: registered.manifest.meta }) }
       this.loadCache.set(id, record)
     } finally {
@@ -320,13 +421,17 @@ export class ClientModuleSystem implements ClientModuleLoader {
     return record
   }
 
-  /** Build the synchronous module-table require, its asynchronous chunk operation, and its asset resolver. */
+  /**
+   * Build the synchronous module-table require, its asynchronous chunk operation, and its asset resolver. A
+   * synchronous `./client.<name>.js` request resolves only a chunk of the same package that is already registered.
+   */
   private makeRequire(
     ownerId: string,
     edges: Set<string>,
     onEdgesChanged: () => void,
   ): ClientBundleRequire {
     const resolve = (spec: string): unknown => {
+      if (spec.startsWith('./')) return this.requireChunk(ownerId, spec)
       const id = this.resolveModuleId(spec)
       const record = this.loadCache.get(id)
       if (record !== undefined) return record.exports
@@ -348,46 +453,121 @@ export class ClientModuleSystem implements ClientModuleLoader {
       return exports
     }
     require.asset = (reference: string): string => this.resolveAsset(reference)
-    require.async = async (spec: string): Promise<unknown> => {
+    require.async = async (spec: string, options?: ClientAsyncRequireOptions): Promise<unknown> => {
       if (!spec.startsWith('./')) {
         const exports = await this.import(spec)
         recordEdge(spec)
         return exports
       }
-      const fileName = spec.slice(2)
-      if (!CLIENT_CHUNK.test(fileName)) {
+      const fileName = chunkFileOf(spec)
+      if (fileName === undefined) {
         throw new Error(`client-modules: invalid relative chunk request ${JSON.stringify(spec)}`)
       }
-      const exports = await this.importChunk(ownerId, fileName)
+      const preload = chunkFilesOf(options?.deps ?? [], `require.async(${JSON.stringify(spec)})`)
+      const exports = await this.importChunk(ownerId, fileName, preload)
       recordEdge(spec)
       return exports
     }
     return require
   }
 
-  /** Load, register, and materialize one package-local dynamic chunk. */
-  private async importChunk(ownerId: string, fileName: string): Promise<unknown> {
+  /**
+   * Load, register, and materialize one package-local dynamic chunk. The prefetch hint downloads in parallel with the
+   * requested chunk, and the request waits for those downloads to end; the requested chunk's registration `deps`
+   * decide what the chunk needs, and their arrival reports a failure with its dependency chain, so a failed hinted
+   * download that no registration requires does not fail the request.
+   */
+  private async importChunk(ownerId: string, fileName: string, preload: readonly string[]): Promise<unknown> {
     const id = chunkId(ownerId, fileName)
     const existing = this.loadCache.get(id)
     if (existing !== undefined) return existing.exports
+    const generation = this.generations.get(ownerId) ?? 0
+    const arrival = this.arriveChunk(ownerId, fileName, generation, new Set())
+    // Each hint arrives with its own visited set, so the requested chunk's arrival still waits for every chunk its
+    // registrations require and reports their failures; the hinted arrival only shares the downloads and discards a
+    // factory registered after an owner invalidation, and its own failure is ignored.
+    const hints = preload.map(hinted => this.arriveChunk(ownerId, hinted, generation, new Set()).catch(() => undefined))
+    try {
+      await arrival
+    } finally {
+      // The request ends, or retries, only after every arrival it started has ended, so a hinted arrival of a dropped
+      // generation cannot discard the chunks that the retry registers.
+      await Promise.all(hints)
+    }
+    // An owner invalidation during arrival dropped every chunk registered so far.
+    if ((this.generations.get(ownerId) ?? 0) !== generation) return await this.importChunk(ownerId, fileName, preload)
+    return this.materialize(id).exports
+  }
+
+  /**
+   * Register one package-local chunk, downloading it unless a script already registered it, then the chunks its
+   * registration requires. A script requested before an owner invalidation can register a factory of the dropped
+   * generation; that factory is discarded, and the caller restarts the arrival under the new generation.
+   * @throws {Error} naming the dependency chain when a required chunk fails to arrive, once every dependency arrival
+   * it started has ended.
+   */
+  private async arriveChunk(ownerId: string, fileName: string, generation: number, visited: Set<string>): Promise<void> {
+    if (visited.has(fileName)) return
+    visited.add(fileName)
+    const id = chunkId(ownerId, fileName)
+    if (this.loadCache.has(id)) return
     if (!this.factories.has(id)) {
-      const generation = this.generations.get(ownerId) ?? 0
       const row = this.graphRows.get(ownerId)
       if (row === undefined) throw new Error(`client-modules: chunk owner "${ownerId}" is not a boot graph entry`)
       /* v8 ignore next -- the final fallback needs an impossible graph-owned factory with no recorded revision. */
       const revision = this.factories.get(ownerId)?.rev ?? this.reloadTargets.get(ownerId)?.rev ?? row.rev
       const url = chunkUrl(row, fileName, revision)
-      await this.loadShared(url)
+      await this.loadShared(url, row)
       if ((this.generations.get(ownerId) ?? 0) !== generation) {
         this.factories.delete(id)
         if (this.loadCache.delete(id)) this.publishModules()
-        return await this.importChunk(ownerId, fileName)
+        return
       }
       if (!this.factories.has(id)) {
         throw new Error(`client-modules: bundle ${url} loaded without registering "${id}" via __ModuleLoader__.load`)
       }
     }
-    return this.materialize(id).exports
+    const deps = chunkFilesOf(this.factories.get(id)?.manifest.deps ?? [], `"${id}"`)
+    await settleAll(deps.map(async (dependency) => {
+      try {
+        await this.arriveChunk(ownerId, dependency, generation, visited)
+      } catch (error) {
+        throw new Error(
+          `client-modules: "${id}" not loaded because dependency "${chunkId(ownerId, dependency)}" failed: ${describeError(error)}`,
+          { cause: error },
+        )
+      }
+    }))
+  }
+
+  /**
+   * Register package-local chunks and, transitively, every chunk their registrations require, in parallel, and fail
+   * only after all of them have ended. One call requests each chunk at most once, so a shared or cyclic dependency
+   * does not repeat or stall it.
+   * @param ownerId - Package that owns the chunks.
+   * @param fileNames - Chunk file names.
+   * @param generation - Owner generation the arrival belongs to.
+   */
+  private async arriveChunks(ownerId: string, fileNames: readonly string[], generation: number): Promise<void> {
+    const visited = new Set<string>()
+    await settleAll(fileNames.map(fileName => this.arriveChunk(ownerId, fileName, generation, visited)))
+  }
+
+  /**
+   * Resolve a synchronous package-local chunk request from the registered chunks.
+   * @param ownerId - Package whose factory requests the chunk.
+   * @param spec - `./client.<name>.js` specifier.
+   * @returns The chunk's exports, materializing it on first request.
+   * @throws {Error} when the specifier names no chunk, or no script has registered the chunk yet.
+   */
+  private requireChunk(ownerId: string, spec: string): unknown {
+    const fileName = chunkFileOf(spec)
+    if (fileName === undefined) throw new Error(`client-modules: invalid relative chunk request ${JSON.stringify(spec)}`)
+    const id = chunkId(ownerId, fileName)
+    const record = this.loadCache.get(id)
+    if (record !== undefined) return record.exports
+    if (this.factories.has(id)) return this.materialize(id).exports
+    throw new Error(`client-modules: "${ownerId}" required chunk ${fileName} before it was registered`)
   }
 
   async import(specifier: string): Promise<unknown> {
@@ -433,7 +613,7 @@ export class ClientModuleSystem implements ClientModuleLoader {
       this.importErrors.delete(id)
       return result
     } catch (error) {
-      this.importErrors.set(id, error instanceof Error ? error : new Error(describeError(error)))
+      if (this.graphRows.has(id)) this.importErrors.set(id, error instanceof Error ? error : new Error(describeError(error)))
       throw error
     }
   }
@@ -476,6 +656,7 @@ export class ClientModuleSystem implements ClientModuleLoader {
     for (const id of this.graphRows.keys()) {
       if (retained.has(id)) continue
       this.graphRows.delete(id)
+      this.packageRealms.evict(id)
       this.invalidate(id)
     }
   }

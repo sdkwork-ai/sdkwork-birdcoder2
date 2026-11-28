@@ -28,6 +28,8 @@ import type {} from '@deepseek-ai/dsh-terminal'
 import { launchWebScaffold, readPersistedEvents, type WebScaffold } from './scaffold.ts'
 import { AUTO_REVIEW_FIXTURE } from './auto-review-fixture.ts'
 import { REPO_ROOT } from './support.ts'
+import { ToolStep } from '@deepseek-ai/dsh-tools/pipeline'
+
 
 const FILE_REFERENCE_PROMPT = fileURLToPath(new URL(
   './expected/web-runtime-context/file-reference-prompt.expected.md', import.meta.url,
@@ -464,26 +466,26 @@ function assertLeanChildRecord(agent: Agent): void {
 }
 
 /**
- * The shipped Standard catalog, minus the ripgrep-dependent pair below.
- * Runtime inspection is read-only. Generated-code execution tools, external
- * MCP servers, and ralph are not enabled in this preset.
+ * The shipped Standard catalog of a new Agent, minus the ripgrep-dependent pair
+ * below. Plan, Office, and Team tools are absent until their providers add them
+ * for the Agent. The Web tools are checked when the Agent is created: HTTP fetch
+ * needs no credential, and this scaffold stores no search key. Runtime
+ * inspection is read-only. Generated-code execution tools, external MCP
+ * servers, and ralph are not enabled in this preset.
  */
 const EXPECTED_TOOLS = [
+  'apply_patch',
   'ask_user_question',
   'bash',
   'cordis_inspect',
   'create_goal',
   'edit',
-  'exit_plan_mode',
   'get_goal',
   'job_kill',
   'job_list',
   'job_output',
   'list_agents',
   'list_subagent_models',
-  'office_convert',
-  'office_recalculate',
-  'office_render',
   'plugin_manager',
   'present',
   'read',
@@ -496,15 +498,10 @@ const EXPECTED_TOOLS = [
   'skill',
   'subagent',
   'subagent_fork',
-  'team_task_create',
-  'team_task_get',
-  'team_task_list',
-  'team_task_update',
   'todo_write',
   'update_goal',
   'wait_agent',
   'web_fetch',
-  'web_search',
   'workflow',
   'write',
 ]
@@ -549,6 +546,7 @@ it('assembles the shipped Web transport, catalog, guidance, and defaults', async
       "mode": "normal",
       "retryableCodes": [
         "EMPTY_RESPONSE",
+        "INVALID_TOOL_ARGUMENTS",
         "RATE_LIMIT",
         "SERVER",
         "TIMEOUT",
@@ -582,6 +580,7 @@ it('assembles the shipped Web transport, catalog, guidance, and defaults', async
       "mode": "normal",
       "retryableCodes": [
         "EMPTY_RESPONSE",
+        "INVALID_TOOL_ARGUMENTS",
         "RATE_LIMIT",
         "SERVER",
         "TIMEOUT",
@@ -597,8 +596,8 @@ it('assembles the shipped Web transport, catalog, guidance, and defaults', async
       "mode": "always",
     }
   `)
-  // Conditional Team tools are global; presets supply the remaining registrations.
-  expect(ctx.tools.schemas().map(schema => schema.name)).toEqual([
+  // Team tools are registered globally and added for Agents in Team mode; presets supply the remaining registrations.
+  expect(ctx.tools.getAll().map(tool => tool.name)).toEqual([
     'team_task_create', 'team_task_list', 'team_task_get', 'team_task_update',
   ])
   const handle = await ctx.agents.create({
@@ -606,7 +605,7 @@ it('assembles the shipped Web transport, catalog, guidance, and defaults', async
     setup: agentCtx => ctx.agentPresets.mount(agentCtx).then(() => undefined),
   })
   try {
-    const names = ctx.tools.schemas(handle.agent).map(schema => schema.name).sort()
+    const names = ctx.tools.getAll(handle.agent).map(tool => tool.name).sort()
     expect(names.filter(name => !RIPGREP_TOOLS.includes(name))).toEqual(EXPECTED_TOOLS)
     // The packaged ripgrep binary ships with the dependency, so the pair is a
     // fixed roster member on every host.
@@ -664,9 +663,10 @@ it('ships PTC with run_code but without the general workflow SDK binding', async
     setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'ptc').then(() => undefined),
   })
   try {
-    const assembly = await ctx.systemPrompt.assemble({ scope: handle.agent })
+    const assembly = await ctx.systemPrompt.assemble({ scope: handle.agent, toolStep: ToolStep.capture(ctx.tools, handle.agent) })
     expect(assembly.tools.map(tool => tool.name)).toEqual([RUN_CODE_NAME])
     const sdk = assembly.sections.find(section => section.name === 'tools:sdk')?.text ?? ''
+    expect(sdk).toContain('  bash: {')
     expect(sdk).not.toContain('  ralph: {')
     expect(sdk).not.toContain('  workflow: {')
   } finally {

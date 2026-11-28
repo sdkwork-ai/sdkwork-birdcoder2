@@ -27,12 +27,11 @@
  * chevron, and each row whose value that selection carries shows one in place
  * of its check mark.
  */
-import { MenuGroup, MenuSurface, observeStickyMenuGroups } from '@deepseek-ai/dsh-client-ui-primitives'
+import { MenuGroup, MenuSurface, observeStickyMenuGroups } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import {
   useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore,
   type CSSProperties, type KeyboardEvent, type FocusEvent, type ReactNode,
 } from 'react'
-import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import type { ModelReasoningEffort, ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
 import {
@@ -45,6 +44,12 @@ import type {
 } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ModelLabelOwner, ModelMenuControls, ModelMenuOptions, ModelMenuPaneRef, ModelSelectInjected } from './slots.ts'
 import type { ModelDirectoryState } from './directory.ts'
+  IconDataOutlineRegular, IconWarningOutlineRegular, Input, StateDot, Tag, Toast,
+} from '@deepseek-ai/dsh-client-ui-primitives/client'
+import type { PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots/client'
+// Type-only: the `useMobile` standard prop merge.
+import type {} from '@deepseek-ai/dsh-client-ui-responsive/client'
+import type { ModelLabelOwner, ModelMenuControls, ModelMenuPaneRef, ModelSelectInjected } from './slots.ts'
 import css from './ModelSelect.module.css'
 import { TextSearchIndex } from '@deepseek-ai/dsh-util-text-search'
 import { orderModelProviders } from './provider-order.ts'
@@ -145,7 +150,17 @@ export function ModelPicker(
     state, load, select, available = true, locked, requestSignIn, waitForSignedInModel, resolveText, t,
     renderLabel, renderAfterModel, renderOptions, renderPane,
   }: ModelPickerProps,
+export function ModelSelect(
+  { locked, available, directory, load, select, resolveText, t, renderSlot, useMobile, useDocumentPortal }:
+  ModelSelectInjected & Pick<PropsRuntime<'conversation.input.model'>, 'locked' | 'useMobile' | 'useDocumentPortal'> & PropsLocale<'model'>
+    & Omit<PropsRenderSlots<'conversation.input.model.label' | 'conversation.input.model.options' | 'conversation.input.model.pane'>, 'SessionProvider'>,
 ) {
+  const state = useSyncExternalStore(
+    fn => directory.subscribe(fn),
+    () => directory.getSnapshot(),
+  )
+  const mobile = useMobile()
+  const Portal = useDocumentPortal()
   const [open, setOpen] = useState(false)
   const [pane, setPane] = useState<Pane>(ROOT_PANE)
   const [query, setQuery] = useState('')
@@ -169,7 +184,7 @@ export function ModelPicker(
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([])
   const id = useId()
   const anchorStyle: CSSProperties & Record<'--dsh-model-anchor', string> = {
-    '--dsh-model-anchor': `--dsh-model-${id.replaceAll(':', '')}`,
+    '--dsh-model-anchor': `--dsh-model-${id.replace(/[^\w-]/g, '')}`,
   }
 
   const accountProviderName = t('provider.account')
@@ -283,7 +298,7 @@ export function ModelPicker(
         if (menuRef.current?.contains(document.activeElement) !== true) (menuRef.current ?? triggerRef.current)?.focus()
         return
       }
-      if (pane.kind === 'model' && showSearch && !isMobileDevice()) {
+      if (pane.kind === 'model' && showSearch && !mobile) {
         searchRef.current?.focus()
         return
       }
@@ -301,7 +316,7 @@ export function ModelPicker(
         .find(button => button.dataset.modelMenuPane === intent.pane.key)
       : itemRefs.current[intent.kind === 'effort' ? 1 : 0]
     ;(cell !== null && cell !== undefined && !cell.disabled ? cell : triggerRef.current)?.focus()
-  }, [open, pane, showSearch])
+  }, [open, pane, showSearch, mobile])
 
   useEffect(() => {
     const viewport = groupsRef.current
@@ -405,7 +420,8 @@ export function ModelPicker(
       }
       return
     }
-    if (pane.kind === 'model' && showSearch && event.target instanceof HTMLInputElement
+    // The search field is the model pane's only text input.
+    if (pane.kind === 'model' && showSearch && event.target === searchRef.current
       && (event.key === 'Enter' || (event.key === 'Tab' && !event.shiftKey))) {
       if (event.key === 'Tab' && visibleModels.length === 0) return
       event.preventDefault()
@@ -431,9 +447,10 @@ export function ModelPicker(
       const rows = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>(
         'button[role="menuitem"]:not([disabled]), button[role="menuitemradio"]:not([disabled]), button[role="switch"]:not([disabled])',
       ) ?? [])
-      if (focused instanceof HTMLButtonElement && rows.includes(focused)) {
+      const row = rows.find(item => item === focused)
+      if (row !== undefined) {
         event.preventDefault()
-        focused.click()
+        row.click()
         return
       }
       if (focused !== triggerRef.current) return
@@ -456,10 +473,8 @@ export function ModelPicker(
   const onBlur = (event: FocusEvent<HTMLDivElement>): void => {
     // Clicking explanation text can clear focus without leaving its page.
     if (pane.kind === 'detail' && event.relatedTarget === null) return
-    if (event.relatedTarget instanceof Node && (
-      rootRef.current?.contains(event.relatedTarget) === true
-      || menuRef.current?.contains(event.relatedTarget) === true
-    )) return
+    if (rootRef.current?.contains(event.relatedTarget) === true
+      || menuRef.current?.contains(event.relatedTarget) === true) return
     close()
   }
 
@@ -584,12 +599,12 @@ export function ModelPicker(
         // through onBlur; other focusable controls, which plugin options may
         // render, keep their default focus, and a detail pane keeps the default
         // so its prose stays selectable.
-        const { target } = event
-        if (target instanceof Element && (
-          target.closest('button') !== null
-          || (pane.kind !== 'detail' && menuRef.current?.contains(target) === true
-            && target.closest('a[href], input, select, textarea, [role="button"], [contenteditable], [tabindex]') === null)
-        )) event.preventDefault()
+        // A text target has no `closest`, so it matches neither test.
+        const target = event.target as Partial<Element>
+        if (target.closest?.('button') != null
+          || (pane.kind !== 'detail' && menuRef.current?.contains(event.target as Node) === true
+            && target.closest?.('a[href], input, select, textarea, [role="button"], [contenteditable], [tabindex]') === null)
+        ) event.preventDefault()
       }}
     >
       <button
@@ -624,10 +639,10 @@ export function ModelPicker(
           : <IconChevronDownOutlineRegular className={clsx(css.chevron, open && css.chevronOpen)} />}
       </button>
 
-      {/* Portaled to body (Menu primitive's portal mode) so the sidebar and
+      {/* Portaled to the application document's body so the sidebar and
           column overflow clips cannot crop the card; synthetic events still
           bubble through this React subtree, keeping onKeyDown/onBlur live. */}
-      {open && createPortal(
+      {open && <Portal>
         <MenuSurface
           ref={menuRef}
           data-model-menu=""
@@ -808,9 +823,8 @@ export function ModelPicker(
               {renderPane?.(pane.pane.key, controls)}
             </div>
           )}
-        </MenuSurface>,
-        document.body,
-      )}
+        </MenuSurface>
+      </Portal>}
       {toast !== null && (
         <Toast
           key={toast.seq}

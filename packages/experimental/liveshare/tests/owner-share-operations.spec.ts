@@ -5,12 +5,19 @@
  * pins the operation order and refusal paths that only a failing dependency reaches.
  */
 
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
 import type { OwnerShare } from '../src/host/owner-types.ts'
+import type { RelayAuthorityRead } from '../src/host/relay-authority.ts'
+import type { ShareAccessStateFrame } from '@deepseek-ai/dsh-experimental-liveshare-protocol'
 import type { OwnerShareOperations } from '../src/host/share-operations.ts'
 import { createOwnerShareOperations } from '../src/host/owner-share-operations.ts'
 
 const RELAY = 'https://relay.example.test/liveshare'
+
+/** A Relay read that adopted the state it answered with. */
+const AUTHORITY_READ: { readonly ok: true; readonly accessState: ShareAccessStateFrame } = { ok: true, accessState: {
+  type: 'share-access-state', version: 1, accessMode: 'open', allowedSubjectIds: [], sessionMode: 'view',
+} }
 
 function storedShare(overrides: Partial<OwnerShare> = {}): OwnerShare {
   return {
@@ -38,7 +45,7 @@ interface Harness {
   readonly tunnel: {
     credentialForRelay: ReturnType<typeof vi.fn>
     ownerIdentityStatus: ReturnType<typeof vi.fn>
-    waitForShare: ReturnType<typeof vi.fn>
+    waitForShare: Mock<() => Promise<{ ok: boolean; error?: string }>>
     send: ReturnType<typeof vi.fn>
     shareSpec: ReturnType<typeof vi.fn>
     clearShareExpiry: ReturnType<typeof vi.fn>
@@ -52,7 +59,7 @@ interface Harness {
     probeRelayConnectivity: ReturnType<typeof vi.fn>
     probeRelayPublish: ReturnType<typeof vi.fn>
   }
-  readonly relay: { readRelayAuthority: ReturnType<typeof vi.fn> }
+  readonly relay: { readRelayAuthority: Mock<() => Promise<RelayAuthorityRead>>; drivableModeOf: ReturnType<typeof vi.fn> }
   readonly viewerRead: { closeShare: ReturnType<typeof vi.fn>; cancelPendingCalls: ReturnType<typeof vi.fn> }
   readonly forks: { revokeShare: ReturnType<typeof vi.fn> }
   readonly offeredCapabilities: ReturnType<typeof vi.fn>
@@ -71,7 +78,7 @@ interface Harness {
   readonly holdOwnerState: (held: boolean) => void
 }
 
-function harness(): Harness {
+function harness(options: { readonly allowedSubjectIds?: readonly string[] } = {}): Harness {
   const ownerShares = new Map<string, OwnerShare>()
   const pendingRemovals = new Map<string, { relay: string; shareId: string; gatewayToken: string }>()
   let effective: string | undefined = RELAY
@@ -92,7 +99,10 @@ function harness(): Harness {
     probeRelayConnectivity: vi.fn(async () => ({ ok: true, httpReachable: true, blocking: false })),
     probeRelayPublish: vi.fn(async () => ({ ok: true, blocking: false })),
   }
-  const relay = { readRelayAuthority: vi.fn(async () => ({ ok: true })) }
+  const relay = {
+    readRelayAuthority: vi.fn(async (): Promise<RelayAuthorityRead> => AUTHORITY_READ),
+    drivableModeOf: vi.fn(() => 'view'),
+  }
   const viewerRead = { closeShare: vi.fn(), cancelPendingCalls: vi.fn() }
   const forks = { revokeShare: vi.fn(async () => {}) }
   const offeredCapabilities = vi.fn(() => [])
@@ -115,7 +125,7 @@ function harness(): Harness {
     ownerShares,
     pendingRemovals,
     ownerStateHeld: () => ownerStateHeld,
-    allowedSubjectIds: [],
+    allowedSubjectIds: [...(options.allowedSubjectIds ?? [])],
     forks,
     viewerRead,
     offeredCapabilities,
@@ -146,6 +156,142 @@ function harness(): Harness {
 afterEach(() => {
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
+})
+
+describe('reconnecting an existing share', () => {
+  const request = { shareId: 'share-1' }
+
+  it('keeps the original registration and waits for the worker, sharing one attempt across callers', async () => {
+    const h = harness()
+    const original = storedShare({ online: false, sessionMode: 'write', reconnectStopped: true })
+    h.ownerShares.set(original.shareId, original)
+    h.effectiveRelay.mockReturnValue('https://other.example.test')
+    const credential = { relay: RELAY, credential: 'current-credential' }
+    h.storedCredential.mockReturnValue(credential)
+    const latest = { ...original, accessMode: 'selected' as const, allowedSubjectIds: ['alice'], allowsFork: true }
+    const settled = Promise.withResolvers<{ ok: boolean }>()
+    const waiting = Promise.withResolvers<undefined>()
+    h.relay.readRelayAuthority.mockImplementation(async () => {
+      h.ownerShares.set(original.shareId, latest)
+      return AUTHORITY_READ
+    })
+    h.tunnel.waitForShare.mockImplementation(() => { waiting.resolve(undefined); return settled.promise })
+    const result = Promise.all([h.operations.reconnect(request), h.operations.reconnect(request)])
+    await waiting.promise
+    expect(h.relay.readRelayAuthority).toHaveBeenCalledTimes(1)
+    expect(h.tunnel.shareSpec).toHaveBeenCalledWith({ ...latest, sessionMode: 'view' }, credential)
+    expect(h.tunnel.send).toHaveBeenCalledExactlyOnceWith({ type: 'add-share', share: { ...latest, sessionMode: 'view' } })
+    settled.resolve({ ok: true })
+    await expect(result).resolves.toEqual([undefined, undefined])
+    expect(h.persistOwnerState).not.toHaveBeenCalled()
+  })
+
+  it('registers the Relay\'s narrowed ACL instead of merging the deployment defaults back in', async () => {
+    const h = harness({ allowedSubjectIds: ['revoked'] })
+    const original = storedShare({ online: false, allowedSubjectIds: ['revoked', 'remaining'] })
+    h.ownerShares.set(original.shareId, original)
+    // Stand in for the host's own spec builder, which merges the deployment defaults into every share.
+    h.tunnel.shareSpec.mockImplementation((share: { allowedSubjectIds: readonly string[] }) =>
+      ({ ...share, allowedSubjectIds: [...new Set(['revoked', ...share.allowedSubjectIds])] }))
+    h.relay.readRelayAuthority.mockImplementationOnce(async () => {
+      h.ownerShares.set(original.shareId, { ...original, allowedSubjectIds: ['remaining'] })
+      return AUTHORITY_READ
+    })
+    await expect(h.operations.reconnect(request)).resolves.toBeUndefined()
+    const registered = h.tunnel.send.mock.calls[0]?.[0] as { readonly share: { readonly allowedSubjectIds: readonly string[] } }
+    expect(registered.share.allowedSubjectIds).toEqual(['remaining'])
+  })
+
+  it('reports a share the Relay no longer serves instead of a retryable failure', async () => {
+    const h = harness()
+    h.ownerShares.set(request.shareId, storedShare({ online: false }))
+    h.relay.readRelayAuthority.mockResolvedValueOnce({ ok: false, failure: 'missing' })
+    await expect(h.operations.reconnect(request)).rejects.toMatchObject({ code: 'liveshareShares/share-not-found' })
+    expect(h.tunnel.send).not.toHaveBeenCalled()
+  })
+
+  it('does nothing for an online share, but still enforces ownership and expiry', async () => {
+    const h = harness()
+    h.ownerShares.set(request.shareId, storedShare())
+    await expect(h.operations.reconnect(request)).resolves.toBeUndefined()
+    h.holdOwnerState(true)
+    await expect(h.operations.reconnect(request)).rejects.toMatchObject({ code: 'liveshareShares/owner-state-held' })
+    h.holdOwnerState(false)
+    h.ownerShares.set(request.shareId, storedShare({ expiresAt: '2000-01-01T00:00:00Z' }))
+    await expect(h.operations.reconnect(request)).rejects.toMatchObject({ code: 'liveshareShares/share-expired' })
+    h.ownerShares.clear()
+    await expect(h.operations.reconnect(request)).rejects.toMatchObject({ code: 'liveshareShares/share-not-found' })
+    expect(h.relay.readRelayAuthority).not.toHaveBeenCalled()
+    expect(h.tunnel.send).not.toHaveBeenCalled()
+  })
+
+  it('does not register if the Relay cannot confirm its row or the refreshed grant expired', async () => {
+    const h = harness()
+    const share = storedShare({ online: false })
+    h.ownerShares.set(request.shareId, share)
+    h.relay.readRelayAuthority.mockResolvedValueOnce({ ok: false, failure: 'unavailable' })
+    await expect(h.operations.reconnect(request)).rejects.toMatchObject({ code: 'liveshareShares/relay-unavailable' })
+    h.relay.readRelayAuthority.mockImplementationOnce(async () => {
+      h.ownerShares.set(request.shareId, { ...share, expiresAt: '2000-01-01T00:00:00Z' })
+      return AUTHORITY_READ
+    })
+    await expect(h.operations.reconnect(request)).rejects.toMatchObject({ code: 'liveshareShares/share-expired' })
+    expect(h.tunnel.send).not.toHaveBeenCalled()
+  })
+
+  it('does not replace a connection that recovered during the authority read', async () => {
+    const h = harness()
+    const share = storedShare({ online: false })
+    h.ownerShares.set(request.shareId, share)
+    h.relay.readRelayAuthority.mockImplementationOnce(async () => { share.online = true; return { ok: false, failure: 'superseded' } })
+    await expect(h.operations.reconnect(request)).resolves.toBeUndefined()
+    expect(h.tunnel.send).not.toHaveBeenCalled()
+  })
+
+  it('cannot start or complete a registration for a share being stopped', async () => {
+    const h = harness()
+    h.ownerShares.set(request.shareId, storedShare({ online: false }))
+    const read = Promise.withResolvers<RelayAuthorityRead>()
+    h.relay.readRelayAuthority.mockReturnValue(read.promise)
+    const pending = h.operations.reconnect(request)
+    const revoke = Promise.withResolvers<undefined>()
+    h.forks.revokeShare.mockReturnValue(revoke.promise)
+    const stop = h.operations.stop(request)
+    await expect(h.operations.reconnect(request)).rejects.toMatchObject({ code: 'liveshareShares/share-not-found' })
+    read.resolve(AUTHORITY_READ)
+    await expect(pending).rejects.toMatchObject({ code: 'liveshareShares/share-not-found' })
+    revoke.resolve(undefined)
+    await stop
+    expect(h.tunnel.send).toHaveBeenCalledExactlyOnceWith({ type: 'remove-share', ...request })
+  })
+
+  it('refuses an unavailable tier and a late success after the share was removed', async () => {
+    const h = harness()
+    h.ownerShares.set(request.shareId, storedShare({ online: false }))
+    h.relay.drivableModeOf.mockReturnValueOnce(undefined)
+    await expect(h.operations.reconnect(request)).rejects.toMatchObject({ code: 'liveshareShares/relay-unavailable' })
+    expect(h.tunnel.send).not.toHaveBeenCalled()
+    h.tunnel.waitForShare.mockImplementationOnce(async () => {
+      h.ownerShares.delete(request.shareId)
+      return AUTHORITY_READ
+    })
+    await expect(h.operations.reconnect(request)).rejects.toMatchObject({ code: 'liveshareShares/share-not-found' })
+    expect(h.ownerShares.has(request.shareId)).toBe(false)
+  })
+
+  it('reports a failed handshake and allows an independent later attempt on the same link', async () => {
+    const h = harness()
+    const original = storedShare({ online: false, reconnectStopped: true })
+    h.ownerShares.set(request.shareId, original)
+    expect((await h.operations.list()).shares[0]?.reconnectStopped).toBe(true)
+    h.tunnel.waitForShare.mockResolvedValueOnce({ ok: false, error: 'gateway-timeout' })
+    await expect(h.operations.reconnect(request)).rejects.toMatchObject({ code: 'liveshareShares/relay-unavailable', message: 'gateway-timeout' })
+    h.tunnel.waitForShare.mockResolvedValueOnce({ ok: false })
+    await expect(h.operations.reconnect(request)).rejects.toMatchObject({ message: 'relay-unavailable' })
+    await expect(h.operations.reconnect(request)).resolves.toBeUndefined()
+    expect(h.tunnel.send).toHaveBeenCalledTimes(3)
+    expect(h.ownerShares.get(request.shareId)).toBe(original)
+  })
 })
 
 describe('creating a share', () => {
@@ -281,7 +427,7 @@ describe('creating a share', () => {
     h.ownerShares.set(share.shareId, share)
     h.persistOwnerState.mockRejectedValue(new Error('disk full'))
     await expect(h.operations.addSessions({ shareId: share.shareId, sessionIds: ['session-2'] }))
-      .rejects.toMatchObject({ code: 'liveshareShares/owner-state-unavailable' })
+      .rejects.toMatchObject({ code: 'liveshareShares/owner-state-unavailable', message: 'the owner state file could not be written: Error: disk full' })
     expect(h.ownerShares.get(share.shareId)).toBe(share)
     expect(h.applySourceAccess).not.toHaveBeenCalled()
   })
@@ -395,10 +541,9 @@ describe('listing shares', () => {
   it('drops a share whose record disappeared while its authority was read', async () => {
     const h = harness()
     h.ownerShares.set('gone', storedShare({ shareId: 'gone' }))
-    // oxlint-disable-next-line typescript/no-misused-promises -- typed test doubles and mock calls.
     h.relay.readRelayAuthority.mockImplementation(async () => {
       h.ownerShares.delete('gone')
-      return { ok: true }
+      return AUTHORITY_READ
     })
     await expect(h.operations.list()).resolves.toEqual({ shares: [] })
   })
@@ -406,10 +551,9 @@ describe('listing shares', () => {
   it('persists the records Relay authority changed and reports a failed write', async () => {
     const h = harness()
     h.ownerShares.set('share-1', storedShare())
-    // oxlint-disable-next-line typescript/no-misused-promises -- typed test doubles and mock calls.
     h.relay.readRelayAuthority.mockImplementation(async () => {
       h.ownerShares.set('share-1', storedShare({ sessionTitle: 'Renamed' }))
-      return { ok: true }
+      return AUTHORITY_READ
     })
     await expect(h.operations.list()).resolves.toMatchObject({ shares: [{ sessionTitle: 'Renamed' }] })
     expect(h.persistOwnerState).toHaveBeenCalledTimes(1)
@@ -858,7 +1002,7 @@ describe('Relay checks', () => {
       .rejects.toMatchObject({ code: 'liveshareShares/missing-session-id' })
   })
 
-  it('registers one throwaway share with the real credential and identity row', async () => {
+  it('asks the publish check with the real credential and identity row', async () => {
     const h = harness()
     h.storedCredential.mockReturnValue({ relay: RELAY, credential: 'owner-credential' })
     h.tunnel.probeRelayPublish.mockResolvedValue({ ok: true, blocking: false })
@@ -868,6 +1012,38 @@ describe('Relay checks', () => {
       allowedSubjectIds: [], allowsFork: false, sessionMode: 'view',
     }), { relay: RELAY, credential: 'owner-credential' })
     expect(h.tunnel.probeRelayPublish).toHaveBeenCalledWith(RELAY, expect.objectContaining({ shareId: '' }))
+  })
+
+  it('probes with the gateway token of the share that already serves the Session', async () => {
+    const h = harness()
+    h.ownerShares.set('share-1', storedShare({ gatewayToken: 'published-token' }))
+    await h.operations.testPublish({ sessionId: 'session-1' })
+    // The Relay compares the digest against the token of the share it holds for this Session, so a
+    // fresh token would read as a mismatch and block a publish the Relay would still admit.
+    expect(h.tunnel.shareSpec).toHaveBeenCalledWith(expect.objectContaining({ gatewayToken: 'published-token' }), undefined)
+  })
+
+  it('draws a fresh gateway token for a Session published at another address', async () => {
+    const h = harness()
+    const other = 'https://other.example.test/liveshare'
+    h.ownerShares.set('share-1', storedShare({ gatewayToken: 'other-relay-token', relay: other }))
+    // The address in force is the one the Relay is asked about, and a share at another one carries a
+    // token that Relay never saw.
+    await h.operations.testPublish({ sessionId: 'session-1' })
+    const spec = h.tunnel.shareSpec.mock.calls[0]?.[0] as { readonly relay: string; readonly gatewayToken: string }
+    expect(spec.relay).toBe(RELAY)
+    expect(spec.gatewayToken).not.toBe('other-relay-token')
+    expect(spec.gatewayToken).toMatch(/^[A-Za-z0-9_-]{43}$/u)
+  })
+
+  it('draws a fresh gateway token for a Session that only joins another share as a later source', async () => {
+    const h = harness()
+    h.ownerShares.set('share-1', storedShare({ sessionIds: ['session-2', 'session-1'], gatewayToken: 'relay-token-share-1' }))
+    // The Relay looks a share up by its primary Session, so a share this Session merely joins is not
+    // the row the check is compared against.
+    await h.operations.testPublish({ sessionId: 'session-1' })
+    const spec = h.tunnel.shareSpec.mock.calls[0]?.[0] as { readonly gatewayToken: string }
+    expect(spec.gatewayToken).not.toBe('relay-token-share-1')
   })
 })
 
@@ -902,8 +1078,7 @@ describe('a state another live host owns', () => {
       () => h.operations.setCapabilities({ shareId: 'share-1', viewerPlugins: [], viewerPluginAccess: 'none' }),
       () => h.operations.setRelay({ relayUrl: null }),
       // Relay probes change state as well: testRelay persists owed removals from this host's stale
-      // maps, testPublish registers a throwaway share on the holder's Relay, and audit presents a
-      // management token.
+      // maps, testPublish asks the holder's Relay, and audit presents a management token.
       () => h.operations.testRelay(),
       () => h.operations.testPublish({ sessionId: 'session-1' }),
       () => h.operations.audit({ shareId: 'share-1' }),

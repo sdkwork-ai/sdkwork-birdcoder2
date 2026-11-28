@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
-import { Button, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+import type { SyntheticEvent, ReactNode } from 'react'
+import { Button, Tag } from '@deepseek-ai/dsh-client-ui-primitives/client'
+import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { Annotation, AnnotationTarget, TimelineView } from '../records.ts'
 import { newId } from '../records.ts'
 import { formatPeriod, savedPeriod } from '../periods.ts'
@@ -160,7 +160,7 @@ export function AnnotationEditor({
   useEffect(() => {
     if (open) input.current?.focus()
   }, [open])
-  const submit = async (event: FormEvent) => {
+  const submit = async (event: SyntheticEvent) => {
     event.preventDefault()
     if (sending.current || busy || !text.trim()) return
     sending.current = true

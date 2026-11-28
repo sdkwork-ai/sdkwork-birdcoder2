@@ -9,14 +9,14 @@ import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import type { Browser, Locator, Page } from 'playwright'
 import { chromium } from 'playwright'
-import { HIDDEN_BUNDLES } from '@deepseek-ai/dsh-official-bundles'
+import { DESKTOP_ONLY_BUNDLES, HIDDEN_BUNDLES } from '@deepseek-ai/dsh-official-bundles'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed, onTestFinished } from 'vitest'
 import { join } from 'node:path'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
   launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { ZH_BROWSER_LOCALE, openSettings, saveFailureShot } from './support.ts'
+import { PLUGIN_TOGGLE_SETTLE_MS, ZH_BROWSER_LOCALE, openSettings, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/plugin-config', import.meta.url))
 const OFFICIAL_EXPECTED = join(SNAPSHOT_DIR, 'official.expected.md')
@@ -114,11 +114,12 @@ describe('web e2e: plugin configuration pages', () => {
     await more.focus()
     await page.keyboard.press('Enter')
     await panel.getByRole('heading', { name: '实验性插件', exact: true, level: 1 }).waitFor()
-    // The More list omits the shipped bundles whose own rows do not run (the visibility rule lives in
-    // ui-plugin-manager), so it holds fewer cards than the installed optional-bundle list.
+    // The More list omits desktop-only bundles in Web and shipped bundles whose own rows do not run (the
+    // visibility rule lives in ui-plugin-manager), so it holds fewer cards than the installed optional-bundle list.
     const bundles = await scaffold.ctx.pluginManager.listBundles()
     expect(await panel.locator('[data-plugin-group="more"] [data-plugin-package]').count())
       .toBe(bundles.filter(bundle => !HIDDEN_BUNDLES.has(bundle.name)
+        && !DESKTOP_ONLY_BUNDLES.has(bundle.name)
         && bundle.name !== '@deepseek-ai/dsh-experimental-liveshare'
         && bundle.official && (bundle.listedByDefault !== false || bundle.enabled || bundle.installed)).length)
     expect(await basic.count()).toBe(0)
@@ -343,6 +344,8 @@ describe('web e2e: plugin configuration pages', () => {
     const toggle = panel.getByRole('switch', { name: '允许 Agent 为子智能体选择模型' })
 
     await panel.getByLabel('最大递归深度', { exact: true }).fill('2')
+    await panel.getByRole('button', { name: '子智能体默认模型 与父 Agent 相同' }).click()
+    await page.getByRole('menuitem', { name: 'DeepSeek-V4-Flash · DeepSeek', exact: true }).click()
     await toggle.click()
     const models = panel.getByRole('group', { name: 'Agent 可选择的模型' })
     await models.waitFor({ timeout: 10_000 })
@@ -357,6 +360,7 @@ describe('web e2e: plugin configuration pages', () => {
     expect(saved).toContain('id: subagent-model-selection-settings')
     expect(saved).toContain('maxDepth: 2')
     expect(saved).toContain('enabled: true')
+    expect(saved).toContain('defaultModel:')
     expect(saved).toContain('allowedModels:')
     expect(saved).toContain('provider:')
     expect(saved).toContain('model:')
@@ -367,6 +371,9 @@ describe('web e2e: plugin configuration pages', () => {
     await expect.poll(async () => (await settingsDocument()).includes('enabled: false'), { timeout: 10_000 })
       .toBe(true)
     await expect.poll(() => toggle.getAttribute('aria-checked'), { timeout: 5_000 }).toBe('false')
+    await openPlugins()
+    await openPage(panel, '子智能体')
+    await panel.getByRole('button', { name: /^子智能体默认模型 DeepSeek-V4-Flash · / }).waitFor()
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)
 
@@ -478,13 +485,15 @@ describe('web e2e: plugin configuration pages', () => {
     // reload; its registration puts the configure control on the row, and
     // its detail contributions on the bundle's page: the action before the
     // page's own switch, the badge beside the title, the section after the rows.
-    await panel.getByRole('switch', { name: '启用 @fixture/live-client' }).click()
+    const toggle = panel.getByRole('switch', { name: '启用 @fixture/live-client' })
+    await toggle.click()
     const configure = panel.getByRole('button', { name: '配置 @fixture/live-client' })
     await configure.waitFor({ timeout: 30_000 })
     await bundlePage.locator('[data-live-section="bundle"]').waitFor({ timeout: 10_000 })
     // The page's own view of the row follows the Host's change event, which
     // can land after the browser half mounted; the golden holds the settled page.
     await row.getByText('运行中', { exact: true }).waitFor({ timeout: 10_000 })
+    await expect.poll(() => toggle.isEnabled(), { timeout: PLUGIN_TOGGLE_SETTLE_MS }).toBe(true)
     expect(await bundlePage.getByRole('button', { name: '夹具操作' }).count()).toBe(1)
     expect(await bundlePage.locator('[data-live-badge="bundle"]').textContent()).toBe('夹具标签')
     expect(await bundlePage.getByRole('region', { name: '夹具区块' }).getByText('来自夹具的区块内容').count()).toBe(1)

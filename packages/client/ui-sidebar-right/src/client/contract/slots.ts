@@ -21,18 +21,18 @@
  * therefore live with their declarer.
  */
 import type { ShortcutCatalogEntry } from '@deepseek-ai/dsh-client-shortcuts/client'
-import type {} from '@deepseek-ai/dsh-client-ui-slots'
+import type {} from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { RightbarOwnerProps } from '@deepseek-ai/dsh-client-ui-layout/client'
 // The locale plugin's own merge carries the shared `common` vocabulary that the
 // lookup chain consults after this namespace misses.
 import type {} from '@deepseek-ai/dsh-client-locale/client'
-import type { PaneId, TabId, TabRecord } from '@deepseek-ai/dsh-client-ui-dockkit'
-import type { SlotHookFactory } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PaneId, TabId, TabRecord } from '@deepseek-ai/dsh-client-ui-dockkit/client'
+import type { SlotHookFactory } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { TabHookContext } from '../tab-info.ts'
 import type { SidebarRightKey } from '../locales.ts'
 import type { SidebarRightNavigationParams, SidebarRightResourceParams, SidebarRightTabParamsFor } from './params.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@deepseek-ai/dsh-client-ui-slots/client' {
   interface LocaleNamespaceMap {
     /** Right-Sidebar chrome, docking-kit vocabulary, and guide copy. */
     sidebarRight: SidebarRightKey
@@ -155,7 +155,7 @@ export interface SidebarRightTabCommands {
 /** The actions one tab may take on itself; each acts on the session the tab is in. */
 export interface SidebarRightTabActions {
   /**
-   * Bind page operations until the body unmounts or the tab lifetime ends.
+   * The latest live binding supplies the page operations. Releasing it restores the preceding live binding until the tab ends.
    * @param commands - operations supported by this page; omitted operations are unavailable.
    * @returns disposer that cannot remove a newer body's registration.
    */

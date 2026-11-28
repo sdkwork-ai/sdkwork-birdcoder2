@@ -1,7 +1,8 @@
-import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
-import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
-import * as PtcToolExecutor from '@deepseek-ai/dsh-tool-executor-ptc'
+import { executeDefinitionFixture, executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
+import * as NativeToolRegistry from '@deepseek-ai/dsh-tool-registry-native'
+import * as PtcToolRegistry from '@deepseek-ai/dsh-tool-registry-ptc'
 import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
+import { connect } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -11,7 +12,8 @@ import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
 import BrowserUse from '@deepseek-ai/dsh-browser-use'
 import SystemPrompt, { renderPrompt } from '@deepseek-ai/dsh-system-prompt'
-import Tools from '@deepseek-ai/dsh-tools'
+import Tools, { type ToolDefinition, type ToolRegistry } from '@deepseek-ai/dsh-tools'
+import { ToolStep } from '@deepseek-ai/dsh-tools/pipeline'
 import McpResources from '@deepseek-ai/dsh-mcp-resources'
 import { PtcRuntime } from '@deepseek-ai/dsh-ptc-runtime'
 import { brandString } from '@deepseek-ai/dsh-brand'
@@ -81,12 +83,13 @@ class PresentationRuntime extends PtcRuntime {
   run(): Promise<never> { return Promise.reject(new Error('Unexpected PTC execution in a presentation test')) }
 }
 
-async function load(exclusive = false, mode?: string, toolCallTimeoutMs?: number, toolOrder?: string[]) {
+async function load(exclusive = false, mode?: string, toolCallTimeoutMs?: number, toolOrder?: string[], rootRegistry: 'native' | 'ptc' = 'native') {
   const root = await mkdtemp(join(tmpdir(), 'dsh-browser-mcp-'))
   roots.push(root)
   const model = new FixtureModel()
   const modules = new Map<string, unknown>([
-    ['browserUse', BrowserUse], ['prompt', SystemPrompt], ['tools', Tools], ['toolExecutor', NativeToolExecutor], ['llm', Llm],
+    ['browserUse', BrowserUse], ['prompt', SystemPrompt], ['tools', Tools], ['llm', Llm],
+    ...rootRegistry === 'native' ? [['toolRegistry', NativeToolRegistry] as const] : [['ptcRuntime', PresentationRuntime] as const, ['toolRegistry', PtcToolRegistry] as const],
     ['sessions', Sessions], ['agents', Agents], ['loop', AgentLoop], ['projections', Projections],
     ['fs', LocalFileSystem], ['workingDirectory', WorkingDirectory],
     ['model', { inject: ['llm'], apply(ctx: Context) { ctx.effect(() => ctx.llm.registerAdapter(['fixture'], model)) } }],
@@ -148,7 +151,28 @@ function registerIndependentTool(ctx: Context) {
 }
 
 async function events(root: string) {
-  return (await readFile(join(root, 'events.ndjson'), 'utf8')).trim().split('\n').map(line => JSON.parse(line) as { event: string; pid: number; name?: string; cwd?: string })
+  return (await readFile(join(root, 'events.ndjson'), 'utf8')).trim().split('\n').map(line => JSON.parse(line) as { event: string; pid: number; endpoint: string; name?: string; cwd?: string })
+}
+
+/** Whether the fixture process that recorded `endpoint` still runs; a later process that received its PID does not count. */
+function listening(endpoint: string): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    const socket = connect(endpoint)
+    socket.once('connect', () => {
+      socket.destroy()
+      resolve(true)
+    })
+    socket.once('error', (error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT' || error.code === 'ECONNREFUSED') resolve(false)
+      else reject(error)
+    })
+  })
+}
+
+async function expectEnded(root: string) {
+  for (const { pid, endpoint } of (await events(root)).filter(event => event.event === 'start')) {
+    expect(await listening(endpoint), `fixture process ${pid} still listens at ${endpoint}`).toBe(false)
+  }
 }
 
 it('requires a browser mode and validates launch and attachment settings', () => {
@@ -190,7 +214,7 @@ describe('Session MCP Loader composition', () => {
     const { ctx, root, model, browser } = await load(false, undefined, 5000, [TOOL, '<unlisted-tools>'])
     const first = await ctx.agents.create({ sessionId: brandString<SessionId>('first'), meta: { cwd: root }, agentOptions: { provider: 'fixture', model: 'fixture' } })
     const second = await ctx.agents.create({ sessionId: brandString<SessionId>('second') })
-    expect(ctx.tools.schemas()).toEqual([])
+    expect(ctx.tools.getAll()).toEqual([])
     first.agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Visit the fixture.' }], source: { kind: 'user' } }))
     await first.agent.whenIdle()
     expect(model.requests).toHaveLength(2)
@@ -203,23 +227,20 @@ describe('Session MCP Loader composition', () => {
     expect(JSON.stringify(first.agent.session.snapshotEvents())).toContain('Visit 3: fixture')
     await warm(ctx, second.agent)
     expect((await execute(ctx, second.agent)).content).toEqual([{ type: 'text', text: 'Visit 1: direct' }])
-    expect(ctx.tools.schemas()).toEqual([])
-    expect(ctx.tools.schemas(first.agent)).toHaveLength(2)
+    expect(ctx.tools.getAll()).toEqual([])
+    expect(ctx.tools.getAll(first.agent)).toHaveLength(2)
     const initial = await events(root)
     expect(initial.filter(event => event.event === 'start')).toHaveLength(4)
     expect(initial.filter(event => event.event === 'probe')).toHaveLength(2)
     expect(initial.filter(event => event.event === 'initialize')).toHaveLength(2)
     await first.dispose()
-    expect(ctx.tools.schemas(first.agent)).toEqual([])
+    expect(ctx.tools.getAll(first.agent)).toEqual([])
     const resumed = await ctx.agents.create({ sessionId: brandString<SessionId>('first') })
     await warm(ctx, resumed.agent)
     expect((await execute(ctx, resumed.agent)).content).toEqual([{ type: 'text', text: 'Visit 1: direct' }])
     await browser.dispose()
     expect(ctx.browserUse.providerName).toBeUndefined()
-    const closed = await events(root)
-    for (const { pid } of closed.filter(event => event.event === 'start')) {
-      expect(() => process.kill(pid, 0)).toThrow(expect.objectContaining({ code: 'ESRCH' }))
-    }
+    await expectEnded(root)
   })
 
   it('keeps unrelated and child Sessions running without a busy attachment and admits a later owner', async () => {
@@ -232,7 +253,7 @@ describe('Session MCP Loader composition', () => {
       setup: (_inner, agent) => { bindScopeParent(agent, first.agent) },
     })
     await warm(ctx, first.agent)
-    expect(ctx.tools.schemas(child.agent).some(tool => tool.name === TOOL)).toBe(false)
+    expect(ctx.tools.getAll(child.agent).some(tool => tool.name === TOOL)).toBe(false)
     for (const { agent } of [second, child]) {
       agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Answer without using the browser.' }], source: { kind: 'user' } }))
     }
@@ -240,7 +261,7 @@ describe('Session MCP Loader composition', () => {
     expect(model.requests).toHaveLength(2)
     expect(model.requests.map(request => request.tools?.map(tool => tool.name))).toEqual([['unrelated'], ['unrelated']])
     for (const { agent } of [second, child]) {
-      expect(ctx.tools.schemas(agent).map(tool => tool.name)).toEqual(['unrelated'])
+      expect(ctx.tools.getAll(agent).map(tool => tool.name)).toEqual(['unrelated'])
       expect((await execute(ctx, agent)).error?.info).toEqual(FOREIGN)
       expect((await execute(ctx, agent, 'unrelated')).isError).toBe(false)
       expect((await warm(ctx, agent)).tools.map(tool => tool.name)).toEqual(['unrelated'])
@@ -250,7 +271,7 @@ describe('Session MCP Loader composition', () => {
       output: { schema: { type: 'boolean' }, render: () => [{ type: 'text', text: 'Late browser result.' }] },
       execute: async () => true,
     })
-    expect(ctx.tools.schemas(child.agent).filter(tool => tool.name.startsWith('mcp__browser-fixture__'))).toEqual([])
+    expect(ctx.tools.getAll(child.agent).filter(tool => tool.name.startsWith('mcp__browser-fixture__'))).toEqual([])
     expect((await warm(ctx, child.agent)).tools.map(tool => tool.name)).toEqual(['unrelated'])
     expect((await execute(ctx, child.agent, 'mcp__browser-fixture__late')).error?.info).toEqual(FOREIGN)
     expect((await events(root)).filter(event => event.event === 'initialize')).toHaveLength(1)
@@ -302,38 +323,25 @@ describe('Session MCP Loader composition', () => {
     expect(laterListener).not.toHaveBeenCalled()
     expect(failed.ctx.agents.get(failedAgent.id)).toBeUndefined()
     expect(failed.ctx.sessions.get(failedAgent.id)).toBeUndefined()
-    expect(failed.ctx.tools.schemas(failedAgent)).toEqual([])
-    const failedEvents = await events(failed.root)
-    expect(failedEvents.filter(event => event.event === 'initialize')).toHaveLength(1)
-    for (const { pid } of failedEvents.filter(event => event.event === 'start')) {
-      expect(() => process.kill(pid, 0)).toThrow(expect.objectContaining({ code: 'ESRCH' }))
-    }
+    expect(failed.ctx.tools.getAll(failedAgent)).toEqual([])
+    expect((await events(failed.root)).filter(event => event.event === 'initialize')).toHaveLength(1)
+    await expectEnded(failed.root)
     const held = await load(false, 'hold')
     const pendingOwner = observeActivation(held.ctx.agents.create({ sessionId: brandString<SessionId>('pending') }))
     await expect.poll(async () => (await events(held.root)).some(event => event.event === 'probe')).toBe(true)
     await held.browser.dispose()
     await expect(pendingOwner).rejects.toThrow()
     expect(held.ctx.agents.get(brandString<SessionId>('pending'))).toBeUndefined()
-    for (const { pid } of (await events(held.root)).filter(event => event.event === 'start')) {
-      expect(() => process.kill(pid, 0)).toThrow(expect.objectContaining({ code: 'ESRCH' }))
-    }
+    await expectEnded(held.root)
   })
 
   it('does not reconnect and silently replace browser state after a process exits', async () => {
     const { ctx, root } = await load()
     const owner = await ctx.agents.create({ sessionId: brandString<SessionId>('disconnect') })
     await warm(ctx, owner.agent)
-    const servingPid = (await events(root)).find(event => event.event === 'initialize')!.pid
+    const serving = (await events(root)).find(event => event.event === 'initialize')!.endpoint
     await execute(ctx, owner.agent, 'mcp__browser-fixture__disconnect')
-    let exitError: unknown
-    await expect.poll(() => {
-      try { process.kill(servingPid, 0) } catch (error) {
-        exitError = error
-        return true
-      }
-      return false
-    }).toBe(true)
-    expect(exitError).toEqual(expect.objectContaining({ code: 'ESRCH' }))
+    await expect.poll(() => listening(serving)).toBe(false)
     await warm(ctx, owner.agent)
     expect((await events(root)).filter(event => event.event === 'initialize')).toHaveLength(1)
     expect((await execute(ctx, owner.agent)).isError).toBe(true)
@@ -352,6 +360,19 @@ describe('Session MCP Loader composition', () => {
     expect((await execute(ctx, owner.agent, 'unrelated')).content).toEqual([{ type: 'text', text: 'Independent.' }])
     await warm(ctx, child.agent)
     expect((await execute(ctx, child.agent)).content).toEqual([{ type: 'text', text: 'Visit 1: direct' }])
+  })
+
+  it('lets a child\'s call to an unknown browser tool name fail as an unknown tool', async () => {
+    const { ctx } = await load()
+    const owner = await ctx.agents.create({ sessionId: brandString<SessionId>('unknown-parent') })
+    const child = await ctx.agents.create({
+      sessionId: brandString<SessionId>('unknown-child'),
+      setup: (_inner, agent) => { bindScopeParent(agent, owner.agent) },
+    })
+    await warm(ctx, owner.agent)
+    await warm(ctx, child.agent)
+    // No definition resolves, so no browser tool runs and the ownership check does not apply.
+    expect((await execute(ctx, child.agent, 'mcp__browser-fixture__missing')).error?.info).toEqual({ name: 'ToolNotFoundError', code: 'UNKNOWN_TOOL' })
   })
 
   it('denies inherited browser resources and instructions while keeping unrelated MCP servers usable', async () => {
@@ -385,6 +406,94 @@ describe('Session MCP Loader composition', () => {
     const successor = await ctx.agents.create({ sessionId: brandString<SessionId>('resource-successor') })
     expect(renderPrompt(await warm(ctx, successor.agent))).toContain('BROWSER_FIXTURE_INSTRUCTION')
     expect(browserState(await resource(ctx, successor.agent)).counter).toBe(0)
+  })
+
+  it('keeps a blocked child\'s browser bindings under a PTC root and still refuses their calls', async () => {
+    const { ctx } = await load(true)
+    await ctx.plugin(PresentationRuntime)
+    const parent = await ctx.agents.create({ sessionId: brandString<SessionId>('ptc-parent') })
+    await warm(ctx, parent.agent)
+    const definition = ctx.tools.get(TOOL, parent.agent)
+    expect(definition).toBeDefined()
+    const child = await ctx.agents.create({
+      sessionId: brandString<SessionId>('ptc-child'),
+      setup: (inner, agent) => {
+        bindScopeParent(agent, parent.agent)
+        inner.plugin(PtcToolRegistry)
+      },
+    })
+    await child.agent.whenIdle()
+    const toolStep = ToolStep.capture(ctx.tools, child.agent)
+    const blocked = await ctx.systemPrompt.assemble({ agent: child.agent, scope: child.agent, toolStep })
+    // The PTC root offers only run_code, so the blocked client's mask finds no inherited entry to deny.
+    expect(blocked.tools.map(tool => tool.name)).toEqual(['run_code'])
+    expect(blocked.sections.find(section => section.name === 'tools:sdk')?.text).toContain(TOOL)
+    const refused = await executeDefinitionFixture(ctx, definition!, {
+      agent: child.agent, name: TOOL, arguments: { label: 'program' }, callId: brandString<ToolCallId>('program'), signal: new AbortController().signal,
+    })
+    expect(refused.error?.info).toEqual(FOREIGN)
+  })
+
+  it('treats a missing root as no entries when tool changes refresh blocked masks', async () => {
+    const { ctx } = await load(true)
+    const parent = await ctx.agents.create({ sessionId: brandString<SessionId>('rootless-parent') })
+    await warm(ctx, parent.agent)
+    const root = [...ctx.loader.entries()].find(entry => entry.options.id === 'toolRegistry')!
+    await root.fiber!.dispose()
+    const child = await ctx.agents.create({
+      sessionId: brandString<SessionId>('rootless-child'),
+      setup: (_inner, agent) => { bindScopeParent(agent, parent.agent) },
+    })
+    expect(() => ctx.tools.getAll(child.agent)).toThrow('selected tool registry is unavailable')
+    expect(() => { ctx.emit('tools/change') }).not.toThrow()
+  })
+
+  it('fails Agent creation when the root reports another failure while blocked masks refresh', async () => {
+    const { ctx } = await load(true)
+    const parent = await ctx.agents.create({ sessionId: brandString<SessionId>('failing-parent') })
+    await warm(ctx, parent.agent)
+    let failing = false
+    const root: ToolRegistry = {
+      register: () => () => {},
+      include: () => () => {},
+      get: () => undefined,
+      getAll: () => {
+        if (failing) throw new Error('root view failed')
+        return []
+      },
+    }
+    await expect(ctx.agents.create({
+      sessionId: brandString<SessionId>('failing-child'),
+      setup: (inner, agent) => {
+        bindScopeParent(agent, parent.agent)
+        inner.tools.setRoot(root)
+        failing = true
+      },
+    })).rejects.toThrow('root view failed')
+  })
+
+  it('refuses a parent-only browser tool to a child under a PTC deployment root', async () => {
+    const { ctx } = await load(false, undefined, undefined, undefined, 'ptc')
+    const parent = await ctx.agents.create({ sessionId: brandString<SessionId>('ptc-root-parent') })
+    const child = await ctx.agents.create({
+      sessionId: brandString<SessionId>('ptc-root-child'),
+      setup: (_inner, agent) => { bindScopeParent(agent, parent.agent) },
+    })
+    await warm(ctx, parent.agent)
+    await warm(ctx, child.agent)
+    const parentOnly = vi.fn(async () => true)
+    const definition: ToolDefinition = {
+      name: 'mcp__browser-fixture__parent_only', description: 'A browser operation available only in the parent.', parameters: { type: 'object' },
+      output: { schema: { type: 'boolean' }, render: () => [] }, execute: parentOnly,
+    }
+    parent.agent.ctx.tools.register(definition)
+    // The PTC root offers only its program entry; programs bind the browser tools.
+    expect(ctx.tools.getAll(child.agent).map(tool => tool.name)).toEqual(['run_code'])
+    const refused = await executeDefinitionFixture(ctx, definition, {
+      agent: child.agent, name: definition.name, arguments: {}, callId: brandString<ToolCallId>('parent-only'), signal: new AbortController().signal,
+    })
+    expect(refused.error?.info).toEqual(FOREIGN)
+    expect(parentOnly).not.toHaveBeenCalled()
   })
 
   it('uses the child connection for resources and serializes them with browser tools exactly once', async () => {
@@ -449,7 +558,7 @@ describe('Session MCP Loader composition', () => {
       sessionId: brandString<SessionId>('ptc-first-request'), agentOptions: { provider: 'fixture', model: 'fixture' },
       setup: (inner, agent) => {
         initializing = agent
-        inner.plugin(PtcToolExecutor)
+        inner.plugin(PtcToolRegistry)
         inner.on('agent/created', () => {
           agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Describe the available browser tools.' }], source: { kind: 'user' } }))
         }, { prepend: true })
@@ -490,11 +599,9 @@ describe('Session MCP Loader composition', () => {
     expect(model.requests).toEqual([])
     expect(ctx.agents.get(initializing.id)).toBeUndefined()
     expect(ctx.sessions.get(initializing.id)).toBeUndefined()
-    expect(ctx.tools.schemas(initializing)).toEqual([])
+    expect(ctx.tools.getAll(initializing)).toEqual([])
     expect((await execute(ctx, initializing)).isError).toBe(true)
-    for (const { pid } of (await events(root)).filter(event => event.event === 'start')) {
-      expect(() => process.kill(pid, 0)).toThrow(expect.objectContaining({ code: 'ESRCH' }))
-    }
+    await expectEnded(root)
     await writeFile(join(root, 'release'), '')
     const successor = await ctx.agents.create({ sessionId: initializing.id })
     expect((await execute(ctx, successor.agent)).isError).toBe(false)
@@ -508,7 +615,7 @@ describe('Session MCP Loader composition', () => {
       setup: (inner, agent) => {
         initializing = agent
         inner.on('agent/created', () => {
-          expect(ctx.tools.schemas(agent).some(tool => tool.name === TOOL)).toBe(true)
+          expect(ctx.tools.getAll(agent).some(tool => tool.name === TOOL)).toBe(true)
           agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Visit the fixture.' }], source: { kind: 'user' } }))
           throw new Error('later initialization failed')
         })
@@ -517,11 +624,9 @@ describe('Session MCP Loader composition', () => {
     expect(model.requests).toEqual([])
     expect(ctx.agents.get(initializing.id)).toBeUndefined()
     expect(ctx.sessions.get(initializing.id)).toBeUndefined()
-    expect(ctx.tools.schemas(initializing)).toEqual([])
+    expect(ctx.tools.getAll(initializing)).toEqual([])
     expect((await execute(ctx, initializing)).isError).toBe(true)
-    for (const { pid } of (await events(root)).filter(event => event.event === 'start')) {
-      expect(() => process.kill(pid, 0)).toThrow(expect.objectContaining({ code: 'ESRCH' }))
-    }
+    await expectEnded(root)
   })
 
   it('cancels before browser discovery without starting a process', async () => {
@@ -599,9 +704,7 @@ describe('Session MCP Loader composition', () => {
     await expect(canceledResume).rejects.toThrow('cancel browser resume')
     expect(ctx.agents.get(sessionId)).toBeUndefined()
     expect(ctx.sessions.get(sessionId)).toBeUndefined()
-    for (const { pid } of (await events(root)).filter(event => event.event === 'start')) {
-      expect(() => process.kill(pid, 0)).toThrow(expect.objectContaining({ code: 'ESRCH' }))
-    }
+    await expectEnded(root)
 
     let resumed = false
     const resuming = observeActivation(ctx.agents.resume({ resumeSessionId: sessionId }).then((handle) => {
@@ -613,7 +716,7 @@ describe('Session MCP Loader composition', () => {
     expect(model.requests).toHaveLength(2)
     await writeFile(join(root, 'release'), '')
     const owner = await resuming
-    expect(ctx.tools.schemas(owner.agent).some(tool => tool.name === TOOL)).toBe(true)
+    expect(ctx.tools.getAll(owner.agent).some(tool => tool.name === TOOL)).toBe(true)
     expect((await execute(ctx, owner.agent)).content).toEqual([{ type: 'text', text: 'Visit 1: direct' }])
     await owner.dispose()
   })

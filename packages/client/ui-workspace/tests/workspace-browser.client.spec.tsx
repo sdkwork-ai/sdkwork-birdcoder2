@@ -2,8 +2,9 @@
 // WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
 // so the literal is the value under assertion rather than a binding this build resolves
 import { contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
+import { contextMenuHook, responsiveHooks, themeHooks } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
+import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots/client'
 import { Profiler } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
@@ -23,7 +24,6 @@ import { createWorkspaceViewStore, FLAT_SESSION_ORDER_KEY } from '../src/client/
 import { UNGROUPED_KEY } from '../src/client/tree.ts'
 import { WorkspaceBrowser } from '../src/client/rows/WorkspaceBrowser.tsx'
 import { renderMenuButton } from './menu-button.tsx'
-import rowCss from '../src/client/rows/Rows.module.css'
 import { zh } from '../src/client/locales.ts'
 
 // Every fixture carries the resource hook the resources plugin merges into GlobalStandardProps.
@@ -127,6 +127,7 @@ function mount(overrides: Partial<WorkspaceBrowserProps> = {}) {
     settleWorkspaceAction: () => { request.set(null) },
     requestWorkspaceAction: () => { request.set(null) },
     useContextMenuTarget: selector => selector(null),
+    useContextMenuOpener: selector => selector(null),
     useShortcuts: select => select([]),
     useWorkspaceShortcuts: bindSnapshotSelector(controls.state),
     requestSearch: controls.search,
@@ -141,6 +142,7 @@ function mount(overrides: Partial<WorkspaceBrowserProps> = {}) {
     useSessionRetainInfo: () => undefined,
     usePanelInfo,
     useContextMenu: contextMenuHook(),
+    ...responsiveHooks(), ...themeHooks(),
     useResource,
     useWorkspaces: hook(workspaceState([])),
     ...allowAllAccess,
@@ -197,12 +199,12 @@ describe('WorkspaceBrowser', () => {
     })
     expect(renderFactorySlot).toHaveBeenCalledWith('contextMenu.button', {
       target: { kind: 'session', value: { sessionId: sid('session-one'), displayTitle: 'session-one' } },
-      label: '会话“session-one”的操作', className: rowCss.iconButton,
+      label: '会话“session-one”的操作', size: 'row', opener: expect.any(String) as string,
     })
     if (mode === 'workspace') {
       expect(renderFactorySlot).toHaveBeenCalledWith('contextMenu.button', {
         target: { kind: 'workspace', value: { workspaceId: wid('alpha'), path: '/projects/alpha', displayTitle: 'alpha' } },
-        label: '工作区“alpha”的操作', className: rowCss.iconButton,
+        label: '工作区“alpha”的操作', size: 'row', opener: expect.any(String) as string,
       })
     }
   })
@@ -219,11 +221,14 @@ describe('WorkspaceBrowser', () => {
     expect(bound()).toBe(list)
     rerender(browser, { wide: false })
     expect(bound()).toBe(null)
+    // React 19's development build detaches a callback ref with extra undefined arguments after null.
+    expect(bindScrollerRef.mock.lastCall?.[0]).toBeNull()
     expect(browser.view.container.querySelector('[data-sidebar-list-area]')).toBe(list)
     rerender(browser, { wide: true })
     expect(bound()).toBe(list)
     browser.view.unmount()
     expect(bound()).toBe(null)
+    expect(bindScrollerRef.mock.lastCall?.[0]).toBeNull()
   })
 
   it.each(['workspace', 'flat', 'ungrouped'] as const)('keeps %s recency independent of arrival order and saved manual positions', (mode) => {
@@ -963,6 +968,18 @@ describe('WorkspaceBrowser', () => {
     expect(screen.queryByText('session-56')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: '展开其余 5 个会话' }))
     expect(screen.getByText('session-60')).toBeTruthy()
+  })
+
+  it('selects the parent row while the main view shows its subagent Session', () => {
+    const child = summary('child', 0, { origin: 'subagent', parentId: sid('parent') })
+    mount({
+      useSessions: hook(sessionState([summary('parent', 2), summary('other', 1), child], { main: child.id })),
+      useWorkspaces: hook(workspaceState([workspace('alpha', ['parent', 'other'])])),
+    })
+    const selected = (name: string) => screen.getByText(name).closest('[role="treeitem"]')?.getAttribute('aria-selected')
+    expect(selected('parent')).toBe('true')
+    expect(selected('other')).toBe('false')
+    expect(screen.queryByText('child')).toBeNull()
   })
 
   it('covers the current session and a parent with a running child', () => {

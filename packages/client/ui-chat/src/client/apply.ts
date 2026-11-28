@@ -171,10 +171,10 @@ export function apply(ctx: Context): void {
       getSnapshot: () => tabs.get('browser') !== undefined,
       subscribe: listener => tabs.subscribe(listener),
     }
-    scope.slots.inject('settings.general.item', () => scope.slots.register({
-      name: 'settings.general.item',
+    scope.slots.inject('settings.general.group.interaction.item', () => scope.slots.register({
+      name: 'settings.general.group.interaction.item',
       id: 'link-opening',
-      order: 17,
+      order: 10,
       locale: NS,
       inject: (): LinkOpeningRowInjected => ({
         hooks: { linkOpening, browserAvailable },
@@ -198,8 +198,8 @@ export function apply(ctx: Context): void {
     children: { 'conversation.chat.user.images': { kind: 'single', scope: 'session' } },
   }, UserContent)
 
-  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
-    name: 'settings.general.item',
+  ctx.slots.inject('settings.general.group.display.item', () => ctx.slots.register({
+    name: 'settings.general.group.display.item',
     id: 'performance-usage',
     order: 30,
     locale: NS,
@@ -209,8 +209,8 @@ export function apply(ctx: Context): void {
     }),
   }, PerformanceUsageRow))
 
-  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
-    name: 'settings.general.item',
+  ctx.slots.inject('settings.general.group.display.item', () => ctx.slots.register({
+    name: 'settings.general.group.display.item',
     id: 'transcript-view',
     order: 12,
     locale: NS,
@@ -321,9 +321,9 @@ export function apply(ctx: Context): void {
           forkAt: (seq) => {
             const turn = [...chat.getSnapshot().timeline.turns.values()].find(turn => turn.end?.seq === seq)
             const messageId = turn?.data.get('turn-tail')?.closing?.finalNode.messageId
-            ctx.sessions.fork({ sessionId, atSeq: seq, increaseTitle: true, onCreated: (childId) => {
+            ctx.uiWorkspace.forkSession(sessionId, (childId) => {
               ctx.get('productAnalytics')?.track('branch_session_click', { session_id: childId, parent_session_id: sessionId, ...messageId === undefined ? {} : { parent_message_id: messageId }, click_position: 'footer' })
-            } })
+            }, { atSeq: seq })
               .then((childId) => { ctx.uiWorkspace.openSession(childId) })
               .catch(() => {
                 // Fork or child-title failure leaves the source view unchanged.

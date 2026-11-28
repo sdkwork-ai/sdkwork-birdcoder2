@@ -93,6 +93,7 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | `@deepseek-ai/dsh-client-ui-deliverables` | no | Changed-files card with per-file comparison tabs, delivery cards, and clickable final-response file references for Web |
 | `@deepseek-ai/dsh-client-ui-directory-picker-browse` | no | In-app directory browsing surface: the workspace directory-flow owner rendering the host's listing and creation primitives |
 | `@deepseek-ai/dsh-client-ui-directory-picker-native` | no | Native directory-picker surface: the renderless workspace directory-flow occupant driving the local Desktop or Host OS chooser |
+| `@deepseek-ai/dsh-client-ui-dockkit` | no | Docking layout kit: split-tree engine with invertible operations, and the React components that render and drive it (zero cordis) |
 | `@deepseek-ai/dsh-client-ui-entry-customization` | no | Customize plugin entries in the left sidebar, conversation views, and right sidebar, and quickly create new plugins. |
 | `@deepseek-ai/dsh-client-ui-file-actions` | no | Original-file saving and image clipboard actions for Web and Desktop |
 | `@deepseek-ai/dsh-client-ui-file-drag` | no | Application-owned file drag transfers and localized failure feedback |
@@ -108,8 +109,10 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | `@deepseek-ai/dsh-client-ui-plugin-manager` | yes | Plugin management for the dsh web client: the sidebar Plugins panel installs, enables, disables, retries, and composes installed plugin packages |
 | `@deepseek-ai/dsh-client-ui-plugin-market` | no | Discover tab of the dsh web Plugins page: browse configured plugin market indexes and install their bundles |
 | `@deepseek-ai/dsh-client-ui-plugin-recommendations` | no | Official plugin card body with catalog text and enabling |
+| `@deepseek-ai/dsh-client-ui-primitives` | no | Pure React atoms for the dsh web UI: controls, icons, markdown, and JSON inspectors (zero cordis) |
 | `@deepseek-ai/dsh-client-ui-reference` | no | Unified Web @file and @session reference source |
 | `@deepseek-ai/dsh-client-ui-renderer` | no | Browser UI renderer: React slot bindings, ctx.uiRenderer, and the assembled application root |
+| `@deepseek-ai/dsh-client-ui-responsive` | no | Window media-query answers and mobile-device detection for every Web Client Slot component |
 | `@deepseek-ai/dsh-client-ui-schedule` | no | Host task management page and Session reminder catalog |
 | `@deepseek-ai/dsh-client-ui-secret-mask` | no | Web display masking for recognized credentials in sent user text |
 | `@deepseek-ai/dsh-client-ui-session` | no | Session Controller adapter for React and session-scoped slots |
@@ -122,7 +125,7 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | `@deepseek-ai/dsh-client-ui-settings-models` | yes | Models settings and shared product-onboarding dialogs over existing settings and credential joins |
 | `@deepseek-ai/dsh-client-ui-settings-session-log` | no | General settings control for Session-log upload with DeepSeek API requests |
 | `@deepseek-ai/dsh-client-ui-settings-shell` | no | Settings page of the shell executor on the dsh web client's Plugins page: the command timeout and the per-stream output cap of the shell namespace |
-| `@deepseek-ai/dsh-client-ui-settings-subagent` | no | Settings page of Subagent delegation on the dsh web client's Plugins page: recursion depth, parallel capacity, and the models agents may choose for subagents |
+| `@deepseek-ai/dsh-client-ui-settings-subagent` | no | Settings page of Subagent delegation on the dsh web client's Plugins page: recursion depth, parallel capacity, the default Subagent model, and the models agents may choose for subagents |
 | `@deepseek-ai/dsh-client-ui-settings-web-search` | no | Settings page for web search and fetch on the dsh web client's Plugins page: the Search and Fetch provider menus, the DeepSeek Search API result count, DeepSeek Search and Fetch API billing, and legacy Messages search settings |
 | `@deepseek-ai/dsh-client-ui-shortcuts` | no | Keyboard shortcut reference, recording, and local preference editing |
 | `@deepseek-ai/dsh-client-ui-sidebar` | no | Sidebar plugin: session multi-level tree, search, grouping, state dots |
@@ -132,6 +135,7 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | `@deepseek-ai/dsh-client-ui-sidebar-right` | no | Right Sidebar: the docking surface's session-bound state, its panel and header expand control, and the navigation service over it |
 | `@deepseek-ai/dsh-client-ui-sidebar-terminal` | no | Interactive shell tabs for the right Sidebar |
 | `@deepseek-ai/dsh-client-ui-skill` | no | Web skill references and the dedicated skill tool row |
+| `@deepseek-ai/dsh-client-ui-slots` | no | Slot registry pure core: typed ordinary Slots and reusable Component Factories, derived props, Store seats, and renderer installation |
 | `@deepseek-ai/dsh-client-ui-subagent` | no | Subagent conversation catalog, continuation routing UI, and '@' reference source |
 | `@deepseek-ai/dsh-client-ui-theme` | yes | Theme plugin: Host bootstrap for the pre-plugin palette; ThemeRuntime for light/dark/system state and icon replacements; --dsw-* token styles and Appearance settings row |
 | `@deepseek-ai/dsh-client-ui-tool` | no | Client Tool call-tree renderer and keyed per-tool presentation slot |
@@ -187,11 +191,11 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | `@deepseek-ai/dsh-agent` | no | Agent interface, registry, initiator scope, and event vocabulary for the DeepSeek Harness |
 | `@deepseek-ai/dsh-agent-default-model` | yes | Default model selection shared by Agent entry points |
 | `@deepseek-ai/dsh-agent-loop` | yes | The concrete agent loop plugin for the DeepSeek Harness |
-| `@deepseek-ai/dsh-agent-tool-presentation` | yes | Deprecated tool presentation selector; use dsh-tool-executor-native or dsh-tool-executor-ptc directly |
+| `@deepseek-ai/dsh-agent-tool-presentation` | yes | Deprecated tool presentation selector; use dsh-tool-registry-native or dsh-tool-registry-ptc directly |
 | `@deepseek-ai/dsh-session` | no | Event-sourced session store for the DeepSeek Harness |
 | `@deepseek-ai/dsh-system-prompt` | yes | System prompt assembly registry for the DeepSeek Harness |
-| `@deepseek-ai/dsh-tool-executor-native` | no | Native tool execution plugin |
-| `@deepseek-ai/dsh-tool-executor-ptc` | yes | PTC program execution, tool bindings, and generated SDK prompts |
+| `@deepseek-ai/dsh-tool-registry-native` | no | Native tool registry plugin |
+| `@deepseek-ai/dsh-tool-registry-ptc` | yes | PTC program execution, tool bindings, and generated SDK prompts |
 | `@deepseek-ai/dsh-tools` | no | Tool registry and execution pipeline for the DeepSeek Harness |
 
 ## credentials
@@ -214,17 +218,25 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | Package | Config | Description |
 |---|---|---|
 | `@deepseek-ai/dsh-office-kit` | yes | Shared Office rendering, conversion, and recalculation with bounded queues and caching |
-| `@deepseek-ai/dsh-tool-office` | yes | Model-facing Office tools for rendering, converting, and recalculating documents |
+| `@deepseek-ai/dsh-tool-document` | yes | Model-facing Office tools for rendering, converting, and recalculating documents |
 
 ## experimental
 
 | Package | Config | Description |
 |---|---|---|
+| `@deepseek-ai/dsh-client-ui-connectors` | no | Plugins page tab that lists, installs, and opens the official connectors and manages custom MCP servers |
+| `@deepseek-ai/dsh-client-ui-office-frame-forwarding` | yes | Experimental Desktop Office native read-only preview |
+| `@deepseek-ai/dsh-client-ui-read-aloud` | no | Read assistant replies aloud from the message action row |
+| `@deepseek-ai/dsh-client-ui-sidechat` | no | Branch the conversation at its current point into a side conversation that opens in the right Sidebar |
 | `@deepseek-ai/dsh-cua` | no | Shared Computer Use application objects, authorization, and logged tool execution |
 | `@deepseek-ai/dsh-cua-macos` | yes | macOS native provider for shared Computer Use application and window objects |
 | `@deepseek-ai/dsh-cua-mcp` | yes | Computer Use as an MCP stdio server: a dsh profile bundle that exposes cua_run_code to external agent harnesses |
 | `@deepseek-ai/dsh-cua-windows` | yes | Windows C# computer use through shared application and window objects |
 | `@deepseek-ai/dsh-deepseek-chat-import` | yes | Import DeepSeek chat exports as stored Sessions in a chosen Workspace |
+| `@deepseek-ai/dsh-environment` | yes | Runs tool-owned functions in provider-managed execution processes, with calls back to host handlers |
+| `@deepseek-ai/dsh-environment-local` | yes | Local execution environment provider using a managed Node process |
+| `@deepseek-ai/dsh-environment-ssh` | yes | OpenSSH transport for the execution environment, with strict host-key checking |
+| `@deepseek-ai/dsh-environment-ssh-config` | yes | Execution environments contributed from OpenSSH configuration aliases |
 | `@deepseek-ai/dsh-experimental-api-speech-to-text` | yes | Authenticated experimental speech transcription for browser clients |
 | `@deepseek-ai/dsh-experimental-auto-review` | no | Per-tool LLM authorization review for the DeepSeek Harness Auto permission preset |
 | `@deepseek-ai/dsh-experimental-browser-use-chrome-devtools-mcp` | yes | Experimental per-Session Chromium browser tools through chrome-devtools-mcp |
@@ -251,11 +263,20 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | `@deepseek-ai/dsh-experimental-translator` | yes | Machine translation with reusable Session results |
 | `@deepseek-ai/dsh-experimental-worktree` | yes | Creates a named Git worktree and changes the calling Session working directory |
 | `@deepseek-ai/dsh-forge-gitlab` | yes | GitLab provider for the experimental forge registry, read and written through the GitLab CLI on the host |
+| `@deepseek-ai/dsh-frame-forwarding` | yes | Experimental native frame forwarding: transferable channels whose producer processes present frames through Desktop shared textures |
 | `@deepseek-ai/dsh-hooks-claude-code` | yes | Bridge plugin: run a Claude Code hooks.json / settings hook config on the DeepSeek Harness interception seams |
 | `@deepseek-ai/dsh-hooks-codex` | yes | Bridge plugin: run a Codex hooks.json hook config on the DeepSeek Harness interception seams |
+| `@deepseek-ai/dsh-im` | yes | Platform-neutral IM host: intake, message store, im/message waterfall, hosted sessions, send funnel and output renderers |
+| `@deepseek-ai/dsh-im-session-commands` | yes | Slash-command handling at the head of the dsh-im message waterfall |
+| `@deepseek-ai/dsh-llm-mock` | yes | Keyless mock model route that answers every call with fixed text |
+| `@deepseek-ai/dsh-read-aloud` | yes | Experimental paced read-aloud of assistant replies for browser clients |
+| `@deepseek-ai/dsh-sandbox-policy-git` | no | Grants a Session that works in a linked Git worktree write access to its repository's Git directory |
 | `@deepseek-ai/dsh-session-title-all-prompts-llm` | yes | All-user-messages LLM provider plugin for DeepSeek Harness session titles |
 | `@deepseek-ai/dsh-skill-badge` | no | Bundled dsh badge skill provider for DeepSeek Harness |
+| `@deepseek-ai/dsh-speech-to-text-deepseek` | yes | DeepSeek speech recognition through the /v1/tools/asr API, authenticated by the DeepSeek account or API key |
 | `@deepseek-ai/dsh-terminal-panel` | yes | Persistent Agent terminals shown in the Web sidebar, plus read-only access to the user's terminals |
+| `@deepseek-ai/dsh-text-to-speech` | yes | Experimental speech synthesis with independently registered providers |
+| `@deepseek-ai/dsh-text-to-speech-deepseek` | yes | DeepSeek speech synthesis through the /v1/tools/tts API, authenticated by the DeepSeek account or API key |
 | `@deepseek-ai/dsh-timeline` | yes | Replace Todo in long-running sessions with task trees, a live progress bar, and timed reports |
 | `@deepseek-ai/dsh-tool-ralph` | yes | Model-facing fresh-agent Ralph loop over the workflow and subagent seams |
 | `@deepseek-ai/dsh-tool-session-query` | yes | Workspace-authorized model-facing session history search, trace, and event read tools |
@@ -443,6 +464,12 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | Package | Config | Description |
 |---|---|---|
 | `@deepseek-ai/dsh-settings` | no | Abstract user-settings seam (ctx.settings) for the DeepSeek Harness |
+
+## shared-texture
+
+| Package | Config | Description |
+|---|---|---|
+| `@deepseek-ai/dsh-shared-texture` | no | Host and Client shared-texture Cordis services (ctx.sharedTexture) and renderer bridge types |
 
 ## shell
 

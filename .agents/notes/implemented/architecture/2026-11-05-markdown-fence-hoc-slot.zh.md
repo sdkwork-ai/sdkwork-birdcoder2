@@ -8,7 +8,7 @@ Status: implemented
 
 Markdown fence 指围栏代码块：开头一行是三个或更多反引号（或波浪号），后接 info string，例如 `ts title=demo`；随后是正文和闭合围栏。info string 的第一个词表示 fence 的语言。
 
-会话流要按语言渲染 fence，插件需要能注册、替换或装饰某一种语言的渲染。primitives 在固定分支里选择 fence 的渲染方式：[render.tsx](../../../../packages/client/ui-primitives/src/markdown/render.tsx) 的 `renderCode` 把 `math` 交给 KaTeX，[CodeBlock.tsx](../../../../packages/client/ui-primitives/src/markdown/CodeBlock.tsx) 给 `diff` / `patch` 画行着色，其余语言走 shiki。[ui-primitives](../../../../packages/client/ui-primitives/README.zh.md) 不依赖 Cordis，组件拿不到 slot；其他 `MarkdownText` 调用方的渲染必须保持不变。
+会话流要按语言渲染 fence，插件需要能注册、替换或装饰某一种语言的渲染。primitives 在固定分支里选择 fence 的渲染方式：[render.tsx](../../../../packages/client/ui-primitives/src/client/markdown/render.tsx) 的 `renderCode` 把 `math` 交给 KaTeX，[CodeBlock.tsx](../../../../packages/client/ui-primitives/src/client/markdown/CodeBlock.tsx) 给 `diff` / `patch` 画行着色，其余语言走 shiki。[ui-primitives](../../../../packages/client/ui-primitives/README.zh.md) 不依赖 Cordis，组件拿不到 slot；其他 `MarkdownText` 调用方的渲染必须保持不变。
 
 ## 决定
 
@@ -52,7 +52,7 @@ API 保证：
 | 嵌套 | 依次按 `order`、`priority`、注册顺序升序，`order` 最小的在最外层 |
 | children | 至多渲染一次；不渲染即替换该层内部的全部内容 |
 | 崩溃 | 出错的那一处在本次挂载内渲染 `children`，错误照常上报；层保持注册（`abdicate: false`），其他出现处保留该层；该处重新挂载时重试 |
-| 编译 | 每个 `(host, slot 声明, entryKey)` 一条层链，所有 outlet 共享；每个 ledger 版本重新选取该 key 的层，只有层变化时才重编，因此为其他 key 注册的层不会让已挂载内容重新挂载，outlet 切换 `entryKey` 则换到另一条层链 |
+| 编译 | host、spec 对象、slot 名和 `entryKey` 都相同的 outlet [共享一条编译好的层链](../../../../docs/subsystems/slots.zh.md#hoc-layers)；每个 ledger 版本重新选取该 key 的层，只有层变化时才重编，因此为其他 key 注册的层不会让已挂载内容重新挂载，outlet 切换 `entryKey` 则换到另一条层链 |
 
 这些 hoc 语义适用于所有 hoc slot，包括层全部为通配层的 `conversation.hero.frame`。本 note 部分取代 [hoc slot kind](2026-11-03-hoc-slot-kind.zh.md) 的四处决定：恰好渲染一次 `children`、不接受 `entryKey`、按 outlet `useMemo` 组合层、崩溃层 abdicate。
 

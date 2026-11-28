@@ -9,7 +9,7 @@ import { SessionForkError } from '@deepseek-ai/dsh-api-session-controller/client
 import type { WorkspaceId, WorkspaceSnapshot, WorkspaceView } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
-import type { HostObservable, PropsRenderSlots, StoredEntry } from '@deepseek-ai/dsh-client-ui-slots'
+import type { HostObservable, PropsRenderSlots, StoredEntry } from '@deepseek-ai/dsh-client-ui-slots/client'
 import type { ShortcutCommand } from '@deepseek-ai/dsh-client-shortcuts/client'
 import { RemoteError, StaticRemoteAccess, syncedConfig, TestRemote } from '@deepseek-ai/dsh-client-test-runtime'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
@@ -448,7 +448,7 @@ describe('ui-workspace apply', () => {
     await vi.waitFor(() => {
       expect(toast.hooks.toast.getSnapshot()).toMatchObject({ kind: 'shortcutForkFailed', reason: 'unavailable' })
     })
-    expect(b.fork).toHaveBeenCalledExactlyOnceWith({ sessionId: sid('source'), increaseTitle: true })
+    expect(b.fork).toHaveBeenCalledExactlyOnceWith({ sessionId: sid('source'), increaseTitle: true, onCreated: expect.any(Function) as (childId: SessionId) => void })
     expect(warning).not.toHaveBeenCalled()
     const unavailable = toast.hooks.toast.getSnapshot()
     b.fork.mockRejectedValueOnce(new Error('connection closed'))

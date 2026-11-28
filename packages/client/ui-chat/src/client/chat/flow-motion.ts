@@ -534,6 +534,9 @@ function useFlowTransition(motion: FlowMotionRows | undefined, grow: boolean): H
  * @returns the stable subtree ref.
  */
 export function useFlowHidden(hidden: boolean, reveal: () => void, motion: FlowMotionRows | undefined): RefObject<HTMLDivElement | null> {
+export function useFlowHidden(
+  hidden: boolean, reveal: () => void, motion: FlowMotionRows | undefined,
+): RefObject<HTMLDivElement | null> {
   return useSearchableHidden(hidden, reveal, useFlowTransition(motion, false))
 }
 

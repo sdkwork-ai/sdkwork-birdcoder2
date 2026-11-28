@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-deepseek-chat-import",
   "description": "Import DeepSeek chat exports as stored Sessions in a chosen Workspace",
-  "version": "0.2.3-alpha.2",
+  "version": "0.2.3-alpha.3",
   "icon": "./icon.svg",
   "publishConfig": {
     "access": "public"
@@ -110,8 +110,8 @@
     "@deepseek-ai/dsh-workspace": "workspace:*",
     "@testing-library/react": "^16.3.3",
     "clsx": "^2.0.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "dsh": {
     "bundle": {

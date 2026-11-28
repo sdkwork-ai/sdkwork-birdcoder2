@@ -38,6 +38,33 @@ async function openDraft(page: Page) {
   return draft
 }
 
+it('updates group separators when a preceding More menu registration becomes empty', async () => {
+  const scaffold = await launchWebScaffold({
+    extraInstallAnchors: [join(FIXTURE, 'package.json')],
+    extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)),
+  })
+  onTestFinished(() => scaffold.close())
+  await scaffold.ctx.loader.create({ name: '@fixture/live-client' })
+  const browser = await chromium.launch()
+  onTestFinished(() => browser.close())
+  const page = await newEnglishPage(browser)
+  await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
+  await page.getByRole('navigation', { name: 'Global panels' }).getByRole('button', { name: 'More', exact: true }).click()
+
+  const menu = page.getByRole('menu')
+  const row = (name: string) => menu.getByRole('menuitem', { name, exact: true })
+  const separatorHeight = (name: string) => row(name).locator('..').getByRole('separator', { includeHidden: true })
+    .evaluate(element => element.getBoundingClientRect().height)
+  expect(await separatorHeight('Hide first group')).toBe(0)
+  expect(await separatorHeight('Fixture section')).toBeGreaterThan(0)
+  expect(await separatorHeight('Fixture action')).toBeGreaterThan(0)
+
+  await row('Hide first group').click()
+  await row('Hide first group').waitFor({ state: 'detached' })
+  expect(await separatorHeight('Fixture section')).toBe(0)
+  expect(await separatorHeight('Fixture action')).toBeGreaterThan(0)
+})
+
 it('keeps ordered legacy Session menu rows before Archive and removes them with their fiber', async () => {
   const scaffold = await launchWebScaffold({ extraInstallAnchors: [join(FIXTURE, 'package.json')] })
   onTestFinished(() => scaffold.close())
@@ -54,7 +81,7 @@ it('keeps ordered legacy Session menu rows before Archive and removes them with 
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     const row = page.getByRole('treeitem').filter({ has: page.getByText(SESSION_TITLE, { exact: true }) })
     await row.waitFor({ timeout: 20_000 })
-    // Static library styles follow their module dependencies: dockkit imports primitives, so primitives install first.
+    // Styles of the `immediately` rows follow their module dependencies: dockkit imports primitives, so primitives install first.
     const styleOwners = await page.evaluate(() => [...document.head.querySelectorAll('style[data-plugin]')].map(style => style.getAttribute('data-plugin')))
     const primitives = styleOwners.flatMap((owner, index) => owner === '@deepseek-ai/dsh-client-ui-primitives' ? [index] : [])
     const dockkit = styleOwners.indexOf('@deepseek-ai/dsh-client-ui-dockkit')
@@ -336,6 +363,42 @@ it('keeps a failed client download local and retries without changing Host enabl
   } finally {
     await browser.close()
     await scaffold.close()
+  }
+}, 90_000)
+
+it('keeps the sync failure retry label on one line inside its button at desktop and phone widths', async () => {
+  const scaffold = await launchWebScaffold({ extraInstallAnchors: [join(FIXTURE, 'package.json')] })
+  onTestFinished(() => scaffold.close())
+  const browser = await chromium.launch()
+  onTestFinished(() => browser.close())
+  const page = await newEnglishPage(browser)
+  onTestFailed(() => saveFailureShot(page, 'web-e2e-client-sync-notice-layout'))
+  await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
+  await page.getByRole('navigation', { name: 'Global panels' }).getByRole('button', { name: 'Plugins', exact: true }).click()
+  await page.locator('[data-plugin-body]').waitFor({ timeout: 10_000 })
+  // An aborted bundle download reports a failure message of several hundred characters.
+  await page.route(url => url.pathname.startsWith('/plugins/') && url.search.includes('@fixture/live-client/client.js'), route => route.abort())
+  await scaffold.ctx.loader.create({ name: '@fixture/live-client' })
+  const retry = page.locator('[data-client-sync-failure]').getByRole('button', { name: 'Retry this page', exact: true })
+  await retry.waitFor()
+  for (const width of [1680, 390]) {
+    await page.setViewportSize({ width, height: 1000 })
+    // The frame turns the docked sidebar into a drawer after the resize, so the page's width settles later.
+    await expect.poll(() => retry.evaluate((button) => {
+      const range = document.createRange()
+      range.selectNodeContents(button)
+      const label = [...range.getClientRects()]
+      const box = button.getBoundingClientRect()
+      const notice = button.closest('[data-client-sync-failure]')!
+      const noticeBox = notice.getBoundingClientRect()
+      return {
+        labelLines: new Set(label.map(rect => Math.round(rect.top))).size,
+        labelInsideButton: label.every(rect =>
+          rect.top >= box.top && rect.bottom <= box.bottom && rect.left >= box.left && rect.right <= box.right),
+        buttonInsideNotice: box.left >= noticeBox.left && box.right <= noticeBox.right,
+        noticeOverflow: notice.scrollWidth - notice.clientWidth,
+      }
+    }), { message: `viewport width ${width}` }).toEqual({ labelLines: 1, labelInsideButton: true, buttonInsideNotice: true, noticeOverflow: 0 })
   }
 }, 90_000)
 

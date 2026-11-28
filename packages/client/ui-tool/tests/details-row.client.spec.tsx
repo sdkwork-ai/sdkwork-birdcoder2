@@ -3,7 +3,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ToolResultNode } from '@deepseek-ai/dsh-client-ui-chat/client'
-import { IconUsersOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconUsersOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives/client'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { en } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
 import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts'
@@ -190,6 +190,7 @@ describe('DetailsRow', () => {
     expect(screen.getByText('Rounds')).toBeTruthy()
     expect(screen.getByText('2 / 8')).toBeTruthy()
     expect(screen.queryByText('Output')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Inspect' }).closest('[data-inspect-scope]')).not.toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Inspect' }))
     expect(inspect).toHaveBeenCalledOnce()
   })

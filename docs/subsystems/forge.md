@@ -68,6 +68,17 @@ interface ForgeProvider {
   countForViewer?(host: string, signal: AbortSignal): Promise<ReadonlyMap<ForgeViewerFilter, number> | ForgeFailure>
   /** Read the description and labels of a change request. Omission declares that this provider reads no descriptions. */
   readDescription?(ref: ChangeRequestRef, signal: AbortSignal): Promise<ChangeRequestDescription | ForgeFailure>
+  /**
+   * Read the activity of a change request: the comments in its conversation, its submitted reviews, its commits, and
+   * the changes of its state. Omission declares that this provider reads no activity.
+   */
+  readActivity?(ref: ChangeRequestRef, signal: AbortSignal): Promise<ChangeRequestActivity | ForgeFailure>
+  /**
+   * Add a comment of Markdown source `body` to a change request's conversation, resolving to undefined once the host
+   * saved it. A comment is never retried. Omission declares that this provider adds no comments, and its `readActivity`
+   * then denies `viewerCanComment`.
+   */
+  addComment?(ref: ChangeRequestRef, body: string, signal: AbortSignal): Promise<ForgeActionFailure | undefined>
   /** Publish a comment or completed review. Omission declares that this provider cannot write reviews. */
   submitReview?(ref: ChangeRequestRef, request: ForgeReviewRequest, signal: AbortSignal): Promise<ForgeReviewResult>
   /**
@@ -120,6 +131,14 @@ interface ForgeProvider {
   markReady(ref: ChangeRequestRef, signal: AbortSignal): Promise<ForgeActionFailure | undefined>
   /** Merge a change request while its head is still `request.headSha`, resolving to undefined once merged. */
   merge(ref: ChangeRequestRef, request: MergeRequest, signal: AbortSignal): Promise<ForgeActionFailure | undefined>
+  /**
+   * Turn the host's automatic merge of a change request on, while its head is still the request's `headSha`, or off,
+   * resolving to undefined once the host accepted it. Omission declares that the provider sets no automatic merge, and
+   * its snapshots then carry no `autoMerge`.
+   */
+  setAutoMerge?(
+    ref: ChangeRequestRef, request: AutoMergeRequest, signal: AbortSignal,
+  ): Promise<ForgeActionFailure | undefined>
   /**
    * Read the changes of a change request at head commit `headSha` as the host computes them, as one unified
    * patch with `a/` and `b/` path prefixes. A patch is returned only when it describes `headSha`; once the
@@ -181,6 +200,28 @@ interface ForgeProvider {
    * `branchUpdates`.
    */
   updateBranch?(ref: ChangeRequestRef, request: BranchUpdateRequest, signal: AbortSignal): Promise<ForgeActionFailure | undefined>
+}
+```
+
+`ctx.forge.register` returns the disposer of the registration. Its `replace` puts another provider of the same family in the registered one's place; a provider whose host list is edited while it runs calls it to serve the new list:
+
+```ts type-equiv
+/**
+ * What `ctx.forge.register` returns: the disposer, plus the replacement of the registered provider by another provider
+ * of the same forge family, for a provider whose configuration changes while it runs.
+ */
+interface ForgeRegistrationHandle {
+  /** Unregister the provider this registration holds and wait for its calls, and those of the providers it replaced, to finish. */
+  (): Promise<void>
+  /**
+   * Replace the registered provider in one synchronous step, so no reader finds the family without a provider. The
+   * replaced provider's in-flight calls are cancelled and their results discarded; watches of the family poll at once
+   * and `forge/providers-changed` announces the change.
+   * @param provider - provider of the same forge family.
+   * @throws when the registration was withdrawn, `provider.forge` is another family, or another family's provider
+   *   serves one of `provider.hosts`, compared without case; the registered provider then keeps serving.
+   */
+  replace(provider: ForgeProvider): void
 }
 ```
 
@@ -337,6 +378,11 @@ interface ChangeRequestSnapshot {
   /** Merge methods the repository accepts, the signed-in user's usual one first. */
   readonly mergeMethods: readonly MergeMethod[]
   /**
+   * How the change request stands with its host's automatic merge; omitted by a provider that sets none, whose change
+   * requests then offer no automatic merge.
+   */
+  readonly autoMerge?: ChangeRequestAutoMerge
+  /**
    * Ways the signed-in user can bring the base branch's new commits into the head branch now; empty while the head is
    * up to date, while the branches conflict, when the user cannot update the head branch, or when the provider cannot,
    * so a head behind its base cannot be told apart from a current one for a user without the right to update it.
@@ -485,6 +531,32 @@ interface MergeRequest {
   /** Commit object name the head must still have; the merge is refused once the head moves. */
   readonly headSha: string
 }
+```
+
+`ctx.forge.setAutoMerge` turns the host's automatic merge of a change request on, for the head commit the user confirmed and with one of the snapshot's `mergeMethods`, or off; the host then merges the change request by itself once its merge requirements are met. A snapshot's `autoMerge` says whether it is on, with which method and turned on by whom when the host names them, and whether the signed-in user can turn it on or off now. A provider that sets no automatic merge omits both, and `setAutoMerge` then fails without asking the host.
+
+```ts type-equiv
+/** How a change request stands with its host's automatic merge. */
+interface ChangeRequestAutoMerge {
+  /** Whether the host merges the change request by itself once its merge requirements are met. */
+  readonly enabled: boolean
+  /** How the commits enter the base branch then, while enabled and the host names the method; null otherwise. */
+  readonly method: MergeMethod | null
+  /** Login of the account that turned it on, while enabled and the host names one; null otherwise. */
+  readonly enabledBy: string | null
+  /** Whether the signed-in user can turn it on now through `setAutoMerge`; false while it is on. */
+  readonly canEnable: boolean
+  /** Whether the signed-in user can turn it off now through `setAutoMerge`; false while it is off. */
+  readonly canDisable: boolean
+}
+```
+
+```ts type-equiv
+/** Turning a change request's automatic merge on for the head commit the user saw, or off. */
+type AutoMergeRequest =
+  /** `method` is one of the snapshot's `mergeMethods`; the host refuses once the head is no longer `headSha`. */
+  | { readonly enabled: true; readonly method: MergeMethod; readonly headSha: string }
+  | { readonly enabled: false }
 ```
 
 ```ts type-equiv
@@ -927,10 +999,6 @@ interface ChangeRequestSummary {
    * `organization/slug`, when the request asks a team the user belongs to rather than the user.
    */
   readonly viewerRequest: { readonly team: string | null } | null
-  /** Issues the host closes once the change request merges, in host order, at most the provider's limit. */
-  readonly closingIssues: readonly ChangeRequestIssue[]
-  /** Whether the host reported more closing issues than `closingIssues` holds. */
-  readonly closingIssuesTruncated: boolean
   /** ISO 8601 time of the host's last update to the change request. */
   readonly updatedAt: string
 }
@@ -976,6 +1044,55 @@ interface ChangeRequestLabel {
   readonly name: string
   /** Six-digit hexadecimal color without `#`, or null when the host reports none. */
   readonly color: string | null
+}
+```
+
+## Activity and comments
+
+`ctx.forge.readActivity` reads what happened on a change request: the comments in its conversation, its submitted reviews, its commits, and the changes of its state, oldest first, at most the provider's limit with the latest entries kept. `ctx.forge.addComment` adds a comment to the conversation and then polls the change request at once when it is watched. A provider implements either method or both: `readActivity` of a provider without it returns `unsupported`, `addComment` of one without it fails, and an activity's `viewerCanComment` says whether the signed-in user can add a comment. The text of a comment or review is Markdown source whose raw HTML must not render as HTML. The [GitHub](../../packages/experimental/forge-github/README.md#use-this-package) and [GitLab](../../packages/experimental/forge-gitlab/README.md#use-this-package) provider READMEs own the requests and how each host's records become entries.
+
+```ts type-equiv
+/**
+ * One entry of a change request's activity: a comment in its conversation, a submitted review, a commit, a change of
+ * its state, or a record the host words itself.
+ */
+type ChangeRequestActivityItem = {
+  /** ISO 8601 time of the entry. */
+  readonly at: string
+  /** Account the entry is by, or null when the host names none or the account no longer exists. */
+  readonly actor: ForgeCommentAuthor | null
+} & (
+  /** A comment in the conversation. `body` is Markdown source; it may contain raw HTML, which readers must not render as HTML. */
+  | { readonly kind: 'comment'; readonly body: string; readonly url: string | null }
+  /**
+   * A submitted review: its decision, its own Markdown text, which follows the rule of a comment's `body` and is empty
+   * without one, and the number of comments it left on lines and files.
+   */
+  | { readonly kind: 'review'; readonly verdict: ReviewVerdict; readonly body: string; readonly comments: number; readonly url: string | null }
+  /**
+   * A commit added to the change request: its object name, abbreviated when the host records only an abbreviation, and
+   * the first line of its message.
+   */
+  | { readonly kind: 'commit'; readonly sha: string; readonly title: string }
+  | { readonly kind: 'merged' | 'closed' | 'reopened' | 'ready-for-review' | 'converted-to-draft' | 'force-pushed' }
+  | { readonly kind: 'auto-merge-enabled' | 'auto-merge-disabled' }
+  /** A review was requested from an account or a team, named as the host spells it; null when the host names neither. */
+  | { readonly kind: 'review-requested'; readonly reviewer: string | null }
+  | { readonly kind: 'renamed'; readonly from: string; readonly to: string }
+  /** A record with no kind of its own, as plain text in the host's own words. */
+  | { readonly kind: 'other'; readonly text: string }
+)
+```
+
+```ts type-equiv
+/** The activity of a change request. */
+interface ChangeRequestActivity {
+  /** Entries oldest first, at most the provider's limit; the latest ones when the change request has more. */
+  readonly items: readonly ChangeRequestActivityItem[]
+  /** Whether the change request has entries older than `items` holds. */
+  readonly truncated: boolean
+  /** Whether the signed-in user can add a comment through `addComment`; false for a provider without it. */
+  readonly viewerCanComment: boolean
 }
 ```
 
@@ -1399,7 +1516,7 @@ type ForgeChangeRequestStatesFrame =
   | { readonly type: 'changed'; readonly states: readonly ForgeChangeRequestListState[] }
 ```
 
-The changes view reads through the same Remote. `localDiff` reads one `ForgeLocalScope` of the Session's checkout, and `changeRequestDiff` reads a bound change request at the head of its latest status through the provider's `diff`, which returns a patch only for that head commit, or the `ForgeCommitRange` it names through the provider's `compare`; both return files that the Host parsed into `ForgeDiffFile` hunks, each with its review layer and change digest. `localCommits` and `changeRequestCommits` list the commits a range can name, the latter as null when the provider does not read commits. `localText` and `changeRequestText` read the new side of one file, which supplies the unchanged lines between hunks. Each inspection also sizes the `branch` scope as `ForgePanelState.local` for the Session panel's local changes row, always against the automatic fork point. A `branch` scope whose `base` names a ref compares with the merge base of HEAD and that branch instead; `diffBases` lists the branches the view offers, with the automatic fork point. When the head moved past the latest status, the provider returns `stale` and `ctx.forge.diff` polls the change request at once, once per head commit; `changeRequestDiff` rejects with `forgePanel/stale-head` and caches nothing, and the changes view keeps loading until a later status arrives, then reads again at that status's head. Review comments therefore always address the commit whose lines the view shows.
+The changes view reads through the same Remote. `localDiff` reads one `ForgeLocalScope` of the Session's checkout or of the head branch the scope names, and `changeRequestDiff` reads a bound change request at the head of its latest status through the provider's `diff`, which returns a patch only for that head commit, or the `ForgeCommitRange` it names through the provider's `compare`; both return files that the Host parsed into `ForgeDiffFile` hunks, each with its review layer and change digest. `localCommits` and `changeRequestCommits` list the commits a range can name, the latter as null when the provider does not read commits. `localText` and `changeRequestText` read the new side of one file, which supplies the unchanged lines between hunks. Each inspection also sizes the `branch` scope as `ForgePanelState.local` for the Session panel's local changes row, always against the automatic fork point. A `branch` scope whose `base` names a ref compares with the merge base of HEAD and that branch instead; `diffBases` lists the branches the view offers, with the automatic fork point. When the head moved past the latest status, the provider returns `stale` and `ctx.forge.diff` polls the change request at once, once per head commit; `changeRequestDiff` rejects with `forgePanel/stale-head` and caches nothing, and the changes view keeps loading until a later status arrives, then reads again at that status's head. Review comments therefore always address the commit whose lines the view shows.
 
 `changeRequestReview(session, url, headSha, fresh)` reads the threads of a bound change request at the head of the diff the view shows and refuses another head with `forgePanel/stale-head`, `forgePanel/review-unsupported` for a provider without review reads, and `forgePanel/review-failed` otherwise. It keeps one read per change request in memory, keyed by head commit and the status's update time and bounded by `maxCachedReviewBytes`, and reads again once the kept read is `reviewRefreshMs` old or when `fresh` asks for it, as the first read after the reader refreshes the view does: on GitHub a new comment or reply changes a pull request's update time, but resolving a thread does not. The changes view asks again at every status it receives while visible, and overlays the threads on the files the [panel README](../../packages/experimental/client-ui-forge/README.md#use-this-package) describes.
 
@@ -1420,22 +1537,33 @@ interface ForgeCommitRange {
 }
 ```
 
+A local scope reads the checkout of the Session's current directory unless it names a `head`: the full ref of a branch under `refs/heads/` or `refs/remotes/` that `show-ref --verify` finds in the Session's repository. The Host reads that branch where it is checked out. When `git worktree list` names a worktree of the repository for the branch and inspection finds a checkout of the same repository with the branch checked out there, Git runs in that worktree under the reading Session's sandbox policy: every scope reads its working tree, and the result names the directory in `worktree`. Otherwise, as for every remote-tracking branch, only the `branch` scope applies, and it compares committed content, with the ref in place of HEAD and without uncommitted or untracked files; another scope rejects with `forgePanel/no-working-tree`. A head that names the Session's own checked-out branch reads the Session's checkout. While a scope with a head names no `base`, its fork point is the merge base of the head with the commit the Session's own HEAD names, so the scope covers what the branch changed since it left the Session's work, also in a repository without a remote; the result names the Session's checked-out branch, or its abbreviated commit on a detached HEAD, as `base`.
+
+`diffBases(session, head, query)` and `localCommits(session, head, base)` take the same head, or null for the Session's own checkout. `diffBases` leaves out the branch the scope shows and, for a head, the Session's checked-out branch, which its automatic base names, and gives each local branch the directory of the worktree that has it checked out, so the page lists the branches a reader can show through the same Remote method with a null head. A head whose branch does not exist rejects a read with `forgePanel/head-missing`. `localWrite` takes no head and writes the Session's own checkout.
+
 ```ts type-equiv
-/** Which local changes a diff covers; each reads the Session's checkout through Git. */
+/**
+ * Which local changes a diff covers. Without `head` each reads the checkout of the Session's current directory through
+ * Git. With `head`, the full ref name of a branch under `refs/heads/` or `refs/remotes/`, it reads that branch in place
+ * of the checked-out one: in the worktree of the repository that has the branch checked out, where every scope applies
+ * and HEAD below is that worktree's, or, when no worktree has it, from the branch's commits, where only the `branch`
+ * scope applies and no uncommitted or untracked file shows.
+ */
 type ForgeLocalScope =
   /**
-   * The working tree and untracked files against a fork point: the merge base of HEAD with the
-   * `base` ref, or while `base` is null, the base commit of the worktree the Session created,
-   * else the merge base of HEAD with the default branch of the code host remote. With `commits`, only the changes
-   * of those commits between the fork point and HEAD, without uncommitted or untracked files.
+   * The working tree and untracked files against a fork point: the merge base of HEAD with the `base` ref. While
+   * `base` is null, a scope with a `head` uses the merge base with the commit the Session's own HEAD names; a scope
+   * without one uses the base commit of the worktree the Session created, else the merge base of HEAD with the
+   * default branch of the code host remote. With `commits`, only the changes of those commits between the fork
+   * point and HEAD, without uncommitted or untracked files.
    */
-  | { readonly kind: 'branch'; readonly base: string | null; readonly commits: ForgeCommitRange | null }
+  | { readonly kind: 'branch'; readonly head?: string; readonly base: string | null; readonly commits: ForgeCommitRange | null }
   /** The working tree and untracked files against HEAD. */
-  | { readonly kind: 'uncommitted' }
+  | { readonly kind: 'uncommitted'; readonly head?: string }
   /** The working tree and untracked files against the index. */
-  | { readonly kind: 'unstaged' }
+  | { readonly kind: 'unstaged'; readonly head?: string }
   /** The index against HEAD. */
-  | { readonly kind: 'staged' }
+  | { readonly kind: 'staged'; readonly head?: string }
 ```
 
 ```ts type-equiv
@@ -1445,13 +1573,21 @@ interface ForgeBaseBranch {
   readonly ref: string
   /** The ref without `refs/heads/` or `refs/remotes/`, such as `master` or `origin/master`. */
   readonly name: string
+  /**
+   * Directory Git registered for the worktree that has this local branch checked out, absent when none has; a scope
+   * that names the branch as its head reads that worktree.
+   */
+  readonly worktree?: string
 }
 ```
 
 ```ts type-equiv
 /** What the `branch` scope compares with while no base branch is chosen. */
 interface ForgeAutomaticBase {
-  /** The created worktree's base branch or abbreviated base commit, or the default branch of the code host remote. */
+  /**
+   * The created worktree's base branch or abbreviated base commit, or the default branch of the code host remote;
+   * for a scope with a `head`, the Session's checked-out branch, or its abbreviated HEAD commit when detached.
+   */
   readonly name: string
   /** Whether the fork point is the base commit of the worktree the Session created rather than a merge base. */
   readonly worktree: boolean
@@ -1465,7 +1601,7 @@ interface ForgeBaseBranches {
   readonly automatic: ForgeAutomaticBase | null
   /** Remote-tracking branches without symbolic refs such as `origin/HEAD`, most recently committed first, at most `maxBranches`. */
   readonly remote: readonly ForgeBaseBranch[]
-  /** Local branches other than the checked-out one, most recently committed first, at most `maxBranches`. */
+  /** Local branches other than the one the scope shows, most recently committed first, at most `maxBranches`. */
   readonly local: readonly ForgeBaseBranch[]
 }
 ```
@@ -1515,6 +1651,8 @@ interface ForgeDiffFile {
   readonly oversized: boolean
   /** Whether Git does not track the file yet; only local diffs list such files. */
   readonly untracked: boolean
+  /** Whether the path is a submodule, whose change is the commit recorded for it and whose hunks hold no file content. */
+  readonly submodule: boolean
   /** Lines added. */
   readonly additions: number
   /** Lines deleted. */
@@ -1540,6 +1678,54 @@ interface ForgeLocalDiff {
   readonly files: readonly ForgeDiffFile[]
   /** Untracked files left out beyond `maxUntrackedFiles`. */
   readonly omitted: number
+  /**
+   * Top-level directory of the worktree the scope read for its `head`; absent for the Session's own checkout and for
+   * a head read from its commits.
+   */
+  readonly worktree?: string
+}
+```
+
+`localWrite(session, write)` stages, unstages, or restores whole files of the Session's checkout, or returns index entries to an earlier tree. The caller's press authorizes the write, so its Git commands run without the Session's sandbox policy and under every access mode. A `stage` or a `restore` names each file with the digest of the change the reader saw and refuses the whole write with `forgePanel/local-stale` when the `unstaged` scope, read again, lists another change. Either refuses with `forgePanel/local-path-replaced` when a deleted file's path holds a directory, and a `restore` refuses a file whose `submodule` is true. The result of a `stage` or an `unstage` carries the index before the write as a tree, which a `reindex` of the same paths returns to.
+
+```ts type-equiv
+/** One file of a local write, as the `unstaged` scope listed it for the reader. */
+interface ForgeLocalWriteFile {
+  /** Path relative to the repository root, as the diff names it. */
+  readonly path: string
+  /** Digest of the change the reader saw. */
+  readonly digest: string
+}
+```
+
+```ts type-equiv
+/**
+ * A write a person makes from the changes view to the index or the working tree of the Session's checkout, on whole
+ * files. The person's press authorizes it, so the Session's access mode does not bound it.
+ */
+type ForgeLocalWrite =
+  /** Copy the working-tree state of the files into the index, adding untracked files and recording deletions. */
+  | { readonly kind: 'stage'; readonly files: readonly ForgeLocalWriteFile[] }
+  /** Return the index entries of the paths to HEAD; a staged rename names both of its paths. */
+  | { readonly kind: 'unstage'; readonly paths: readonly string[] }
+  /**
+   * Return the working-tree files to their index entries and delete untracked files. A file Git tracks without
+   * content yet, as `git add --intent-to-add` leaves it, is refused, because its index entry is empty; so is a
+   * submodule, whose checkout a restore leaves as it is.
+   */
+  | { readonly kind: 'restore'; readonly files: readonly ForgeLocalWriteFile[] }
+  /** Return the index entries of the paths to `tree`, the {@link ForgeLocalWriteResult.undo} of an earlier write. */
+  | { readonly kind: 'reindex'; readonly tree: string; readonly paths: readonly string[] }
+```
+
+```ts type-equiv
+/** What a local write left for undoing it. */
+interface ForgeLocalWriteResult {
+  /**
+   * Object name of the index as a tree before a `stage` or `unstage`, which a `reindex` of the same paths returns to;
+   * null for other writes and while the index holds unmerged entries.
+   */
+  readonly undo: string | null
 }
 ```
 
@@ -1598,7 +1784,7 @@ interface ForgeLocalChanges {
 
 ### Review page
 
-The [code review page](../../packages/experimental/client-ui-forge/README.md#use-this-package) reads change requests by URL instead of through a Session binding. Its `forgePanel` methods (`reviewLists`, `reviewCount`, `reviewChangeRequest`, `reviewDescription`, and the `review*` reads and actions that mirror the Session-bound ones) resolve the URL with `ForgeService.changeRequestFromUrl`, fail with `forgePanel/unrecognized-url` when no provider serves it, and name no Session resource, so only callers that may use the Host's code host credentials reach them. One list hub reads the [viewer lists](#viewer-lists-and-descriptions) only while a list or count stream lasts: streams of one repository scope share one reader that reads every list of every host each `reviewListIntervalMs`, hosts in parallel and each host's lists in order, stops the round's further reads on a host that refuses the viewer or is rate-limited, and backs off after failed rounds up to `reviewMaxBackoffMs`; the count reads every `reviewCountIntervalMs`, and lists of every repository refresh it too. `reviewLists` streams `ForgeReviewFrame` values with each host's lists, the items of the latest successful read, and the failure of the latest read; `reviewCount` streams `ForgeReviewCountFrame` values; and `reviewChangeRequest` streams `ForgeReviewChangeRequest` values for the shown change request, which is polled through `ForgeService.watch` while its stream lasts.
+The [code review page](../../packages/experimental/client-ui-forge/README.md#use-this-package) reads change requests by URL instead of through a Session binding. Its `forgePanel` methods (`reviewLists`, `reviewCount`, `reviewChangeRequest`, `reviewDescription`, `reviewActivity`, `reviewComment`, `reviewSetAutoMerge`, and the `review*` reads and actions that mirror the Session-bound ones) resolve the URL with `ForgeService.changeRequestFromUrl`, fail with `forgePanel/unrecognized-url` when no provider serves it, and name no Session resource, so only callers that may use the Host's code host credentials reach them. One list hub reads the [viewer lists](#viewer-lists-and-descriptions) only while a list or count stream lasts: streams of one repository scope share one reader that reads every list of every host each `reviewListIntervalMs`, hosts in parallel and each host's lists in order, stops the round's further reads on a host that refuses the viewer or is rate-limited, and reads a host whose read failed again later each time, up to `reviewMaxBackoffMs`, while the other hosts keep their cadence; the count reads every `reviewCountIntervalMs` in the same way, and lists of every repository refresh it too. A scope is every repository of every host or one `ForgeReviewRepository`, which names its host and is read on that host only. `reviewLists` streams `ForgeReviewFrame` values with each host's lists, the items of the latest successful read, the failure of the latest read, and, for a host that refused the viewer, the sign-in command its provider's `readiness` names; `reviewCount` streams `ForgeReviewCountFrame` values; and `reviewChangeRequest` streams `ForgeReviewChangeRequest` values for the shown change request, which is polled through `ForgeService.watch` while its stream lasts.
 
 The chat tab starts in the blank Session `connectWorkspace` resolves and records the change request with `reviewStage`; the Host keeps that choice in memory and binds the change request once the Session's next message enters its inbox, so an untouched blank stays unbound.
 
@@ -1683,7 +1869,7 @@ interface ForgeLensKeep {
 }
 ```
 
-`ctx.forgeChanges` also mints and reads changes addresses, names the tab `kinds`, and opens a view with `open(target, { path, lens })` in the Session the sidebar shows. `registerAnnotations(source)` adds line annotations: the source observes each view's annotations by path, and its `forge.diff.line.annotation` entry, keyed by the source's identity, draws each one inside a frame the view draws. Annotations stack on the row of their last line after the comment form, the browser drafts, and the host threads, in the column of their side; whole-file annotations come first, and those written on another `digest` follow the file in their own section. A file shows at most `maxAnnotationsPerFile`, and a file that draws its lines draws no annotation before its section comes within reach of the scrollport. The owner props of every slot live in [`src/client/slots.ts`](../../packages/experimental/client-ui-forge/src/client/slots.ts).
+`ctx.forgeChanges` also mints and reads changes addresses, names the tab `kinds`, and opens a view with `open(target, { path, lens })` in the Session the sidebar shows. `registerAnnotations(source)` adds line annotations: the source observes each view's annotations by path, and its `forge.diff.line.annotation` entry, keyed by the source's identity, draws each one inside a frame the view draws. Annotations stack on the row of their last line after the comment form, the browser drafts, and the host threads, in the column of their side; whole-file annotations come first, and those written on another `digest` follow the file in their own section. A file shows at most `maxAnnotationsPerFile`, and a file that draws its lines draws no annotation before its section comes within reach of the scrollport. A local changes view that shows a `head` branch other than the Session's own checkout draws no annotation and no entry of the `forge.changes.toolbar`, `forge.changes.file.menu`, and `forge.diff.comment.actions` slots. The owner props of every slot live in [`src/client/slots.ts`](../../packages/experimental/client-ui-forge/src/client/slots.ts).
 
 ```ts type-equiv
 /** Where one line annotation sits in a file of a changes view. */
@@ -1737,11 +1923,12 @@ Registry of forge providers. Watchers of one change request share a single polli
  * registration ends. Unregistering cancels and awaits its in-flight calls;
  * results from the withdrawn registration are discarded.
  * @param provider - provider to serve `provider.forge` on `provider.hosts`.
- * @returns the disposer that unregisters the provider and waits for its calls to finish.
+ * @returns the disposer that unregisters the provider and waits for its calls to finish, carrying
+ *   {@link ForgeRegistrationHandle.replace}.
  * @throws when another provider already serves the same forge or one of the same hosts, compared without case, and
  * when the provider names a batch size that is not a positive safe integer.
  */
-register(provider: ForgeProvider): () => Promise<void>
+register(provider: ForgeProvider): ForgeRegistrationHandle
 
 /**
  * Name a forge family and its change requests for readers.
@@ -1783,13 +1970,13 @@ changeRequestUrl(ref: ChangeRequestRef): string
 async findByHead(repository: ForgeRepository, branch: string, signal: AbortSignal): Promise<readonly ChangeRequestRef[]>
 
 /**
- * Report whether the provider can reach the repository's host with current credentials.
- * @param repository - repository served by a registered provider.
+ * Report whether a provider can reach one host with current credentials.
+ * @param repository - forge family of a registered provider and the host to probe; a repository names both.
  * @param signal - cancellation for the probe.
  * @returns the provider's readiness for the host.
- * @throws when no provider serves the repository's forge.
+ * @throws when no provider serves the forge.
  */
-async readiness(repository: ForgeRepository, signal: AbortSignal): Promise<ForgeReadiness>
+async readiness(repository: Pick<ForgeRepository, 'forge' | 'host'>, signal: AbortSignal): Promise<ForgeReadiness>
 
 /**
  * Mark a draft change request ready for review, then poll it at once when it is watched.
@@ -1853,6 +2040,17 @@ async reviewerCandidates( ref: ChangeRequestRef, query: string, signal: AbortSig
  * @throws when no provider serves the change request's forge, or with `signal.reason` when it aborts.
  */
 async updateBranch(ref: ChangeRequestRef, request: BranchUpdateRequest, signal: AbortSignal): Promise<ForgeActionFailure | undefined>
+
+/**
+ * Turn the host's automatic merge of a change request on, while its head is still the request's `headSha`, or off,
+ * then poll it at once when it is watched.
+ * @param ref - change request served by a registered provider.
+ * @param request - on with the merge method and the head commit the user confirmed, or off.
+ * @param signal - cancellation of the request.
+ * @returns undefined once the host accepted it, or why it did not; a provider that sets no automatic merge fails.
+ * @throws when no provider serves the change request's forge, or with `signal.reason` when it aborts.
+ */
+async setAutoMerge( ref: ChangeRequestRef, request: AutoMergeRequest, signal: AbortSignal, ): Promise<ForgeActionFailure | undefined>
 
 /**
  * Read complete check details independently of periodic polling.
@@ -1996,6 +2194,25 @@ async countForViewer(forge: string, host: string, signal: AbortSignal): Promise<
 async readDescription(ref: ChangeRequestRef, signal: AbortSignal): Promise<ChangeRequestDescription | ForgeFailure>
 
 /**
+ * Read the activity of a change request: its comments, submitted reviews, commits, and changes of state.
+ * @param ref - change request served by a registered provider.
+ * @param signal - cancellation of the read.
+ * @returns the activity, or why the host did not provide it; `unsupported` when the provider reads no activity.
+ * @throws when no provider serves the change request's forge, or with `signal.reason` when it aborts.
+ */
+async readActivity(ref: ChangeRequestRef, signal: AbortSignal): Promise<ChangeRequestActivity | ForgeFailure>
+
+/**
+ * Add a comment to a change request's conversation, then poll it at once when it is watched.
+ * @param ref - change request served by a registered provider.
+ * @param body - Markdown source of the comment.
+ * @param signal - cancellation of the request.
+ * @returns undefined once the host saved the comment, or why it did not; a provider that adds no comments fails.
+ * @throws when no provider serves the change request's forge, or with `signal.reason` when it aborts.
+ */
+async addComment(ref: ChangeRequestRef, body: string, signal: AbortSignal): Promise<ForgeActionFailure | undefined>
+
+/**
  * Publish one comment or a completed review, then refresh the watched status; a publication the host took is announced
  * with `forge/review-changed`.
  * @param ref - change request served by a registered provider.
@@ -2116,13 +2333,15 @@ Serves the forge panel. Following a Session inspects the checkout of its current
 /**
  * Stream the review page's lists of the signed-in user's open change requests on every host a provider lists them on:
  * the lists read so far first, then a frame after each read settles. Readers of one repository scope share one
- * reader, which reads every `reviewListIntervalMs` while some stream lasts and backs off after failed rounds up to
- * `reviewMaxBackoffMs`; nothing is read while no stream lasts. The stream ends when `signal` aborts or the Remote stops.
- * @param repository - one repository to list in, or null for every repository the user can read.
+ * reader, which reads each host every `reviewListIntervalMs` while some stream lasts and reads a host whose read failed
+ * again later each time, up to `reviewMaxBackoffMs`, without delaying the other hosts; nothing is read while no stream
+ * lasts. The stream ends when `signal` aborts or the Remote stops.
+ * @param repository - one repository to list in, read on its host only, or null for every repository the user can
+ * read on every host.
  * @param signal - ends the stream.
  * @returns frames, each complete.
  */
-@Remote({ mode: 'stream' }) async *reviewLists( repository: { readonly owner: string; readonly name: string } | null, signal: AbortSignal, ): AsyncIterable<ForgeReviewFrame>
+@Remote({ mode: 'stream' }) async *reviewLists( repository: ForgeReviewRepository | null, signal: AbortSignal, ): AsyncIterable<ForgeReviewFrame>
 
 /**
  * Stream the number of open change requests that ask the signed-in user for a review, summed over the hosts read:
@@ -2138,6 +2357,18 @@ Serves the forge panel. Following a Session inspects the checkout of its current
  * @param signal - request cancellation.
  */
 @Remote // oxlint-disable-next-line typescript/require-await -- async keeps a refused or cancelled request a rejection, as Remote callers expect async reviewRefresh(signal: AbortSignal): Promise<void>
+
+/**
+ * Report whether a provider reaches one of its hosts with the Host's current credentials, for the host list on the
+ * Plugins page of that provider's row. The read names no Session, so, like the review page reads, only callers that
+ * may use the Host's code host credentials reach it.
+ * @param forge - forge family of a registered provider, such as `gitlab`.
+ * @param host - host name as the provider's configuration lists it.
+ * @param signal - request cancellation.
+ * @returns the provider's readiness for the host; `unavailable` with the reason when no provider serves the family,
+ * the probe fails, or it runs past `readinessTimeoutMs`.
+ */
+@Remote async hostReadiness(forge: string, host: string, signal: AbortSignal): Promise<ForgeReadiness>
 
 /**
  * Poll one change request the review page shows at once; its stream reports the result.
@@ -2168,6 +2399,27 @@ Serves the forge panel. Following a Session inspects the checkout of its current
  * host's reason when the host does not provide it.
  */
 @Remote async reviewDescription(url: string, signal: AbortSignal): Promise<ChangeRequestDescription>
+
+/**
+ * Read the activity of a change request for the review page: its comments, submitted reviews, commits, and changes
+ * of state.
+ * @param url - web URL of the change request.
+ * @param signal - request cancellation.
+ * @returns the activity, or null when the change request's provider reads none.
+ * @throws `forgePanel/unrecognized-url` when no provider serves the URL; `forgePanel/activity-failed` with the
+ * host's reason when the host does not provide it.
+ */
+@Remote async reviewActivity(url: string, signal: AbortSignal): Promise<ChangeRequestActivity | null>
+
+/**
+ * Add a comment to the conversation of a change request the review page shows.
+ * @param url - web URL of the change request.
+ * @param body - Markdown source of the comment.
+ * @param signal - request cancellation.
+ * @throws `forgePanel/unrecognized-url` when no provider serves the URL; `forgePanel/action-failed` when `body` is
+ * blank, or with the host's reason; `forgePanel/action-unknown` when the host's answer did not confirm the comment.
+ */
+@Remote async reviewComment(url: string, body: string, signal: AbortSignal): Promise<void>
 
 /**
  * Read every check of a change request the review page shows.
@@ -2289,6 +2541,17 @@ Serves the forge panel. Following a Session inspects the checkout of its current
 @Remote async reviewMerge(url: string, method: MergeMethod, headSha: string, signal: AbortSignal): Promise<void>
 
 /**
+ * Turn the code host's automatic merge of a change request the review page shows on, while its head is still the
+ * request's `headSha`, or off.
+ * @param url - web URL of the change request.
+ * @param request - on with the merge method and the head commit the user confirmed, or off.
+ * @param signal - request cancellation.
+ * @throws `forgePanel/unrecognized-url` when no provider serves the URL; `forgePanel/stale-head`,
+ * `forgePanel/action-failed`, or `forgePanel/action-unknown` with the host's reason.
+ */
+@Remote async reviewSetAutoMerge(url: string, request: AutoMergeRequest, signal: AbortSignal): Promise<void>
+
+/**
  * Rerun the failed checks of a change request the review page shows.
  * @param url - web URL of the change request.
  * @param request - the head commit whose checks the user saw.
@@ -2362,15 +2625,20 @@ Serves the forge panel. Following a Session inspects the checkout of its current
 @Remote async worktreeBases(session: Session, query: string, signal: AbortSignal): Promise<ForgeWorktreeBases>
 
 /**
- * List the branches the `branch` scope of the Session's current checkout can compare with.
+ * List the branches the `branch` scope can compare with, for the Session's current checkout or for a head branch
+ * read in its place.
  * @param session - Session whose checkout is read.
+ * @param head - full ref of the branch the scope reads in place of the checked-out one, or null for the checkout.
  * @param query - text the branch names must contain, ignoring case; empty for every branch.
  * @param signal - request cancellation.
  * @returns the automatic fork point and at most `maxBranches` remote-tracking and local branches each,
- * most recently committed first, without the checked-out branch.
- * @throws `forgePanel/not-a-checkout` outside a checkout; the Git error when Git fails or the listed refs exceed `maxDiffBytes`.
+ * most recently committed first, without the branch the scope shows and, for a head, without the Session's
+ * checked-out branch, which the automatic fork point compares with; a local branch that a worktree has checked
+ * out names that worktree's directory.
+ * @throws `forgePanel/not-a-checkout` outside a checkout; `forgePanel/head-missing` when the head does not exist; the
+ * Git error when Git fails or the listed refs exceed `maxDiffBytes`.
  */
-@Remote async diffBases(session: Session, query: string, signal: AbortSignal): Promise<ForgeBaseBranches>
+@Remote async diffBases(session: Session, head: string | null, query: string, signal: AbortSignal): Promise<ForgeBaseBranches>
 
 /**
  * Bind a change request to a Session by URL, or restore a dismissed binding.
@@ -2410,13 +2678,15 @@ Serves the forge panel. Following a Session inspects the checkout of its current
 @Remote async revisit(sessionId: SessionId, signal: AbortSignal): Promise<void>
 
 /**
- * Read the changes one scope covers in the checkout of the Session's
- * current directory, with Git using the Session's sandbox policy.
+ * Read the changes one scope covers in the checkout of the Session's current directory, or for the head branch the
+ * scope names: in the worktree that has it checked out, else from its commits. Git uses the Session's sandbox policy.
  * @param session - Session whose checkout is read.
  * @param scope - which changes to read.
  * @param signal - request cancellation.
- * @returns the files, the base of the `branch` scope, and the untracked files left out.
- * @throws `forgePanel/not-a-checkout` outside a checkout; `forgePanel/base-missing` when the base branch
+ * @returns the files, the base of the `branch` scope, the untracked files left out, and the worktree read for a head.
+ * @throws `forgePanel/not-a-checkout` outside a checkout; `forgePanel/head-missing` when the head the scope names
+ * does not exist; `forgePanel/no-working-tree` for another scope than `branch` whose head no worktree has checked
+ * out; `forgePanel/base-missing` when the base branch
  * chosen for the `branch` scope does not exist; `forgePanel/no-fork-point` for the `branch` scope without
  * a fork point; `forgePanel/commits-missing` when chosen commits are not between the fork point and HEAD in order;
  * `forgePanel/commits-not-linear` when a chosen commit's first parent is not the commit listed before it;
@@ -2426,31 +2696,51 @@ Serves the forge panel. Following a Session inspects the checkout of its current
 @Remote async localDiff(session: Session, scope: ForgeLocalScope, signal: AbortSignal): Promise<ForgeLocalDiff>
 
 /**
- * List the commits of the `branch` scope of the Session's current checkout, which the changes view can show one or
- * several of instead of the whole scope.
+ * List the commits of the `branch` scope of the Session's current checkout or of a head branch read in its place,
+ * which the changes view can show one or several of instead of the whole scope.
  * @param session - Session whose checkout is read.
+ * @param head - full ref of the branch the scope reads in place of the checked-out one, or null for the checkout.
  * @param base - the base ref of the `branch` scope, or null for its automatic fork point.
  * @param signal - request cancellation.
- * @returns the newest `maxCommits` commits between the fork point and HEAD, oldest first, and HEAD's commit.
- * @throws `forgePanel/not-a-checkout` outside a checkout; `forgePanel/base-missing` when the base branch does not
- * exist; `forgePanel/no-fork-point` without a fork point; the Git error when Git fails or the listing exceeds `maxDiffBytes`.
+ * @returns the newest `maxCommits` commits between the fork point and the shown HEAD or branch, oldest first, and its commit.
+ * @throws `forgePanel/not-a-checkout` outside a checkout; `forgePanel/head-missing` when the head does not exist;
+ * `forgePanel/base-missing` when the base branch does not exist; `forgePanel/no-fork-point` without a fork point;
+ * the Git error when Git fails or the listing exceeds `maxDiffBytes`.
  */
-@Remote async localCommits(session: Session, base: string | null, signal: AbortSignal): Promise<ForgeLocalCommits>
+@Remote async localCommits(session: Session, head: string | null, base: string | null, signal: AbortSignal): Promise<ForgeLocalCommits>
 
 /**
  * Read the new side of one changed file in a scope, which supplies the
  * unchanged lines between its hunks: the index for `staged`, the last chosen commit for chosen commits of
- * the `branch` scope, else the working tree.
+ * the `branch` scope, the branch for a head read from its commits, else the working tree of the checkout the scope reads.
  * @param session - Session whose checkout is read.
  * @param scope - the scope the diff was read in.
  * @param path - path relative to the checkout's top-level directory, as the diff names it.
  * @param signal - request cancellation.
  * @returns the text.
- * @throws `forgePanel/not-a-checkout` outside a checkout; `forgePanel/diff-too-large` over `maxDiffBytes`;
+ * @throws `forgePanel/not-a-checkout` outside a checkout; `forgePanel/head-missing` and `forgePanel/no-working-tree`
+ * as for {@link ForgePanelController.localDiff}; `forgePanel/diff-too-large` over `maxDiffBytes`;
  * `forgePanel/commits-missing` for a chosen commit that is not a full object name; an error for a path outside
  * the checkout, binary content, or a failed read.
  */
 @Remote async localText(session: Session, scope: ForgeLocalScope, path: string, signal: AbortSignal): Promise<string>
+
+/**
+ * Stage, unstage, or restore whole files in the checkout of the Session's current directory, or return index
+ * entries to the tree an earlier write reported. The caller's press authorizes the write, so Git runs without the
+ * Session's sandbox policy and under any access mode. The Session's panel inspects the checkout again afterwards,
+ * whether or not the write succeeded.
+ * @param session - Session whose checkout is written.
+ * @param write - the write; `stage` and `restore` name each file with the digest of the change the reader saw.
+ * @param signal - request cancellation.
+ * @returns the index before a `stage` or `unstage` as a tree, for undoing it.
+ * @throws `forgePanel/not-a-checkout` outside a checkout; `forgePanel/local-stale` before anything is written when a
+ * file's unstaged change is not the one the reader saw; `forgePanel/local-path-replaced` before anything is written
+ * when a deleted file's path holds a directory; the errors of {@link ForgePanelController.localDiff} for the
+ * `unstaged` scope; an error for a path outside the checkout, a tree that is not a full object name, a restore of a
+ * submodule or of a file without index content, or a Git failure.
+ */
+@Remote async localWrite(session: Session, write: ForgeLocalWrite, signal: AbortSignal): Promise<ForgeLocalWriteResult>
 
 /**
  * Load complete checks for the change request whose list the user opened.
@@ -2648,6 +2938,20 @@ registerLens(lens: ForgeLens): () => Promise<void>
  * reason when the host refuses otherwise or cannot be reached.
  */
 @Remote async merge(session: Session, url: string, method: MergeMethod, headSha: string, signal: AbortSignal): Promise<void>
+
+/**
+ * Turn the code host's automatic merge of a change request of a Session on, while its head is still the request's
+ * `headSha`, or off; the change request is polled again once the host answers.
+ * @param session - Session the change request is bound to.
+ * @param url - binding URL of the change request.
+ * @param request - on with the merge method and the head commit the user confirmed, or off.
+ * @param signal - request cancellation.
+ * @throws `forgePanel/not-bound` unless the URL is a visible binding of the Session that a provider serves;
+ * `forgePanel/stale-head` when the head moved past the request's `headSha`; `forgePanel/action-failed` with the
+ * host's reason when the host refuses otherwise, cannot be reached, or sets no automatic merge;
+ * `forgePanel/action-unknown` when the host's answer did not confirm the change.
+ */
+@Remote async setAutoMerge(session: Session, url: string, request: AutoMergeRequest, signal: AbortSignal): Promise<void>
 
 /**
  * Rerun the failed checks of a change request of a Session while its head is still the commit whose checks the user
@@ -2881,11 +3185,11 @@ Source: [`packages/experimental/forge-session/src/index.ts`](../../packages/expe
 
 #### `forge/providers-changed` — parallel
 
-Announces a provider registration or withdrawal after the registry changes. Listener failures are logged without preventing other listeners from running.
+Announces a provider registration, replacement, or withdrawal after the registry changes. Listener failures are logged without preventing other listeners from running.
 
 ```ts cordis-catalog
 /**
- * Announces a provider registration or withdrawal after the registry changes.
+ * Announces a provider registration, replacement, or withdrawal after the registry changes.
  * Listener failures are logged without preventing other listeners from running.
  * @param forge - family whose provider changed.
  * @mode parallel

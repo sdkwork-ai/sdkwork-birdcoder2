@@ -1,6 +1,6 @@
 ---
 description: "dsh Web 客户端的 slot 注册表纯核心：普通扩展 slots、可复用 Component Factory、推导 props 类型、store 席位与渲染器安装约定。"
-kind: "package-library"
+kind: "package-reference"
 ---
 
 # @deepseek-ai/dsh-client-ui-slots
@@ -32,6 +32,8 @@ kind: "package-library"
 设计者认为组件或装配可复用时，即使当前只有一个调用方，也可以选择 Component Factory；互不相关的父级、不同的包、额外注入或局部 slot 都不是前提。一次性组件不必使用 Factory。在 `SlotFactoryMap` 中声明完整类型，通过 `ctx.slots.registerFactory()` 安装 definition，通过注入的 `renderFactorySlot()` 渲染 occurrences，并通过调用的 `slots` 选项选择每个已声明的局部 Component。definition 通过 `useFactorySlot(name, fallback)` 读取该选择。
 
 Factory `children` 仍是普通全局 Slots 且必须与 `SlotMap` 匹配，而局部 `slots` 为每个 occurrence 选择一个 Component。occurrence 继承其渲染位置的 scope；`renderFactorySlot()` 不接受 Session identity。共享 Store handle 使用普通 scope 解析。Store factory 保持 lazy，直到 occurrence 首次物化时才为该渲染位置创建一个 handle；若持久化 Store spec 会让 persistence key 在 occurrences 之间冲突，renderer 会拒绝它。
+
+在 DOM 查询中，`[data-slot-factory]` 标记已渲染的 Factory，`[data-slot-factory-children]` 标记调用方显式选中且已挂载的局部组件。选择器示例与行内根元素的声明方式见 [Factory DOM 迁移指南](../../../docs/upgrade-guide/v0.2.3-alpha.2/factory-content-roots/guide.zh.md)。
 
 ### 五个框架 props share
 
@@ -98,6 +100,7 @@ register 调用可以用 `store: defineStore(...)` 声明 store 席位：`init` 
 这些限制定义注册表的规模扩展特性与已接受的类型噪声；它们是当前包约束。
 
 - **`isLive` 会线性扫描所有记录**：在 UI 插件的注册规模（数十项）下没有问题；如果账本变得频繁访问，再使用条目→记录反向引用改进。
+- **动态插件包**——本包是带 `immediately: true` 的动态插件包。它的 `/client` 入口 `lib/client.js`（由 `src/client/index.ts` 构建）目前仍导出供其他 bundle require 的实体值，这是会逐步缩减的历史例外（[导出规则](../AGENTS.md#export-discipline-client-plugin-packages)）；浏览器中的 bundle 按包名或 `/client` 子路径取得这些导出，两者指向模块表中的同一行。为兼容仓库外的代码，包根的类型复用 `./client` 的声明，包根运行时 `lib/index.js`（由 `src/index.js` 构建）是只有空 `apply` 的 Host 入口（[包根](../AGENTS.md#hand-written-package-roots)）。因此在 Node 中包根不提供实体值：代码从 `/client` 子路径 import，在浏览器外运行这些值的测试把该子路径解析到源码（[Client 测试运行时](../../test-support/client-runtime/README.zh.md#module-resolution)）；仓库代码只通过 `/client` 引用本包。独立消费方自行提供开发依赖（[依赖规则](../AGENTS.md#dependency-declaration)）。
 - **`__renders` 幻象锚点在 `PropsRenderSlots` 上可见**：这是与类型链设计的 `__accepts` 相同且已接受的噪声；泛型方法签名在 key 联合之间比较宽松，因此必须依靠逆变标记强制执行「组件 key 集合 ⊆ children 声明」。
 
 <a id="dev-note"></a>

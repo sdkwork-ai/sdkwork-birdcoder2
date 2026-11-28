@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-settings-account",
   "description": "Manage DeepSeek login and open Platform billing pages",
-  "version": "0.2.3-alpha.2",
+  "version": "0.2.3-alpha.3",
   "publishConfig": {
     "access": "public"
   },
@@ -35,7 +35,8 @@
         "@deepseek-ai/dsh-client-ui-chat",
         "@deepseek-ai/dsh-client-ui-layout",
         "@deepseek-ai/dsh-client-ui-settings",
-        "@deepseek-ai/dsh-client-ui-theme"
+        "@deepseek-ai/dsh-client-ui-theme",
+        "@deepseek-ai/dsh-client-ui-responsive"
       ],
       "platform": "web"
     }
@@ -66,12 +67,13 @@
     "@deepseek-ai/dsh-settings": "workspace:*",
     "@testing-library/react": "^16.3.3",
     "@types/big.js": "^6.2.2",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "@deepseek-ai/dsh-client-ui-settings-models": "workspace:*",
     "@deepseek-ai/dsh-host-webserver": "workspace:*",
     "big.js": "^7.0.1",
-    "@deepseek-ai/dsh-client-product-analytics": "workspace:*"
+    "@deepseek-ai/dsh-client-product-analytics": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-responsive": "workspace:*"
   },
   "files": [
     "locale/*.json",

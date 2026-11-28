@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-primitives/README.md
 /:
-  en: 6da33cc935e210c4
-  zh: 752948e68a6e2c32
+  en: 76040e81cd119d6a
+  zh: 33b5bacd05ab64e3
 /deepseek-ai-dsh-client-ui-primitives:
   en: e39769cae26393b8
   zh: 8743c8cf561fec35
@@ -17,15 +17,19 @@
 /deepseek-ai-dsh-client-ui-primitives/use-this-package:
   en: 2f563159088c0314
   zh: f87e502bd28507fe
+  en: f8c98dfc44d83f20
+  zh: d2bc9a303100819f
 /deepseek-ai-dsh-client-ui-primitives/use-this-package/component-catalog:
   en: 55ca244a67db58cc
   zh: 52d4c99ff5853f0b
+  en: 3f8b6fac225c7883
+  zh: dcb3a7715bcfe718
 /deepseek-ai-dsh-client-ui-primitives/use-this-package/controls-and-icons:
   en: ba57395620c1aab5
   zh: 551f454132fb4669
 /deepseek-ai-dsh-client-ui-primitives/use-this-package/rendering-agent-output:
-  en: 7fed4894a6d0d568
-  zh: c22881bfcef2d4b6
+  en: 0ce18b9886d9eb91
+  zh: 4da9c4e0324f80a1
 /deepseek-ai-dsh-client-ui-primitives/use-this-package/localizing-copy:
   en: b8a129536b53673b
   zh: 3486623c5b716c0f
@@ -33,11 +37,11 @@
   en: 6711120ef56212fb
   zh: b18541d630196881
 /deepseek-ai-dsh-client-ui-primitives/understand-the-implementation/source-map:
-  en: a39e67d79e171221
-  zh: 593e260c073336f9
+  en: 415043338fe88461
+  zh: 6d7c2a3c53a4575d
 /deepseek-ai-dsh-client-ui-primitives/understand-the-implementation/input-modality:
-  en: cb61e1a37d6c27e5
-  zh: 1f3fa79dd5ab2e45
+  en: 9c9bc1ce845e92f9
+  zh: 547b7e0b087088f4
 /deepseek-ai-dsh-client-ui-primitives/understand-the-implementation/streaming-markdown:
   en: 8bbfa14c27f3bfd7
   zh: 88f7548ac3a114e1
@@ -45,8 +49,8 @@
   en: 45f4cd1ef96bb6d2
   zh: f264d25b780ad1dc
 /deepseek-ai-dsh-client-ui-primitives/further-exploration:
-  en: 19f1407f92cb8264
-  zh: 16205d2db9c91ad1
+  en: a2983647e0d66ac1
+  zh: 2a117c313cb9f2c7
 /deepseek-ai-dsh-client-ui-primitives/model-experience:
   en: 3120df665299c634
   zh: 1d9f365d091d0d2a

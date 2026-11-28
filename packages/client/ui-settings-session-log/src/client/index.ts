@@ -8,7 +8,7 @@ import { UploadPreference, type UploadSettings } from './upload-preference.ts'
 import { UploadRow, UploadToast, type UploadInjected } from './UploadRow.tsx'
 import { en, ja, es, fr, de, ru, pt, zh } from './locales.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@deepseek-ai/dsh-client-ui-slots/client' {
   interface LocaleNamespaceMap {
     /** API Session-log preference copy. */
     'settings.sessionLog': keyof typeof en
@@ -33,8 +33,8 @@ export function apply(ctx: Context): void {
     setEnabled: enabled => preference.setEnabled(enabled),
     dismiss: () => { preference.dismiss() },
   })
-  ctx.effect(() => ctx.configForms.whileServed([namespace], () => ctx.slots.inject('settings.general.item', () =>
-    ctx.slots.register({ name: 'settings.general.item', id: namespace, order: 90, locale, inject: face }, UploadRow))))
+  ctx.effect(() => ctx.configForms.whileServed([namespace], () => ctx.slots.inject('settings.general.group.data.item', () =>
+    ctx.slots.register({ name: 'settings.general.group.data.item', id: namespace, order: 90, locale, inject: face }, UploadRow))))
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'session-log-upload-toast', locale, inject: face,
   }, UploadToast))

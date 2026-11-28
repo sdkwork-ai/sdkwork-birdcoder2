@@ -9,8 +9,8 @@ import type { WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/clie
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { allowAllAccess, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts'
-import { HoverCardGroup, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
+import { HoverCardGroup, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives/client'
+import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots/client'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 import type { RowDragProps } from '../src/client/rows/Rows.tsx'
 import {
@@ -77,16 +77,24 @@ function SessionNodeItem({
       renderFactorySlot={renderFactorySlot} useContextMenuTarget={useContextMenuTarget} useSessionAccess={useSessionAccess}
     />
   )}
+function SessionNodeItem({ renderSlot = renderNoRowEntries, onRenameRequest = () => {}, renderFactorySlot = renderMenuButton,
+  useContextMenuOpener = select => select(null), useSessionAccess = allowAllAccess.useSessionAccess, ...props }: Omit<
+    SessionNodeItemProps, 'renderSlot' | 'onRenameRequest' | 'renderFactorySlot' | 'useContextMenuOpener' | 'useSessionAccess' | 'useContextMenu'
+  > & Partial<Pick<SessionNodeItemProps, 'renderSlot' | 'onRenameRequest' | 'renderFactorySlot' | 'useContextMenuOpener' | 'useSessionAccess' | 'useContextMenu'>>) {
+  return <SessionNodeItemComponent {...props} renderSlot={renderSlot} onRenameRequest={onRenameRequest}
+    useContextMenu={props.useContextMenu ?? contextMenuHook()} renderFactorySlot={renderFactorySlot}
+    useContextMenuOpener={useContextMenuOpener} useSessionAccess={useSessionAccess} />
+}
 
 // Direct header specs hold every access answer unless the case refuses one.
 function ProjectRowItem({
   useWorkspaceAccess = allowAllAccess.useWorkspaceAccess,
-  renderFactorySlot = renderMenuButton, useContextMenuTarget = select => select(null), ...props
-}: Omit<ProjectRowItemProps, 'useWorkspaceAccess' | 'renderFactorySlot' | 'useContextMenuTarget' | 'useContextMenu'>
-  & Partial<Pick<ProjectRowItemProps, 'useWorkspaceAccess' | 'renderFactorySlot' | 'useContextMenuTarget' | 'useContextMenu'>>) {
+  renderFactorySlot = renderMenuButton, useContextMenuOpener = select => select(null), ...props
+}: Omit<ProjectRowItemProps, 'useWorkspaceAccess' | 'renderFactorySlot' | 'useContextMenuOpener' | 'useContextMenu'>
+  & Partial<Pick<ProjectRowItemProps, 'useWorkspaceAccess' | 'renderFactorySlot' | 'useContextMenuOpener' | 'useContextMenu'>>) {
   return <ProjectRowItemComponent {...props} useWorkspaceAccess={useWorkspaceAccess}
     useContextMenu={props.useContextMenu ?? contextMenuHook()} renderFactorySlot={renderFactorySlot}
-    useContextMenuTarget={useContextMenuTarget} />
+    useContextMenuOpener={useContextMenuOpener} />
 }
 
 /** Half detection reads the row rect; jsdom rects are all-zero by default. */
@@ -471,7 +479,8 @@ describe('workspace browser rows', () => {
   it('keeps a title marqueed while its context menu owns the hover highlight', () => {
     const node: SessionNode = { id: sid('context-crawl'), title: 'A long Session title', blank: false,
       running: false, runningSubagentCount: 0, completed: false, failed: false, updatedAt: 0, pinned: false, archived: false }
-    const props = { node, currentId: undefined, now: 0, onOpen: vi.fn(), t }
+    const openMenu = vi.fn()
+    const props = { node, currentId: undefined, now: 0, onOpen: vi.fn(), t, useContextMenu: contextMenuHook(openMenu) }
     const view = render(<SessionNodeItem {...props} />)
     const row = screen.getByRole('treeitem')
     const title = screen.getByText(node.title).parentElement as HTMLElement
@@ -479,12 +488,29 @@ describe('workspace browser rows', () => {
     Object.defineProperty(title, 'clientWidth', { value: 160, configurable: true })
     fireEvent.pointerEnter(row)
     expect(title.style.getPropertyValue('--dsh-marquee-range')).toBe('240px')
-    view.rerender(<SessionNodeItem {...props} useContextMenuTarget={select => select({ kind: 'session',
-      value: { sessionId: node.id, displayTitle: node.title } })} />)
+    fireEvent.contextMenu(row, { clientX: 10, clientY: 10 })
+    const opener = openMenu.mock.lastCall?.[2] as string
+    view.rerender(<SessionNodeItem {...props} useContextMenuOpener={select => select(opener)} />)
     fireEvent.pointerLeave(row)
     expect(title.hasAttribute('data-marquee')).toBe(true)
     view.rerender(<SessionNodeItem {...props} />)
     expect(title.hasAttribute('data-marquee')).toBe(false)
+  })
+
+  it('pins its hover affordances only for a menu this row opened', () => {
+    const node: SessionNode = { id: sid('own-menu'), title: 'Own menu', blank: false,
+      running: false, runningSubagentCount: 0, completed: false, failed: false, updatedAt: 0, pinned: false, archived: false }
+    const openMenu = vi.fn()
+    const props = { node, currentId: undefined, now: 0, onOpen: vi.fn(), t, useContextMenu: contextMenuHook(openMenu) }
+    const view = render(<SessionNodeItem {...props} />)
+    const row = screen.getByRole('treeitem')
+    fireEvent.contextMenu(row, { clientX: 10, clientY: 10 })
+    const opener = openMenu.mock.lastCall?.[2] as string
+    // The conversation title opens a menu for the same Session under its own opener.
+    view.rerender(<SessionNodeItem {...props} useContextMenuOpener={select => select('conversation-title')} />)
+    expect(row.className).not.toContain(rowCss.menuOpen)
+    view.rerender(<SessionNodeItem {...props} useContextMenuOpener={select => select(opener)} />)
+    expect(row.className).toContain(rowCss.menuOpen)
   })
 
   it('shows the green unread dot only on an unread session (live activity wins the slot)', () => {
@@ -621,13 +647,18 @@ describe('workspace browser rows', () => {
     const view = render(<ProjectRowItem group={group} onToggle={onToggle} onCreate={vi.fn()}
       useContextMenu={contextMenuHook(openMenu)} renderFactorySlot={renderFactorySlot} t={t} />)
     fireEvent.contextMenu(screen.getByRole('treeitem'), { clientX: 36, clientY: 48 })
-    expect(openMenu).toHaveBeenLastCalledWith(target, { x: 36, y: 48 })
+    expect(openMenu).toHaveBeenLastCalledWith(target, { x: 36, y: 48 }, expect.any(String))
+    const opener = openMenu.mock.lastCall?.[2] as string
     expect(renderFactorySlot).toHaveBeenLastCalledWith('contextMenu.button', {
-      target, label: '工作区“Project”的操作', className: rowCss.iconButton,
+      target, label: '工作区“Project”的操作', size: 'row', opener,
     })
     expect(onToggle).not.toHaveBeenCalled()
+    // A menu for the same Workspace opened by another element leaves the row unchanged.
     view.rerender(<ProjectRowItem group={group} onToggle={onToggle} onCreate={vi.fn()} t={t}
-      useContextMenuTarget={select => select(target)} />)
+      useContextMenuOpener={select => select('elsewhere')} />)
+    expect(screen.getByRole('treeitem').className).not.toContain(rowCss.menuOpen)
+    view.rerender(<ProjectRowItem group={group} onToggle={onToggle} onCreate={vi.fn()} t={t}
+      useContextMenuOpener={select => select(opener)} />)
     expect(screen.getByRole('treeitem').className).toContain(rowCss.menuOpen)
   })
 
@@ -927,9 +958,9 @@ describe('workspace browser rows', () => {
     render(<SessionNodeItem node={node} currentId={sid('other')} now={0} onOpen={onOpen}
       useContextMenu={contextMenuHook(openMenu)} renderFactorySlot={renderFactorySlot} t={t} />)
     fireEvent.contextMenu(screen.getByRole('treeitem'), { clientX: 31, clientY: 47 })
-    expect(openMenu).toHaveBeenLastCalledWith(target, { x: 31, y: 47 })
+    expect(openMenu).toHaveBeenLastCalledWith(target, { x: 31, y: 47 }, expect.any(String))
     expect(renderFactorySlot).toHaveBeenLastCalledWith('contextMenu.button', {
-      target, label: '会话“One”的操作', className: rowCss.iconButton,
+      target, label: '会话“One”的操作', size: 'row', opener: openMenu.mock.lastCall?.[2] as string,
     })
     expect(onOpen).not.toHaveBeenCalled()
     cleanup()
@@ -1053,7 +1084,10 @@ describe('workspace browser rows', () => {
         id: sid('s1'), title: 'Hovered', blank: false, running: true,
         runningSubagentCount: 0, completed: false, failed: false, updatedAt: 0, pinned: false, archived: false,
       }
-      const view = render(<SessionNodeItem node={node} currentId={undefined} now={60_000} onOpen={vi.fn()} t={t} />)
+      const openMenu = vi.fn()
+      const useContextMenu = contextMenuHook(openMenu)
+      const view = render(<SessionNodeItem node={node} currentId={undefined} now={60_000} onOpen={vi.fn()} t={t}
+        useContextMenu={useContextMenu} />)
       const wrapper = screen.getByRole('treeitem').parentElement as HTMLElement
       fireEvent.pointerEnter(wrapper)
       act(() => { vi.advanceTimersByTime(800) })
@@ -1063,8 +1097,10 @@ describe('workspace browser rows', () => {
       expect(screen.getAllByText('进行中')).toHaveLength(2)
       fireEvent.pointerLeave(wrapper)
       // Menu open (disabled=true) suppresses the card for the same hover.
+      fireEvent.contextMenu(screen.getByRole('treeitem'), { clientX: 10, clientY: 10 })
+      const opener = openMenu.mock.lastCall?.[2] as string
       view.rerender(<SessionNodeItem node={node} currentId={undefined} now={60_000} onOpen={vi.fn()} t={t}
-        useContextMenuTarget={select => select({ kind: 'session', value: { sessionId: node.id, displayTitle: node.title } })} />)
+        useContextMenu={useContextMenu} useContextMenuOpener={select => select(opener)} />)
       fireEvent.pointerEnter(wrapper)
       act(() => { vi.advanceTimersByTime(1000) })
       expect(screen.queryByText('1分钟前')).toBeNull()

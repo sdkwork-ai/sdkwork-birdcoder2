@@ -15,7 +15,7 @@ Connector plugins show an account section on the Plugins page. CLI app plugins k
 | Part | Contract |
 |---|---|
 | Registration | `register({ key, packageName?, source, operations, copy, present })` returns the disposer that withdraws the account |
-| Key | Unique among registered accounts and independent of the package, so an account that no bundle owns, such as a server configured in Settings, registers too |
+| Key | Unique among registered accounts and independent of the package, so an account that no bundle owns, such as the account of an MCP server row, registers too |
 | Package | Decides which bundle page carries the section and tag; a package carries at most one account |
 | Source | The registrant's account: `snapshot`, `observe`, `refresh`, `start`, and `cancel` |
 | Display | `present(view)` on the Host gives the phase, status text, title tag, buttons and their commands, confirmations, failure, and the operation the activation prompt starts |
@@ -31,7 +31,7 @@ The page registers one title tag entry and one notice entry. It also registers a
 
 **One browser half per connector kind.** Rejected: client plugins cannot import each other's values, so the shared surfaces would be written twice and diverge.
 
-**Share the browser half through `PLATFORM_MODULES` or a browser-side service.** Rejected: the module table is reserved for shell-seeded and static infrastructure libraries, and a browser-side service would keep the registrations in the browser, which only repeat what the Host knows.
+**Share the browser half through `PLATFORM_MODULES` or a browser-side service.** Rejected: new shared runtime code does not enter the module table's baseline, and a browser-side service would keep the registrations in the browser, which only repeat what the Host knows.
 
 **Let the browser derive an account's phase and actions from the registrant's raw state.** Rejected: the rules for which actions apply would live where the Host cannot test or run them, and the browser would need the registrant's own Remote.
 

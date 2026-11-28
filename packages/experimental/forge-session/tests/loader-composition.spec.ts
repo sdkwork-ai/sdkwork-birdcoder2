@@ -27,8 +27,8 @@ import * as ShellEnv from '@deepseek-ai/dsh-shell-env'
 import LocalSubprocessRuntime from '@deepseek-ai/dsh-subprocess-local'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import * as ToolBash from '@deepseek-ai/dsh-tool-bash'
-import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
-import * as PtcToolExecutor from '@deepseek-ai/dsh-tool-executor-ptc'
+import * as NativeToolRegistry from '@deepseek-ai/dsh-tool-registry-native'
+import * as PtcToolRegistry from '@deepseek-ai/dsh-tool-registry-ptc'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import WorkingDirectoryService from '@deepseek-ai/dsh-working-directory'
 import { GH_COMMANDS } from '@deepseek-ai/dsh-experimental-forge-github/src/commands.ts'
@@ -99,6 +99,10 @@ const node = (number) => ({
   reviewDecision: null,
   viewerCanUpdateBranch: false,
   canBeRebased: false,
+  viewerCanEnableAutoMerge: false,
+  viewerCanDisableAutoMerge: false,
+  isMergeQueueEnabled: false,
+  autoMergeRequest: null,
   reviewThreads: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [] },
   reviewRequests: { totalCount: 0, nodes: [] },
   latestReviews: { totalCount: 0, nodes: [] },
@@ -152,6 +156,7 @@ for (const [name, iid] of Object.entries(variables)) {
     detailedMergeStatus: 'MERGEABLE', mergeStatusEnum: 'CAN_BE_MERGED', conflicts: false, divergedFromTargetBranch: false, rebaseInProgress: false,
     squash: false, squashOnMerge: false, squashReadOnly: false, approved: false, resolvableDiscussionsCount: 0, resolvedDiscussionsCount: 0,
     userPermissions: { canMerge: true, pushToSourceBranch: true, updateMergeRequest: true },
+    autoMergeEnabled: false, availableAutoMergeStrategies: [], mergeUser: null,
     approvedBy: { pageInfo: { hasNextPage: false }, nodes: [] }, reviewers: { pageInfo: { hasNextPage: false }, nodes: [] },
     headPipeline: { id: 'gid://gitlab/Ci::Pipeline/1', status: 'SUCCESS', userPermissions: { updatePipeline: true },
       jobs: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [
@@ -166,6 +171,13 @@ process.stdout.write(JSON.stringify({ data }))
 const FAKE_GIT = `#!/bin/sh
 printf 'To github.com:octo/demo.git\\n * [new branch]      feat -> feat\\n' >&2
 `
+
+/**
+ * Deadline of one forge-session discovery or reference lookup in this composition. Lookups run after the tool result
+ * that starts them, often past the end of the turn, and one that exceeds this deadline fails without a binding, so
+ * waits for the bindings lookups record take the same bound.
+ */
+const LOOKUP_TIMEOUT_MS = 20_000
 
 /** One scripted model step: the tool call it makes, or the final text when undefined. */
 type ScriptedCall = Omit<ToolCallBlock, 'type' | 'id'> | undefined
@@ -225,7 +237,7 @@ const PTC_MODULES = [
   ['@deepseek-ai/dsh-sandbox-local', LocalSandbox],
   ['@deepseek-ai/dsh-sandbox-policy', SandboxPolicy],
   ['@deepseek-ai/dsh-ptc-runtime-node', NodeRuntime],
-  ['@deepseek-ai/dsh-tool-executor-ptc', PtcToolExecutor],
+  ['@deepseek-ai/dsh-tool-registry-ptc', PtcToolRegistry],
 ] as const
 
 /**
@@ -253,7 +265,7 @@ async function load(mode: 'native' | 'ptc' = 'native') {
     ['@deepseek-ai/dsh-fs-local', LocalFileSystem],
     ['@deepseek-ai/dsh-working-directory', WorkingDirectoryService],
     ['@deepseek-ai/dsh-tools', ToolRuntime],
-    ...mode === 'native' ? [['@deepseek-ai/dsh-tool-executor-native', NativeToolExecutor] as const] : PTC_MODULES,
+    ...mode === 'native' ? [['@deepseek-ai/dsh-tool-registry-native', NativeToolRegistry] as const] : PTC_MODULES,
     ['@deepseek-ai/dsh-agent', AgentRegistry],
     ['@deepseek-ai/dsh-agent-loop', AgentLoop],
     ['@deepseek-ai/dsh-subprocess-local', LocalSubprocessRuntime],
@@ -273,7 +285,7 @@ async function load(mode: 'native' | 'ptc' = 'native') {
     '@deepseek-ai/dsh-experimental-forge': ['activeIntervalMs: 600000', 'idleIntervalMs: 600000'],
     '@deepseek-ai/dsh-experimental-forge-github': [`ghCommand: ${JSON.stringify(join(bin, 'gh'))}`],
     '@deepseek-ai/dsh-forge-gitlab': [`glabCommand: ${JSON.stringify(join(bin, 'glab'))}`, 'hosts: [gitlab.example.test]'],
-    '@deepseek-ai/dsh-experimental-forge-session': ['discoveryTimeoutMs: 20000'],
+    '@deepseek-ai/dsh-experimental-forge-session': [`discoveryTimeoutMs: ${LOOKUP_TIMEOUT_MS}`],
   }
   const configPath = join(root, 'cordis.yml')
   await writeFile(configPath, [...modules.keys()].flatMap(name => [
@@ -366,10 +378,12 @@ async function expectScriptedBindings(ctx: Context, session: Session, root: stri
     const record = pluginRecordOf(event)
     return record === undefined ? [] : [record.data]
   })
+  // The push's discovery and the view's reference lookup each run a `gh` process; a program's lookups start only once
+  // its root call settles.
   await vi.waitFor(() => { expect(records()).toEqual(expect.arrayContaining([
     { action: 'discover', url: 'https://github.com/octo/demo/pull/7' },
     { action: 'reference', url: 'https://github.com/octo/demo/pull/9' },
-  ])) })
+  ])) }, { timeout: LOOKUP_TIMEOUT_MS })
   const github = (number: number) => ({ repository: { forge: 'github', host: 'github.com', owner: 'octo', name: 'demo' }, number })
   expect(byUrl(ctx.forgeSession.changeRequests(session))).toEqual([
     { url: 'https://github.com/octo/demo/pull/7', origin: 'discovered', ref: github(7), update: null },
@@ -552,7 +566,8 @@ suite('forge-session through a real cordis.yml Loader composition', () => {
       url: `https://gitlab.example.test/group/app/-/merge_requests/${number}`,
       ref: { repository: { forge: 'gitlab', host: 'gitlab.example.test', owner: 'group', name: 'app' }, number },
     })
-    await vi.waitFor(() => { expect(ctx.forgeSession.changeRequests(agent.session)).toHaveLength(5) })
+    // Two of the five are bound by shell lookups, and a program's lookups start only once its root call settles.
+    await vi.waitFor(() => { expect(ctx.forgeSession.changeRequests(agent.session)).toHaveLength(5) }, { timeout: LOOKUP_TIMEOUT_MS })
     expect(byUrl(ctx.forgeSession.changeRequests(agent.session))).toEqual([5, 6, 7, 8, 9].map(number => ({
       ...merge(number), origin: number === 5 ? 'created' : 'referenced', update: null,
     })))

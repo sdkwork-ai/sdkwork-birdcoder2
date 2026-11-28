@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
-import type { GlobalStandardProps, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import { contextMenuHook, responsiveHooks, themeHooks } from '@deepseek-ai/dsh-client-test-runtime'
+import type { GlobalStandardProps, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createContext, useContext, type ReactNode } from 'react'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
@@ -141,8 +141,8 @@ function mount(
     summaryBlank?: boolean
     /** Drop the session's summary row entirely (a session the list has not caught up with). */
     omitSummaryRow?: boolean
-    /** Classify the selected child as a subagent instead of an ordinary fork. */
-    summaryOrigin?: 'subagent'
+    /** Classify the selected child as a subagent or side conversation instead of an ordinary fork. */
+    summaryOrigin?: 'subagent' | 'side'
     /** Insert a first-level subagent between the root and selected child. */
     nestedSubagent?: boolean
     /** A composer block another plugin raised for this session. */
@@ -258,7 +258,7 @@ function mount(
           useTrajectory={useTrajectory}
           useSessions={props.useSessions}
           usePanelInfo={props.usePanelInfo}
-          useContextMenu={contextMenuHook()} useResource={useResource}
+          useContextMenu={contextMenuHook()} {...responsiveHooks()} {...themeHooks()} useResource={useResource}
           useSessionStatus={useSessionStatus}
           useSessionRetainInfo={() => undefined}
           useWorkspaces={props.useWorkspaces}
@@ -285,11 +285,12 @@ function mount(
           useConversation={useConversation}
           useConversationViews={useConversationViews}
           useInspectCall={selector => selector(undefined)}
+          useInspectRequest={selector => selector(undefined)}
           useChat={useChat}
           useTrajectory={useTrajectory}
           useSessions={props.useSessions}
           usePanelInfo={props.usePanelInfo}
-          useContextMenu={contextMenuHook()} useResource={useResource}
+          useContextMenu={contextMenuHook()} {...responsiveHooks()} {...themeHooks()} useResource={useResource}
           useSessionStatus={useSessionStatus}
           useSessionRetainInfo={() => undefined}
           useWorkspaces={props.useWorkspaces}
@@ -313,7 +314,7 @@ function mount(
         <InputBar
           sessionId={SID}
           SessionProvider={({ children }) => children}
-          useContextMenu={contextMenuHook()} useResource={useResource}
+          useContextMenu={contextMenuHook()} {...responsiveHooks()} {...themeHooks()} useResource={useResource}
           useSession={useSession}
           useConversation={useConversation}
           useSessions={props.useSessions}
@@ -382,6 +383,7 @@ function mount(
       useSessions: bindSnapshotSelector(sessions),
       usePanelInfo: selector => selector({ activePanelId: null }),
       useContextMenu: contextMenuHook(),
+      ...responsiveHooks(), ...themeHooks(),
       useResource,
       useSessionStatus,
       useSessionRetainInfo: () => undefined,
@@ -417,6 +419,7 @@ function mount(
     useSessionStatus,
     useSessionRetainInfo: () => undefined,
     useContextMenu: contextMenuHook(),
+    ...responsiveHooks(), ...themeHooks(),
     useResource,
     useWorkspaces: bindSnapshotSelector(workspaces),
     ...allowAllAccess,
@@ -460,12 +463,8 @@ describe('Hero chrome', () => {
       'conversation.hero.modeSwitch',
     ])
     expect(renderSlot.mock.calls[0]?.[0]).toBe('conversation.hero.brand.mark')
-    const brandMarkOwner = renderSlot.mock.calls[0]?.[1]
-    if (brandMarkOwner === undefined || !('size' in brandMarkOwner) || !('className' in brandMarkOwner)) {
-      throw new Error('hero brand-mark owner must provide size and className')
-    }
-    expect(brandMarkOwner.size).toBe(34)
-    expect(brandMarkOwner.className).toBeTypeOf('string')
+    // The occupant receives only the requested edge; it styles its own mark.
+    expect(renderSlot.mock.calls[0]?.[1]).toEqual({ size: 34 })
     expect(renderSlot.mock.calls[0]?.[2]?.fallback).toBeTruthy()
   })
 
@@ -563,6 +562,14 @@ describe('ConversationRoot resident composer', () => {
     expect(b.view.getByText('Child').tagName).toBe('SPAN')
     fireEvent.click(root)
     expect(b.open).toHaveBeenCalledWith(sid('root'))
+  })
+
+  it('leads a side conversation back to its source without the subagent lineage', () => {
+    const b = mount(sessionSnapshotOf(), undefined, undefined, { summaryOrigin: 'side' })
+    fireEvent.click(b.view.getByRole('button', { name: 'Root' }))
+    expect(b.open).toHaveBeenCalledWith(sid('root'))
+    expect(b.view.getByText('Child').tagName).toBe('SPAN')
+    expect(b.lineageOwners.map(owner => owner.lineageSessionId)).toEqual([SID])
   })
 
   it('keeps intermediate subagent breadcrumbs navigable and the current crumb read-only', () => {
@@ -781,9 +788,9 @@ describe('ConversationRoot resident composer', () => {
   })
 
   it('keeps Chat outside at the narrowest width even when it registers after other Views', () => {
-    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(180)
     const viewTabs = ['trajectory', 'timeline', 'chat', 'notes'].map(id => ({ id, label: id }))
     const b = mount(sessionSnapshotOf(), undefined, undefined, { viewTabs, entryActions: true })
+    act(() => { fireResize(b.view.getByRole('tablist').parentElement!, 180) })
     expect(within(b.view.getByRole('tablist')).getAllByRole('tab').map(tab => tab.textContent)).toEqual(['chat'])
     fireEvent.click(b.view.getByRole('button', { name: zh['session.moreViews'] }))
     expect(b.actionsOwner().entries.map(entry => entry.id)).toEqual(['trajectory', 'timeline', 'notes'])
@@ -793,14 +800,13 @@ describe('ConversationRoot resident composer', () => {
     expect(b.actionsOwner().entries.find(entry => entry.id === 'trajectory')?.active).toBe(true)
   })
 
-  it('calculates the initial tab budget when ResizeObserver is unavailable', () => {
+  it('keeps every preferred View outside when ResizeObserver is unavailable', () => {
     vi.stubGlobal('ResizeObserver', undefined)
-    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(300)
     const viewTabs = ['chat', 'trajectory', 'timeline'].map(id => ({ id, label: id }))
     const b = mount(sessionSnapshotOf(), undefined, undefined, { viewTabs, entryActions: true, headerOnly: true })
-    expect(within(b.view.getByRole('tablist')).getAllByRole('tab').map(tab => tab.textContent)).toEqual(['chat', 'trajectory'])
+    expect(within(b.view.getByRole('tablist')).getAllByRole('tab').map(tab => tab.textContent)).toEqual(['chat', 'trajectory', 'timeline'])
     fireEvent.click(b.view.getByRole('button', { name: zh['session.moreViews'] }))
-    expect(b.actionsOwner().entries.map(entry => entry.id)).toEqual(['timeline'])
+    expect(b.actionsOwner().entries).toEqual([])
   })
 
   it('keeps an unpinned View selected without exposing its tab', () => {
@@ -854,8 +860,7 @@ describe('ConversationRoot resident composer', () => {
   })
 
   it('reuses the width budget on View roster and selection changes without a window resize listener', () => {
-    let width = 480
-    const readWidth = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(() => width)
+    const readWidth = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1000)
     const viewTabs: ViewTab[] = [
       { id: 'chat', label: 'Chat' },
       { id: 'trajectory', label: 'Trajectory' },
@@ -864,6 +869,10 @@ describe('ConversationRoot resident composer', () => {
     ]
     const b = mount(sessionSnapshotOf(), undefined, undefined, { viewTabs, entryActions: true })
     const external = () => within(b.view.getByRole('tablist')).getAllByRole('tab').map(tab => tab.textContent)
+    const row = b.view.getByRole('tablist').parentElement!
+    // Every preferred View stays outside until the first delivery; the budget never reads layout.
+    expect(external()).toEqual(['Chat', 'Trajectory', 'Timeline', 'Inspector'])
+    act(() => { fireResize(row, 480) })
     expect(external()).toEqual(['Chat', 'Trajectory', 'Timeline'])
     fireEvent.click(b.view.getByRole('button', { name: zh['session.moreViews'] }))
     expect(b.actionsOwner().entries.map(entry => entry.id)).toEqual(['inspector'])
@@ -871,18 +880,13 @@ describe('ConversationRoot resident composer', () => {
     expect(external()).toEqual(['Chat', 'Trajectory', 'Timeline'])
     expect(b.actionsOwner().entries.find(entry => entry.id === 'inspector')?.active).toBe(true)
     expect(b.view.getByRole('button', { name: zh['session.moreViews'] })).toBeTruthy()
-    const row = b.view.getByRole('tablist').parentElement!
-    const rowReads = () => readWidth.mock.contexts.filter(element => element === row).length
-    const reads = rowReads()
-    width = 1000
     fireEvent(window, new Event('resize'))
     act(() => { b.store.actions.setView('timeline') })
-    expect(rowReads()).toBe(reads)
     expect(external()).toEqual(['Chat', 'Trajectory', 'Timeline'])
     viewTabs.splice(1, 1)
     act(() => { b.store.actions.setView('chat') })
     expect(external()).toEqual(['Chat', 'Timeline', 'Inspector'])
-    expect(rowReads()).toBe(reads)
+    expect(readWidth.mock.contexts).not.toContain(row)
     expect(b.actionsOwner().entries).toEqual([])
     expect(b.setPinned).not.toHaveBeenCalled()
   })
@@ -915,9 +919,9 @@ describe('ConversationRoot resident composer', () => {
   })
 
   it('keeps all five Views outside when the sampled width budget is sufficient', () => {
-    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1000)
     const viewTabs = ['chat', 'trajectory', 'timeline', 'inspector', 'notes'].map(id => ({ id, label: id }))
     const b = mount(sessionSnapshotOf(), undefined, undefined, { viewTabs, entryActions: true })
+    act(() => { fireResize(b.view.getByRole('tablist').parentElement!, 1000) })
     expect(within(b.view.getByRole('tablist')).getAllByRole('tab').map(tab => tab.textContent))
       .toEqual(viewTabs.map(tab => tab.label))
     fireEvent.click(b.view.getByRole('button', { name: zh['session.moreViews'] }))

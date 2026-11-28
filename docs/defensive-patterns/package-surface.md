@@ -11,7 +11,7 @@ A plugin package's entry point takes one of two forms, and they are not mixed. A
 - The Loader four and its exact form are defined in [cordis-primer.md](../cordis-primer.md#loader-configuration).
 - Judged condition: a function plugin's entry (`src/index.ts`) exports an entity beyond the four; a default export is added beside the four, or the two forms are mixed; a `/client` entry exports an implementation value or lets another feature plugin import one; a fixture reaches another package by relative path.
 - Boundary: only Loader plugin entry points are constrained. Internal modules, helper functions, and hooks keep exporting values; a Host entry's Service Definition classes and error types are expected exports; and a test fixture stays inside its own package — a relative path into another package's `src` bypasses the `exports` map and the package-boundary checks.
-- Exception: none by default; an exception that is genuinely needed requires the domain owner's confirmation.
+- Exception: requires the domain owner's confirmation.
 
 The compliant entry — the four exports, with the same-package test path recorded as a comment rather than as a fifth export.
 
@@ -44,7 +44,7 @@ import { isSurfaceEligibleType } from '../../core/session/src/surface.ts'
 
 ## Two package shapes, and both are dynamic plugin packages
 
-A new package is either a Host package or a Host + Client package, and both are dynamic plugin packages; no third form is available and there is no exception. The static client libraries the shell seeds through `PLATFORM_MODULES` in [packages/client/web/src/platform.ts](../../packages/client/web/src/platform.ts) — `client-store`, `ui-slots`, `ui-primitives`, `ui-dockkit` — and the zero-dependency libraries under [packages/util/](../../packages/util/) predate this rule and are closed: they keep working as they are, and a new package never joins them. Only a genuine both-face package splits its compiler faces, build output goes to `lib`, and the `include`, `external`, and roster lists are derived by scanning the workspace rather than hand-written. A hand-written list or an invented compiler face makes build output and the manifest disagree, and every later package would have to maintain its own list.
+A new package is either a Host package or a Host + Client package, and both are dynamic plugin packages; no third form is available and there is no exception. `ui-slots`, `ui-primitives`, and `ui-dockkit` are Host + Client packages with `immediately: true`; the value exports of their `/client` entries are a historical exception that will be reduced over time, not a precedent ([export discipline](../../packages/client/AGENTS.md#export-discipline-client-plugin-packages)). The static Client library the shell seeds, `client-store`, and the zero-dependency libraries under [packages/util/](../../packages/util/) predate this rule and are closed: they keep working as they are, and a new package never joins them. Only a genuine both-face package splits its compiler faces, build output goes to `lib`, and the `include`, `external`, and roster lists are derived by scanning the workspace rather than hand-written. A hand-written list or an invented compiler face makes build output and the manifest disagree, and every later package would have to maintain its own list.
 
 - Judged condition: a new package built as anything but a dynamic plugin package (static-link bundling, a hand-written all-external list); a third `tsconfig` variant; a hand-written `include`, `external`, or roster list.
 - Recompute the shapes instead of trusting a number here: list the `tsconfig.json` files under `packages/*/*`, then the packages that also carry `tsconfig.client.json` and `tsconfig.host.json`, then those declaring `dsh.client`.
@@ -79,7 +79,8 @@ A `package.json` `exports` map uses only the standard key set, in which every ke
 - Standard keys, each with one meaning repo-wide, across `packages/*/*/package.json` and `apps/*/package.json`: `.` (the package entry), `./package.json` (toolchain access, not a semantic export), `./src/*` (source passthrough for tests and tools, whose documented status is still open), `./client` (the browser entry, paired with the `dsh.client` declaration), `./types` (the type entry), `./typert` (the typert type runtime), `./remote` (the `@Remote` call surface), `./locale/*.json` (locale resources), `./cordis.patch.yml` (the bundle patch layer declared by `dsh.bundle`). Counts are not listed here because they rot on the next package; the recompute command below prints them.
 - Keys outside that set (`./brand` in 5 packages, `./worker` in 4, `./startup`, `./runner`, and `./protocol` in 2 each, plus many one-off keys) have no documented meaning; they are pending review, not a pattern to copy.
 - `dsh-tools` additionally exposes `./pipeline` for reusable invocation stages and batch scheduling. Its main and pipeline bundles share runtime chunks to preserve error-class identity; workspace constraints check the export targets and publication files.
-- `dsh-tool-executor-ptc` exposes `./run-code` for the shared program-tool factory, explicit runtime and call limits, and private callable tool definitions. Workspace constraints check its export targets and publication files.
+- `dsh-llm-pi-ai` exposes `./provider` for its provider row plugin, a second Loader entry that a composition layer names as `@deepseek-ai/dsh-llm-pi-ai/provider`, and `./provider/locale/*.json` for that plugin's locale resources. The row plugin registers with the registry of the adapter entry, so the two entries live in one package. Workspace constraints check its export targets and publication files.
+- `dsh-mcp-manager` exposes `./server` for its server row plugin, a second Loader entry that a composition layer names as `@deepseek-ai/dsh-mcp-manager/server`, and `./server/locale/*.json` for that plugin's locale resources. The row plugin registers with the manager entry's registry, so the two entries live in one package. Workspace constraints check its export targets and publication files.
 - Judged condition: does a change add an export key outside the standard set?
 - Exception: none by default; a new key changes the owning document and the check first, with the domain owner's confirmation.
 - Recompute the distribution:
@@ -152,13 +153,13 @@ Restating a required-devDependency package list or the field rules on this page 
 Internal dependency syntax follows the package family: `@deepseek-ai/dsh` and `@deepseek-ai/dsh-*` use `workspace:*`, every other internal package uses `workspace:~`, and `workspace:^` has retired. The same dependency name is written the same way in every workspace, and a mismatch is a hard scan failure rather than a warning a reviewer can waive. The uniform syntax keeps one resolution path and prevents duplicate instances of a dependency and the resolution differences that follow them.
 
 - Judged by `workspaceRange()` in [verify-package-dependencies.ts](../../scripts/verify-package-dependencies.ts): the `@deepseek-ai/dsh` and `@deepseek-ai/dsh-*` families get `workspace:*`, every other internal package gets `workspace:~`; the scan walks the managed manifests and compares every declaration of the same dependency name.
-- Boundary: a same-namespace package that is not a workspace member declares an ordinary third-party range and is outside the family rule — `@deepseek-ai/libreoffice-kit` is declared `0.2.3` in `packages/bundle/web-app/package.json` (devDependencies) and `packages/document/office-kit/package.json` (dependencies).
+- Boundary: a same-namespace package that is not a workspace member declares an ordinary third-party range and is outside the family rule — `@deepseek-ai/libreoffice-kit` is declared `0.2.4` in `packages/bundle/web-app/package.json` (devDependencies) and `packages/document/office-kit/package.json` (dependencies).
 - Distribution is not restated here; the recompute command below prints the current counts of `workspace:*`, `workspace:~`, `workspace:^`, and any exact-range declaration outside the family rule.
 - Exception: the scan decides mechanically; a genuine exception means changing the scan and the policy file with the domain owner's confirmation and the reason on the change.
 - Recompute:
 
 ```sh
-python3 -c "import json,glob,collections; c=collections.Counter(); [c.update([r]) for p in glob.glob('apps/*/package.json')+glob.glob('packages/*/*/package.json')+glob.glob('vendor/*/package.json') for s in ('dependencies','devDependencies','optionalDependencies','peerDependencies') for n,r in (json.load(open(p)).get(s) or {}).items() if n.startswith('@deepseek-ai/')]; print(c.most_common())"
+python3 -c "import json,glob,collections; c=collections.Counter(); [c.update([r]) for p in glob.glob('apps/*/package.json')+glob.glob('packages/*/*/package.json')+glob.glob('vendor/*/package.json')+glob.glob('vendor/im/*/package.json') for s in ('dependencies','devDependencies','optionalDependencies','peerDependencies') for n,r in (json.load(open(p)).get(s) or {}).items() if n.startswith('@deepseek-ai/')]; print(c.most_common())"
 ```
 
 Each family in its form, with the non-member exception left as an ordinary version range.
@@ -168,7 +169,7 @@ Each family in its form, with the non-member exception left as an ordinary versi
   "dependencies": {
     "@deepseek-ai/dsh-base": "workspace:*",
     "@deepseek-ai/cordis": "workspace:~",
-    "@deepseek-ai/libreoffice-kit": "0.2.3"
+    "@deepseek-ai/libreoffice-kit": "0.2.4"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-typert-registry": "workspace:*"
