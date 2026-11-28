@@ -16,6 +16,13 @@ import type { MobileConnectSettings } from '../settings.ts'
 import { MobileConnectCard } from './MobileConnectCard.tsx'
 import css from './MobileConnectEntry.module.css'
 
+/**
+ * Hover-card width, wider than the primitive's 244px default: the scan card
+ * carries two destination tabs and a QR plate, so it needs the room to keep
+ * each tab label and each caption on one line.
+ */
+const CARD_WIDTH = 304
+
 /** Injected business face: the live settings section and the preference write. */
 export interface MobileConnectEntryInjected {
   hooks: {
@@ -50,6 +57,7 @@ export function MobileConnectEntry({ useConfig, setRemoteAccess, t }: MobileConn
         // Long enough that sweeping the rail does not strobe the card, short
         // enough that resting on the cell reads as immediate.
         openDelayMs={140}
+        width={CARD_WIDTH}
         anchor={(
           <button
             type="button"

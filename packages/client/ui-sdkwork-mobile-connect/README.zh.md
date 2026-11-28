@@ -22,7 +22,7 @@ kind: "package-reference"
 
 ## 实现说明
 
-该图标注册在 `mode.rail.panel` 的 order 15，因此 rail 底部一列自上而下是：IM 连接器（10）、本入口（15）、消息中心（20）、设置。这个图标只负责展示：它不选中任何中栏面板、没有选中态，并复用共享的 `remote-connection-outline` 字形，而不是新增图形。hover 时打开 `HoverCard`（compact，140ms 停留），内容就是扫码卡片；点击时在 `Modal` 里打开同一个卡片，这是键盘与触屏路径——hover 卡本身忽略触屏指针，也不会因为焦点而打开。
+该图标注册在 `mode.rail.panel` 的 order 15，因此 rail 底部一列自上而下是：IM 连接器（10）、本入口（15）、消息中心（20）、设置。这个图标只负责展示：它不选中任何中栏面板、没有选中态，并复用共享的 `remote-connection-outline` 字形，而不是新增图形。hover 时打开 `HoverCard`（compact，140ms 停留），内容就是扫码卡片；点击时在 `Modal` 里打开同一个卡片，这是键盘与触屏路径——hover 卡本身忽略触屏指针，也不会因为焦点而打开。卡片通过原语的 `width` 属性请求 304px 宽度（compact 默认仍为 244px），因为两个扫码页签、标题与二维码底板需要这段空间；窗口过窄时原语会把该宽度收进视口。
 
 卡片是一个组件、两种材质。在 hover 卡里它沿用该原语的 hover-card 材质，并把交给 `SegmentedTabs` 与 `Switch` 的语义别名（`--dsw-alias-label-*`、`--dsw-alias-bg-module-platform`、`--dsw-alias-bg-layer-3`、`--dsw-alias-border-l3`）重映射到该材质上，共享控件因此保持自己的几何、角色与键盘行为；在弹窗里它作为独立子卡片使用页面材质。两种材质下二维码都落在自己的浅色底板上：扫码符号需要白底近黑色模块，所以底板使用静态中性色（`--dsw-static-neutral-bluish-00` / `-1000`），不随主题变化。符号中心嵌入产品 favicon，纠错级别为 `H`，被挖空的中心仍可恢复。
 

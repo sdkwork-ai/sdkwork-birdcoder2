@@ -7,6 +7,13 @@
 .page {
   position: relative;
   height: 100%;
+  /* A mode frame hands this page a height, but a frame that sizes its slot by
+     content would let the page grow past the window: the column around it then
+     clips the overflow and no panel inside can be short enough to scroll. The
+     viewport cap keeps the page bounded in either frame, so the panel always has
+     a height to scroll in. */
+  max-height: 100vh;
+  max-height: 100dvh;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -145,11 +152,11 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 30px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--dsw-alias-interactive-bg-hover);
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-base);
   color: var(--dsw-alias-label-primary);
   font-size: 13px;
   font-weight: 500;
@@ -162,7 +169,8 @@
 }
 
 .mineButtonLive:hover {
-  background: var(--dsw-alias-interactive-bg-active);
+  border-color: var(--dsw-alias-border-l3);
+  background: var(--dsw-alias-interactive-bg-hover);
 }
 
 .mineIcon {
@@ -242,9 +250,17 @@
    panel provides one — the whole embedded page (hero banner, filter bar,
    card grid) scrolls together as a single column. */
 .marketScroll {
-  flex: 1;
+  /* Basis auto, not 0: in a column whose height is not definite a zero basis
+     collapses the panel to nothing, while a content basis is capped by the
+     page's viewport limit and then shrunk to the space left. With a definite
+     height both forms behave the same. */
+  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+  /* Keep the rail's space reserved so the panel never reflows on scroll and the
+     scrollbar is visible as soon as content overflows. */
+  scrollbar-gutter: stable;
   overscroll-behavior: contain;
   /* Elevated-surface scrollbar rebind (ui-theme scrollbar.css contract): the
      panel scrolls over the layer-2 page background. */

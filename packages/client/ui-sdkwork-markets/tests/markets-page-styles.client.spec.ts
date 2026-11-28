@@ -24,6 +24,22 @@ function rule(selector: string): string {
   return matches.join(' ')
 }
 
+describe('MarketsPage header tools', () => {
+  it('draws the category search as one hairline field on the page fill', () => {
+    expect(rule('.search')).toContain('border: 1px solid var(--dsw-alias-border-l2)')
+    expect(rule('.search')).toContain('height: 34px')
+    expect(rule('.search')).toContain('background: var(--dsw-alias-bg-base)')
+    expect(rule('.search:focus-within')).toContain('border-color: var(--dsw-alias-state-business-primary)')
+  })
+
+  it('draws the skills installed filter as a chip with a filled pressed state', () => {
+    expect(rule('.installedFilter')).toContain('border: 1px solid var(--dsw-alias-border-l2)')
+    expect(rule('.installedFilter')).toContain('height: 34px')
+    expect(rule('.installedFilterActive')).toContain('background: var(--dsw-alias-interactive-bg-active)')
+    expect(rule('.installedFilterActive .toolIcon')).toContain('color: var(--dsw-alias-label-primary)')
+  })
+})
+
 describe('MarketsPage Plugins catalog styles', () => {
   it('puts the catalog tools in the page header row, not over the catalog', () => {
     expect(rule('.page')).toContain('position: relative')

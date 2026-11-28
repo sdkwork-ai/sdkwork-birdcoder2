@@ -32,7 +32,7 @@ export const en: Record<MobileConnectKey, string> = {
   'dialog.close': 'Close',
   'tabs.label': 'Scan destination',
   'tab.app': 'Mobile App',
-  'tab.miniProgram': 'WeChat Mini Program',
+  'tab.miniProgram': 'Mini Program',
   'title.app': 'Scan to download the BirdCoder App',
   'title.miniProgram': 'Scan to open the BirdCoder Mini Program',
   'qr.app': 'BirdCoder App download QR code',

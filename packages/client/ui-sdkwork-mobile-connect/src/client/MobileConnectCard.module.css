@@ -12,7 +12,9 @@
   gap: 12px;
   box-sizing: border-box;
   width: 100%;
-  max-width: 244px;
+  /* Matches the hover card's requested width, so the dialog body and the
+     hover card lay out identically (304px card, 272px content). */
+  max-width: 304px;
   margin-inline: auto;
   color: var(--dsw-alias-label-primary);
 }
@@ -57,14 +59,17 @@
 
 /* The scan symbol needs a light field with dark modules in either theme, so the
    plate paints from the artifact pair the card hands it (the same two colors
-   the encoder paints), not from a theme alias that flips with the palette. */
+   the encoder paints), not from a theme alias that flips with the palette. Its
+   fixed square keeps the loading and unconfigured states the same size as a
+   drawn symbol. */
 .codePlate {
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  width: 100%;
-  min-height: 212px;
+  width: 204px;
+  height: 204px;
+  margin-inline: auto;
   padding: 14px;
   border: 0.5px solid color-mix(in srgb, var(--mc-plate-ink) 10%, transparent);
   border-radius: var(--dsw-radius-sm);

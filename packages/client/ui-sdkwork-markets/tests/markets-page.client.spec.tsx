@@ -7,10 +7,10 @@
  * rows with it; Experts is that catalog), the Plugins tab lands on the community
  * SDKWork Plugins catalog, the Plugins tab carries
  * the add affordance (create-plugin dispatch / source install), the Skills
- * tab carries its own (find-skills dispatch / import-skill dialog /
- * skill-creator dispatch), the other tabs keep the inert my-catalog
- * affordance, and switching tabs swaps the active panel marker, the
- * category's empty notice, and the tools' copy.
+ * tab carries its own row of tools (search, installed filter, and the
+ * find-skills / import-skill / skill-creator add menu), the other tabs keep
+ * the inert my-catalog affordance, and switching tabs swaps the active panel
+ * marker, the category's empty notice, and the tools' copy.
  */
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
@@ -754,9 +754,9 @@ describe('MarketsPage', () => {
     const chip = view.container.querySelector('[data-skills-installed]') as HTMLElement
     // The chip renders the catalog's published count; the catalog reports it
     // when its data settles, and the page only displays the fact.
-    expect(chip.textContent).toContain('skills.catalog.installedCount')
+    expect(chip.textContent).toContain(spelled('skills.catalog.installedCount', '0'))
     fireEvent.click(view.getByRole('button', { name: 'catalog.report.installed' }))
-    expect(chip.textContent).toContain('skills.catalog.installedCount')
+    expect(chip.textContent).toContain(spelled('skills.catalog.installedCount', '3'))
 
     const surface = view.getByTestId('markets-app-skills')
     expect(surface.getAttribute('data-installed-only')).toBe('false')
@@ -837,8 +837,7 @@ describe('MarketsPage', () => {
     expect(frame?.getAttribute('title')).toBe('connectors.surface.title')
     // The connector chip is the connector itself, not a cloud catalog: nothing
     // of the storefront's MCP page rides along and no page-level search
-    // competes with the panel's own, which is the same rule the SkillHub
-    // market chip follows.
+    // competes with the panel's own.
     expect(view.queryByTestId('markets-app-mcp')).toBeNull()
     expect(view.queryByRole('searchbox')).toBeNull()
   })

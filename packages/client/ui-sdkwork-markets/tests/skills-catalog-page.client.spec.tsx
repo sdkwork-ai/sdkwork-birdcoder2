@@ -162,8 +162,9 @@ function catalogProps(
     actions: mocks.actions,
     locale: 'en',
     t,
-    dispatchPrompt: vi.fn(),
-    onImportSkill: vi.fn(),
+    installedOnly: false,
+    onInstalledOnlyChange: vi.fn(),
+    onInstalledCountChange: vi.fn(),
     onAdded: vi.fn(),
     onAddFailed: vi.fn(),
     ...overrides,
@@ -260,9 +261,9 @@ describe('SkillsCatalogPage', () => {
     expect(cards().map(card => card.getAttribute('data-skill-card'))).toEqual(['beta', 'gamma', 'alpha'])
   })
 
-  it('joins installations by package id and filters to installed skills', async () => {
+  it('joins installations by package id and reports the installed count to the header', async () => {
     const mocks = catalogClient()
-    const translate = vi.fn<SkillsCatalogPageProps['t']>(key => key)
+    const onInstalledCountChange = vi.fn()
     mocks.marketplace.mockResolvedValue(skillsPage([
       skill(),
       skill({ id: 'skill-beta', name: 'Beta', packageId: 'package-beta' }),
@@ -271,16 +272,66 @@ describe('SkillsCatalogPage', () => {
       installation({ id: 'installation-alpha-1', skillId: 'another-skill', packageId: 'package-alpha' }),
       installation({ id: 'installation-alpha-2', skillId: 'duplicate-skill', packageId: 'package-alpha' }),
     ]))
-    const view = render(<SkillsCatalogPage {...catalogProps(mocks, { t: translate })} />)
+    const view = render(
+      <SkillsCatalogPage {...catalogProps(mocks, { installedOnly: true, onInstalledCountChange })} />,
+    )
     await waitForCards(view)
 
-    expect(translate).toHaveBeenCalledWith('skills.catalog.installedCount', { count: '1' })
-    const filter = view.getByRole('button', { name: 'skills.catalog.installedCount' })
-    fireEvent.click(filter)
-    expect(filter.getAttribute('aria-pressed')).toBe('true')
+    // Both Alpha installation records name the one catalog skill, so the count
+    // the header chip shows is one, not two.
+    expect(onInstalledCountChange).toHaveBeenLastCalledWith(1)
     expect(recommended(view).getAllByRole('button', { name: 'Alpha' })).toHaveLength(1)
     expect(recommended(view).queryByRole('button', { name: 'Beta' })).toBeNull()
     expect(recommended(view).getByRole('button', { name: 'skills.catalog.added' }).hasAttribute('disabled')).toBe(true)
+  })
+
+  it('clears the header-owned installed filter from the empty state', async () => {
+    const mocks = catalogClient()
+    const onInstalledOnlyChange = vi.fn()
+    const onClearSearch = vi.fn()
+    const view = render(
+      <SkillsCatalogPage
+        {...catalogProps(mocks, {
+          installedOnly: true,
+          onInstalledOnlyChange,
+          onClearSearch,
+          searchQuery: 'missing',
+        })}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(view.getByRole('heading', { name: 'skills.catalog.emptyTitle' })).toBeTruthy()
+    })
+    fireEvent.click(view.getByRole('button', { name: 'skills.catalog.clearFilters' }))
+    expect(onInstalledOnlyChange).toHaveBeenCalledWith(false)
+    expect(onClearSearch).toHaveBeenCalledTimes(1)
+  })
+
+  it('draws one featured batch and advances it on request', async () => {
+    const mocks = catalogClient()
+    mocks.marketplace.mockResolvedValue(skillsPage(
+      Array.from({ length: 7 }, (_, index) => skill({
+        id: `featured-${index}`,
+        name: `Featured ${index}`,
+        packageId: `package-${index}`,
+        featured: true,
+      })),
+    ))
+    const view = render(<SkillsCatalogPage {...catalogProps(mocks)} />)
+    await waitForCards(view)
+
+    const featuredSection = view.getByRole('heading', { name: 'skills.catalog.featured' }).closest('section')!
+    expect(featuredSection.querySelectorAll('[data-skill-card]')).toHaveLength(5)
+    // The recommendation grid still lists every record.
+    expect(recommended(view).getAllByRole('button', { name: /^Featured/ })).toHaveLength(7)
+
+    fireEvent.click(view.getByRole('button', { name: 'skills.catalog.refreshFeatured' }))
+    const nextBatch = Array.from(featuredSection.querySelectorAll('[data-skill-card]'))
+      .map(card => card.getAttribute('data-skill-card'))
+    expect(nextBatch).toHaveLength(5)
+    expect(nextBatch[0]).toBe('featured-5')
+    expect(nextBatch[4]).toBe('featured-2')
   })
 
   it('keeps categories and installed state while a filtered reload is pending', async () => {
@@ -373,19 +424,6 @@ describe('SkillsCatalogPage', () => {
     fireEvent.click(view.getByRole('button', { name: 'skills.catalog.retry' }))
     await waitForCards(view)
     expect(mocks.marketplace).toHaveBeenCalledTimes(2)
-  })
-
-  it('offers to clear all filters from the empty state', async () => {
-    const mocks = catalogClient()
-    mocks.marketplace.mockResolvedValue(skillsPage([]))
-    const onClearSearch = vi.fn()
-    const view = render(
-      <SkillsCatalogPage {...catalogProps(mocks, { searchQuery: 'missing', onClearSearch })} />,
-    )
-
-    await waitFor(() => { expect(view.getByRole('heading', { name: 'skills.catalog.emptyTitle' })).toBeTruthy() })
-    fireEvent.click(view.getByRole('button', { name: 'skills.catalog.clearFilters' }))
-    expect(onClearSearch).toHaveBeenCalledTimes(1)
   })
 
   it('opens skill details with description, version, and tags', async () => {

@@ -1,30 +1,16 @@
 import { createServer } from 'node:net'
 import { describe, expect, it } from 'vitest'
-import { assertDevelopmentLanePortFree, probeLoopbackPort } from '../scripts/development-ports.ts'
+import { lanePortInUseError, probeLoopbackPort } from '../scripts/development-ports.ts'
 
-describe('assertDevelopmentLanePortFree', () => {
-  it('accepts a free lane port', async () => {
-    await expect(assertDevelopmentLanePortFree({
-      lane: 'online',
-      port: 19389,
-      probe: async () => false,
-    })).resolves.toBeUndefined()
+describe('lanePortInUseError', () => {
+  it('names the lane, the port, and why the launch must not continue', () => {
+    const error = lanePortInUseError('online', 19389)
+    expect(error.message).toMatch(/online lane web port 19389 is already in use by a process this launch does not own/u)
+    expect(error.message).toMatch(/attaches to the older Host/u)
   })
 
-  it('names the lane, the port and the stale-Host symptom', async () => {
-    await expect(assertDevelopmentLanePortFree({
-      lane: 'online',
-      port: 19389,
-      probe: async () => true,
-    })).rejects.toThrow(/online lane web port 19389 is already in use.*attaches to the older Host/u)
-  })
-
-  it('reports the development lane separately', async () => {
-    await expect(assertDevelopmentLanePortFree({
-      lane: 'development',
-      port: 19388,
-      probe: async () => true,
-    })).rejects.toThrow(/development lane web port 19388/u)
+  it('reports the development lane separately', () => {
+    expect(lanePortInUseError('development', 19388).message).toMatch(/development lane web port 19388/u)
   })
 })
 

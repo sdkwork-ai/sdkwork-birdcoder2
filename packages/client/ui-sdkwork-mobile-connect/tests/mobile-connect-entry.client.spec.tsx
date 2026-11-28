@@ -59,8 +59,10 @@ describe('MobileConnectEntry', () => {
     const { props } = entryProps()
     render(<MobileConnectEntry {...props} />)
     fireEvent.pointerOver(screen.getByRole('button', { name: en['rail.aria'] }))
-    expect(await screen.findByText(en['title.app'])).toBeTruthy()
+    const title = await screen.findByText(en['title.app'])
     expect(screen.getByRole('switch', { name: en['remote'] })).toBeTruthy()
+    // The card asks the primitive for the width its two destination tabs need.
+    expect((title.closest('[style]') as HTMLElement).style.width).toBe('304px')
   })
 
   it('opens the same card as a dialog on activation', async () => {

@@ -42,6 +42,8 @@ const ANCHORED: CardPosition = {}
  * side insets, a 420px height cap, the frame-top clearance (capped below an anchor inside the top strip), and 100ms
  * opacity transitions.
  * @param props.widthAnchorRef - optional element whose width and horizontal position size the preview.
+ * @param props.width - compact card width in pixels; the stylesheet's 244px default when absent. The preview and
+ * inline variants size themselves and ignore it.
  * @param props.inline - keep the anchor in prose; show a contained preview on hover or keyboard focus.
  * Its hover region connects the anchor and preview across the visual gap.
  * @param props.fitContent - size an inline card to its content within the usual width cap.
@@ -56,7 +58,7 @@ const ANCHORED: CardPosition = {}
  */
 export function HoverCard({
   anchor, content, openDelayMs = 500, disabled = false, grouped = false,
-  copyText, copyLabel, copiedLabel, variant = 'compact', widthAnchorRef, inline = false, fitContent = false,
+  copyText, copyLabel, copiedLabel, variant = 'compact', widthAnchorRef, width, inline = false, fitContent = false,
 }: {
   anchor: ReactNode
   /** Inline media preview using the shared menu material and keyboard focus. */
@@ -68,6 +70,7 @@ export function HoverCard({
   grouped?: boolean
   variant?: 'compact' | 'preview'
   widthAnchorRef?: RefObject<HTMLElement | null>
+  width?: number
 } & ({ copyText?: string | undefined; copyLabel: string; copiedLabel: string } | {
   copyText?: undefined
   copyLabel?: string
@@ -286,7 +289,14 @@ export function HoverCard({
       data-closing={closing || undefined}
       style={{
         positionAnchor: compact ? anchorName : undefined,
-        left: pos.left, top: pos.top, width: pos.width, maxWidth: pos.maxWidth, maxHeight: pos.maxHeight,
+        left: pos.left, top: pos.top,
+        // A compact card keeps the stylesheet width unless the owner asks for
+        // another; the preview and inline variants always measure themselves.
+        width: pos.width ?? width,
+        // A requested width is a content decision, so it still yields to a
+        // narrow viewport instead of hanging off the window edge.
+        maxWidth: pos.maxWidth ?? (width === undefined ? undefined : 'calc(100vw - 16px)'),
+        maxHeight: pos.maxHeight,
         minHeight: copied && copyHeightRef.current !== null ? copyHeightRef.current : undefined,
         '--dsh-hover-preview-fade': `${PREVIEW_FADE_MS}ms`,
       } as CSSProperties}

@@ -77,6 +77,14 @@ export const InstalledIcon = ({ size = 24, className }: ModeIconProps) => (
   </svg>
 )
 
+/** Installed-state plate: a rounded square with a check, legible at chip size. */
+export const CheckPlateIcon = ({ size = 24, className }: ModeIconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="3.7" y="3.7" width="16.6" height="16.6" rx="4.4" stroke="currentColor" strokeWidth="1.7" />
+    <path d="m8.3 12.1 2.6 2.6 4.9-5.3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
 /** Catalog search affordance glyph. */
 export const SearchIcon = ({ size = 24, className }: ModeIconProps) => (
   <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

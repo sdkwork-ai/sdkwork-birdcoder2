@@ -137,6 +137,16 @@ describe('HoverCard', () => {
     expect(screen.getByText('card body')).toBeTruthy()
   })
 
+  it('applies an owner-requested compact width and caps it to the viewport', () => {
+    render(<HoverCard anchor={<span>row</span>} content={<div>card body</div>} width={304} />)
+    const wrapper = screen.getByText('row').parentElement as HTMLElement
+    fireEvent.pointerEnter(wrapper)
+    act(() => { vi.advanceTimersByTime(500) })
+    const card = screen.getByText('card body').parentElement as HTMLElement
+    expect(card.style.width).toBe('304px')
+    expect(card.style.maxWidth).toBe('calc(100vw - 16px)')
+  })
+
   it('opens after the dwell delay, anchored to its wrapper by name for the stylesheet to place', () => {
     const { wrapper } = mount()
     expect(wrapper.style.anchorName).toBe('')

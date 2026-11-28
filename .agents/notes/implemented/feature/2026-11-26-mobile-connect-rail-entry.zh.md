@@ -13,7 +13,7 @@ Status: implemented
 ## 决定
 
 - 新增包 `@deepseek-ai/dsh-client-ui-sdkwork-mobile-connect`，在 `mode.rail.panel` 以 order 15 注册一个图标格：IM 连接器（10）、本入口（15）、消息中心（20）、设置。该图标格只负责展示——它不选中任何中栏面板，因此永远不会与面板快捷入口的选中态争用——并复用共享的 `remote-connection-outline` 字形，而不是新增图形。
-- hover 时在 140ms 停留后打开 compact `HoverCard`；点击时在 `Modal` 中打开同一个卡片主体。两种宿主共用同一个组件，因为只有 hover 的入口对键盘与触屏都不可达（hover 卡本身也忽略触屏指针）。
+- hover 时在 140ms 停留后打开 compact `HoverCard`；点击时在 `Modal` 中打开同一个卡片主体。两种宿主共用同一个组件，因为只有 hover 的入口对键盘与触屏都不可达（hover 卡本身也忽略触屏指针）。卡片通过新增的 `width` 属性向原语请求 304px 宽度——compact 默认仍为 244px——否则它的两个扫码页签、标题与二维码底板放不下会换行；窗口过窄时原语会把该宽度收进视口。
 - 卡片由产品的两个扫码目标加一个持久开关组成：目标取自命名空间的 `appDownloadUrl` 与 `miniProgramUrl`，开关是 `remoteAccessEnabled`。三者都是 `ui-sdkwork-mobile-connect` 设置命名空间的 volatile 字段，经由 `ctx.configForms` 读写，因此两个窗口与刷新后的页面看到同一份值。
 - Host 半只为声明该命名空间（`Config`）并关闭其自动生成的设置页（`settings.configure({ auto: false })`）：卡片是唯一读取它的界面，再生成一份形状不同的副本没有意义。
 - 扫码底板是固定的浅色实物。二维码编码器需要具体颜色，因此这对颜色与编码器一起放在组件里，并以两个局部属性传给样式表；底板不随主题变化，符号也永不以反色绘制。在 hover 卡内部，卡片把交给 `SegmentedTabs` 与 `Switch` 的语义别名（`--dsw-alias-label-*`、`--dsw-alias-bg-module-platform`、`--dsw-alias-bg-layer-3`、`--dsw-alias-border-l3`）重映射到 hover-card 材质上，让共享控件保持自己的几何、角色与键盘行为。

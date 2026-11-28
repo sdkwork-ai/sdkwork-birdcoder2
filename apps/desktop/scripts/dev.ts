@@ -18,7 +18,15 @@ import { selectDevelopmentHome } from './development-home.ts'
 import { UPSTREAM_DSH_HOME_DIR_NAME, brandHomePath, resolveRuntimeBrand } from '../src/brand.ts'
 import { applyDevelopmentGateway, resolveDevelopmentGateway } from './development-gateway.ts'
 import { parseDevelopmentArguments, type DevelopmentArguments } from './development-arguments.ts'
-import { assertDevelopmentLanePortFree } from './development-ports.ts'
+import type { DevelopmentLane } from './development-ports.ts'
+import {
+  acquireDevelopmentLauncherLock,
+  claimDevelopmentLane,
+  clearLaneInstance,
+  laneIdentityMarkers,
+  laneInstancePath,
+  writeLaneInstance,
+} from './development-lane-instance.ts'
 import { INSECURE_TLS_ELECTRON_SWITCH, ONLINE_REQUEST_LOG_VARIABLE, PRODUCTION_GATEWAY_URL, PRODUCTION_PROFILE_ID, insecureTlsLaunchEnvironment, onlineBuildEnvironment, onlineLaunchEnvironment } from './online-debug-launch.ts'
 
 const APP_ROOT = resolve(import.meta.dirname, '..')
@@ -68,9 +76,16 @@ class ChildExitError extends Error {
   }
 }
 
-async function run(command: string, args: readonly string[], cwd: string, environment = process.env): Promise<void> {
+async function run(
+  command: string,
+  args: readonly string[],
+  cwd: string,
+  environment = process.env,
+  onSpawn?: (pid: number | undefined) => void,
+): Promise<void> {
   await new Promise<void>((resolvePromise, reject) => {
     const child = spawn(command, args, { cwd, env: environment, stdio: 'inherit' })
+    onSpawn?.(child.pid)
     child.once('error', reject)
     child.once('exit', (code, signal) => {
       if (code === 0) resolvePromise()
@@ -146,15 +161,17 @@ const BREAKPOINT_HINT = 'desktop development: STATUS_BREAKPOINT means the operat
  * @param args - command line switches followed by the application directory.
  * @param cwd - working directory of the child.
  * @param environment - composed launch environment.
+ * @param onSpawn - receives the child pid once it is running.
  */
 async function runElectron(
   executable: string,
   args: readonly string[],
   cwd: string,
   environment: NodeJS.ProcessEnv,
+  onSpawn?: (pid: number | undefined) => void,
 ): Promise<void> {
   try {
-    await run(executable, args, cwd, environment)
+    await run(executable, args, cwd, environment, onSpawn)
   } catch (error) {
     if (!(error instanceof ChildExitError) || error.status !== STATUS_BREAKPOINT) throw error
     throw new ChildExitError(`${error.message}\n${BREAKPOINT_HINT}`, error.status)
@@ -172,12 +189,38 @@ function installedHarnessHomes(): string[] {
   return [brandHomePath(brand), join(homedir(), UPSTREAM_DSH_HOME_DIR_NAME)]
 }
 
+/** Lane state one Electron launch owns and records for the next launch. */
+interface LaunchingLane {
+  /** Lane this launch starts. */
+  readonly lane: DevelopmentLane
+  /** Web port the lane binds. */
+  readonly port: number
+  /** Persisted record naming the started Electron process. */
+  readonly instancePath: string
+  /** Browser data directory, also the identity of this lane's processes. */
+  readonly userData: string
+  /** Disposable npm project this lane boots, which carries its runtime descriptor. */
+  readonly projectDir: string
+}
+
+/**
+ * Start one Electron shell for a lane, and keep the lane's record while it runs.
+ * @param sdkworkEnvironment - composed SDKWork environment.
+ * @param online - whether this launch is the online debug lane.
+ * @param insecureTls - whether to accept unverifiable certificates.
+ * @param stateRoot - the lane's state directory.
+ * @param home - Harness home of this launch.
+ * @param lane - lane state this launch owns and records.
+ * @param onSpawned - receives the started shell's pid, after the lane record is written.
+ */
 async function launchElectron(
   sdkworkEnvironment: NodeJS.ProcessEnv,
   online: boolean,
   insecureTls: boolean,
   stateRoot: string,
   home: string,
+  lane: LaunchingLane,
+  onSpawned: (pid: number | undefined) => void,
 ): Promise<void> {
   const require = createRequire(import.meta.url)
   const electron: unknown = require('electron')
@@ -185,10 +228,14 @@ async function launchElectron(
   const mainPort = debugPort('DSH_DESKTOP_MAIN_INSPECT_PORT', 9229)
   const rendererPort = debugPort('DSH_DESKTOP_RENDERER_DEBUG_PORT', 9222)
   const hostPort = debugPort('DSH_DESKTOP_HOST_INSPECT_PORT', 9230)
-  const userData = resolve(process.env.DSH_DESKTOP_USER_DATA_DIR ?? join(stateRoot, 'electron-user-data'))
+  const userData = lane.userData
   const environment: NodeJS.ProcessEnv = {
     ...sdkworkEnvironment,
     DSH_HOME: home,
+    // The shell boots the disposable project this launch prepared; each lane keeps
+    // its own, so a development and an online shell never replace each other's
+    // project while both run.
+    DSH_DESKTOP_DSH_DIR: lane.projectDir,
     DSH_DESKTOP_PRIMARY_RUNTIME_DIR: process.env.DSH_DESKTOP_PRIMARY_RUNTIME_DIR ?? developmentRuntimeDirectory(),
     DSH_DESKTOP_HOST_INSPECT_PORT: String(hostPort),
     // The Host reads its Web port from this variable; without it the development
@@ -216,10 +263,27 @@ async function launchElectron(
   console.log(`desktop development: userData=${userData}`)
   console.log(`desktop development: inspectors main=${String(mainPort)}, renderer=${String(rendererPort)}, host=${String(hostPort)}`
     + (online ? '; attach the debugger through chrome://inspect (renderer console) or your IDE inspector (main and host)' : ''))
+  // Record the shell as this lane's owner, and keep the record only while it runs.
+  // The next launch of the lane replaces that process tree, so a window closed
+  // into the tray never leaves the relaunch without a window to show.
+  const launch = async (executable: string, args: readonly string[]): Promise<void> => {
+    let launched: number | undefined
+    try {
+      await runElectron(executable, args, APP_ROOT, launchEnvironment, (pid) => {
+        launched = pid
+        if (pid !== undefined) {
+          writeLaneInstance(lane.instancePath, { schemaVersion: 1, lane: lane.lane, port: lane.port, pid })
+        }
+        onSpawned(pid)
+      })
+    } finally {
+      if (launched !== undefined) clearLaneInstance(lane.instancePath, launched)
+    }
+  }
   if (process.platform === 'darwin') {
     const executable = prepareDevelopmentApp({ electron, appRoot: APP_ROOT, directory: stateRoot, home, userData,
       mainPort, rendererPort, hostPort, openDevtools: launchEnvironment.DSH_DESKTOP_OPEN_DEVTOOLS! })
-    await runElectron(executable, [], APP_ROOT, launchEnvironment)
+    await launch(executable, [])
     return
   }
   let executable = electron
@@ -246,7 +310,7 @@ async function launchElectron(
     console.log('desktop development: chromium sandbox disabled (DSH_DESKTOP_DEV_NO_SANDBOX=1)')
   }
   arguments_.push(APP_ROOT)
-  await runElectron(executable, arguments_, APP_ROOT, launchEnvironment)
+  await launch(executable, arguments_)
 }
 
 async function main(): Promise<void> {
@@ -307,62 +371,85 @@ async function launchDevelopment(
   // The online lane keeps its own Harness home and browser data so production
   // credentials and sessions never mix with the development state.
   const stateRoot = online ? ONLINE_ROOT : DEVELOPMENT_ROOT
-  const homeSelection = selectDevelopmentHome({
-    environment: process.env,
-    laneHome: join(stateRoot, 'home'),
-    installedHomes: installedHarnessHomes(),
-    allowInstalledHome: process.env.DSH_DESKTOP_DEV_INSTALLED_HOME === '1',
-  })
-  if (homeSelection.notice !== undefined) console.log(homeSelection.notice)
-  // A previous window of this lane owns the Host web port, and the Electron
-  // single-instance lock would only focus it: the launch would render that old
-  // Host's plugin snapshots instead of this build. Refuse before building.
-  await assertDevelopmentLanePortFree({
-    lane: online ? 'online' : 'development',
-    port: debugPort('DSH_DESKTOP_HOST_WEB_PORT', online ? ONLINE_HOST_WEB_PORT : DEVELOPMENT_HOST_WEB_PORT),
-  })
-  if (!options.skipBuild) {
-    // The Web build bakes the SDKWork env file its mode selects, so each lane
-    // builds its own environment: the development shell bakes
-    // `.env.standalone.development`, the online shell bakes production. The
-    // resolved gateway is the one launch-time value the file cannot carry
-    // (`--gateway`), so it goes through the build's explicit override channel.
-    const gatewayOverride = buildEnvironment.SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL?.trim()
-    await runPackageScript('build:artifacts', REPOSITORY_ROOT, {
-      ...buildEnvironment,
-      DSH_WEB_BUILD_MODE: online ? 'production' : 'development',
-      ...gatewayOverride === undefined || gatewayOverride === ''
-        ? {}
-        : { DSH_WEB_SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: gatewayOverride },
+  const lane: DevelopmentLane = online ? 'online' : 'development'
+  const projectDir = join(stateRoot, 'project')
+  // The disposable project is shared build state: a second launch that prepares it
+  // deletes the runtime descriptor the first window is about to boot, and that
+  // window then fails inside Electron instead of starting. Claim the preparation
+  // before anything is built, and record the claim's release once the window runs.
+  const launcherLock = await acquireDevelopmentLauncherLock({ lane, stateRoot })
+  try {
+    const homeSelection = selectDevelopmentHome({
+      environment: process.env,
+      laneHome: join(stateRoot, 'home'),
+      installedHomes: installedHarnessHomes(),
+      allowInstalledHome: process.env.DSH_DESKTOP_DEV_INSTALLED_HOME === '1',
     })
-    await runPackageScript('build', APP_ROOT, buildEnvironment)
+    if (homeSelection.notice !== undefined) console.log(homeSelection.notice)
+    const userData = resolve(process.env.DSH_DESKTOP_USER_DATA_DIR ?? join(stateRoot, 'electron-user-data'))
+    const instancePath = laneInstancePath(stateRoot)
+    const lanePort = debugPort('DSH_DESKTOP_HOST_WEB_PORT', online ? ONLINE_HOST_WEB_PORT : DEVELOPMENT_HOST_WEB_PORT)
+    // A previous window of this lane still holds its Host web port, the Chromium
+    // single-instance lock, and this lane's record; a launch beside it would only
+    // focus the old window, so replace it before building.
+    const claimed = await claimDevelopmentLane({
+      lane,
+      port: lanePort,
+      instancePath,
+      markers: laneIdentityMarkers({ stateRoot, userData, home: homeSelection.home }),
+    })
+    if (claimed.replaced.length > 0) {
+      console.log(`desktop development: replaced the ${lane} lane window of the previous launch `
+        + `(pid ${claimed.replaced.join(', ')}); closing a window hides it, so it was still running`)
+    }
+    if (!options.skipBuild) {
+      // The Web build bakes the SDKWork env file its mode selects, so each lane
+      // builds its own environment: the development shell bakes
+      // `.env.standalone.development`, the online shell bakes production. The
+      // resolved gateway is the one launch-time value the file cannot carry
+      // (`--gateway`), so it goes through the build's explicit override channel.
+      const gatewayOverride = buildEnvironment.SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL?.trim()
+      await runPackageScript('build:artifacts', REPOSITORY_ROOT, {
+        ...buildEnvironment,
+        DSH_WEB_BUILD_MODE: online ? 'production' : 'development',
+        ...gatewayOverride === undefined || gatewayOverride === ''
+          ? {}
+          : { DSH_WEB_SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: gatewayOverride },
+      })
+      await runPackageScript('build', APP_ROOT, buildEnvironment)
+    }
+    for (const path of [
+      join(APP_ROOT, 'lib', 'main.js'),
+      join(REPOSITORY_ROOT, 'apps', 'desktop-host', 'lib', 'index.js'),
+    ]) {
+      if (!existsSync(path)) throw new Error(`desktop development: missing built artifact ${path}`)
+    }
+    const version = packageVersion(join(APP_ROOT, 'package.json'), 'desktop package')
+    const pnpmVersion = packageVersion(join(APP_ROOT, 'node_modules', 'pnpm', 'package.json'), 'pnpm package')
+    const release: DesktopRelease = {
+      schemaVersion: 1,
+      version,
+      hostProtocolVersion: DESKTOP_HOST_PROTOCOL_VERSION,
+      nodeVersion: execFileSync(createRequire(import.meta.url)('electron') as string, ['-p', 'process.versions.node'],
+        { encoding: 'utf8', env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' } }).trim(),
+      pnpmVersion,
+    }
+    prepareDevelopmentProject({
+      projectDir,
+      cliDir: join(REPOSITORY_ROOT, 'apps', 'cli'),
+      hostDir: join(REPOSITORY_ROOT, 'apps', 'desktop-host'),
+      dependencyDir: join(REPOSITORY_ROOT, 'node_modules', '.pnpm', 'node_modules'),
+      release,
+      target: resolveDesktopBuildTarget(),
+    })
+    await preparePrimaryRuntime()
+    await launchElectron(launchEnvironment, online, options.insecureTLS, stateRoot, homeSelection.home,
+      { lane, port: lanePort, instancePath, userData, projectDir }, () => { launcherLock.release() })
+  } finally {
+    // The started shell has its own record, so the claim never outlives a failed
+    // preparation or a launcher that stopped before spawning one.
+    launcherLock.release()
   }
-  for (const path of [
-    join(APP_ROOT, 'lib', 'main.js'),
-    join(REPOSITORY_ROOT, 'apps', 'desktop-host', 'lib', 'index.js'),
-  ]) {
-    if (!existsSync(path)) throw new Error(`desktop development: missing built artifact ${path}`)
-  }
-  const version = packageVersion(join(APP_ROOT, 'package.json'), 'desktop package')
-  const pnpmVersion = packageVersion(join(APP_ROOT, 'node_modules', 'pnpm', 'package.json'), 'pnpm package')
-  const release: DesktopRelease = {
-    schemaVersion: 1,
-    version,
-    hostProtocolVersion: DESKTOP_HOST_PROTOCOL_VERSION,
-    nodeVersion: execFileSync(createRequire(import.meta.url)('electron') as string, ['-p', 'process.versions.node'],
-      { encoding: 'utf8', env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' } }).trim(),
-    pnpmVersion,
-  }
-  prepareDevelopmentProject({
-    projectDir: join(DEVELOPMENT_ROOT, 'project'),
-    cliDir: join(REPOSITORY_ROOT, 'apps', 'cli'),
-    hostDir: join(REPOSITORY_ROOT, 'apps', 'desktop-host'),
-    dependencyDir: join(REPOSITORY_ROOT, 'node_modules', '.pnpm', 'node_modules'),
-    release,
-    target: resolveDesktopBuildTarget(),
-  })
-  await preparePrimaryRuntime()
-  await launchElectron(launchEnvironment, online, options.insecureTLS, stateRoot, homeSelection.home)
 }
 
 await main().catch((error: unknown) => {

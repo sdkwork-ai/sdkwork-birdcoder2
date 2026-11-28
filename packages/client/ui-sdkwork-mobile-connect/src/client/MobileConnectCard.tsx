@@ -22,8 +22,8 @@ import css from './MobileConnectCard.module.css'
 /** The two scan destinations the card switches between. */
 type ConnectTab = 'app' | 'miniProgram'
 
-/** Edge length of the QR symbol in the card's 212px body, in CSS pixels. */
-const QR_SIZE = 184
+/** Edge length of the QR symbol inside its plate, in CSS pixels. */
+const QR_SIZE = 176
 
 /** Brand mark drawn in the symbol's centre; error correction stays at H so the excavated hole is recoverable. */
 const QR_LOGO = { src: '/favicon.png', width: 40, height: 40, excavate: true }

@@ -52,18 +52,18 @@
  * upstream's Plugins page. The SDKWork Plugins catalog leads the tab, and the
  * application's official and installed views remain available alongside it.
  *
- * The Skills tab is a sub-root too, and its leading chip is the cloud catalog;
- * it renders featured and recommended skills, categories, sorting, cloud-library
- * installation state, and details over the Skills app SDK. The SkillHub market
- * follows it. That market is the independent
- * `@montersy123/dsh-skill-market` plugin's own `main` panel; the chip's
- * surface renders it in place ({@link SkillMarketSurface}), so the market is
- * this tab's content rather than a second page to navigate to. When the
- * plugin is absent the surface names the deployment's choice instead of
- * leaving the tab blank. A skill installed there lands in the harness skill
- * root and is published to `ctx.skills`, so it needs no second integration
- * step: the Skills settings page lists it and the model can invoke it in the
- * running session.
+ * The Skills tab is one surface: its cloud catalog over the Skills app SDK,
+ * which renders a featured shelf and a recommendation grid with categories,
+ * sorting, cloud-library installation state, and details. The interface it
+ * obeys lives in the header row — the search field, the installed filter and
+ * the find / upload / create add menu — because those are the page's tools for
+ * this category rather than a toolbar of the catalog's own. The catalog
+ * publishes the installed count the header chip shows, so the two can never
+ * disagree. A skill added here lands in the cloud library; the independent
+ * SkillHub market owns local installation and execution, and a skill installed
+ * there lands in the harness skill root and is published to `ctx.skills`, so
+ * the Skills settings page lists it and the model can invoke it in the running
+ * session.
  *
  * The page also declares — and therefore owns the render face of — the seven
  * seats the upstream Plugins page declares, so every configuration a plugin
@@ -80,14 +80,14 @@
  * down, so the panels below draw a registrant's view without a slot call of
  * their own and the seat set lives in exactly one place.
  */
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import clsx from 'clsx'
 import { Fragment, type ComponentType } from 'react'
 import type { HostObservable, InjectFace, PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { ModeIconProps } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 import {
-  ConnectorsIcon, ExpertsIcon, InstalledIcon, OfficialIcon, MineIcon, MarketsIcon, PluginsIcon, SearchIcon, SkillsIcon,
+  CheckPlateIcon, ConnectorsIcon, ExpertsIcon, InstalledIcon, OfficialIcon, MineIcon, MarketsIcon, PluginsIcon, SearchIcon, SkillsIcon,
 } from './icons.tsx'
 import type { MarketsKey } from './locales.ts'
 import type { ConfigLedger } from './configItems.ts'
@@ -371,6 +371,54 @@ export interface MarketsPageInjected {
 }
 
 /**
+ * The panel's explicit height.
+ *
+ * A mode frame is supposed to hand this page a definite height, and the panel's
+ * `flex: 1` then takes whatever the category row leaves. A frame that sizes the
+ * page by its content breaks that: the page grows past the window, the column
+ * around it clips the overflow, and the panel — as tall as its content — never
+ * scrolls. CSS cannot recover the missing height, so the panel measures the room
+ * the window actually leaves below its own top edge and pins that. The measured
+ * number equals the layout result in a well-behaved frame, and bounds the panel
+ * in one that is not.
+ *
+ * @param panelRef - the scroll viewport this page mounts.
+ * @returns the panel height in pixels, or undefined until the first measurement.
+ */
+function usePanelHeight(panelRef: { current: HTMLDivElement | null }): number | undefined {
+  const [height, setHeight] = useState<number | undefined>()
+  useEffect(() => {
+    let frame = 0
+    const measure = (): void => {
+      const panel = panelRef.current
+      if (panel === null) return
+      const top = panel.getBoundingClientRect().top
+      // Never taller than the window, and never taller than the room the mode
+      // frame leaves below the page when that frame is smaller than the window.
+      const pageBounds = panel.closest('[data-mode-page]')?.getBoundingClientRect()
+      const bottom = Math.min(window.innerHeight, pageBounds === undefined ? window.innerHeight : pageBounds.bottom)
+      setHeight(Math.max(160, Math.round(bottom - top - 2)))
+    }
+    // Measure after paint so the category row's own height is in place.
+    frame = window.requestAnimationFrame(measure)
+    window.addEventListener('resize', measure)
+    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(measure)
+    const page = panelRef.current?.closest('[data-mode-page]') ?? null
+    if (observer !== undefined && page !== null) observer.observe(page)
+    // The category row changes height when its chips wrap or the strip expands;
+    // the panel's top moves with it, so the pinned height must follow.
+    const header = page?.firstElementChild ?? null
+    if (observer !== undefined && header !== null) observer.observe(header)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener('resize', measure)
+      observer?.disconnect()
+    }
+  }, [panelRef])
+  return height
+}
+
+/**
  * Full component props: runtime share + injected mode + the locale seat + the
  * child-slot render face.
  *
@@ -441,6 +489,11 @@ export function MarketsPage({
   // the My-experts page; its back control restores the market exactly as it
   // stood (the market's own tab/query state lives above this flag).
   const [mineExpertsOpen, setMineExpertsOpen] = useState(false)
+  // The scroll viewport this page mounts. Each branch mounts one, and only one
+  // is on screen at a time, so one ref and one measurement cover them all.
+  const panelRef = useRef<HTMLDivElement>(null)
+  const panelHeight = usePanelHeight(panelRef)
+  const panelStyle = panelHeight === undefined ? undefined : { height: `${panelHeight}px` }
 
   const selectTab = (id: MarketsTab) => {
     setTab(id)
@@ -570,7 +623,7 @@ export function MarketsPage({
           </div>
         </div>
         <SurfaceBoundary t={t}>
-          <div className={css.marketScroll}>
+          <div className={css.marketScroll} ref={panelRef} style={panelStyle}>
             <SdkworkPluginsMarketplace
               t={t}
               store={store}
@@ -653,7 +706,7 @@ export function MarketsPage({
                 data-skills-installed=""
                 onClick={() => { setSkillsInstalledOnly(value => !value) }}
               >
-                <InstalledIcon size={15} className={css.toolIcon} />
+                <CheckPlateIcon size={15} className={css.toolIcon} />
                 {t('skills.catalog.installedCount', { count: String(skillsInstalledCount) })}
               </button>
               <SkillsAdd
@@ -814,7 +867,7 @@ export function MarketsPage({
                 )
                 : tab === 'skills'
                   ? (
-                    <div className={css.marketScroll}>
+                    <div className={css.marketScroll} ref={panelRef} style={panelStyle}>
                       <SkillsCatalogSurface
                         snapshot={hostSnapshot}
                         actions={skillsCatalog}
@@ -833,7 +886,7 @@ export function MarketsPage({
                   : cloudPage === undefined
                     ? null
                     : (
-                      <div className={css.marketScroll}>
+                      <div className={css.marketScroll} ref={panelRef} style={panelStyle}>
                         {/* The header's search field is the one search: its query
                               drives the embedded catalog's controlled filter. */}
                         <MarketsApp page={cloudPage} t={t} searchQuery={query} />

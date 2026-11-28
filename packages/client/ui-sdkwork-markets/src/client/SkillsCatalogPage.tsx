@@ -9,7 +9,7 @@ import type {
   SkillRecord,
 } from '@sdkwork/skills-app-sdk'
 import type { MarketsKey } from './locales.ts'
-import { InstalledIcon, PlusIcon, RefreshIcon, SkillsIcon } from './icons.tsx'
+import { CheckPlateIcon, PlusIcon, RefreshIcon, SkillsIcon } from './icons.tsx'
 import { MarketplaceTabs } from './MarketplaceTabs.tsx'
 import css from './SkillsCatalogPage.module.css'
 
@@ -170,7 +170,7 @@ function SkillCard({
           disabled={installed || pending}
           onClick={onAdd}
         >
-          {installed ? <InstalledIcon size={16} /> : pending ? <span className={css.spinner} /> : <PlusIcon size={16} />}
+          {installed ? <CheckPlateIcon size={17} /> : pending ? <span className={css.spinner} /> : <PlusIcon size={16} />}
         </button>
       </div>
       <div className={css.cardMeta}>
@@ -297,8 +297,13 @@ export function SkillsCatalogPage({
   }, [installedOnly, installedSkills, skills, sort])
 
   // The featured shelf draws one batch of five; "show another batch" advances
-  // the window through the featured set and wraps once it runs out.
-  const featuredPool = useMemo(() => skills.filter(skill => skill.featured), [skills])
+  // the window through the featured set and wraps once it runs out. The shelf
+  // obeys the header's installed filter like the grid below it, so a filtered
+  // page never shows a card the filter would have excluded.
+  const featuredPool = useMemo(
+    () => (installedOnly ? installedSkills : skills).filter(skill => skill.featured),
+    [installedOnly, installedSkills, skills],
+  )
   const featuredSkills = useMemo(() => {
     if (featuredPool.length <= FEATURED_BATCH) return featuredPool
     const start = featuredOffset % featuredPool.length
@@ -478,7 +483,6 @@ export function SkillsCatalogPage({
           title={selectedSkill.name}
           description={t('skills.catalog.detailDescription')}
           closeLabel={t('dialog.close')}
-          contentClassName={css.detailContent}
           footer={(
             <div className={css.detailActions}>
               <Button variant="ghost" onClick={() => { setSelectedSkill(null) }}>{t('dialog.close')}</Button>

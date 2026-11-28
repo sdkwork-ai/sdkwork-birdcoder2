@@ -228,8 +228,8 @@ describe('MarketsHostRuntime', () => {
     const adapter = createMarketsHostRuntime(h)
     adapter.start()
     const onClearSearch = vi.fn()
-    const dispatchPrompt = vi.fn()
-    const onImportSkill = vi.fn()
+    const onInstalledOnlyChange = vi.fn()
+    const onInstalledCountChange = vi.fn()
     const onAdded = vi.fn()
     const onAddFailed = vi.fn()
     const actions = adapter.skillsCatalog
@@ -240,8 +240,9 @@ describe('MarketsHostRuntime', () => {
         snapshot,
         actions,
         requestSignIn,
-        dispatchPrompt,
-        onImportSkill,
+        installedOnly: true,
+        onInstalledOnlyChange,
+        onInstalledCountChange,
         onAdded,
         onAddFailed,
         searchQuery: 'docs',
@@ -255,8 +256,9 @@ describe('MarketsHostRuntime', () => {
         actions,
         searchQuery: 'docs',
         onClearSearch,
-        dispatchPrompt,
-        onImportSkill,
+        installedOnly: true,
+        onInstalledOnlyChange,
+        onInstalledCountChange,
         onAdded,
         onAddFailed,
         locale: 'zh-CN',

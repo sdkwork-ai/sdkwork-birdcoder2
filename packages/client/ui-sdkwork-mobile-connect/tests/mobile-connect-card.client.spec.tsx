@@ -48,7 +48,10 @@ describe('MobileConnectCard', () => {
     expect(within(tabs).getAllByRole('tab').map(tab => tab.textContent))
       .toEqual([en['tab.app'], en['tab.miniProgram']])
     expect(screen.getByText(en['title.app'])).toBeTruthy()
-    expect(screen.getByRole('img', { name: en['qr.app'] }).getAttribute('class')).toBeTruthy()
+    const code = screen.getByRole('img', { name: en['qr.app'] })
+    expect(code.getAttribute('class')).toBeTruthy()
+    // The symbol is sized for the plate the card reserves for it.
+    expect(code.getAttribute('height')).toBe('176')
   })
 
   it('switches the destination, its title, and the encoded page', () => {
