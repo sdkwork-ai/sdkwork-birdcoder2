@@ -277,5 +277,10 @@ build/
 # not come back, and this checkout must never be committed.
 /plugins/sdkwork-dsh-agents/
 
+# Local leftover clone of the replaced MCP-connector submodule. The connector is
+# first-party now (`plugins/sdkwork-mcp-connector`); this checkout must never be
+# committed.
+/plugins/dsh-mcp-connector/
+
 # Local market visual-check diagnostics: Playwright screenshots and catalog dumps.
 /apps/web/artifacts/
