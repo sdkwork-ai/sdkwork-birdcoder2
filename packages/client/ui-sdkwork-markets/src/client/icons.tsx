@@ -123,6 +123,14 @@ export const UploadIcon = ({ size = 24, className }: ModeIconProps) => (
   </svg>
 )
 
+/** The featured shelf's "show another batch" glyph: one clockwise arrow. */
+export const RefreshIcon = ({ size = 24, className }: ModeIconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20.6 4.4v5.4h-5.4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M20.2 14.6a8.4 8.4 0 1 1-2-8.2l1.6 1.6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
 /** The my-experts page's back affordance. */
 export const ArrowLeftIcon = ({ size = 24, className }: ModeIconProps) => (
   <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

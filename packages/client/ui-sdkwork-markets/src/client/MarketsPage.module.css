@@ -47,19 +47,23 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  width: 240px;
-  height: 30px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--dsw-alias-interactive-bg-hover);
+  width: 200px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-base);
   color: var(--dsw-alias-label-tertiary);
 }
 
+.search:hover {
+  border-color: var(--dsw-alias-border-l3);
+}
+
 .search:focus-within {
-  background: var(--dsw-alias-interactive-bg-active);
-  outline: 1px solid var(--dsw-alias-state-business-primary);
-  outline-offset: 0;
+  border-color: var(--dsw-alias-state-business-primary);
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 1px;
 }
 
 .searchIcon {
@@ -82,6 +86,55 @@
 
 .searchInput:focus {
   outline: none;
+}
+
+/* The Skills catalog's installed filter: a hairline chip beside the search
+   field, filled while the grid is filtered to installed skills. */
+.installedFilter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.installedFilter:hover {
+  border-color: var(--dsw-alias-border-l3);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.installedFilter:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 2px;
+}
+
+.installedFilterActive {
+  border-color: transparent;
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+.installedFilterActive:hover {
+  border-color: transparent;
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+.toolIcon {
+  flex: none;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.installedFilterActive .toolIcon {
+  color: var(--dsw-alias-label-primary);
 }
 
 /* The my-catalog affordance renders inert on Connectors until the catalog

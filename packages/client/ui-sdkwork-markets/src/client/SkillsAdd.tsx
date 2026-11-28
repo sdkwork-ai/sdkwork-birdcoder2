@@ -1,16 +1,18 @@
 /**
- * The Skills market's add affordance: an "Add skill" trigger with a caret
- * that opens a menu of install paths — "Find skills" (dispatch a catalog-search
- * prompt through the find-skills skill), "Upload skill" (open the import-skill
- * dialog), and "Create skill" (dispatch a creation prompt through the
- * skill-creator skill). The menu closes on selection, outside pointerdown, and
- * Escape; the trigger keeps `aria-haspopup`/`aria-expanded` so tests and
+ * The Skills market's add affordance: an "Add skill" trigger that opens a menu
+ * of install paths — "Find skills" (dispatch a catalog-search prompt through
+ * the find-skills skill), "Upload skill" (open the import-skill dialog), and
+ * "Create skill" (dispatch a creation prompt through the skill-creator skill).
+ * The page header draws it as the Skills row's one filled control, beside the
+ * installed filter; the menu closes on selection, outside pointerdown, and
+ * Escape, and the trigger keeps `aria-haspopup`/`aria-expanded` so tests and
  * assistive tech read the same open state.
  */
 import { useEffect, useRef, useState } from 'react'
 import type { ComponentType } from 'react'
+import clsx from 'clsx'
 import type { ModeIconProps } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
-import { CaretDownIcon, PlusIcon, SearchIcon, SparkIcon, UploadIcon } from './icons.tsx'
+import { PlusIcon, SearchIcon, SparkIcon, UploadIcon } from './icons.tsx'
 import type { MarketsKey } from './locales.ts'
 import css from './MarketsAdd.module.css'
 
@@ -78,15 +80,14 @@ export function SkillsAdd({ t, dispatchPrompt, onImportSkill }: SkillsAddProps) 
     <div className={css.wrap} ref={root} data-markets-add="skills">
       <button
         type="button"
-        className={css.trigger}
+        className={clsx(css.trigger, css.triggerPrimary)}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={t('skills.add.aria')}
         onClick={() => { setOpen(v => !v) }}
       >
-        <PlusIcon size={14} className={css.triggerIcon} />
+        <PlusIcon size={15} className={css.triggerIcon} />
         {t('skills.add.label')}
-        <CaretDownIcon size={12} className={css.triggerCaret} />
       </button>
       {open && (
         <div className={css.menu} role="menu" aria-label={t('skills.add.aria')}>

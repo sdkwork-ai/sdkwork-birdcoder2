@@ -1,53 +1,25 @@
+/* The cloud Skills catalog: a featured shelf over a five-column recommendation
+   grid. The page header owns the search field, the installed filter and the add
+   affordance, so this surface starts at its first section. Both card kinds share
+   one anatomy and differ only in metrics; the reference layout is five columns
+   at a wide window with 16px gutters and rounded, hairline-framed cards. */
+
 .catalog {
   container-type: inline-size;
   min-height: 100%;
-  padding: 28px 32px 48px;
+  padding: 8px 16px 40px;
   color: var(--dsw-alias-label-primary);
   background: var(--dsw-alias-bg-base);
 }
 
-.hero {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 28px;
-}
-
-.title {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 500;
-  line-height: 32px;
-  letter-spacing: -0.02em;
-}
-
-.subtitle {
-  margin: 6px 0 0;
-  color: var(--dsw-alias-label-secondary);
-  font-size: 13px;
-  line-height: 20px;
-}
-
-.cloudMark {
-  display: grid;
-  flex: none;
-  width: 52px;
-  height: 52px;
-  place-items: center;
-  border: 0;
-  border-radius: 16px;
-  color: var(--dsw-alias-label-secondary);
-  background: var(--dsw-alias-interactive-bg-hover);
-}
-
 .section + .section {
-  margin-top: 32px;
+  margin-top: 40px;
 }
 
 .sectionHeading {
   display: flex;
-  align-items: baseline;
+  min-height: 30px;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 14px;
@@ -56,95 +28,144 @@
 .sectionTitle {
   margin: 0;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 24px;
+  letter-spacing: -0.01em;
 }
 
-.sectionHint,
-.cloudNote {
-  color: var(--dsw-alias-label-tertiary);
-  font-size: 12px;
+/* "Show another batch": a quiet text control on the section's trailing edge. */
+.refresh {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.refresh:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.refreshIcon {
+  flex: none;
+}
+
+/* The sort control: a segmented capsule with one raised selected segment. It
+   wraps the shared tab strip, whose own paddings are neutralised here. */
+.sort {
+  display: flex;
+  flex: none;
+  align-items: center;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.sort :global([role='tablist']) {
+  gap: 2px;
+}
+
+.sort :global([role='tab']) {
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  font-weight: 500;
   line-height: 18px;
 }
 
-.cloudNote {
-  text-align: right;
+.sort :global([role='tab']:hover) {
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
 }
 
-.featuredRail {
+.sort :global([role='tab'][aria-selected='true']) {
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-primary);
+}
+
+.sort :global([role='tab'][aria-selected='true']:hover) {
+  background: var(--dsw-alias-bg-base);
+}
+
+.featuredGrid,
+.grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(176px, 1fr));
-  gap: 12px;
-  overflow-x: auto;
-  overscroll-behavior-inline: contain;
-  scrollbar-width: thin;
-  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
 }
 
+/* One card, two densities. The card is a vertical stack: a top row of icon,
+   name and one-line summary beside the add action, then the install count
+   anchored to the bottom edge. */
 .card {
   display: flex;
   min-width: 0;
-  min-height: 172px;
+  min-height: 120px;
   flex-direction: column;
-  padding: 16px;
-  border: 0;
-  border-radius: 12px;
-  background: var(--dsw-alias-interactive-bg-hover);
-  transition: background 120ms ease;
+  padding: 18px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 16px;
+  background: var(--dsw-alias-bg-base);
+  transition: background 120ms ease, border-color 120ms ease;
 }
 
 .card:hover {
-  background: var(--dsw-alias-interactive-bg-active);
+  border-color: var(--dsw-alias-border-l3);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.featuredCard {
+  padding: 20px;
 }
 
 .cardTop {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
 }
 
 .skillIcon {
   display: grid;
-  width: 38px;
-  height: 38px;
-  place-items: center;
-  border: 0;
-  border-radius: 10px;
-  color: var(--dsw-alias-label-primary);
-  background: var(--dsw-alias-interactive-bg-active);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1;
-}
-
-.cardAction {
-  display: grid;
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
   flex: none;
-  padding: 0;
   place-items: center;
-  border: 0;
-  border-radius: 8px;
-  color: var(--dsw-alias-label-primary);
-  background: transparent;
-  cursor: pointer;
+  border-radius: 12px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.01em;
 }
 
-.cardAction:hover:not(:disabled) {
-  background: var(--dsw-alias-interactive-bg-active);
+.featuredCard .skillIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  font-size: 15px;
 }
 
-.cardAction:disabled {
-  color: var(--dsw-alias-label-tertiary);
-  cursor: default;
-  opacity: 0.72;
-}
-
-.cardActionInstalled {
-  color: var(--dsw-alias-state-success-primary);
+.cardBody {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .cardName {
@@ -156,13 +177,18 @@
   color: var(--dsw-alias-label-primary);
   background: transparent;
   font: inherit;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   line-height: 20px;
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
   cursor: pointer;
+}
+
+.featuredCard .cardName {
+  font-size: 16px;
+  line-height: 22px;
 }
 
 .cardName:hover {
@@ -171,37 +197,82 @@
 }
 
 .cardDescription {
-  display: -webkit-box;
-  min-height: 36px;
-  margin: 6px 0 14px;
+  margin: 0;
   overflow: hidden;
   color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 18px;
-  overflow-wrap: anywhere;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.featuredCard .cardDescription {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.cardAction {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.cardAction:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-active);
+  color: var(--dsw-alias-label-primary);
+}
+
+.cardAction:disabled {
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: default;
+}
+
+.cardActionInstalled {
+  color: var(--dsw-alias-state-success-primary);
 }
 
 .cardMeta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 18px;
   margin-top: auto;
+  padding-top: 14px;
   color: var(--dsw-alias-label-tertiary);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 16px;
+}
+
+.featuredCard .cardMeta {
+  padding-top: 16px;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.cardStat {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .categories {
   display: flex;
   gap: 8px;
-  margin-bottom: 18px;
-  padding-bottom: 2px;
+  margin-bottom: 16px;
   overflow-x: auto;
-  scrollbar-width: thin;
-  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  scrollbar-width: none;
+}
+
+.categories::-webkit-scrollbar {
+  display: none;
 }
 
 .category {
@@ -229,43 +300,15 @@
   background: var(--dsw-alias-interactive-bg-active);
 }
 
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.sortControl,
-.toolbarActions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.toolbarLabel {
-  color: var(--dsw-alias-label-tertiary);
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.grid,
-.skeletonGrid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-
 .skeletonCard {
   display: flex;
-  min-height: 172px;
+  min-height: 120px;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  border: 0;
-  border-radius: 12px;
-  background: var(--dsw-alias-interactive-bg-hover);
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 16px;
+  background: var(--dsw-alias-bg-base);
 }
 
 .skeletonIcon,
@@ -277,14 +320,14 @@
 }
 
 .skeletonIcon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
 }
 
 .skeletonLine {
   width: 72%;
-  height: 14px;
+  height: 12px;
 }
 
 .skeletonShort {
@@ -333,9 +376,9 @@
   flex-direction: column;
   gap: 10px;
   padding: 32px;
-  border: 0;
-  border-radius: 12px;
-  background: var(--dsw-alias-interactive-bg-hover);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 16px;
+  background: var(--dsw-alias-bg-base);
   text-align: center;
 }
 
@@ -430,65 +473,61 @@
 
 .cardAction:focus-visible,
 .cardName:focus-visible,
-.category:focus-visible {
+.category:focus-visible,
+.refresh:focus-visible {
   outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
   outline-offset: 2px;
 }
 
-@container (max-width: 1120px) {
-  .grid,
-  .skeletonGrid {
+/* Narrower panes step the five-column row down; the cards keep their anatomy,
+   only the icon tile and the type scale collapse. */
+@container (max-width: 1360px) {
+  .featuredGrid,
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@container (max-width: 1060px) {
+  .featuredGrid,
+  .grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @container (max-width: 820px) {
-  .catalog {
-    padding: 24px;
-  }
-
-  .grid,
-  .skeletonGrid {
+  .featuredGrid,
+  .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
 
+@container (max-width: 620px) {
   .sectionHeading {
     align-items: flex-start;
     flex-direction: column;
-    gap: 4px;
+    gap: 10px;
   }
 
-  .cloudNote {
-    text-align: left;
+  .sort {
+    align-self: stretch;
+  }
+
+  .sort :global([role='tab']) {
+    flex: 1;
+    justify-content: center;
   }
 }
 
 @container (max-width: 560px) {
   .catalog {
-    padding: 20px 16px 36px;
+    padding: 4px 12px 32px;
   }
 
-  .hero {
-    margin-bottom: 24px;
-  }
-
-  .cloudMark {
-    display: none;
-  }
-
-  .grid,
-  .skeletonGrid {
+  .featuredGrid,
+  .grid {
     grid-template-columns: 1fr;
-  }
-
-  .toolbar {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .toolbarActions {
-    width: 100%;
-    justify-content: space-between;
+    gap: 12px;
   }
 
   .detailMeta {

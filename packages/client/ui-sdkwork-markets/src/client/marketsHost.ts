@@ -935,13 +935,16 @@ export interface SkillsCatalogSurfaceProps {
   snapshot: MarketsHostRenderSnapshot
   actions: SkillsCatalogActions
   requestSignIn: () => void
-  dispatchPrompt: (text: string) => void
-  onImportSkill: () => void
-  onShowSkillMarket?: () => void
   onClearSearch?: () => void
   onAdded: (name: string) => void
   onAddFailed: () => void
   searchQuery?: string
+  /** The page header's installed filter, which the catalog obeys. */
+  installedOnly: boolean
+  /** Toggle that filter from the catalog's empty state. */
+  onInstalledOnlyChange: (value: boolean) => void
+  /** Publish the installed count the header chip shows. */
+  onInstalledCountChange: (count: number) => void
   t: TranslateNS<'markets'>
 }
 
@@ -950,13 +953,13 @@ export function SkillsCatalogSurface({
   snapshot,
   actions,
   requestSignIn,
-  dispatchPrompt,
-  onImportSkill,
-  onShowSkillMarket,
   onClearSearch,
   onAdded,
   onAddFailed,
   searchQuery,
+  installedOnly,
+  onInstalledOnlyChange,
+  onInstalledCountChange,
   t,
 }: SkillsCatalogSurfaceProps): ReactNode {
   if (snapshot.apiBaseUrl === '') return createElement(MarketsEmptySurface, { t })
@@ -967,10 +970,10 @@ export function SkillsCatalogSurface({
     ...(searchQuery === undefined ? {} : { searchQuery }),
     locale: snapshot.locale,
     t,
-    dispatchPrompt,
-    onImportSkill,
-    ...(onShowSkillMarket === undefined ? {} : { onShowSkillMarket }),
     ...(onClearSearch === undefined ? {} : { onClearSearch }),
+    installedOnly,
+    onInstalledOnlyChange,
+    onInstalledCountChange,
     onAdded,
     onAddFailed,
   })

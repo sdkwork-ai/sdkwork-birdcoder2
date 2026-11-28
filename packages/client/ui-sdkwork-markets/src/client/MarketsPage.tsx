@@ -2,10 +2,11 @@
  * The Markets page: the center-column surface for the `markets` mode, keyed
  * into the frame's `mode.page` slot. The page header carries the category tab
  * bar (Plugins, Experts, Skills, Connectors) on the left and the catalog
- * tools on the right: a per-category search field and the Plugins add
- * affordance (create or install plugin). The Skills cloud catalog owns its
- * find / upload / create skill toolbar; SkillHub keeps the same add affordance
- * in the header. The Experts tab's
+ * tools on the right: a per-category search field, the Skills tab's installed
+ * filter and its add affordance (find / upload / create skill), and the Plugins
+ * add affordance (create or install plugin). The Skills cloud catalog draws no
+ * toolbar of its own: it obeys the filter and search this row owns and
+ * publishes the installed count the chip shows. The Experts tab's
  * my-catalog affordance opens the full-page My-experts view ({@link
  * MineExpertsPage}), which the view's back control leaves.
  * The Experts and Connectors tabs render their SDKWork App Store market page
@@ -93,6 +94,7 @@ import type { ConfigLedger } from './configItems.ts'
 import type { MarketsConfigForms } from './settingsForms.ts'
 import type { PluginStore } from './pluginStore.ts'
 import { MarketsAdd } from './MarketsAdd.tsx'
+import { SkillsAdd } from './SkillsAdd.tsx'
 import { PluginSourceDialog, type PluginSourceSubmission } from './PluginSourceDialog.tsx'
 import { ExpertMarketSurface } from './ExpertMarketSurface.tsx'
 import type { ExpertMarketPanel } from './expertMarketPanel.ts'
@@ -429,6 +431,12 @@ export function MarketsPage({
   // are described once.
   const [sourceMode, setSourceMode] = useState<'create' | 'install' | undefined>(undefined)
   const [skillDialogOpen, setSkillDialogOpen] = useState(false)
+  // The Skills catalog's installed filter and its count. Both live here because
+  // the header row — not the catalog panel — draws the chip: the catalog is
+  // controlled by the filter and publishes the count it derives from the data
+  // it loaded, so the chip and the panel can never disagree.
+  const [skillsInstalledOnly, setSkillsInstalledOnly] = useState(false)
+  const [skillsInstalledCount, setSkillsInstalledCount] = useState(0)
   // The Experts tab's my-catalog affordance swaps the whole market chrome for
   // the My-experts page; its back control restores the market exactly as it
   // stood (the market's own tab/query state lives above this flag).
@@ -440,6 +448,10 @@ export function MarketsPage({
     setPluginSubTab('market')
     setExpertSubTab('cloud')
     setConnectorSubTab('cloud')
+    // A search field and a filter belong to the tab that showed them; entering
+    // a category starts from its unfiltered catalog.
+    setSkillsInstalledOnly(false)
+    setSkillsInstalledCount(0)
   }
   const categoryTabs = (
     <MarketplaceTabs
@@ -629,6 +641,28 @@ export function MarketsPage({
             plugin views are the surfaces the header search serves. */}
         <div className={css.tools}>
           {!embeddedPanelSubTab && pageSearch}
+          {/* The Skills catalog's row carries its own tools: the installed
+              filter the catalog obeys and the add affordance, in the order the
+              category pages use (search, filter, add). */}
+          {tab === 'skills' && (
+            <>
+              <button
+                type="button"
+                className={clsx(css.installedFilter, skillsInstalledOnly && css.installedFilterActive)}
+                aria-pressed={skillsInstalledOnly}
+                data-skills-installed=""
+                onClick={() => { setSkillsInstalledOnly(value => !value) }}
+              >
+                <InstalledIcon size={15} className={css.toolIcon} />
+                {t('skills.catalog.installedCount', { count: String(skillsInstalledCount) })}
+              </button>
+              <SkillsAdd
+                t={t}
+                dispatchPrompt={dispatchPrompt}
+                onImportSkill={() => { setSkillDialogOpen(true) }}
+              />
+            </>
+          )}
           {tab === 'plugins' && pluginSubTab !== 'market' && (
             <MarketsAdd
               t={t}
@@ -785,13 +819,14 @@ export function MarketsPage({
                         snapshot={hostSnapshot}
                         actions={skillsCatalog}
                         requestSignIn={requestSignIn}
-                        dispatchPrompt={dispatchPrompt}
-                        onImportSkill={() => { setSkillDialogOpen(true) }}
                         onAdded={onSkillAdded}
                         onAddFailed={onSkillAddFailed}
                         t={t}
                         searchQuery={query}
                         onClearSearch={() => { setQuery('') }}
+                        installedOnly={skillsInstalledOnly}
+                        onInstalledOnlyChange={setSkillsInstalledOnly}
+                        onInstalledCountChange={setSkillsInstalledCount}
                       />
                     </div>
                   )

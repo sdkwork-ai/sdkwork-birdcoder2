@@ -33,6 +33,31 @@
   color: var(--dsw-alias-label-secondary);
 }
 
+/* The primary face of the trigger: the Skills catalog's add affordance is the
+   row's one filled control, so it paints the raised label colour and takes the
+   page background as its copy — the same filled/quiet pair the reference row
+   keeps beside its search field. */
+.triggerPrimary {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: var(--dsw-alias-label-primary);
+  color: var(--dsw-alias-bg-base);
+}
+
+.triggerPrimary:hover {
+  background: color-mix(in srgb, var(--dsw-alias-label-primary) 88%, var(--dsw-alias-bg-base));
+}
+
+.triggerPrimary .triggerIcon {
+  color: currentColor;
+}
+
+.triggerPrimary:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 2px;
+}
+
 /* The menu: anchored below the trigger's right edge, floating above the
    page content with the elevated layer surface. The elevation shadow already
    carries a neutral hairline, so the card draws no border of its own. */
