@@ -70,16 +70,13 @@ vi.mock('../src/client/marketsHost.ts', async () => {
       </div>
     ),
     SdkworkPluginsMarketplace: (props: {
+      searchQuery: string
+      onSearchChange: (value: string) => void
       onManage: () => void
       onAdd: () => void
       onSectionChange: (section: 'plugins' | 'skills' | 'partners') => void
     }) => (
-      <div data-sdkwork-marketplace="">
-        <div data-market-toolbar="">
-          <input type="search" aria-label="market.search" placeholder="market.search" />
-          <button type="button" onClick={props.onManage}>market.manage</button>
-          <button type="button" onClick={props.onAdd}>market.add</button>
-        </div>
+      <div data-sdkwork-marketplace="" data-catalog-query={props.searchQuery}>
         <button type="button" onClick={() => { props.onSectionChange('plugins') }}>market.plugins</button>
         <button type="button" onClick={() => { props.onSectionChange('skills') }}>market.skills</button>
         <button type="button" onClick={() => { props.onSectionChange('partners') }}>market.partners</button>
@@ -605,7 +602,7 @@ function page(options: {
     />,
   )
   if (!options.startOnMarketplace) {
-    fireEvent.click(view.getByRole('button', { name: 'market.manage' }))
+    fireEvent.click(view.getByRole('button', { name: 'manage.plugins' }))
     clickPluginSubTab(view, 'official')
   }
   return view
@@ -694,8 +691,12 @@ describe('MarketsPage', () => {
     const tabs = Array.from(tabList.querySelectorAll<HTMLElement>('[role="tab"]'))
     expect(tabs.map(tab => tab.textContent)).toEqual(['插件', '专家', '技能', '连接器'])
     expect(tabs.map(tab => tab.getAttribute('aria-selected'))).toEqual(['true', 'false', 'false', 'false'])
-    expect(view.getByRole('searchbox', { name: 'market.search' })).not.toBeNull()
-    expect(view.container.querySelector('[data-market-toolbar]')).not.toBeNull()
+    expect(view.getByRole('searchbox', { name: 'search.market' })).not.toBeNull()
+    // The catalog draws no toolbar of its own: the row above owns the search
+    // and the Manage / Add pair, exactly as it does for the other categories.
+    expect(view.container.querySelector('[data-market-toolbar]')).toBeNull()
+    expect(view.getByRole('button', { name: 'manage.plugins' })).not.toBeNull()
+    expect(view.getByRole('button', { name: 'add.aria' })).not.toBeNull()
 
     fireEvent.keyDown(tabs[0], { key: 'ArrowRight' })
     expect(tabs[1].getAttribute('aria-selected')).toBe('true')
@@ -707,19 +708,29 @@ describe('MarketsPage', () => {
     fireEvent.click(view.getByRole('button', { name: 'market.skills' }))
     expect(view.getByTestId('markets-app-skills')).toBeTruthy()
     fireEvent.click(view.getByRole('tab', { name: 'tab.plugins' }))
-    fireEvent.click(view.getByRole('button', { name: 'market.manage' }))
+    fireEvent.click(view.getByRole('button', { name: 'manage.plugins' }))
     expect(view.container.querySelector('[data-official-scope="installed"]')).not.toBeNull()
   })
 
-  it('opens the existing plugin source installer from marketplace Add', () => {
+  it('opens the plugin source installer from the page Add menu', () => {
     const view = page({ startOnMarketplace: true })
-    fireEvent.click(view.getByRole('button', { name: 'market.add' }))
+    fireEvent.click(view.getByRole('button', { name: 'add.aria' }))
+    fireEvent.click(view.getByRole('menuitem', { name: 'add.install.title' }))
     expect(view.getByRole('dialog', { name: 'source.title.install' })).not.toBeNull()
   })
 
-  it('renders plugin management from marketplace Manage', () => {
+  it('drives the catalog query from the page search field', () => {
     const view = page({ startOnMarketplace: true })
-    fireEvent.click(view.getByRole('button', { name: 'market.manage' }))
+    const field = view.getByRole('searchbox', { name: 'search.market' })
+    fireEvent.change(field, { target: { value: 'git' } })
+    expect(field).toHaveProperty('value', 'git')
+    expect(view.container.querySelector('[data-sdkwork-marketplace]')?.getAttribute('data-catalog-query'))
+      .toBe('git')
+  })
+
+  it('renders plugin management from the page Manage control', () => {
+    const view = page({ startOnMarketplace: true })
+    fireEvent.click(view.getByRole('button', { name: 'manage.plugins' }))
     expect(view.container.querySelector('[data-official-scope="installed"]')).not.toBeNull()
     expect(view.container.querySelector('[data-plugins-subtabs]')).not.toBeNull()
   })
@@ -1294,7 +1305,7 @@ describe('MarketsPage', () => {
     const view = page({ startOnMarketplace: true })
     // The SDKWork marketplace is a separate view from the local plugin roster.
     expect(view.container.querySelector('[data-bundle-group]')).toBeNull()
-    fireEvent.click(view.getByRole('button', { name: 'market.manage' }))
+    fireEvent.click(view.getByRole('button', { name: 'manage.plugins' }))
     clickPluginSubTab(view, 'official')
     await waitFor(() => {
       expect(view.container.querySelector('[data-bundle-group]')).not.toBeNull()
