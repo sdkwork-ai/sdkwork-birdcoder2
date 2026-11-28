@@ -588,12 +588,21 @@ export function MarketsPage({
           </div>
         </SurfaceBoundary>
         {!showLocalPanel && storeState.install !== undefined && <PluginInstallDialog t={t} store={store} install={storeState.install} />}
-        {sourceMode === 'install' && (
+        {/* The row's Add menu offers both paths here too: a created plugin goes
+            to the conversation, an install runs through this surface. */}
+        {sourceMode !== undefined && (
           <PluginSourceDialog
             t={t}
-            mode="install"
+            mode={sourceMode}
+            {...sourceMode === 'create'
+              ? { onGuided: () => { setSourceMode(undefined); dispatchPrompt(t('prompt.create')) } }
+              : {}}
             onSubmit={(submission) => {
               setSourceMode(undefined)
+              if (sourceMode === 'create') {
+                dispatchPrompt(createFromSourcePrompt(t, submission))
+                return
+              }
               store.openInstall(submission.spec)
               void store.runInstall()
             }}

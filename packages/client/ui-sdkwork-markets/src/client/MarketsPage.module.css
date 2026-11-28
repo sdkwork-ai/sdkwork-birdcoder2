@@ -217,6 +217,8 @@
   position: static;
 }
 
+/* The category strip keeps one row: a catalog with more categories than fit
+   shows the trailing toggle, which wraps them onto further rows on request. */
 .pluginMarketplace :global(main > nav) {
   gap: 4px;
   padding: 6px 16px 8px;
@@ -231,9 +233,31 @@
   line-height: 18px;
 }
 
+/* The trailing toggle is an icon control, not a chip: one square wash that sits
+   on the row's trailing edge and hides the chip it covers. */
+.pluginMarketplace :global(main > nav [data-category-toggle]) {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+  border-radius: 999px;
+  background: var(--dsw-alias-interactive-bg-active);
+  color: var(--dsw-alias-label-primary);
+  /* Fade on both sides: the chips run under the control and stop at the strip's
+     trailing inset, so nothing peeks past it. */
+  box-shadow:
+    -16px 0 12px 8px var(--dsw-alias-bg-base),
+    16px 0 12px 8px var(--dsw-alias-bg-base);
+}
+
 @media (hover: hover) and (pointer: fine) {
   .pluginMarketplace :global(main > nav button:hover) {
     background: var(--dsw-alias-interactive-bg-hover);
+  }
+
+  .pluginMarketplace :global(main > nav [data-category-toggle]:hover) {
+    background: var(--dsw-alias-interactive-bg-active);
   }
 }
 

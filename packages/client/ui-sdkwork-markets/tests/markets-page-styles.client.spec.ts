@@ -25,41 +25,26 @@ function rule(selector: string): string {
 }
 
 describe('MarketsPage Plugins catalog styles', () => {
-  it('positions the catalog toolbar in the category tabs row', () => {
+  it('puts the catalog tools in the page header row, not over the catalog', () => {
     expect(rule('.page')).toContain('position: relative')
-    expect(rule('.pluginMarketHeader')).toContain('position: relative')
-    expect(rule('.pluginMarketplace :global(main > header)')).toContain('position: absolute')
-    // The band takes the category row's own box: no measured tab width enters
-    // the offset, and the controls trail it.
-    expect(rule('.pluginMarketplace :global(main > header)')).toContain('inset: 0 16px auto 0')
-    expect(rule('.pluginMarketplace :global(main > header)')).toContain('height: 50px')
-    expect(rule('.pluginMarketplace :global(main > header)')).toContain('justify-content: flex-end')
+    // The row holds the category tabs and the trailing tools, like every other
+    // category: the catalog itself draws no header to pin.
+    expect(rule('.pluginMarketHeader')).toContain('background: var(--dsw-alias-bg-base)')
+    expect(rule('.header, .pluginMarketHeader')).toContain('justify-content: space-between')
+    expect(css).not.toContain('main > header')
   })
 
-  it('keeps the toolbar pinned to the page top row without eating tab clicks', () => {
-    // A positioned wrapper inside the scroll viewport would become the
-    // containing block and put the toolbar on the category chip strip.
+  it('leaves the catalog wrappers unpositioned so its rows keep their place', () => {
     expect(rule('.pluginMarketplace :global(main)')).toContain('position: static')
     expect(rule('.pluginMarketplace')).toContain('position: static')
-    // The band shares its row with the tabs and paints no fill of its own.
-    expect(rule('.pluginMarketplace :global(main > header)')).toContain('background: transparent')
-    // …and it must not swallow the clicks meant for the tabs beside it. The
-    // wrapper is not hit-testable; only the controls it carries are.
-    expect(rule('.pluginMarketplace :global(main > header)')).toContain('pointer-events: none')
-    expect(rule('.pluginMarketplace :global(main > header label)')).toContain('pointer-events: auto')
-    expect(rule('.pluginMarketplace :global(main > header button)')).toContain('pointer-events: auto')
-    expect(css).not.toContain('main > header > *')
-  })
-
-  it('lets the search field give way before the action pair', () => {
-    expect(rule('.pluginMarketplace :global(main > header label)')).toContain('flex: 0 1 184px')
+    expect(rule('.marketScroll, .pluginMarketplace, .pluginMarketplace :global(main)')).toContain('position: static')
   })
 
   it('uses the compact control and content scale', () => {
-    expect(rule('.pluginMarketplace :global(main > header label)')).toContain('height: 30px')
-    expect(rule('.pluginMarketplace :global(main > header input)')).toContain('font-size: 13px')
-    expect(rule('.pluginMarketplace :global(main > header > div)')).toContain('gap: 8px')
     expect(rule('.pluginMarketplace :global(main > nav button)')).toContain('min-height: 26px')
+    // The category strip's overflow toggle is an icon control, not a chip.
+    expect(rule('.pluginMarketplace :global(main > nav [data-category-toggle])')).toContain('width: 28px')
+    expect(rule('.pluginMarketplace :global(main > nav [data-category-toggle])')).toContain('border-radius: 999px')
     expect(rule('.pluginMarketplace :global(main h1)')).toContain('font-size: 15px')
     expect(rule('.pluginMarketplace :global(main h1)')).toContain('font-weight: 500')
     expect(rule('.pluginMarketplace :global(main article > span:first-child > span:nth-child(2))')).toContain('font-size: 16px')
@@ -74,8 +59,6 @@ describe('MarketsPage Plugins catalog styles', () => {
     expect(rule('.pluginMarketplace :global(main article[class*="featureCard"])')).toContain('border: 0;')
     expect(rule('.pluginMarketplace :global(main article[class*="featureCard"])')).toContain('background: var(--dsw-alias-interactive-bg-hover)')
     expect(rule('.pluginMarketplace :global(main article > div:first-child[aria-hidden="true"])')).toContain('background: var(--dsw-alias-interactive-bg-active)')
-    expect(rule('.pluginMarketplace :global(main > header label)')).toContain('border: 0;')
-    expect(rule('.pluginMarketplace :global(main > header button)')).toContain('border: 0;')
   })
 })
 
